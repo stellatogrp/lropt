@@ -117,20 +117,22 @@ K = 1
 
 # %%
 
-def outer_portfolio_problem(Dat_val, tau, x, alpha = 0.2):
+def outer_portfolio_problem(D_test):
     pass
 
-def loss_evalR(test):
+def loss_evalR(D_test):
     """New outer loss function"""
     x_val, x1_val, s_val, tau_val,y_val, l_val = cvxpylayer(R_torch, w_torch, R_torch,solver_args={'solve_method':'ECOS'})  # check
-    lt = torch.matmul(torch.tensor(test, requires_grad=True), x_val)
-    lt2 = torch.matmul(torch.tensor(d_eval, requires_grad=True), x_val)
+
+    lt = torch.matmul(torch.tensor(D_test, requires_grad=True), x_val)
     obj = tau_val + y_val
-    return torch.mean(torch.maximum(-5*lt -4*tau_val, tau_val)), obj, torch.mean(torch.maximum(-5*lt2 -4*tau_val, tau_val))
+
+    return torch.mean(torch.maximum(-5*lt -4*tau_val, tau_val)), obj
 
 # %%
-
-for r in range(5):
+R_range = 5
+R_losses = np.zeros(R_range)
+for r in range(R_range):
     Dat_exp, Dat_test = train_test_split(synthetic_returns, test_size = N_test)
 
     ################### DEFINE PROBLEM ################### 
@@ -158,7 +160,11 @@ for r in range(5):
         w_torch = torch.tensor(weights, requires_grad= True)
 
 
-        outer_loss, obj, evalv = loss_evalR(Dat_val)
+        outer_loss, obj = loss_evalR(Dat_val)
+
+        outer_loss.backward()
+        opt.step()
+        opt.zero_grad()
         # prob += (evalv.item() <= (outer_loss.item() + 1e-10))
 
 
