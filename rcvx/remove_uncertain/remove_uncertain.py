@@ -11,7 +11,7 @@ class RemoveUncertainParameters(Canonicalization):
 
     def __init__(self, problem=None):
         super(RemoveUncertainParameters, self).__init__(
-          problem=problem, canon_methods=remove_uncertain_methods)
+            problem=problem, canon_methods=remove_uncertain_methods)
 
     def accepts(self, problem):
         return True
@@ -24,13 +24,13 @@ class RemoveUncertainParameters(Canonicalization):
 
         # Check signs and apply
         # TODO: Can break easily! Need to check better method
-        for c in problem.constraints:
-            if type(c) in [Inequality, Equality]:
-                rhs = c.args[1]
-                unc_params_rhs = [x for x in rhs.parameters()
-                                  if isinstance(x, UncertainParameter)]
-                for param in unc_params_rhs:
-                    param.flip_sign = True
+        # for c in problem.constraints:
+        #    if type(c) in [Inequality, Equality]:
+        #        rhs = c.args[1]
+        #        unc_params_rhs = [x for x in rhs.parameters()
+        #                          if isinstance(x, UncertainParameter)]
+        #        for param in unc_params_rhs:
+        #            param.flip_sign = True
 
         if not self.accepts(problem):
             raise ValueError("Cannot canonicalize uncertain problem atoms.")
