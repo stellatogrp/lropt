@@ -44,7 +44,7 @@ class Ellipsoidal(UncertaintySet):
 
         if trans:
             new_expr = trans['b'] * x
-            new_expr += rho * norm(trans['A'].T * x,
+            new_expr += rho * norm(trans['A'].T @ x,
                                    p=self.dual_norm())
         else:
             new_expr = rho * norm(x, p=self.dual_norm())

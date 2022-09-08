@@ -1,101 +1,10 @@
-from cvxpy.error import DCPError, DGPError, SolverError
-from cvxpy.problems.objective import Maximize
 from cvxpy.problems.problem import Problem
-from cvxpy.reductions import Dgp2Dcp  # Qp2SymbolicQp,
-from cvxpy.reductions import (Chain, Complex2Real, CvxAttr2Constr, Dcp2Cone,
-                              FlipObjective)
-from cvxpy.reductions.complex2real import complex2real
-from cvxpy.reductions.solvers.solving_chain import construct_solving_chain
-
-#  from cvxpy.reductions.qp2quad_form import qp2symbolic_qp
+from cvxpy.reductions import Qp2SymbolicQp, Dcp2Cone
+from cvxpy.reductions.solvers.solving_chain import construct_solving_chain, SolvingChain
 from lro.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lro.uncertain import UncertainParameter
-
-
-def construct_robust_intermediate_chain(problem, candidates, gp=False):
-    """
-    Builds a chain that rewrites a problem into an intermediate
-    representation suitable for numeric reductions.
-
-    This chain includes a reduction to bring the robust
-    problem into convex form.
-
-    Parameters
-    ----------
-    problem : Problem
-        The problem for which to build a chain.
-    candidates : dict
-        Dictionary of candidate solvers divided in qp_solvers
-        and conic_solvers.
-    gp : bool
-        If True, the problem is parsed as a Disciplined Geometric Program
-        instead of as a Disciplined Convex Program.
-
-    Returns
-    -------
-    Chain
-        A Chain that can be used to convert the problem to
-        an intermediate form.
-
-    Raises
-    ------
-    DCPError
-        Raised if the problem is not DCP and `gp` is False.
-    DGPError
-        Raised if the problem is not DGP and `gp` is True.
-    """
-
-    reductions = []
-    if len(problem.variables()) == 0:
-        return Chain(reductions=reductions)
-
-    # TODO Reduce boolean constraints.
-    # TODO: Reenable complex2real
-    if complex2real.accepts(problem):
-        reductions += [Complex2Real()]
-
-    if gp:
-        reductions += [Dgp2Dcp()]
-
-    if not gp and not problem.is_dcp():
-        append = ""
-        append = (" However, the problem does follow DGP rules. "
-                  "Consider calling this function with `gp=True`.")
-        raise DCPError("Problem does not follow DCP rules." + append)
-
-    elif gp and not problem.is_dgp():
-        append = ""
-        if problem.is_dcp():
-            append = (" However, the problem does follow DCP rules. "
-                      "Consider calling this function with `gp=False`.")
-        raise DGPError("Problem does not follow DGP rules." + append)
-
-    # Dcp2Cone and Qp2SymbolicQp require problems to minimize their objectives.
-    if type(problem.objective) == Maximize:
-        reductions += [FlipObjective()]
-
-    #  if problem.uncertain_parameters():
-    #      reductions += [RemoveUncertainParameters()]
-
-    #  # First, attempt to canonicalize the problem
-    # to a linearly constrained QP.
-    #  if candidates['qp_solvers'] and qp2symbolic_qp.accepts(problem):
-    #      reductions += [CvxAttr2Constr(),
-    #                     Qp2SymbolicQp()]
-    #      return Chain(reductions=reductions)
-
-    # Canonicalize it to conic problem.
-    if not candidates['conic_solvers']:
-        raise SolverError("Problem could not be reduced to a QP, and no "
-                          "conic solvers exist among candidate solvers "
-                          "(%s)." % candidates)
-    reductions += [Dcp2Cone()]
-    if problem.uncertain_parameters():
-        reductions += [RemoveUncertainParameters()]
-    reductions += [Dcp2Cone(),
-                   CvxAttr2Constr()]
-
-    return Chain(reductions=reductions)
+from lro.utils import unique_list
+from typing import Optional
 
 
 class RobustProblem(Problem):
@@ -109,50 +18,51 @@ class RobustProblem(Problem):
             unc_params += [v for v in c.parameters()
                            if isinstance(v, UncertainParameter)]
 
-        # Pick unique elements
-        seen = set()
-        return [seen.add(obj.id) or obj
-                for obj in unc_params if obj.id not in seen]
+        return unique_list(unc_params)
 
-    def _construct_chains(self, solver=None, gp=False):
+    def _construct_chain(
+        self, solver: Optional[str] = None, gp: bool = False,
+        enforce_dpp: bool = False, ignore_dpp: bool = False,
+        solver_opts: Optional[dict] = None
+    ) -> SolvingChain:
         """
         Construct the chains required to reformulate and solve the problem.
-
         In particular, this function
-
-        #. finds the candidate solvers
-        #. constructs the intermediate chain suitable for numeric reductions.
-        #. constructs the solving chain that performs the
+        # finds the candidate solvers
+        # constructs the solving chain that performs the
            numeric reductions and solves the problem.
-
-        Parameters
-        ----------
+        Arguments
+        ---------
         solver : str, optional
             The solver to use. Defaults to ECOS.
         gp : bool, optional
             If True, the problem is parsed as a Disciplined Geometric Program
             instead of as a Disciplined Convex Program.
+        enforce_dpp : bool, optional
+            Whether to error on DPP violations.
+        ignore_dpp : bool, optional
+            When True, DPP problems will be treated as non-DPP,
+            which may speed up compilation. Defaults to False.
+        solver_opts: dict, optional
+            Additional arguments to pass to the solver.
+        Returns
+        -------
+        A solving chain
         """
+        candidate_solvers = self._find_candidate_solvers(solver=solver, gp=gp)
+        self._sort_candidate_solvers(candidate_solvers)
+        solving_chain = construct_solving_chain(self, candidate_solvers, gp=gp,
+                                                enforce_dpp=enforce_dpp,
+                                                ignore_dpp=ignore_dpp,
+                                                solver_opts=solver_opts)
 
-        chain_key = (solver, gp)
+        if self.uncertain_parameters():
+            new_reductions = solving_chain.reductions
+            # Find position of Dcp2Cone or Qp2SymbolicQp
+            for idx in range(len(new_reductions)):
+                if type(new_reductions[idx]) in [Dcp2Cone, Qp2SymbolicQp]:
+                    break
+            # Insert RemoveUncertainParameters before those reductions
+            new_reductions.insert(idx, RemoveUncertainParameters())
 
-        if chain_key != self._cached_chain_key:
-            try:
-                candidate_solvers = self._find_candidate_solvers(solver=solver,
-                                                                 gp=gp)
-
-                self._intermediate_chain = \
-                    construct_robust_intermediate_chain(self,
-                                                        candidate_solvers,
-                                                        gp=gp)
-                self._intermediate_problem, self._intermediate_inverse_data = \
-                    self._intermediate_chain.apply(self)
-
-                self._solving_chain = \
-                    construct_solving_chain(self._intermediate_problem,
-                                            candidate_solvers)
-
-                self._cached_chain_key = chain_key
-
-            except Exception as e:
-                raise e
+        return SolvingChain(reductions=new_reductions)
