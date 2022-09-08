@@ -51,7 +51,7 @@ class TestPortfolio(unittest.TestCase):
                        x >= 0]
 
         t = cp.Variable()  # Hack to add the objective
-        constraints += [r * x <= -t]
+        constraints += [r @ x <= -t]
 
         objective = cp.Maximize(t)
         problem = RobustProblem(objective, constraints)

@@ -22,7 +22,7 @@ class TestBoxUncertainty(unittest.TestCase):
         c = np.random.rand(self.n)
         self.b = 10.
         self.x = cp.Variable(self.n)
-        self.objective = cp.Minimize(c * self.x)
+        self.objective = cp.Minimize(c @ self.x)
         # Robust set
         self.rho = 0.2
         self.p = 2
@@ -43,7 +43,7 @@ class TestBoxUncertainty(unittest.TestCase):
                                  0.1 * np.ones(m_unc)))
 
         # Formulate robust problem using box constraints in cvxpy
-        constraints = [b_unc * x + 0.1 * cp.norm(A_unc.T * x, p=1) <= b]
+        constraints = [b_unc @ x + 0.1 * cp.norm(A_unc.T @ x, p=1) <= b]
         prob_cvxpy_box = cp.Problem(objective, constraints)
         prob_cvxpy_box.solve(solver=SOLVER)
         x_cvxpy_box = x.value
@@ -52,7 +52,7 @@ class TestBoxUncertainty(unittest.TestCase):
         unc_set = Box(rho=0.1,
                       affine_transform={'A': A_unc, 'b': b_unc})
         a = UncertainParameter(n, uncertainty_set=unc_set)
-        constraints = [a * x <= b]
+        constraints = [a @ x <= b]
         prob_robust_box = RobustProblem(objective, constraints)
         prob_robust_box.solve(solver=SOLVER)
         x_robust_box = x.value
@@ -63,7 +63,7 @@ class TestBoxUncertainty(unittest.TestCase):
                              affine_transform={'A': A_unc, 'b': b_unc})
         a = UncertainParameter(n,
                                uncertainty_set=unc_set)
-        constraints = [a * x <= b]
+        constraints = [a @ x <= b]
         prob_robust_poly = RobustProblem(objective, constraints)
         prob_robust_poly.solve(solver=SOLVER)
         x_robust_poly = x.value
@@ -90,7 +90,7 @@ class TestBoxUncertainty(unittest.TestCase):
             uncertainty_set=Box(center=5., rho=2.)
         )
         constraints = [0 <= x, x <= 10,
-                       -(u * x) >= -7]
+                       u @ x <= 7]
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
         npt.assert_allclose(x.value, 1.0, rtol=RTOL, atol=ATOL)
