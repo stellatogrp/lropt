@@ -79,7 +79,8 @@ def construct_robust_intermediate_chain(problem, candidates, gp=False):
     #  if problem.uncertain_parameters():
     #      reductions += [RemoveUncertainParameters()]
 
-    #  # First, attempt to canonicalize the problem to a linearly constrained QP.
+    #  # First, attempt to canonicalize the problem
+    # to a linearly constrained QP.
     #  if candidates['qp_solvers'] and qp2symbolic_qp.accepts(problem):
     #      reductions += [CvxAttr2Constr(),
     #                     Qp2SymbolicQp()]

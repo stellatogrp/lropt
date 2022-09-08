@@ -1,14 +1,9 @@
 import cvxpy as cp
 import numpy as np
 import unittest
-import numpy.testing as npt
 from lro.uncertain import UncertainParameter
 from lro.robust_problem import RobustProblem
-from lro.uncertainty_sets.polyhedral import Polyhedral
 from lro.uncertainty_sets.box import Box
-from lro.tests.settings import TESTS_RTOL as RTOL
-from lro.tests.settings import TESTS_ATOL as ATOL
-from lro.tests.settings import SOLVER
 
 
 def generate_data(n, N):
@@ -61,6 +56,3 @@ class TestPortfolio(unittest.TestCase):
         problem.solve(solver=cp.GUROBI, verbose=True)
 
         print(x.value)
-
-
-

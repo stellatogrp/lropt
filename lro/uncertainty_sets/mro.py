@@ -1,6 +1,6 @@
 from lro.uncertainty_sets.uncertainty_set import UncertaintySet
 from lro.utils import check_affine_transform
-from cvxpy import Variable
+from cvxpy import Variable, norm
 from sklearn.cluster import KMeans
 import numpy as np
 
@@ -9,7 +9,7 @@ class MRO(UncertaintySet):
     """
     Uncertainty set where the parameter is constrained to lie in a
     Wasserstein ball of the form
-    :math:`\\{ Sum( w_k||\\Pi(u_k) - d_k ||^p)\\le eps\\}`
+    :math:`\\{ \\sum( w_k||\\Pi(u_k) - d_k ||^p)\\le eps\\}`
 
     where :math:`\\Pi(u)` is an identity by default but can be
     an affine transformation :math:`A u + b`.
@@ -77,6 +77,10 @@ class MRO(UncertaintySet):
             return (self.q() - 1.)**(self.q() - 1.)/(self.q()**self.q())
 
     def canonicalize(self, x):
+
+        # TODO: DEFINE k
+        k = 10  # put it now to fix linting errors
+
         trans = self.affine_transform
         s = Variable(self._K)
         lam = Variable()

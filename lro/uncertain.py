@@ -25,4 +25,3 @@ class UncertainParameter(cp.Parameter):
             return "UncertainParameter(%s%s)" % (self.shape, attr_str)
         else:
             return "UncertainParameter(%s)" % (self.shape,)
-

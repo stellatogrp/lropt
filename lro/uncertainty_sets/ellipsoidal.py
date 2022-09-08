@@ -6,7 +6,7 @@ from cvxpy import norm
 class Ellipsoidal(UncertaintySet):
     """
     Uncertainty set where the norm is constrained as
-    :math:`\\{\Pi(u) | \\| u \\|_p \\le \\rho\\}`
+    :math:`\\{\\Pi(u) | \\| u \\|_p \\le \\rho\\}`
 
     where :math:`\\Pi(u)` is an identity by default but can be
     an affine transformation :math:`A u + b`.
