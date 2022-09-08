@@ -1,8 +1,10 @@
+import unittest
+
 import cvxpy as cp
 import numpy as np
-import unittest
-from lro.uncertain import UncertainParameter
+
 from lro.robust_problem import RobustProblem
+from lro.uncertain import UncertainParameter
 from lro.uncertainty_sets.box import Box
 
 

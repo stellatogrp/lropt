@@ -1,6 +1,8 @@
 from cvxpy.reductions.canonicalization import Canonicalization
-from lro.remove_uncertain.atom_canonicalizers import (
-    CANON_METHODS as remove_uncertain_methods)
+
+from lro.remove_uncertain.atom_canonicalizers import \
+    CANON_METHODS as remove_uncertain_methods
+
 #  from lro.uncertain import UncertainParameter
 #  from cvxpy.constraints.nonpos import Inequality
 #  from cvxpy.constraints.zero import Equality

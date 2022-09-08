@@ -1,21 +1,20 @@
 # %%
-from pyparsing import dbl_quoted_string
-import scipy as sc
-from sklearn import datasets
-from matplotlib.style import available
-from sklearn.cluster import KMeans
-from sklearn.model_selection import KFold
-import numpy as np
-import cvxpy as cp
-import torch
 import time
-from cvxpylayers.torch import CvxpyLayer
-import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
-import pandas as pd
 import warnings
-import mosek
 
+import cvxpy as cp
+import matplotlib.pyplot as plt
+import mosek
+import numpy as np
+import pandas as pd
+import scipy as sc
+import torch
+from cvxpylayers.torch import CvxpyLayer
+from matplotlib.style import available
+from pyparsing import dbl_quoted_string
+from sklearn import datasets
+from sklearn.cluster import KMeans
+from sklearn.model_selection import KFold, train_test_split
 
 # %%
 

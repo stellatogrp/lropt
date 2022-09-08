@@ -1,13 +1,15 @@
+import unittest
+
 import cvxpy as cp
 import numpy as np
-import unittest
 import numpy.testing as npt
-from lro.uncertain import UncertainParameter
+
 from lro.robust_problem import RobustProblem
+from lro.uncertain import UncertainParameter
 from lro.uncertainty_sets.ellipsoidal import Ellipsoidal
-from lro.tests.settings import SOLVER
-from lro.tests.settings import TESTS_RTOL as RTOL
-from lro.tests.settings import TESTS_ATOL as ATOL
+from tests.settings import SOLVER
+from tests.settings import TESTS_ATOL as ATOL
+from tests.settings import TESTS_RTOL as RTOL
 
 
 class TestEllipsoidalUncertainty(unittest.TestCase):

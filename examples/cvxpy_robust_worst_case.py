@@ -1,7 +1,6 @@
 import cvxpy as cp
 import numpy as np
 
-
 '''
 Worst case a for ellipsoid inequality
 '''

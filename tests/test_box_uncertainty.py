@@ -1,14 +1,16 @@
+import unittest
+
 import cvxpy as cp
 import numpy as np
-import unittest
 import numpy.testing as npt
-from lro.uncertain import UncertainParameter
+
 from lro.robust_problem import RobustProblem
-from lro.uncertainty_sets.polyhedral import Polyhedral
+from lro.uncertain import UncertainParameter
 from lro.uncertainty_sets.box import Box
-from lro.tests.settings import TESTS_RTOL as RTOL
-from lro.tests.settings import TESTS_ATOL as ATOL
-from lro.tests.settings import SOLVER
+from lro.uncertainty_sets.polyhedral import Polyhedral
+from tests.settings import SOLVER
+from tests.settings import TESTS_ATOL as ATOL
+from tests.settings import TESTS_RTOL as RTOL
 
 
 class TestBoxUncertainty(unittest.TestCase):

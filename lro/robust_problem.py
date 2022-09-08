@@ -1,14 +1,12 @@
-from cvxpy.problems.problem import Problem
+from cvxpy.error import DCPError, DGPError, SolverError
 from cvxpy.problems.objective import Maximize
-from cvxpy.error import SolverError, DCPError, DGPError
-from cvxpy.reductions.solvers.solving_chain import construct_solving_chain
-from cvxpy.reductions import (Chain, Dcp2Cone,
-                              FlipObjective,
-                              Dgp2Dcp,  # Qp2SymbolicQp,
-                              CvxAttr2Constr,
-                              Complex2Real
-                              )
+from cvxpy.problems.problem import Problem
+from cvxpy.reductions import Dgp2Dcp  # Qp2SymbolicQp,
+from cvxpy.reductions import (Chain, Complex2Real, CvxAttr2Constr, Dcp2Cone,
+                              FlipObjective)
 from cvxpy.reductions.complex2real import complex2real
+from cvxpy.reductions.solvers.solving_chain import construct_solving_chain
+
 #  from cvxpy.reductions.qp2quad_form import qp2symbolic_qp
 from lro.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lro.uncertain import UncertainParameter

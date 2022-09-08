@@ -1,6 +1,7 @@
+from cvxpy import norm
+
 from lro.uncertainty_sets.uncertainty_set import UncertaintySet
 from lro.utils import check_affine_transform
-from cvxpy import norm
 
 
 class Ellipsoidal(UncertaintySet):

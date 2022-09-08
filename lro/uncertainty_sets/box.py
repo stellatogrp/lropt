@@ -1,6 +1,7 @@
-from lro.uncertainty_sets.ellipsoidal import Ellipsoidal
 import numpy as np
 import scipy.sparse as spa
+
+from lro.uncertainty_sets.ellipsoidal import Ellipsoidal
 
 
 class Box(Ellipsoidal):

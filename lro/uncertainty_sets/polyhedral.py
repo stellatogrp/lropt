@@ -1,6 +1,7 @@
+from cvxpy import Variable
+
 from lro.uncertainty_sets.uncertainty_set import UncertaintySet
 from lro.utils import check_affine_transform
-from cvxpy import Variable
 
 
 class Polyhedral(UncertaintySet):

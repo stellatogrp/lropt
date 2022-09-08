@@ -1,8 +1,9 @@
-from lro.uncertainty_sets.uncertainty_set import UncertaintySet
-from lro.utils import check_affine_transform
+import numpy as np
 from cvxpy import Variable, norm
 from sklearn.cluster import KMeans
-import numpy as np
+
+from lro.uncertainty_sets.uncertainty_set import UncertaintySet
+from lro.utils import check_affine_transform
 
 
 class MRO(UncertaintySet):
