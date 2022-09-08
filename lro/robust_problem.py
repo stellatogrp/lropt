@@ -10,8 +10,8 @@ from cvxpy.reductions import (Chain, Dcp2Cone,
                               )
 from cvxpy.reductions.complex2real import complex2real
 #  from cvxpy.reductions.qp2quad_form import qp2symbolic_qp
-from rcvx.remove_uncertain.remove_uncertain import RemoveUncertainParameters
-from rcvx.uncertain import UncertainParameter
+from lro.remove_uncertain.remove_uncertain import RemoveUncertainParameters
+from lro.uncertain import UncertainParameter
 
 
 def construct_robust_intermediate_chain(problem, candidates, gp=False):

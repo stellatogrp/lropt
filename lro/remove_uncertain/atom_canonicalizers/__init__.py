@@ -1,7 +1,7 @@
 from cvxpy.atoms.affine.binary_operators import MulExpression, multiply
 #  from cvxpy.atoms.affine.unary_operators import NegExpression
-from rcvx.remove_uncertain.atom_canonicalizers.matmul_canon import matmul_canon
-#  from rcvx.remove_uncertain.atom_canonicalizers.negexpression_canon \
+from lro.remove_uncertain.atom_canonicalizers.matmul_canon import matmul_canon
+#  from lro.remove_uncertain.atom_canonicalizers.negexpression_canon \
     #  import negexpression_canon
 
 

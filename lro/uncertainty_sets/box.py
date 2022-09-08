@@ -1,4 +1,4 @@
-from rcvx.uncertainty_sets.ellipsoidal import Ellipsoidal
+from lro.uncertainty_sets.ellipsoidal import Ellipsoidal
 import numpy as np
 import scipy.sparse as spa
 

@@ -2,13 +2,13 @@ import cvxpy as cp
 import numpy as np
 import unittest
 import numpy.testing as npt
-from rcvx.uncertain import UncertainParameter
-from rcvx.robust_problem import RobustProblem
-from rcvx.uncertainty_sets.polyhedral import Polyhedral
-from rcvx.uncertainty_sets.box import Box
-from rcvx.tests.settings import TESTS_RTOL as RTOL
-from rcvx.tests.settings import TESTS_ATOL as ATOL
-from rcvx.tests.settings import SOLVER
+from lro.uncertain import UncertainParameter
+from lro.robust_problem import RobustProblem
+from lro.uncertainty_sets.polyhedral import Polyhedral
+from lro.uncertainty_sets.box import Box
+from lro.tests.settings import TESTS_RTOL as RTOL
+from lro.tests.settings import TESTS_ATOL as ATOL
+from lro.tests.settings import SOLVER
 
 
 def generate_data(n, N):

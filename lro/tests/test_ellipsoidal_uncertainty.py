@@ -2,12 +2,12 @@ import cvxpy as cp
 import numpy as np
 import unittest
 import numpy.testing as npt
-from rcvx.uncertain import UncertainParameter
-from rcvx.robust_problem import RobustProblem
-from rcvx.uncertainty_sets.ellipsoidal import Ellipsoidal
-from rcvx.tests.settings import SOLVER
-from rcvx.tests.settings import TESTS_RTOL as RTOL
-from rcvx.tests.settings import TESTS_ATOL as ATOL
+from lro.uncertain import UncertainParameter
+from lro.robust_problem import RobustProblem
+from lro.uncertainty_sets.ellipsoidal import Ellipsoidal
+from lro.tests.settings import SOLVER
+from lro.tests.settings import TESTS_RTOL as RTOL
+from lro.tests.settings import TESTS_ATOL as ATOL
 
 
 class TestEllipsoidalUncertainty(unittest.TestCase):
@@ -37,7 +37,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         prob_cvxpy = cp.Problem(objective, constraints)
         prob_cvxpy.solve(solver=SOLVER)
         x_cvxpy = x.value
-        # Formulate robust constraints with rcvx
+        # Formulate robust constraints with lro
         a = UncertainParameter(n,
                                uncertainty_set=Ellipsoidal(p=p, rho=rho))
         constraints = [a * x <= b]
@@ -59,7 +59,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         prob_cvxpy = cp.Problem(objective, constraints)
         prob_cvxpy.solve(solver=SOLVER)
         x_cvxpy = x.value
-        # Formulate robust constraints with rcvx
+        # Formulate robust constraints with lro
         unc_set = Ellipsoidal(p=p, rho=rho,
                               affine_transform={'A': A_unc, 'b': b_unc})
         a = UncertainParameter(n,

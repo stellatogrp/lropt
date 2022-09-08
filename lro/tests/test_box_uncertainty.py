@@ -2,13 +2,13 @@ import cvxpy as cp
 import numpy as np
 import unittest
 import numpy.testing as npt
-from rcvx.uncertain import UncertainParameter
-from rcvx.robust_problem import RobustProblem
-from rcvx.uncertainty_sets.polyhedral import Polyhedral
-from rcvx.uncertainty_sets.box import Box
-from rcvx.tests.settings import TESTS_RTOL as RTOL
-from rcvx.tests.settings import TESTS_ATOL as ATOL
-from rcvx.tests.settings import SOLVER
+from lro.uncertain import UncertainParameter
+from lro.robust_problem import RobustProblem
+from lro.uncertainty_sets.polyhedral import Polyhedral
+from lro.uncertainty_sets.box import Box
+from lro.tests.settings import TESTS_RTOL as RTOL
+from lro.tests.settings import TESTS_ATOL as ATOL
+from lro.tests.settings import SOLVER
 
 
 class TestBoxUncertainty(unittest.TestCase):
@@ -46,7 +46,7 @@ class TestBoxUncertainty(unittest.TestCase):
         prob_cvxpy_box.solve(solver=SOLVER)
         x_cvxpy_box = x.value
 
-        # Formulate robust problem using box constraints in rcvx
+        # Formulate robust problem using box constraints in lro
         unc_set = Box(rho=0.1,
                       affine_transform={'A': A_unc, 'b': b_unc})
         a = UncertainParameter(n, uncertainty_set=unc_set)

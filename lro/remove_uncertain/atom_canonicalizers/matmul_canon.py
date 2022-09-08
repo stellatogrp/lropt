@@ -1,6 +1,6 @@
 #  from cvxpy.atoms.affine.promote import promote
 #  from cvxpy.expressions.variable import Variable
-from rcvx.uncertain import UncertainParameter
+from lro.uncertain import UncertainParameter
 #  from cvxpy.atoms.affine.unary_operators import NegExpression
 
 

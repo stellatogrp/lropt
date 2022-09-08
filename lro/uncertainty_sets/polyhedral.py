@@ -1,5 +1,5 @@
-from rcvx.uncertainty_sets.uncertainty_set import UncertaintySet
-from rcvx.utils import check_affine_transform
+from lro.uncertainty_sets.uncertainty_set import UncertaintySet
+from lro.utils import check_affine_transform
 from cvxpy import Variable
 
 
