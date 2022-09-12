@@ -1,8 +1,10 @@
+import unittest
+
 import cvxpy as cp
 import numpy as np
-import unittest
-from lro.uncertain import UncertainParameter
+
 from lro.robust_problem import RobustProblem
+from lro.uncertain import UncertainParameter
 from lro.uncertainty_sets.box import Box
 
 
@@ -49,10 +51,10 @@ class TestPortfolio(unittest.TestCase):
                        x >= 0]
 
         t = cp.Variable()  # Hack to add the objective
-        constraints += [r * x <= -t]
+        constraints += [r @ x <= -t]
 
         objective = cp.Maximize(t)
         problem = RobustProblem(objective, constraints)
-        problem.solve(solver=cp.GUROBI, verbose=True)
+        problem.solve()
 
         print(x.value)

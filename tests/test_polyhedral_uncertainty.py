@@ -1,12 +1,14 @@
+import unittest
+
 import cvxpy as cp
 import numpy as np
-import unittest
 import numpy.testing as npt
-from lro.uncertain import UncertainParameter
+
 from lro.robust_problem import RobustProblem
+from lro.uncertain import UncertainParameter
 from lro.uncertainty_sets.polyhedral import Polyhedral
-from lro.tests.settings import TESTS_RTOL as RTOL
-from lro.tests.settings import TESTS_ATOL as ATOL
+from tests.settings import TESTS_ATOL as ATOL
+from tests.settings import TESTS_RTOL as RTOL
 
 
 class TestPolyhedralUncertainty(unittest.TestCase):
@@ -18,7 +20,7 @@ class TestPolyhedralUncertainty(unittest.TestCase):
         c = np.random.rand(self.n)
         self.b = 10.
         self.x = cp.Variable(self.n)
-        self.objective = cp.Minimize(c * self.x)
+        self.objective = cp.Minimize(c @ self.x)
         # Robust set
         self.rho = 0.2
         self.p = 2
@@ -34,8 +36,8 @@ class TestPolyhedralUncertainty(unittest.TestCase):
 
         # Formulate robust problem explicitly with cvxpy
         p = cp.Variable(n_poly)
-        constraints = [p * b_poly <= b,
-                       p.T * A_poly == x,
+        constraints = [p @ b_poly <= b,
+                       p.T @ A_poly == x,
                        p >= 0]
         prob_cvxpy = cp.Problem(objective, constraints)
         prob_cvxpy.solve()
@@ -45,7 +47,7 @@ class TestPolyhedralUncertainty(unittest.TestCase):
                              D=A_poly)
         a = UncertainParameter(n,
                                uncertainty_set=unc_set)
-        constraints = [a * x <= b]
+        constraints = [a @ x <= b]
         prob_robust = RobustProblem(objective, constraints)
         prob_robust.solve()
         x_robust = x.value
@@ -69,8 +71,8 @@ class TestPolyhedralUncertainty(unittest.TestCase):
 
         # Formulate robust problem explicitly with cvxpy
         p = cp.Variable(n_poly)
-        constraints = [b_unc * x + p * b_poly <= b,
-                       p.T * A_poly == A_unc.T * x,
+        constraints = [b_unc @ x + p @ b_poly <= b,
+                       p.T @ A_poly == A_unc.T @ x,
                        p >= 0]
         prob_cvxpy = cp.Problem(objective, constraints)
         prob_cvxpy.solve()
@@ -81,7 +83,7 @@ class TestPolyhedralUncertainty(unittest.TestCase):
                              affine_transform={'A': A_unc, 'b': b_unc})
         a = UncertainParameter(n,
                                uncertainty_set=unc_set)
-        constraints = [a * x <= b]
+        constraints = [a @ x <= b]
         prob_robust = RobustProblem(objective, constraints)
         prob_robust.solve()
         x_robust = x.value

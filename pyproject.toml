@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lro"
+description="A package for decision-making under uncertainty, using data."
+license = {text = "Apache 2.0"}
+version = "0.0.1"
+authors = [
+{name = "Irina Wang", email="iywang@princeton.edu"},
+{name = "Cole Becker", email="colebecker@princeton.edu"},
+{name = "Bart Van Parys", email="vanparys@mit.edu"},
+{name = "Bartolomeo Stellato", email="bstellato@princeton.edu"}
+]
+dependencies = [
+    "cvxpy >= 1.2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pre-commit"]
+
+[tool.autopep8]
+max_line_length = 120
+in-place = true
+recursive = true

@@ -1,9 +1,8 @@
-from future.utils import with_metaclass
-import abc
+from abc import ABC, abstractmethod
 
 
-class UncertaintySet(with_metaclass(abc.ABCMeta, object)):
+class UncertaintySet(ABC):
 
-    @abc.abstractmethod
+    @abstractmethod
     def canonicalize(self, x, minimize=False):
         return NotImplemented

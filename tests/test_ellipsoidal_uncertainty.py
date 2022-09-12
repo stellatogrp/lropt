@@ -1,13 +1,15 @@
+import unittest
+
 import cvxpy as cp
 import numpy as np
-import unittest
 import numpy.testing as npt
-from lro.uncertain import UncertainParameter
+
 from lro.robust_problem import RobustProblem
+from lro.uncertain import UncertainParameter
 from lro.uncertainty_sets.ellipsoidal import Ellipsoidal
-from lro.tests.settings import SOLVER
-from lro.tests.settings import TESTS_RTOL as RTOL
-from lro.tests.settings import TESTS_ATOL as ATOL
+from tests.settings import SOLVER
+from tests.settings import TESTS_ATOL as ATOL
+from tests.settings import TESTS_RTOL as RTOL
 
 
 class TestEllipsoidalUncertainty(unittest.TestCase):
@@ -19,7 +21,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         c = np.random.rand(self.n)
         self.b = 10.
         self.x = cp.Variable(self.n)
-        self.objective = cp.Minimize(c * self.x)
+        self.objective = cp.Minimize(c @ self.x)
         # Robust set
         self.rho = 0.2
         self.p = 2
@@ -40,7 +42,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # Formulate robust constraints with lro
         a = UncertainParameter(n,
                                uncertainty_set=Ellipsoidal(p=p, rho=rho))
-        constraints = [a * x <= b]
+        constraints = [a @ x <= b]
         prob_robust = RobustProblem(objective, constraints)
         prob_robust.solve(solver=SOLVER)
         x_robust = x.value
@@ -55,7 +57,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         A_unc = 3. * np.eye(m_unc)[:n, :]
         b_unc = 0.1 * np.random.rand(n)
         # Formulate robust problem explicitly with cvxpy
-        constraints = [b_unc * x + rho * cp.norm(A_unc.T * x, p=2) <= b]
+        constraints = [b_unc @ x + rho * cp.norm(A_unc.T @ x, p=2) <= b]
         prob_cvxpy = cp.Problem(objective, constraints)
         prob_cvxpy.solve(solver=SOLVER)
         x_cvxpy = x.value
@@ -64,7 +66,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
                               affine_transform={'A': A_unc, 'b': b_unc})
         a = UncertainParameter(n,
                                uncertainty_set=unc_set)
-        constraints = [a * x <= b]
+        constraints = [a @ x <= b]
         prob_robust = RobustProblem(objective, constraints)
         prob_robust.solve(solver=SOLVER)
         x_robust = x.value

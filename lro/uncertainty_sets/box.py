@@ -1,6 +1,7 @@
-from lro.uncertainty_sets.ellipsoidal import Ellipsoidal
 import numpy as np
 import scipy.sparse as spa
+
+from lro.uncertainty_sets.ellipsoidal import Ellipsoidal
 
 
 class Box(Ellipsoidal):
@@ -65,6 +66,6 @@ class Box(Ellipsoidal):
             raise ValueError("Rho value must be positive.")
 
         super(Box, self).__init__(
-                p=np.inf,
-                rho=rho,
-                affine_transform=affine_transform)
+            p=np.inf,
+            rho=rho,
+            affine_transform=affine_transform)
