@@ -1,10 +1,13 @@
+from typing import Optional
+
 from cvxpy.problems.problem import Problem
-from cvxpy.reductions import Qp2SymbolicQp, Dcp2Cone
-from cvxpy.reductions.solvers.solving_chain import construct_solving_chain, SolvingChain
+from cvxpy.reductions import Dcp2Cone, Qp2SymbolicQp
+from cvxpy.reductions.solvers.solving_chain import (SolvingChain,
+                                                    construct_solving_chain)
+
 from lro.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lro.uncertain import UncertainParameter
 from lro.utils import unique_list
-from typing import Optional
 
 
 class RobustProblem(Problem):

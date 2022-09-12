@@ -4,13 +4,12 @@
 To develop:
 
 1. Create a new python or conda environment
-2. Install this package in development mode with `pip install -e .`
+2. Install this package in development mode with `pip install -e ".[dev]"`
 3. Try stuff!
 
 
-To generate the `requirements.txt` file, just run
+To commit files, you need to install pre-commit.
 ```
-pip install pip-tools
-pip-compile
+pip install pre-commit
+pre-commit install
 ```
-

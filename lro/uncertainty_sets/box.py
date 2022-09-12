@@ -66,6 +66,6 @@ class Box(Ellipsoidal):
             raise ValueError("Rho value must be positive.")
 
         super(Box, self).__init__(
-                p=np.inf,
-                rho=rho,
-                affine_transform=affine_transform)
+            p=np.inf,
+            rho=rho,
+            affine_transform=affine_transform)

@@ -49,5 +49,3 @@ CANON_METHODS = {
 #  from cvxpy.reductions.eliminate_pwl.atom_canonicalizers import (abs_canon,
 #      maximum_canon, max_canon, minimum_canon, min_canon, norm1_canon,
 #      norm_inf_canon, sum_largest_canon)
-
-

@@ -43,7 +43,7 @@ class Ellipsoidal(UncertaintySet):
         rho = self.rho if not minimize else -self.rho
 
         if trans:
-            new_expr = trans['b'] * x
+            new_expr = trans['b'] @ x
             new_expr += rho * norm(trans['A'].T @ x,
                                    p=self.dual_norm())
         else:
