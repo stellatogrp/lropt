@@ -38,15 +38,14 @@ class Ellipsoidal(UncertaintySet):
     def dual_norm(self):
         return 1. + 1. / (self.p - 1.)
 
-    def canonicalize(self, x, minimize=False):
+    def canonicalize(self, x):
         trans = self.affine_transform
-        rho = self.rho if not minimize else -self.rho
 
         if trans:
             new_expr = trans['b'] @ x
-            new_expr += rho * norm(trans['A'].T @ x,
-                                   p=self.dual_norm())
+            new_expr += self.rho * norm(trans['A'].T @ x,
+                                        p=self.dual_norm())
         else:
-            new_expr = rho * norm(x, p=self.dual_norm())
+            new_expr = self.rho * norm(x, p=self.dual_norm())
 
         return new_expr, []

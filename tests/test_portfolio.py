@@ -55,6 +55,6 @@ class TestPortfolio(unittest.TestCase):
 
         objective = cp.Maximize(t)
         problem = RobustProblem(objective, constraints)
-        problem.solve(solver=cp.GUROBI, verbose=True)
+        problem.solve()
 
         print(x.value)

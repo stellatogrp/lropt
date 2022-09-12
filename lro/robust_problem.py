@@ -57,15 +57,18 @@ class RobustProblem(Problem):
         solving_chain = construct_solving_chain(self, candidate_solvers, gp=gp,
                                                 enforce_dpp=enforce_dpp,
                                                 ignore_dpp=ignore_dpp,
-                                                solver_opts=solver_opts)
+                                                # Comment this for now. Useful
+                                                # in next cvxpy release
+                                                #  solver_opts=solver_opts
+                                                )
 
         if self.uncertain_parameters():
             new_reductions = solving_chain.reductions
             # Find position of Dcp2Cone or Qp2SymbolicQp
             for idx in range(len(new_reductions)):
                 if type(new_reductions[idx]) in [Dcp2Cone, Qp2SymbolicQp]:
+                    # Insert RemoveUncertainParameters before those reductions
+                    new_reductions.insert(idx, RemoveUncertainParameters())
                     break
-            # Insert RemoveUncertainParameters before those reductions
-            new_reductions.insert(idx, RemoveUncertainParameters())
 
         return SolvingChain(reductions=new_reductions)

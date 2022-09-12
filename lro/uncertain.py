@@ -1,4 +1,5 @@
 import cvxpy as cp
+import numpy as np
 
 
 class UncertainParameter(cp.Parameter):
@@ -10,12 +11,12 @@ class UncertainParameter(cp.Parameter):
             raise ValueError("You must specify an uncertainty set.")
 
         super(UncertainParameter, self).__init__(*args, **kwargs)
+        self.value = np.zeros(self.shape)
         self.uncertainty_set = uncertainty_set
-        self.flip_sign = False  # Flip sign in canonicalization
 
     def canonicalize(self, x):
         """Reformulate uncertain parameter"""
-        return self.uncertainty_set.canonicalize(x, self.flip_sign)
+        return self.uncertainty_set.canonicalize(x)
 
     def __repr__(self):
         """String to recreate the object.
