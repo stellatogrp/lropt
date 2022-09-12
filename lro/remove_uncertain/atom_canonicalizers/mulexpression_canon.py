@@ -1,7 +1,7 @@
 from lro.uncertain import UncertainParameter
 
 
-def matmul_canon(expr, args):
+def mulexpression_canon(expr, args):
 
     # Check for direct parameter usage
     if isinstance(args[0], UncertainParameter):
