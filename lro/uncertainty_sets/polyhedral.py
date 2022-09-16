@@ -33,19 +33,29 @@ class Polyhedral(UncertaintySet):
     def D(self):
         return self._D
 
-    def canonicalize(self, x, minimize=False):
+    def canonicalize(self, x):
         trans = self.affine_transform
         n_hyper = len(self.d)
         p = Variable(n_hyper)
 
-        D = self.D if not minimize else -self.D
+        # D = self.D if not (sign==1) else -self.D
+        D = self.D
+        if x.is_scalar():
+            new_expr = p * self.d
+            new_constraints = [p >= 0]
+            if trans:
+                new_expr += trans['b'] * x
+                new_constraints += [p * D == -trans['A'] * x]
+            else:
+                new_constraints += [p * D == x]
 
-        new_expr = p @ self.d
-        new_constraints = [p >= 0]
-        if trans:
-            new_expr += trans['b'] @ x
-            new_constraints += [p.T @ D == trans['A'].T @ x]
         else:
-            new_constraints += [p.T @ D == x]
+            new_expr = p @ self.d
+            new_constraints = [p >= 0]
+            if trans:
+                new_expr += trans['b'] @ x
+                new_constraints += [p.T @ D == -trans['A'].T @ x]
+            else:
+                new_constraints += [p.T @ D == x]
 
         return new_expr, new_constraints

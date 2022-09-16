@@ -41,11 +41,20 @@ class Ellipsoidal(UncertaintySet):
     def canonicalize(self, x):
         trans = self.affine_transform
 
-        if trans:
-            new_expr = trans['b'] @ x
-            new_expr += self.rho * norm(trans['A'].T @ x,
-                                        p=self.dual_norm())
+        if x.is_scalar():
+            if trans:
+                new_expr = trans['b'] * x
+                new_expr += self.rho * norm(trans['A'] * x,
+                                            p=self.dual_norm())
+            else:
+                new_expr = self.rho * norm(x, p=self.dual_norm())
+
         else:
-            new_expr = self.rho * norm(x, p=self.dual_norm())
+            if trans:
+                new_expr = trans['b'] @ x
+                new_expr += self.rho * norm(trans['A'].T @ x,
+                                            p=self.dual_norm())
+            else:
+                new_expr = self.rho * norm(x, p=self.dual_norm())
 
         return new_expr, []
