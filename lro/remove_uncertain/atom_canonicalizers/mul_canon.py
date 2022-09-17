@@ -3,8 +3,8 @@ from lro.uncertain import UncertainParameter
 
 def mul_canon(expr, args):
 
-    import ipdb
-    ipdb.set_trace()
+    # import ipdb
+    # ipdb.set_trace()
     # Check for direct parameter usage
     if isinstance(args[0], UncertainParameter):
         u, x = args
