@@ -57,4 +57,6 @@ class Ellipsoidal(UncertaintySet):
             else:
                 new_expr = self.rho * norm(x, p=self.dual_norm())
 
+        # TODO: Make A and b parameters
+
         return new_expr, []

@@ -25,7 +25,7 @@ class RobustProblem(Problem):
 
     def _construct_chain(
         self, solver: Optional[str] = None, gp: bool = False,
-        enforce_dpp: bool = False, ignore_dpp: bool = False,
+        enforce_dpp: bool = True, ignore_dpp: bool = False,
         solver_opts: Optional[dict] = None
     ) -> SolvingChain:
         """
@@ -52,6 +52,9 @@ class RobustProblem(Problem):
         -------
         A solving chain
         """
+        # if enforce_dpp is False:
+        #      warnings.warn("should enforce problem is dpp")
+
         candidate_solvers = self._find_candidate_solvers(solver=solver, gp=gp)
         self._sort_candidate_solvers(candidate_solvers)
         solving_chain = construct_solving_chain(self, candidate_solvers, gp=gp,
@@ -59,9 +62,9 @@ class RobustProblem(Problem):
                                                 ignore_dpp=ignore_dpp,
                                                 # Comment this for now. Useful
                                                 # in next cvxpy release
-                                                #  solver_opts=solver_opts
+                                                solver_opts=solver_opts
                                                 )
-
+        #
         if self.uncertain_parameters():
             new_reductions = solving_chain.reductions
             # Find position of Dcp2Cone or Qp2SymbolicQp
