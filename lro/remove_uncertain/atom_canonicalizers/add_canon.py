@@ -1,11 +1,14 @@
 import numpy as np
-from cvxpy.atoms.affine.promote import Promote
 from cvxpy.atoms.affine.unary_operators import NegExpression
 
+from lro.remove_uncertain.atom_canonicalizers.mul_canon import \
+    mul_canon_transform
+from lro.remove_uncertain.atom_canonicalizers.mulexpression_canon import \
+    mulexpression_canon_transform
 from lro.uncertain import UncertainParameter
 
 
-def mul_canon(expr, args):
+def add_canon(expr, args):
 
     # import ipdb
     # ipdb.set_trace()
@@ -19,33 +22,37 @@ def mul_canon(expr, args):
         if isinstance(args[0].args[0], UncertainParameter):
             u = args[0].args[0]
             x = args[1]
-            u = mul_canon_transform(u, -1)
+            if len(u.shape) == 1:
+                u = mulexpression_canon_transform(u, -np.eye(u.shape[0]))
+            else:
+                u = mul_canon_transform(u, -1)
     elif isinstance(args[1], NegExpression):
         if isinstance(args[1].args[0], UncertainParameter):
             u = args[1].args[0]
             x = args[0]
-            u = mul_canon_transform(u, -1)
+            if len(u.shape) == 1:
+                u = mulexpression_canon_transform(u, -np.eye(u.shape[0]))
+            else:
+                u = mul_canon_transform(u, -1)
     else:
         # No uncertain variables
-        return args[0]*args[1], []
+        return args[0] + args[1], []
 
-    # adjust affine transform when multiplied by a constant
+    # adjust affine transform when adding constant vector
     if (x.is_constant()):
-        u = mul_canon_transform(u, x)
+        u = add_canon_transform(u, x)
         return u, []
-    return u.canonicalize(x)
+
+    raise ValueError("You must multiply uncertainty by a variable before adding by a variable.")
 
 
-def mul_canon_transform(u, c):
+def add_canon_transform(u, c):
     # adjust affine transform
     uset = u.uncertainty_set
     trans = uset.affine_transform_temp
-    if isinstance(c, Promote):
-        c = c.value[0]
     if trans:
-        trans['b'] = c*trans['b']
-        trans['A'] = c*trans['A']
+        trans['b'] = c + trans['b']
     else:
-        trans['b'] = 0
-        trans['A'] = c*np.eye(u.shape[0])
+        trans['b'] = c
+        trans['A'] = np.eye(u.shape[0])
     return u

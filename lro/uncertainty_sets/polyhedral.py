@@ -19,6 +19,9 @@ class Polyhedral(UncertaintySet):
 
         if affine_transform:
             check_affine_transform(affine_transform)
+            self.affine_transform_temp = affine_transform.copy()
+        else:
+            self.affine_transform_temp = None
         self.affine_transform = affine_transform
 
         self._d = d
@@ -33,7 +36,7 @@ class Polyhedral(UncertaintySet):
         return self._D
 
     def canonicalize(self, x):
-        trans = self.affine_transform
+        trans = self.affine_transform_temp
         n_hyper = len(self.d)
         p = Variable(n_hyper)
 
@@ -44,7 +47,7 @@ class Polyhedral(UncertaintySet):
             new_constraints = [p >= 0]
             if trans:
                 new_expr += trans['b'] * x
-                new_constraints += [p * D == -trans['A'] * x]
+                new_constraints += [p * D == trans['A'] * x]
             else:
                 new_constraints += [p * D == x]
 
@@ -53,8 +56,12 @@ class Polyhedral(UncertaintySet):
             new_constraints = [p >= 0]
             if trans:
                 new_expr += trans['b'] @ x
-                new_constraints += [p.T @ D == -trans['A'].T @ x]
+                new_constraints += [p.T @ D == trans['A'].T @ x]
             else:
                 new_constraints += [p.T @ D == x]
 
+        if self.affine_transform:
+            self.affine_transform_temp = self.affine_transform.copy()
+        else:
+            self.affine_transform_temp = None
         return new_expr, new_constraints

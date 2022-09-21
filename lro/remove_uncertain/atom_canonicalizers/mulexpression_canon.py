@@ -38,7 +38,7 @@ def mulexpression_canon(expr, args):
 def mulexpression_canon_transform(u, P):
     # adjust affine transform
     uset = u.uncertainty_set
-    trans = uset.affine_transform
+    trans = uset.affine_transform_temp
     if trans:
         trans['b'] = P@trans['b']
         trans['A'] = P@trans['A']
