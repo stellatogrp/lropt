@@ -19,7 +19,6 @@ class Polyhedral(UncertaintySet):
 
         if affine_transform:
             check_affine_transform(affine_transform)
-
         self.affine_transform = affine_transform
 
         self._d = d

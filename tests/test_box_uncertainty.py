@@ -43,7 +43,7 @@ class TestBoxUncertainty(unittest.TestCase):
                                  0.1 * np.ones(m_unc)))
 
         # Formulate robust problem using box constraints in cvxpy
-        constraints = [b_unc @ x + 0.1 * cp.norm(A_unc.T @ x, p=1) <= b]
+        constraints = [-2*b_unc @ x + 0.1 * cp.norm(-2*A_unc.T @ x, p=1) <= b]
         prob_cvxpy_box = cp.Problem(objective, constraints)
         prob_cvxpy_box.solve(solver=SOLVER)
         x_cvxpy_box = x.value
@@ -52,7 +52,7 @@ class TestBoxUncertainty(unittest.TestCase):
         unc_set = Box(rho=0.1,
                       affine_transform={'A': A_unc, 'b': b_unc})
         a = UncertainParameter(n, uncertainty_set=unc_set)
-        constraints = [a @ x <= b]
+        constraints = [2*np.eye(n)@-a @ x <= b]
         prob_robust_box = RobustProblem(objective, constraints)
         prob_robust_box.solve(solver=SOLVER)
         x_robust_box = x.value
@@ -60,7 +60,7 @@ class TestBoxUncertainty(unittest.TestCase):
         # Formulate robust problem using equivalent polyhedral constraint
         unc_set = Polyhedral(d=b_poly,
                              D=A_poly,
-                             affine_transform={'A': A_unc, 'b': b_unc})
+                             affine_transform={'A': -2*A_unc, 'b': -2*b_unc})
         a = UncertainParameter(n,
                                uncertainty_set=unc_set)
         constraints = [a @ x <= b]
@@ -72,7 +72,7 @@ class TestBoxUncertainty(unittest.TestCase):
         npt.assert_allclose(x_robust_box, x_robust_poly, rtol=RTOL, atol=ATOL)
 
     # @pytest.mark.skip(reason="Need to add scalar multiplication")
-    def test_inf_norm1(self):
+    def test_inf_norm_scaler(self):
         # import ipdb
         # ipdb.set_trace()
         x = cp.Variable()
@@ -81,23 +81,37 @@ class TestBoxUncertainty(unittest.TestCase):
             uncertainty_set=Box(center=5., rho=2.)
         )
         constraints = [0 <= x, x <= 10,
-                       u * x <= 7]
+                       u * x*0.5 <= 7]
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
-        npt.assert_allclose(x.value, 1.0, rtol=RTOL, atol=ATOL)
+        npt.assert_allclose(x.value, 2.0, rtol=RTOL, atol=ATOL)
+
+    def test_inf_norm1(self):
+        # import ipdb
+        # ipdb.set_trace()
+        x = cp.Variable()
+        objective = cp.Minimize(-10 * x)
+        u = UncertainParameter(
+            uncertainty_set=Box(center=0., rho=2.)
+        )
+        constraints = [0 <= x, x <= 10,
+                       0.5 * u * x <= 2]
+        prob = RobustProblem(objective, constraints)
+        prob.solve(solver=SOLVER)
+        npt.assert_allclose(x.value, 2.0, rtol=RTOL, atol=ATOL)
 
     # @pytest.mark.skip(reason="Need to add scalar multiplication")
     def test_inf_norm1_flip(self):
         x = cp.Variable()
         objective = cp.Minimize(-10 * x)
         u = UncertainParameter(
-            uncertainty_set=Box(rho=2., affine_transform={'A': -1., 'b': 5.})
+            uncertainty_set=Box(rho=2., affine_transform={'A': 1., 'b': 0.})
         )
         constraints = [0 <= x, x <= 10,
-                       u * x <= 7]
+                       -2*-u*x * 1 <= 2]
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
-        npt.assert_allclose(x.value, 1.0, rtol=RTOL, atol=ATOL)
+        npt.assert_allclose(x.value, 0.5, rtol=RTOL, atol=ATOL)
 
     #  def test_reverse_inequality(self):
     #  def test_uncertainty_in_objective(self):

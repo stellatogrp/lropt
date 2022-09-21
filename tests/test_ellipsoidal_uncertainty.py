@@ -50,6 +50,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         npt.assert_allclose(x_cvxpy, x_robust, rtol=RTOL, atol=ATOL)
 
     def test_robust_norm_lp_affine_transform(self):
+        # import ipdb
+        # ipdb.set_trace()
         b, x, n, objective, rho, p = \
             self.b, self.x, self.n, self.objective, self.rho, self.p
         # Robust set
@@ -57,7 +59,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         A_unc = 3. * np.eye(m_unc)[:n, :]
         b_unc = 0.1 * np.random.rand(n)
         # Formulate robust problem explicitly with cvxpy
-        constraints = [b_unc @ x + rho * cp.norm(A_unc.T @ x, p=2) <= b]
+        constraints = [-b_unc @ x + rho * cp.norm(-A_unc.T @ x, p=2) <= b]
         prob_cvxpy = cp.Problem(objective, constraints)
         prob_cvxpy.solve(solver=SOLVER)
         x_cvxpy = x.value
@@ -66,7 +68,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
                               affine_transform={'A': A_unc, 'b': b_unc})
         a = UncertainParameter(n,
                                uncertainty_set=unc_set)
-        constraints = [a @ x <= b]
+        constraints = [1*-a @ x * 1 <= b]
         prob_robust = RobustProblem(objective, constraints)
         prob_robust.solve(solver=SOLVER)
         x_robust = x.value
