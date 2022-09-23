@@ -1,3 +1,6 @@
+from lro.uncertain import UncertainParameter
+
+
 class UncertaintyError(Exception):
     """Error thrown if the uncertain problem has not been formulated correctly.
     """
@@ -17,3 +20,33 @@ def unique_list(duplicates_list):
     used = set()
     unique = [x for x in duplicates_list if not (x in used or used.add(x))]
     return unique
+
+
+def has_uncertain_param(expr):
+    # does this expression have an uncertain parameter?
+    has_uncertain = False
+    if len(expr.args) == 0:
+        return isinstance(expr, UncertainParameter)
+
+    else:
+        for args in expr.args:
+            if has_uncertain_param(args):
+                return True
+
+        return has_uncertain
+
+
+# def consolidate_constants(expr):
+#     # take a single expression, and consolidate all of the constants
+#     c = []
+#     if len(expr.args) is 0:
+#         if isinstance(expr, UncertainParameter):
+#             has_uncertain = True
+#             u = expr
+
+#     else:
+#         for args in expr.args:
+#             if has_uncertain_param(args):
+#                 return True
+
+#     return has_uncertain, u
