@@ -50,9 +50,9 @@ class TestBoxUncertainty(unittest.TestCase):
 
         # Formulate robust problem using box constraints in lro
         unc_set = Box(rho=0.1,
-                      affine_transform={'A': A_unc, 'b': b_unc})
+                      affine_transform={'A': A_unc, 'b': np.zeros(n)})
         a = UncertainParameter(n, uncertainty_set=unc_set)
-        constraints = [2*np.eye(n)@-a @ x <= b]
+        constraints = [-2*(b_unc + np.eye(n)@a) @ x <= b]
         prob_robust_box = RobustProblem(objective, constraints)
         prob_robust_box.solve(solver=SOLVER)
         x_robust_box = x.value
@@ -95,10 +95,10 @@ class TestBoxUncertainty(unittest.TestCase):
             uncertainty_set=Box(center=0., rho=2.)
         )
         constraints = [0 <= x, x <= 10,
-                       0.5 * u * x <= 2]
+                       (0 - 1*u) * x <= 2]
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
-        npt.assert_allclose(x.value, 2.0, rtol=RTOL, atol=ATOL)
+        npt.assert_allclose(x.value, 1.0, rtol=RTOL, atol=ATOL)
 
     # @pytest.mark.skip(reason="Need to add scalar multiplication")
     def test_inf_norm1_flip(self):

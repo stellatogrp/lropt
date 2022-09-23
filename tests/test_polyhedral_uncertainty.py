@@ -55,9 +55,11 @@ class TestPolyhedralUncertainty(unittest.TestCase):
         npt.assert_allclose(x_cvxpy, x_robust, rtol=RTOL, atol=ATOL)
 
     def test_polyhedral_lp_affine_transform(self):
+        # import ipdb
+        # ipdb.set_trace()
+
         b, x, n, objective, p = \
             self.b, self.x, self.n, self.objective, self.p
-
         # Robust set
         # Affine transform
         m_unc = 8
@@ -66,7 +68,7 @@ class TestPolyhedralUncertainty(unittest.TestCase):
 
         # Polyhedral constraint (make a box)
         n_poly = 2 * m_unc
-        A_poly = np.vstack((np.eye(m_unc), -np.eye(m_unc)))
+        A_poly = np.vstack((np.eye(m_unc), -2*np.eye(m_unc)))
         b_poly = np.concatenate((.1 * np.ones(m_unc), .1 * np.ones(m_unc)))
 
         # Formulate robust problem explicitly with cvxpy
