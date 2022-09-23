@@ -1,10 +1,10 @@
-from cvxpy.reductions.canonicalization import Canonicalization
-
 from lro.remove_uncertain.atom_canonicalizers import \
     CANON_METHODS as remove_uncertain_methods
+from lro.uncertain_canon.uncertain_canonicalization import \
+    Uncertain_Canonicalization
 
 
-class RemoveUncertainParameters(Canonicalization):
+class RemoveUncertainParameters(Uncertain_Canonicalization):
     """Remove uncertain parameter by reformulating robust problem."""
 
     def __init__(self, problem=None):
