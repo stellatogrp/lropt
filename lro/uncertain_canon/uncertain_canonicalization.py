@@ -5,6 +5,10 @@ from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
 from cvxpy.reductions.solution import Solution
 
+from lro.uncertain import UncertainParameter
+# from lro.utils import has_uncertain_param
+from lro.utils import unique_list
+
 
 class Uncertain_Canonicalization(Reduction):
     """Recursively canonicalize each expression in a problem.
@@ -44,6 +48,13 @@ class Uncertain_Canonicalization(Reduction):
             # its canonicalized arguments, and aux_constr are the constraints
             # generated while canonicalizing the arguments of the original
             # constraint
+
+            # import ipdb
+            # ipdb.set_trace()
+
+            # has_uncertain = self.has_uncertain_param(constraint)
+            # uncertain_fn_lst uncertain_var_lst,other_fnc_lst = extract_uncertain_params(constraint)
+
             canon_constr, aux_constr = self.canonicalize_tree(
                 constraint)
             canon_constraints += aux_constr + [canon_constr]
@@ -93,3 +104,10 @@ class Uncertain_Canonicalization(Reduction):
             return self.canon_methods[type(expr)](expr, args)
         else:
             return expr.copy(args), []
+
+    def has_uncertain_param(self, constraint):
+        unc_params = []
+        unc_params += [v for v in constraint.parameters()
+                       if isinstance(v, UncertainParameter)]
+
+        return len(unique_list(unc_params)) > 0

@@ -12,6 +12,8 @@ from tests.settings import SOLVER
 from tests.settings import TESTS_ATOL as ATOL
 from tests.settings import TESTS_RTOL as RTOL
 
+print("Hello")
+
 
 class TestBoxUncertainty(unittest.TestCase):
 
