@@ -14,7 +14,7 @@ authors = [
 {name = "Bartolomeo Stellato", email="bstellato@princeton.edu"}
 ]
 dependencies = [
-    "cvxpy @ git+ssh://git@github.com/cvxpy/cvxpy@master",
+    "cvxpy @ git+https://git@github.com/cvxpy/cvxpy@master",
 ]
 
 [project.optional-dependencies]
