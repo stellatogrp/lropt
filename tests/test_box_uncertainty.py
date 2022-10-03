@@ -54,8 +54,6 @@ class TestBoxUncertainty(unittest.TestCase):
         # Formulate robust problem using box constraints in lro
         unc_set = Box(rho=0.1,
                       affine_transform={'A': A_unc, 'b': np.zeros(n)})
-        import ipdb
-        ipdb.set_trace()
 
         a = UncertainParameter(n, uncertainty_set=unc_set)
         constraints = [-2*(b_unc + np.eye(n)@a) @ x <= b]
@@ -114,7 +112,7 @@ class TestBoxUncertainty(unittest.TestCase):
             uncertainty_set=Box(rho=2., affine_transform={'A': 1., 'b': 0.})
         )
         constraints = [0 <= x, x <= 10,
-                       (2*-u*x) * -1 <= 2]
+                       (2*-u*x) <= 2]
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
         npt.assert_allclose(x.value, 0.5, rtol=RTOL, atol=ATOL)

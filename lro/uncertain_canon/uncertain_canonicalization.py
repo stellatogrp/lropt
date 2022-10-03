@@ -55,11 +55,11 @@ class Uncertain_Canonicalization(Reduction):
             # generated while canonicalizing the arguments of the original
             # constraint
 
-            if self.has_unc_param(constraint):
-                # import ipdb
-                # ipdb.set_trace()
-                unc_lst, std_lst = self.separate_uncertainty(constraint)
-                # result_expr = self.remove_uncertainty(unc_lst, std_lst)
+            # if self.has_unc_param(constraint):
+            # import ipdb
+            # ipdb.set_trace()
+            # unc_lst, std_lst = self.separate_uncertainty(constraint)
+            # result_expr = self.remove_uncertainty(unc_lst, std_lst)
 
             canon_constr, aux_constr = self.canonicalize_tree(
                 constraint)
