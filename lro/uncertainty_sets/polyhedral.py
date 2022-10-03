@@ -35,33 +35,34 @@ class Polyhedral(UncertaintySet):
     def D(self):
         return self._D
 
-    def canonicalize(self, x):
+    def canonicalize(self, x, var):
         trans = self.affine_transform_temp
-        n_hyper = len(self.d)
-        p = Variable(n_hyper)
 
-        # D = self.D if not (sign==1) else -self.D
-        D = self.D
         if x.is_scalar():
-            new_expr = p * self.d
-            new_constraints = [p >= 0]
+            new_expr = 0
             if trans:
                 new_expr += trans['b'] * x
-                new_constraints += [p * D == trans['A'] * x]
+                new_constraints = [var == -trans['A'] * x]
             else:
-                new_constraints += [p * D == x]
+                new_constraints = [var == -x]
 
         else:
-            new_expr = p @ self.d
-            new_constraints = [p >= 0]
+            new_expr = 0
             if trans:
                 new_expr += trans['b'] @ x
-                new_constraints += [p.T @ D == trans['A'].T @ x]
+                new_constraints = [var == -trans['A'].T @ x]
             else:
-                new_constraints += [p.T @ D == x]
+                new_constraints = [var == -x]
 
         if self.affine_transform:
             self.affine_transform_temp = self.affine_transform.copy()
         else:
             self.affine_transform_temp = None
         return new_expr, new_constraints
+
+    def conjugate(self, var):
+        lmbda = Variable(len(self.d), nonneg=True)
+        if len(self.d) == 1:
+            return lmbda*self.d, [var == lmbda*self.D]
+        else:
+            return lmbda.T@self.d, [var == lmbda.T@self.D]

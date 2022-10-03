@@ -1,4 +1,4 @@
-from cvxpy import norm
+from cvxpy import Variable, norm
 
 from lro.uncertainty_sets.uncertainty_set import UncertaintySet
 from lro.utils import check_affine_transform
@@ -41,23 +41,23 @@ class Ellipsoidal(UncertaintySet):
     def dual_norm(self):
         return 1. + 1. / (self.p - 1.)
 
-    def canonicalize(self, x):
+    def canonicalize(self, x, var):
         trans = self.affine_transform_temp
         if x.is_scalar():
             if trans:
                 new_expr = trans['b'] * x
-                new_expr += self.rho * norm(trans['A'] * x,
-                                            p=self.dual_norm())
+                new_constraints = [var == -trans['A'] * x]
             else:
-                new_expr = self.rho * norm(x, p=self.dual_norm())
+                new_expr = 0
+                new_constraints = [var == -x]
 
         else:
             if trans:
                 new_expr = trans['b'] @ x
-                new_expr += self.rho * norm(trans['A'].T @ x,
-                                            p=self.dual_norm())
+                new_constraints = [var == -trans['A'].T @ x]
             else:
-                new_expr = self.rho * norm(x, p=self.dual_norm())
+                new_expr = 0
+                new_constraints = [var == -x]
 
         if self.affine_transform:
             self.affine_transform_temp = self.affine_transform.copy()
@@ -65,4 +65,8 @@ class Ellipsoidal(UncertaintySet):
             self.affine_transform_temp = None
         # TODO: Make A and b parameters
 
-        return new_expr, []
+        return new_expr, new_constraints
+
+    def conjugate(self, var):
+        lmbda = Variable(noneg=True)
+        return self.rho * lmbda, [norm(var, p=self.dual_norm()) <= lmbda]

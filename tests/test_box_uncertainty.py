@@ -95,7 +95,7 @@ class TestBoxUncertainty(unittest.TestCase):
             uncertainty_set=Box(center=0., rho=2.)
         )
         constraints = [0 <= x, x <= 10,
-                       (0 - 1*u) * x <= 2]
+                       -(0 - 1*u) * x + u*x >= -2]
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
         npt.assert_allclose(x.value, 1.0, rtol=RTOL, atol=ATOL)

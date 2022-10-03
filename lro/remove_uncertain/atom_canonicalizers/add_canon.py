@@ -8,7 +8,7 @@ from lro.remove_uncertain.atom_canonicalizers.mulexpression_canon import \
 from lro.uncertain import UncertainParameter
 
 
-def add_canon(expr, args):
+def add_canon(expr, args, var):
 
     # import ipdb
     # ipdb.set_trace()
