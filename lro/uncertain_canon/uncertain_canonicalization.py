@@ -59,8 +59,7 @@ class Uncertain_Canonicalization(Reduction):
                 # import ipdb
                 # ipdb.set_trace()
                 unc_lst, std_lst = self.separate_uncertainty(constraint)
-
-            # result_expr = self.remove_uncertain_expr(uncertain_fn_lst, uncertain_var_lst, other_fnc_lst)
+                # result_expr = self.remove_uncertainty(unc_lst, std_lst)
 
             canon_constr, aux_constr = self.canonicalize_tree(
                 constraint)
