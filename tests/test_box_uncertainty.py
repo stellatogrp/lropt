@@ -29,11 +29,12 @@ class TestBoxUncertainty(unittest.TestCase):
         self.rho = 0.2
         self.p = 2
 
-    def test_polyhedal_equal_box_norm(self):
+    def test_polyhedral_equal_box_norm(self):
         b, x, n, objective = self.b, self.x, self.n, self.objective
 
         # Robust set
         # Affine transform
+
         m_unc = 8
         A_unc = 3. * np.eye(m_unc)[:n, :]
         b_unc = 0.1 * np.random.rand(n)
@@ -53,6 +54,9 @@ class TestBoxUncertainty(unittest.TestCase):
         # Formulate robust problem using box constraints in lro
         unc_set = Box(rho=0.1,
                       affine_transform={'A': A_unc, 'b': np.zeros(n)})
+        import ipdb
+        ipdb.set_trace()
+
         a = UncertainParameter(n, uncertainty_set=unc_set)
         constraints = [-2*(b_unc + np.eye(n)@a) @ x <= b]
         prob_robust_box = RobustProblem(objective, constraints)
@@ -110,10 +114,26 @@ class TestBoxUncertainty(unittest.TestCase):
             uncertainty_set=Box(rho=2., affine_transform={'A': 1., 'b': 0.})
         )
         constraints = [0 <= x, x <= 10,
-                       -2*-u*x * 1 <= 2]
+                       (2*-u*x) * -1 <= 2]
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
         npt.assert_allclose(x.value, 0.5, rtol=RTOL, atol=ATOL)
+
+    def test_mat_multiply(self):
+        n = 5
+        x = cp.Variable(n)
+        c = np.ones(n)
+        A_unc = np.eye(n)
+        b_unc = 3*np.ones(n)
+
+        objective = cp.Minimize(c @ x)
+        u = UncertainParameter(n,
+                               uncertainty_set=Box(rho=2., affine_transform={'A': A_unc, 'b': b_unc}))
+
+        constraints = [0 <= x, x <= 10,
+                       2 * (u @ x) <= 2]
+        prob = RobustProblem(objective, constraints)
+        prob.solve(solver=SOLVER)
 
     #  def test_reverse_inequality(self):
     #  def test_uncertainty_in_objective(self):

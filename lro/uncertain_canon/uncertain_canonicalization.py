@@ -1,12 +1,18 @@
 from cvxpy import problems
+# from cvxpy.expressions.variable import Variable
+from cvxpy.atoms.affine.add_expr import AddExpression
+from cvxpy.atoms.affine.binary_operators import MulExpression, multiply
+from cvxpy.atoms.affine.unary_operators import NegExpression
+# Type Checking
+from cvxpy.constraints.nonpos import Inequality
 from cvxpy.expressions import cvxtypes
+from cvxpy.expressions.constants.constant import Constant
 from cvxpy.expressions.expression import Expression
 from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
 from cvxpy.reductions.solution import Solution
 
 from lro.uncertain import UncertainParameter
-# from lro.utils import has_uncertain_param
 from lro.utils import unique_list
 
 
@@ -49,11 +55,12 @@ class Uncertain_Canonicalization(Reduction):
             # generated while canonicalizing the arguments of the original
             # constraint
 
-            # import ipdb
-            # ipdb.set_trace()
+            if self.has_unc_param(constraint):
+                # import ipdb
+                # ipdb.set_trace()
+                unc_lst, std_lst = self.separate_uncertainty(constraint)
 
-            # has_uncertain = self.has_uncertain_param(constraint)
-            # uncertain_fn_lst uncertain_var_lst,other_fnc_lst = extract_uncertain_params(constraint)
+            # result_expr = self.remove_uncertain_expr(uncertain_fn_lst, uncertain_var_lst, other_fnc_lst)
 
             canon_constr, aux_constr = self.canonicalize_tree(
                 constraint)
@@ -105,9 +112,108 @@ class Uncertain_Canonicalization(Reduction):
         else:
             return expr.copy(args), []
 
-    def has_uncertain_param(self, constraint):
+    def count_unq_uncertain_param(self, expr):
         unc_params = []
-        unc_params += [v for v in constraint.parameters()
+        unc_params += [v for v in expr.parameters()
                        if isinstance(v, UncertainParameter)]
 
-        return len(unique_list(unc_params)) > 0
+        return len(unique_list(unc_params))
+
+    def has_unc_param(self, expr):
+        return self.count_unq_uncertain_param(expr) == 1
+
+    def separate_uncertainty(self, expr):
+        '''takes in a constraint or expression and returns 3 lists:
+            unc_lst :
+                EX: [g_1(u_1,x), g_2(u_1,x)]
+                a list of lists corresponding to the number of
+                unique uncertain parameters in the expression
+            std_lst :
+                Ex: [h_1(x),h_2(x)]
+                any other functions without uncertainty
+            '''
+
+        # Check Initial Conditions
+        if isinstance(expr, Inequality):
+            return self.separate_uncertainty(expr.args[0] - expr.args[1])
+        elif self.count_unq_uncertain_param(expr) == 0:
+            return ([], [expr])
+        elif self.count_unq_uncertain_param(expr) > 1:
+            raise ValueError("DRP error: Cannot have multiple uncertain params in the same expr")
+        elif len(expr.args) == 0:
+            assert (self.has_unc_param(expr))
+            return ([expr], [])
+
+        elif isinstance(expr, multiply):
+            if self.has_unc_param(expr.args[0]) and self.has_unc_param(expr.args[1]):
+                raise ValueError("DRP error: Cannot have uncertainty multiplied by each other")
+            c = 1
+            if self.has_unc_param(expr.args[0]):
+                unc_lst, std_lst = self.separate_uncertainty(expr.args[0])
+                if isinstance(expr.args[1], NegExpression):
+                    c = -1
+                    expr.args[1] = expr.args[1].args[0]
+                elif isinstance(expr.args[1], Constant):
+                    c = expr.args[1].value
+                    expr.args[1] = 1
+                new_unc_lst = [c * g_u * expr.args[1] for g_u in unc_lst]
+                new_std_lst = [c * h_x * expr.args[1] for h_x in std_lst]
+                return (new_unc_lst, new_std_lst)
+            else:
+                unc_lst, std_lst = self.separate_uncertainty(expr.args[1])
+                if isinstance(expr.args[0], NegExpression):
+                    c = -1
+                    expr.args[0] = expr.args[0].args[0]
+                elif isinstance(expr.args[0], Constant):
+                    c = expr.args[0].value
+                    expr.args[0] = 1
+                new_unc_lst = [c * expr.args[0] * g_u for g_u in unc_lst]
+                new_std_lst = [c * expr.args[0] * h_x for h_x in std_lst]
+                return (new_unc_lst, new_std_lst)
+
+        elif isinstance(expr, MulExpression):
+            import ipdb
+            ipdb.set_trace()
+            if self.has_unc_param(expr.args[0]) and self.has_unc_param(expr.args[1]):
+                raise ValueError("DRP error: Cannot have uncertainty multiplied by each other")
+            c = 1
+            if self.has_unc_param(expr.args[0]):
+                unc_lst, std_lst = self.separate_uncertainty(expr.args[0])
+                if isinstance(expr.args[1], NegExpression):
+                    c = -1
+                    expr.args[1] = expr.args[1].args[0]
+                elif isinstance(expr.args[1], Constant):
+                    c = expr.args[1].value
+                    expr.args[1] = 1
+                new_unc_lst = [c * g_u @ expr.args[1] for g_u in unc_lst]
+                new_std_lst = [c * h_x @ expr.args[1] for h_x in std_lst]
+                return (new_unc_lst, new_std_lst)
+            else:
+                unc_lst, std_lst = self.separate_uncertainty(expr.args[1])
+                if isinstance(expr.args[0], NegExpression):
+                    c = -1
+                    expr.args[0] = expr.args[0].args[0]
+                elif isinstance(expr.args[0], Constant):
+                    c = expr.args[0].value
+                    expr.args[0] = 1
+                new_unc_lst = [c * expr.args[0] @ g_u for g_u in unc_lst]
+                new_std_lst = [c * expr.args[0] @ h_x for h_x in std_lst]
+                return (new_unc_lst, new_std_lst)
+
+        elif isinstance(expr, AddExpression):
+            if self.has_unc_param(expr.args[0]) and self.has_unc_param(expr.args[1]):
+                unc_lst_0, std_lst_0 = self.separate_uncertainty(expr.args[0])
+                unc_lst_1, std_lst_1 = self.separate_uncertainty(expr.args[1])
+                return (unc_lst_0 + unc_lst_1, std_lst_0 + std_lst_1)
+            elif self.has_unc_param(expr.args[0]):
+                unc_lst, std_lst = self.separate_uncertainty(expr.args[0])
+                std_lst.append(expr.args[1])
+                return (unc_lst, std_lst)
+            else:
+                unc_lst, std_lst = self.separate_uncertainty(expr.args[1])
+                std_lst.append(expr.args[0])
+                return (unc_lst, std_lst)
+        elif isinstance(expr, NegExpression):
+            return ([-1 * expr.args[0]], [])
+        else:
+            raise ValueError("DRP error: not able to process non multiplication/additions")
