@@ -61,8 +61,11 @@ class Polyhedral(UncertaintySet):
         return new_expr, new_constraints
 
     def conjugate(self, var):
-        lmbda = Variable(len(self.d), nonneg=True)
+        lmbda = Variable(len(self.d))
+        constr = [lmbda >= 0]
         if len(self.d) == 1:
-            return lmbda*self.d, [var == lmbda*self.D]
+            constr += [var == lmbda*self.D]
+            return lmbda*self.d, constr
         else:
-            return lmbda.T@self.d, [var == lmbda.T@self.D]
+            constr += [var == lmbda@self.D]
+            return lmbda.T@self.d, constr

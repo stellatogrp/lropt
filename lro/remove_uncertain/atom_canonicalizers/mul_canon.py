@@ -46,6 +46,5 @@ def mul_canon_transform(u, c):
         trans['b'] = c*trans['b']
         trans['A'] = c*trans['A']
     else:
-        trans['b'] = 0
-        trans['A'] = c*np.eye(u.shape[0])
+        trans = {'A': c*np.eye(u.shape[0]), 'b': 0}
     return u

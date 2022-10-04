@@ -43,6 +43,5 @@ def mulexpression_canon_transform(u, P):
         trans['b'] = P@trans['b']
         trans['A'] = P@trans['A']
     else:
-        trans['b'] = 0
-        trans['A'] = P
+        trans = {'A': P, 'b': 0}
     return u

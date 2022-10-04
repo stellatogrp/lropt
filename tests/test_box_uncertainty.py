@@ -82,10 +82,10 @@ class TestBoxUncertainty(unittest.TestCase):
         x = cp.Variable()
         objective = cp.Minimize(-10 * x)
         u = UncertainParameter(
-            uncertainty_set=Box(center=5., rho=2.)
+            uncertainty_set=Box(center=0., rho=2.)
         )
         constraints = [0 <= x, x <= 10,
-                       u * x*0.5 <= 7]
+                       u * x*0.5 <= 2]
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
         npt.assert_allclose(x.value, 2.0, rtol=RTOL, atol=ATOL)
@@ -102,7 +102,7 @@ class TestBoxUncertainty(unittest.TestCase):
                        -(0 - 1*u) * x + u*x >= -2]
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
-        npt.assert_allclose(x.value, 1.0, rtol=RTOL, atol=ATOL)
+        npt.assert_allclose(x.value, 0.5, rtol=RTOL, atol=ATOL)
 
     # @pytest.mark.skip(reason="Need to add scalar multiplication")
     def test_inf_norm1_flip(self):

@@ -42,6 +42,8 @@ class Ellipsoidal(UncertaintySet):
         return 1. + 1. / (self.p - 1.)
 
     def canonicalize(self, x, var):
+        # import ipdb
+        # ipdb.set_trace()
         trans = self.affine_transform_temp
         if x.is_scalar():
             if trans:
@@ -68,5 +70,7 @@ class Ellipsoidal(UncertaintySet):
         return new_expr, new_constraints
 
     def conjugate(self, var):
-        lmbda = Variable(noneg=True)
-        return self.rho * lmbda, [norm(var, p=self.dual_norm()) <= lmbda]
+        lmbda = Variable()
+        constr = [norm(var, p=self.dual_norm()) <= lmbda]
+        constr += [lmbda >= 0]
+        return self.rho * lmbda, constr
