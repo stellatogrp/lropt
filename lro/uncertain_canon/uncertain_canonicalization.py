@@ -121,6 +121,7 @@ class Uncertain_Canonicalization(Reduction):
             return expr.copy(args), []
 
     def remove_uncertainty(self, unc_lst, uvar, std_lst):
+        "canonicalize each term separately with inf convolution"
         # import ipdb
         # ipdb.set_trace()
         num = len(unc_lst)
