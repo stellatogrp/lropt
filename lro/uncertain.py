@@ -18,9 +18,13 @@ class UncertainParameter(cp.Parameter):
         """Reformulate uncertain parameter"""
         return self.uncertainty_set.canonicalize(x, var)
 
-    def conjugate(self, var):
+    def isolated_unc(self, i, var, num_constr):
+        """Remove isolated uncertainty"""
+        return self.uncertainty_set.isolated_unc(i, var, num_constr)
+
+    def conjugate(self, var, shape):
         """Reformulate uncertainty set"""
-        return self.uncertainty_set.conjugate(var)
+        return self.uncertainty_set.conjugate(var, shape)
 
     def __repr__(self):
         """String to recreate the object.

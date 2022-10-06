@@ -56,7 +56,8 @@ class Uncertain_Canonicalization(Reduction):
             # its canonicalized arguments, and aux_constr are the constraints
             # generated while canonicalizing the arguments of the original
             # constraint
-
+            # import ipdb
+            # ipdb.set_trace()
             if self.has_unc_param(constraint):
                 # import ipdb
                 # ipdb.set_trace()
@@ -125,31 +126,68 @@ class Uncertain_Canonicalization(Reduction):
         # import ipdb
         # ipdb.set_trace()
         num = len(unc_lst)
-        if uvar.uncertainty_set.affine_transform:
-            if not isinstance(uvar.uncertainty_set.affine_transform['A'], float) \
-                    and not isinstance(uvar.uncertainty_set.affine_transform['A'], int):
-                shape = uvar.uncertainty_set.affine_transform['A'].shape[1]
+        if len(unc_lst[0].shape) >= 1:
+            num_constr = unc_lst[0].shape[0]
+        else:
+            num_constr = 1
+        trans = uvar.uncertainty_set.affine_transform
+        if trans:
+            if len(trans['A'].shape) > 1:
+                shape = trans['A'].shape[1]
+            else:
+                shape = 1
         elif len(uvar.shape) >= 1:
             shape = uvar.shape[0]
-        if len(uvar.shape) >= 1:
-            z = Variable((num+1, shape))
         else:
-            z = Variable(num+1)
+            shape = 1
+        if shape == 1:
+            z = Variable(num)
+        else:
+            z = Variable((num, shape))
         z_cons = 0
-        for idx in range(num+1):
-            z_cons += z[idx]
-        aux_const = [z_cons == 0]
-        aux_expr, new_const = uvar.conjugate(z[num])
-        aux_const += new_const
-        for ind in range(len(unc_lst)):
+        z_new_cons = {}
+        new_vars = {}
+        aux_expr = 0
+        aux_const = []
+        j = 0
+        for ind in range(num):
             # if len(unc_lst[ind].variables()) (check if has variable)
             u_expr, cons = self.remove_const(unc_lst[ind], 1)
             uvar = mul_canon_transform(uvar, cons)
             new_expr, new_const = self.canonicalize_tree(u_expr, z[ind])
-            aux_expr += new_expr
-            aux_const += new_const
+            if self.has_unc_param(new_expr):
+                assert (num_constr == shape)
+                if shape == 1:
+                    new_vars[ind] = Variable((num_constr, shape))
+                else:
+                    new_vars[ind] = Variable((num_constr, shape))
+                for idx in range(num_constr):
+                    # import ipdb
+                    # ipdb.set_trace()
+                    new_expr, new_const = uvar.isolated_unc(idx, new_vars[ind][idx], num_constr)
+                    aux_expr = aux_expr + new_expr
+                    aux_const += new_const
+                    if j == 1:
+                        z_new_cons[idx] += new_vars[ind][idx]
+                    else:
+                        z_new_cons[idx] = new_vars[ind][idx]
+
+                j = 1
+            else:
+                aux_expr = aux_expr + new_expr
+                aux_const += new_const
+                z_cons += z[ind]
+        z_unc = Variable((num_constr, shape))
+        if j == 1:
+            for ind in range(num_constr):
+                aux_const += [z_cons + z_new_cons[ind] == -z_unc[ind]]
+        else:
+            aux_const += [z_cons == -z_unc[0]]
+        new_expr, new_const = uvar.conjugate(z_unc, num_constr)
+        aux_const += new_const
+        aux_expr = aux_expr + new_expr
         for expr in std_lst:
-            aux_expr += expr
+            aux_expr = aux_expr + expr
         return aux_expr <= 0, aux_const
 
     def count_unq_uncertain_param(self, expr):
@@ -166,7 +204,10 @@ class Uncertain_Canonicalization(Reduction):
         return len(unique_list(unc_params))
 
     def has_unc_param(self, expr):
-        return self.count_unq_uncertain_param(expr) == 1
+        if not isinstance(expr, int) and not isinstance(expr, float):
+            return self.count_unq_uncertain_param(expr) == 1
+        else:
+            return 0
 
     def separate_uncertainty(self, expr):
         '''takes in a constraint or expression and returns 3 lists:
@@ -273,7 +314,11 @@ class Uncertain_Canonicalization(Reduction):
             new_unc_lst = [-1 * g_u for g_u in unc_lst]
             new_std_lst = [-1 * h_x for h_x in std_lst]
             return (new_unc_lst, new_std_lst)
+        elif isinstance(expr, Promote):
+            raise ValueError("DRP error: not able to process non multiplication/additions")
         else:
+            # import ipdb
+            # ipdb.set_trace()
             raise ValueError("DRP error: not able to process non multiplication/additions")
 
     def remove_const(self, expr, cons):
@@ -300,6 +345,7 @@ class Uncertain_Canonicalization(Reduction):
                 cons = (-1*cons).value
                 return self.remove_const(expr.args[0].args[0], cons)
             elif isinstance(expr.args[1], NegExpression):
+                cons = (-1*cons).value
                 return self.remove_const(expr.args[1].args[0], cons)
             else:
                 expr1, cons = self.remove_const(expr.args[0], cons)

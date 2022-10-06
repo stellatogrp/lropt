@@ -22,6 +22,7 @@ class RobustProblem(Problem):
                            if isinstance(v, UncertainParameter)]
 
         return unique_list(unc_params)
+# create function for only remove_uncertain reduction
 
     def _construct_chain(
         self, solver: Optional[str] = None, gp: bool = False,
@@ -66,6 +67,8 @@ class RobustProblem(Problem):
                                                 )
         #
         if self.uncertain_parameters():
+            # import ipdb
+            # ipdb.set_trace()
             new_reductions = solving_chain.reductions
             # Find position of Dcp2Cone or Qp2SymbolicQp
             for idx in range(len(new_reductions)):
@@ -73,5 +76,5 @@ class RobustProblem(Problem):
                     # Insert RemoveUncertainParameters before those reductions
                     new_reductions.insert(idx, RemoveUncertainParameters())
                     break
-
+        # return a chain instead (chain.apply, return the problem and inverse data)
         return SolvingChain(reductions=new_reductions)

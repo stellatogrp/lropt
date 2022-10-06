@@ -1,8 +1,9 @@
 import numpy as np
 from cvxpy.atoms.affine.promote import Promote
-from cvxpy.atoms.affine.unary_operators import NegExpression
 
 from lro.uncertain import UncertainParameter
+
+# from cvxpy.atoms.affine.unary_operators import NegExpression
 
 
 def mul_canon(expr, args, var):
@@ -15,16 +16,16 @@ def mul_canon(expr, args, var):
     elif isinstance(args[1], UncertainParameter):
         x, u = args
     # check for negative parameter and negate affine transform
-    elif isinstance(args[0], NegExpression):
-        if isinstance(args[0].args[0], UncertainParameter):
-            u = args[0].args[0]
-            x = args[1]
-            u = mul_canon_transform(u, -1)
-    elif isinstance(args[1], NegExpression):
-        if isinstance(args[1].args[0], UncertainParameter):
-            u = args[1].args[0]
-            x = args[0]
-            u = mul_canon_transform(u, -1)
+    # elif isinstance(args[0], NegExpression):
+    #     if isinstance(args[0].args[0], UncertainParameter):
+    #         u = args[0].args[0]
+    #         x = args[1]
+    #         u = mul_canon_transform(u, -1)
+    # elif isinstance(args[1], NegExpression):
+    #     if isinstance(args[1].args[0], UncertainParameter):
+    #         u = args[1].args[0]
+    #         x = args[0]
+    #         u = mul_canon_transform(u, -1)
     else:
         # No uncertain variables
         return args[0]*args[1], []
@@ -38,6 +39,8 @@ def mul_canon(expr, args, var):
 
 def mul_canon_transform(u, c):
     # adjust affine transform
+    # import ipdb
+    # ipdb.set_trace()
     uset = u.uncertainty_set
     trans = uset.affine_transform_temp
     if isinstance(c, Promote):

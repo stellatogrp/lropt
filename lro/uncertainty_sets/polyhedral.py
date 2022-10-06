@@ -1,3 +1,4 @@
+import numpy as np
 from cvxpy import Variable
 
 from lro.uncertainty_sets.uncertainty_set import UncertaintySet
@@ -19,6 +20,8 @@ class Polyhedral(UncertaintySet):
 
         if affine_transform:
             check_affine_transform(affine_transform)
+            affine_transform['A'] = np.array(affine_transform['A'])
+            affine_transform['b'] = np.array(affine_transform['b'])
             self.affine_transform_temp = affine_transform.copy()
         else:
             self.affine_transform_temp = None
@@ -60,12 +63,42 @@ class Polyhedral(UncertaintySet):
             self.affine_transform_temp = None
         return new_expr, new_constraints
 
-    def conjugate(self, var):
-        lmbda = Variable(len(self.d))
-        constr = [lmbda >= 0]
-        if len(self.d) == 1:
-            constr += [var == lmbda*self.D]
-            return lmbda*self.d, constr
+    def isolated_unc(self, i, var, num_constr):
+        trans = self.affine_transform_temp
+        new_expr = 0
+        if i == 0:
+            if trans:
+                new_expr += trans['b']
+        e = np.eye(num_constr)[i]
+        if var.is_scalar():
+            if trans:
+                new_constraints = [var == -trans['A'] * e]
+            else:
+                new_constraints = [var == - e]
         else:
-            constr += [var == lmbda@self.D]
-            return lmbda.T@self.d, constr
+            if trans:
+                new_constraints = [var == -trans['A'].T @ e]
+            else:
+                new_constraints = [var == - e]
+        if self.affine_transform:
+            self.affine_transform_temp = self.affine_transform.copy()
+        else:
+            self.affine_transform_temp = None
+        return new_expr, new_constraints
+
+    def conjugate(self, var, shape):
+        if shape == 1:
+            lmbda = Variable(len(self.d))
+            constr = [lmbda >= 0]
+            if len(self.d) == 1:
+                constr += [var[0] == lmbda*self.D]
+                return lmbda*self.d, constr
+            else:
+                constr += [var[0] == lmbda@self.D]
+                return lmbda@self.d, constr
+        else:
+            lmbda = Variable((shape, len(self.d)))
+            constr = [lmbda >= 0]
+            for ind in range(shape):
+                constr += [var[ind] == lmbda[ind]@self.D]
+            return lmbda@self.d, constr

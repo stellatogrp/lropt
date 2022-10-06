@@ -1,3 +1,4 @@
+import numpy as np
 from cvxpy import Variable, norm
 
 from lro.uncertainty_sets.uncertainty_set import UncertaintySet
@@ -14,7 +15,7 @@ class Ellipsoidal(UncertaintySet):
     """
 
     def __init__(self, p=2, rho=1.,
-                 affine_transform=None):
+                 affine_transform=None, data=None):
         if rho <= 0:
             raise ValueError("Rho value must be positive.")
         if p < 0.:
@@ -22,11 +23,14 @@ class Ellipsoidal(UncertaintySet):
 
         if affine_transform:
             check_affine_transform(affine_transform)
+            affine_transform['A'] = np.array(affine_transform['A'])
+            affine_transform['b'] = np.array(affine_transform['b'])
             self.affine_transform_temp = affine_transform.copy()
         else:
             self.affine_transform_temp = None
 
         self.affine_transform = affine_transform
+
         self._p = p
         self._rho = rho
 
@@ -69,8 +73,39 @@ class Ellipsoidal(UncertaintySet):
 
         return new_expr, new_constraints
 
-    def conjugate(self, var):
-        lmbda = Variable()
-        constr = [norm(var, p=self.dual_norm()) <= lmbda]
-        constr += [lmbda >= 0]
-        return self.rho * lmbda, constr
+    def isolated_unc(self, i, var, num_constr):
+        trans = self.affine_transform_temp
+        new_expr = 0
+        if i == 0:
+            if trans:
+                new_expr += trans['b']
+        e = np.eye(num_constr)[i]
+        if var.is_scalar():
+            if trans:
+                new_constraints = [var == -trans['A'] * e]
+            else:
+                new_constraints = [var == - e]
+        else:
+            if trans:
+                new_constraints = [var == -trans['A'].T @ e]
+            else:
+                new_constraints = [var == - e]
+        if self.affine_transform:
+            self.affine_transform_temp = self.affine_transform.copy()
+        else:
+            self.affine_transform_temp = None
+        return new_expr, new_constraints
+
+    def conjugate(self, var, shape):
+        if shape == 1:
+            lmbda = Variable()
+            constr = [norm(var[0], p=self.dual_norm()) <= lmbda]
+            constr += [lmbda >= 0]
+            return self.rho * lmbda, constr
+        else:
+            constr = []
+            lmbda = Variable(shape)
+            constr += [lmbda >= 0]
+            for ind in range(shape):
+                constr += [norm(var[ind], p=self.dual_norm()) <= lmbda[ind]]
+            return self.rho * lmbda, constr

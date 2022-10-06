@@ -12,6 +12,9 @@ from tests.settings import SOLVER
 from tests.settings import TESTS_ATOL as ATOL
 from tests.settings import TESTS_RTOL as RTOL
 
+# import pytest
+
+
 print("Hello")
 
 
@@ -85,7 +88,7 @@ class TestBoxUncertainty(unittest.TestCase):
             uncertainty_set=Box(center=0., rho=2.)
         )
         constraints = [0 <= x, x <= 10,
-                       u * x*0.5 <= 2]
+                       u * x*-0.5 <= 2]
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
         npt.assert_allclose(x.value, 2.0, rtol=RTOL, atol=ATOL)
@@ -112,7 +115,7 @@ class TestBoxUncertainty(unittest.TestCase):
             uncertainty_set=Box(rho=2., affine_transform={'A': 1., 'b': 0.})
         )
         constraints = [0 <= x, x <= 10,
-                       (2*-u*x) <= 2]
+                       (2*-u*x)*-1 <= 2]
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
         npt.assert_allclose(x.value, 0.5, rtol=RTOL, atol=ATOL)
@@ -129,9 +132,37 @@ class TestBoxUncertainty(unittest.TestCase):
                                uncertainty_set=Box(rho=2., affine_transform={'A': A_unc, 'b': b_unc}))
 
         constraints = [0 <= x, x <= 10,
-                       2 * (u @ x) <= 2]
+                       2 * (u @ x)*-1 <= 2]
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
 
+    # @pytest.mark.skip(reason="Need to add quad")
+    def test_isolate_scalar(self):
+        x = cp.Variable()
+        objective = cp.Minimize(-10 * x)
+        u = UncertainParameter(
+            uncertainty_set=Box(rho=2., affine_transform={'A': 1., 'b': 4.})
+        )
+        constraints = [0 <= x, x <= 10,
+                       x <= u]
+        prob = RobustProblem(objective, constraints)
+        prob.solve(solver=SOLVER)
+        npt.assert_allclose(x.value, 2, rtol=RTOL, atol=ATOL)
+    #  def test_reverse_inequality(self):
+    #  def test_uncertainty_in_objective(self):
+
+    def test_isolate_vec(self):
+        x = cp.Variable(4)
+        objective = cp.Minimize(-10*cp.sum(x))
+        # import ipdb
+        # ipdb.set_trace()
+        u = UncertainParameter(4,
+                               uncertainty_set=Box(rho=2., affine_transform={'A': np.eye(4), 'b': [4., 2., 6, 3]})
+                               )
+        constraints = [0 <= x, x <= 10,
+                       x <= u]
+        prob = RobustProblem(objective, constraints)
+        prob.solve(solver=SOLVER)
+        npt.assert_allclose(x.value, [2, 0, 4, 1], rtol=RTOL, atol=ATOL)
     #  def test_reverse_inequality(self):
     #  def test_uncertainty_in_objective(self):
