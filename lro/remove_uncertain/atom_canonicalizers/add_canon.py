@@ -1,14 +1,16 @@
 import numpy as np
-from cvxpy.atoms.affine.unary_operators import NegExpression
 
-from lro.remove_uncertain.atom_canonicalizers.mul_canon import \
-    mul_canon_transform
-from lro.remove_uncertain.atom_canonicalizers.mulexpression_canon import \
-    mulexpression_canon_transform
 from lro.uncertain import UncertainParameter
 
+# from cvxpy.atoms.affine.unary_operators import NegExpression
 
-def add_canon(expr, args):
+# from lro.remove_uncertain.atom_canonicalizers.mul_canon import \
+# mul_canon_transform
+# from lro.remove_uncertain.atom_canonicalizers.mulexpression_canon import \
+# mulexpression_canon_transform
+
+
+def add_canon(expr, args, var):
 
     # import ipdb
     # ipdb.set_trace()
@@ -18,22 +20,22 @@ def add_canon(expr, args):
     elif isinstance(args[1], UncertainParameter):
         x, u = args
     # check for negative parameter and negate affine transform
-    elif isinstance(args[0], NegExpression):
-        if isinstance(args[0].args[0], UncertainParameter):
-            u = args[0].args[0]
-            x = args[1]
-            if len(u.shape) == 1:
-                u = mulexpression_canon_transform(u, -np.eye(u.shape[0]))
-            else:
-                u = mul_canon_transform(u, -1)
-    elif isinstance(args[1], NegExpression):
-        if isinstance(args[1].args[0], UncertainParameter):
-            u = args[1].args[0]
-            x = args[0]
-            if len(u.shape) == 1:
-                u = mulexpression_canon_transform(u, -np.eye(u.shape[0]))
-            else:
-                u = mul_canon_transform(u, -1)
+    # elif isinstance(args[0], NegExpression):
+    #     if isinstance(args[0].args[0], UncertainParameter):
+    #         u = args[0].args[0]
+    #         x = args[1]
+    #         if len(u.shape) == 1:
+    #             u = mulexpression_canon_transform(u, -np.eye(u.shape[0]))
+    #         else:
+    #             u = mul_canon_transform(u, -1)
+    # elif isinstance(args[1], NegExpression):
+    #     if isinstance(args[1].args[0], UncertainParameter):
+    #         u = args[1].args[0]
+    #         x = args[0]
+    #         if len(u.shape) == 1:
+    #             u = mulexpression_canon_transform(u, -np.eye(u.shape[0]))
+    #         else:
+    #             u = mul_canon_transform(u, -1)
     else:
         # No uncertain variables
         return args[0] + args[1], []
@@ -53,6 +55,5 @@ def add_canon_transform(u, c):
     if trans:
         trans['b'] = c + trans['b']
     else:
-        trans['b'] = c
-        trans['A'] = np.eye(u.shape[0])
+        trans = {'A': np.eye(u.shape[0]), 'b': c}
     return u

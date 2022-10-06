@@ -14,9 +14,17 @@ class UncertainParameter(cp.Parameter):
         self.value = np.zeros(self.shape)
         self.uncertainty_set = uncertainty_set
 
-    def canonicalize(self, x):
+    def canonicalize(self, x, var):
         """Reformulate uncertain parameter"""
-        return self.uncertainty_set.canonicalize(x)
+        return self.uncertainty_set.canonicalize(x, var)
+
+    def isolated_unc(self, i, var, num_constr):
+        """Remove isolated uncertainty"""
+        return self.uncertainty_set.isolated_unc(i, var, num_constr)
+
+    def conjugate(self, var, shape):
+        """Reformulate uncertainty set"""
+        return self.uncertainty_set.conjugate(var, shape)
 
     def __repr__(self):
         """String to recreate the object.
