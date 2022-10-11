@@ -47,7 +47,8 @@ class Uncertain_Canonicalization(Reduction):
     def apply(self, problem):
         """Recursively canonicalize the objective and every constraint."""
         inverse_data = InverseData(problem)
-
+        # import ipdb
+        # ipdb.set_trace()
         canon_objective, canon_constraints = self.canonicalize_tree(
             problem.objective, 0)
 
@@ -65,9 +66,8 @@ class Uncertain_Canonicalization(Reduction):
                 unc_params = []
                 unc_params += [v for v in unc_lst[0].parameters()
                                if isinstance(v, UncertainParameter)]
-                canon_constr, aux_constr = self.remove_uncertainty(unc_lst, unc_params[0], std_lst)
+                canon_constr, aux_constr, _ = self.remove_uncertainty(unc_lst, unc_params[0], std_lst)
                 canon_constraints += aux_constr + [canon_constr]
-
             else:
                 # canon_constr, aux_constr = self.canonicalize_tree(
                 #     constraint, 0)
@@ -79,6 +79,42 @@ class Uncertain_Canonicalization(Reduction):
         new_problem = problems.problem.Problem(canon_objective,
                                                canon_constraints)
         return new_problem, inverse_data
+
+    def newapply(self, problem):
+        inverse_data = InverseData(problem)
+        # import ipdb
+        # ipdb.set_trace()
+        newparam = None
+        canon_objective, canon_constraints = self.canonicalize_tree(
+            problem.objective, 0)
+
+        for constraint in problem.constraints:
+            # canon_constr is the constraint rexpressed in terms of
+            # its canonicalized arguments, and aux_constr are the constraints
+            # generated while canonicalizing the arguments of the original
+            # constraint
+            # import ipdb
+            # ipdb.set_trace()
+            if self.has_unc_param(constraint):
+                # import ipdb
+                # ipdb.set_trace()
+                unc_lst, std_lst = self.separate_uncertainty(constraint)
+                unc_params = []
+                unc_params += [v for v in unc_lst[0].parameters()
+                               if isinstance(v, UncertainParameter)]
+                canon_constr, aux_constr, newparam = self.remove_uncertainty(unc_lst, unc_params[0], std_lst)
+                canon_constraints += aux_constr + [canon_constr]
+            else:
+                # canon_constr, aux_constr = self.canonicalize_tree(
+                #     constraint, 0)
+                canon_constr = constraint
+                canon_constraints += [canon_constr]
+
+            inverse_data.cons_id_map.update({constraint.id: canon_constr.id})
+
+        new_problem = problems.problem.Problem(canon_objective,
+                                               canon_constraints)
+        return new_problem, inverse_data, newparam
 
     def invert(self, solution, inverse_data):
         pvars = {vid: solution.primal_vars[vid] for vid in inverse_data.id_map
@@ -183,12 +219,12 @@ class Uncertain_Canonicalization(Reduction):
                 aux_const += [z_cons + z_new_cons[ind] == -z_unc[ind]]
         else:
             aux_const += [z_cons == -z_unc[0]]
-        new_expr, new_const = uvar.conjugate(z_unc, num_constr)
+        new_expr, new_const, newparam = uvar.conjugate(z_unc, num_constr)
         aux_const += new_const
         aux_expr = aux_expr + new_expr
         for expr in std_lst:
             aux_expr = aux_expr + expr
-        return aux_expr <= 0, aux_const
+        return aux_expr <= 0, aux_const, newparam
 
     def count_unq_uncertain_param(self, expr):
         unc_params = []

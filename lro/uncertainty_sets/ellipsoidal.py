@@ -1,5 +1,5 @@
 import numpy as np
-from cvxpy import Variable, norm
+from cvxpy import Parameter, Variable, norm
 
 from lro.uncertainty_sets.uncertainty_set import UncertaintySet
 from lro.utils import check_affine_transform
@@ -21,18 +21,30 @@ class Ellipsoidal(UncertaintySet):
         if p < 0.:
             raise ValueError("Order must be a nonnegative number.")
 
-        if affine_transform:
-            check_affine_transform(affine_transform)
-            affine_transform['A'] = np.array(affine_transform['A'])
-            affine_transform['b'] = np.array(affine_transform['b'])
-            self.affine_transform_temp = affine_transform.copy()
+        if data is not None:
+            if affine_transform:
+                raise ValueError("You must provide either data"
+                                 "or an affine transform."
+                                 )
+            else:
+                dat_shape = data.shape[1]
+                paramT = Parameter((dat_shape, dat_shape))
         else:
-            self.affine_transform_temp = None
+            paramT = None
+            if affine_transform:
+                check_affine_transform(affine_transform)
+                affine_transform['A'] = np.array(affine_transform['A'])
+                affine_transform['b'] = np.array(affine_transform['b'])
+                self.affine_transform_temp = affine_transform.copy()
+            else:
+                self.affine_transform_temp = None
 
         self.affine_transform = affine_transform
 
         self._p = p
         self._rho = rho
+        self._data = data
+        self._paramT = paramT
 
     @property
     def p(self):
@@ -41,6 +53,14 @@ class Ellipsoidal(UncertaintySet):
     @property
     def rho(self):
         return self._rho
+
+    @property
+    def paramT(self):
+        return self._paramT
+
+    @property
+    def data(self):
+        return self._data
 
     def dual_norm(self):
         return 1. + 1. / (self.p - 1.)
@@ -97,15 +117,33 @@ class Ellipsoidal(UncertaintySet):
         return new_expr, new_constraints
 
     def conjugate(self, var, shape):
-        if shape == 1:
-            lmbda = Variable()
-            constr = [norm(var[0], p=self.dual_norm()) <= lmbda]
-            constr += [lmbda >= 0]
-            return self.rho * lmbda, constr
+        if self.data is not None:
+            newvar = Variable(self.data.shape[1])
+            if shape == 1:
+                lmbda = Variable()
+                constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
+                constr += [self.paramT.T@newvar == var[0]]
+                constr += [lmbda >= 0]
+                return self.rho * lmbda, constr, self.paramT
+            else:
+                constr = []
+                lmbda = Variable(shape)
+                newvar = Variable((shape, self.data.shape[1]))
+                constr += [lmbda >= 0]
+                for ind in range(shape):
+                    constr += [norm(var[ind], p=self.dual_norm()) <= lmbda[ind]]
+                    constr += [self.paramT.T@newvar[ind] == var[ind]]
+                return self.rho * lmbda, constr, self.paramT
         else:
-            constr = []
-            lmbda = Variable(shape)
-            constr += [lmbda >= 0]
-            for ind in range(shape):
-                constr += [norm(var[ind], p=self.dual_norm()) <= lmbda[ind]]
-            return self.rho * lmbda, constr
+            if shape == 1:
+                lmbda = Variable()
+                constr = [norm(var[0], p=self.dual_norm()) <= lmbda]
+                constr += [lmbda >= 0]
+                return self.rho * lmbda, constr, None
+            else:
+                constr = []
+                lmbda = Variable(shape)
+                constr += [lmbda >= 0]
+                for ind in range(shape):
+                    constr += [norm(var[ind], p=self.dual_norm()) <= lmbda[ind]]
+                return self.rho * lmbda, constr, None

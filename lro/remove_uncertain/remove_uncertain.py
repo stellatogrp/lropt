@@ -22,3 +22,9 @@ class RemoveUncertainParameters(Uncertain_Canonicalization):
         if not self.accepts(problem):
             raise ValueError("Cannot canonicalize uncertain problem atoms.")
         return super(RemoveUncertainParameters, self).apply(problem)
+
+    def newapply(self, problem):
+        """Also returns the tunable parameter"""
+        if not self.accepts(problem):
+            raise ValueError("Cannot canonicalize uncertain problem atoms.")
+        return super(RemoveUncertainParameters, self).newapply(problem)

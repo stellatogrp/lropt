@@ -37,8 +37,20 @@ class Box(Ellipsoidal):
 
     def __init__(self, rho=1.,
                  center=None, side=None,
-                 affine_transform=None):
+                 affine_transform=None, data=None):
 
+        if data is None and center is None and side is None and affine_transform is None:
+            raise ValueError("You must provide either data "
+                             "or an affine transform "
+                             "or a center/side.")
+        if data is not None and affine_transform:
+            raise ValueError("You must provide either data "
+                             "or an affine transform "
+                             "or a center/side.")
+        if data is not None and (center is not None or side is not None):
+            raise ValueError("You must provide either data "
+                             "or an affine transform "
+                             "or a center/side.")
         if center is not None:
             center = np.atleast_1d(center)
         if side is not None:
@@ -52,7 +64,7 @@ class Box(Ellipsoidal):
 
         if (center is not None) and (side is not None):
             if affine_transform:
-                raise ValueError("You must provide either center/side"
+                raise ValueError("You must provide either center/side "
                                  "or an affine transform.")
 
             if len(center) != len(side):
@@ -65,7 +77,13 @@ class Box(Ellipsoidal):
         if rho <= 0:
             raise ValueError("Rho value must be positive.")
 
-        super(Box, self).__init__(
-            p=np.inf,
-            rho=rho,
-            affine_transform=affine_transform)
+        if data:
+            super(Box, self).__init__(
+                p=np.inf,
+                rho=rho,
+                affine_transform=None, data=data)
+        else:
+            super(Box, self).__init__(
+                p=np.inf,
+                rho=rho,
+                affine_transform=affine_transform, data=None)

@@ -3,6 +3,7 @@ import unittest
 import cvxpy as cp
 import numpy as np
 import numpy.testing as npt
+import pytest
 
 from lro.robust_problem import RobustProblem
 from lro.uncertain import UncertainParameter
@@ -11,9 +12,6 @@ from lro.uncertainty_sets.polyhedral import Polyhedral
 from tests.settings import SOLVER
 from tests.settings import TESTS_ATOL as ATOL
 from tests.settings import TESTS_RTOL as RTOL
-
-# import pytest
-
 
 print("Hello")
 
@@ -143,11 +141,11 @@ class TestBoxUncertainty(unittest.TestCase):
         u = UncertainParameter(
             uncertainty_set=Box(rho=2., affine_transform={'A': 1., 'b': 4.})
         )
-        constraints = [0 <= x, x <= 10,
-                       x <= u]
+        constraints = [-12 <= x, x <= 10,
+                       x <= -2*u]
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
-        npt.assert_allclose(x.value, 2, rtol=RTOL, atol=ATOL)
+        npt.assert_allclose(x.value, -12, rtol=RTOL, atol=ATOL)
     #  def test_reverse_inequality(self):
     #  def test_uncertainty_in_objective(self):
 
@@ -166,3 +164,36 @@ class TestBoxUncertainty(unittest.TestCase):
         npt.assert_allclose(x.value, [2, 0, 4, 1], rtol=RTOL, atol=ATOL)
     #  def test_reverse_inequality(self):
     #  def test_uncertainty_in_objective(self):
+
+    def test_flip(self):
+        x = cp.Variable(4)
+        objective = cp.Maximize(10*cp.sum(x))
+        # import ipdb
+        # ipdb.set_trace()
+        u = UncertainParameter(4,
+                               uncertainty_set=Box(rho=2., affine_transform={'A': np.eye(4), 'b': [4., 2., 6, 3]})
+                               )
+        constraints = [0 <= x, x <= 10,
+                       x <= u]
+        prob = RobustProblem(objective, constraints)
+        prob.solve(solver=SOLVER)
+        npt.assert_allclose(x.value, [2, 0, 4, 1], rtol=RTOL, atol=ATOL)
+    #  def test_reverse_inequality(self):
+    #  def test_uncertainty_in_objective(self):
+
+    @pytest.mark.skip(reason="Need to add quad")
+    def test_param(self):
+        # import ipdb
+        # ipdb.set_trace()
+        x = cp.Variable()
+        y = cp.Parameter()
+        objective = cp.Minimize(-10 * x)
+        u = UncertainParameter(
+            uncertainty_set=Box(data=np.ones((1, 1)))
+        )
+        constraints = [0 <= x, x <= y,
+                       u*x <= 2]
+        prob = RobustProblem(objective, constraints)
+        y.value = 10
+        prob.solve(solver=SOLVER)
+        npt.assert_allclose(x.value, 1, rtol=RTOL, atol=ATOL)
