@@ -1,6 +1,7 @@
 import unittest
 
 import cvxpy as cp
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random as npr
 import numpy.testing as npt
@@ -123,9 +124,28 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         constraints = [u @ x <= b, x >= 0, x <= 5]
 
         prob_robust = RobustProblem(objective, constraints)
-        df = prob_robust.train()
+        df = prob_robust.train(eps=True)
         print(df)
         prob_robust.solve(solver=SOLVER)
         print(x.value)
+
+        unc_set = Ellipsoidal(data=X, loss=violation_loss)
+        u = UncertainParameter(data_dim, uncertainty_set=unc_set)
+        x = cp.Variable(data_dim)
+        objective = cp.Minimize(-c @ x)
+        constraints = [u @ x <= b, x >= 0, x <= 5]
+        prob_robust1 = RobustProblem(objective, constraints)
+        df1 = prob_robust1.train()
+        print(df1)
+        prob_robust1.solve(solver=SOLVER)
+        print(x.value)
+
+        plt.figure(figsize=(9, 5))
+        plt.plot(df['steps'], df['Loss_val'], color="tab:blue", label="Eps")
+        plt.plot(df['steps'], df['Eval_val'], linestyle='--', color="tab:blue")
+        plt.plot(df1['steps'], df1['Loss_val'], color="tab:orange", label="Reshape")
+        plt.plot(df1['steps'], df1['Eval_val'], linestyle='--', color="tab:orange")
+        plt.legend()
+        plt.savefig("plot")
 
         # Need prob_robust.train

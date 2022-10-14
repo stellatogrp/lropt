@@ -10,13 +10,12 @@ from cvxpy.reductions import Dcp2Cone, Qp2SymbolicQp
 from cvxpy.reductions.solvers.solving_chain import (SolvingChain,
                                                     construct_solving_chain)
 from cvxpylayers.torch import CvxpyLayer
+from sklearn.model_selection import train_test_split
 
 from lro.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lro.uncertain import UncertainParameter
 from lro.uncertain_canon.uncertain_chain import UncertainChain
 from lro.utils import unique_list
-
-# from sklearn.model_selection import train_test_split
 
 
 class RobustProblem(Problem):
@@ -104,7 +103,7 @@ class RobustProblem(Problem):
         return SolvingChain(reductions=new_reductions)
 
     def train(
-        self, eps=False, solver: Optional[str] = None, gp: bool = False,
+        self, eps=False, step=45, lr=0.001, solver: Optional[str] = None, gp: bool = False,
         enforce_dpp: bool = True, ignore_dpp: bool = False,
         solver_opts: Optional[dict] = None
     ):
@@ -162,14 +161,12 @@ class RobustProblem(Problem):
             newchain = UncertainChain(self, reductions=unc_reductions)
             prob, inverse_data = newchain.apply(self)
             if unc_set.paramT is not None:
-                df = pd.DataFrame(columns=["steps", "Opt_val", "Loss_val", "Rnorm"])
+                df = pd.DataFrame(columns=["steps", "Opt_val", "Eval_val", "Loss_val", "Rnorm"])
 
                 # setup train and test data
-                # train, test = train_test_split(unc_set.data, test_size=int#(unc_set.data.shape[0]/5))
-                train = unc_set.data
-                test = unc_set.data
-                val_dset = torch.tensor(test, requires_grad=True)
-
+                train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]/5))
+                val_dset = torch.tensor(train, requires_grad=True)
+                eval_set = torch.tensor(test, requires_grad=True)
                 # create cvxpylayer
                 cvxpylayer = CvxpyLayer(prob, parameters=prob.parameters(), variables=self.variables())
                 if not eps:
@@ -183,7 +180,7 @@ class RobustProblem(Problem):
 
                     paramT_tch = torch.tensor(init, requires_grad=True)
                     variables = [paramT_tch, paramb_tch]
-                    opt = torch.optim.SGD(variables, lr=.01, momentum=.8)
+                    opt = torch.optim.SGD(variables, lr=lr, momentum=.8)
 
                     paramlst = prob.parameters()
                     newlst = []
@@ -193,7 +190,6 @@ class RobustProblem(Problem):
                     newlst.append(paramb_tch)
 
                     # train
-                    step = 20
                     for steps in range(step):
                         # import ipdb
                         # ipdb.set_trace()
@@ -203,6 +199,7 @@ class RobustProblem(Problem):
                         for sets in range(splits):
                             var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
                             temploss, obj = unc_set.loss(*var_values, val_dset)
+                            evalloss, _ = unc_set.loss(*var_values, eval_set)
                             objv += obj
                             totloss += temploss
                         totloss = totloss/splits
@@ -210,26 +207,29 @@ class RobustProblem(Problem):
                         newrow = pd.Series(
                             {"steps": steps,
                              "Loss_val": totloss.item(),
+                             "Eval_val": evalloss.item(),
                              "Opt_val": objv.item()/splits,
                              "Rnorm": np.linalg.norm(paramT_tch.detach().numpy().copy())
                              })
                         df = df.append(newrow, ignore_index=True)
-                        opt.step()
-                        opt.zero_grad()
+                        if steps < step - 1:
+                            opt.step()
+                            opt.zero_grad()
                     self._values = {'T': paramT_tch.detach().numpy().copy(), 'b': paramb_tch.detach().numpy().copy()}
                     self._trained = True
                     unc_set._trained = True
+                    var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
 
                 else:
                     # import ipdb
                     # ipdb.set_trace()
                     #
                     # eps_tch = torch.tensor([[1/np.mean(np.cov(train.T))]], requires_grad=True)
-                    eps_tch = torch.tensor([[1.]], requires_grad=True)
+                    eps_tch = torch.tensor([[1/5.]], requires_grad=True)
                     paramb_tch = eps_tch[0]*torch.tensor(np.mean(train, axis=0), requires_grad=True)
                     paramT_tch = eps_tch*torch.tensor(np.eye(train.shape[1]), requires_grad=True)
                     variables = [eps_tch]
-                    opt = torch.optim.SGD(variables, lr=.02, momentum=.8)
+                    opt = torch.optim.SGD(variables, lr=lr, momentum=.8)
 
                     # assign parameter values
                     paramlst = prob.parameters()
@@ -240,7 +240,6 @@ class RobustProblem(Problem):
                     newlst.append(paramb_tch)
 
                     # train
-                    step = 20
                     for steps in range(step):
                         # import ipdb
                         # ipdb.set_trace()
@@ -252,6 +251,7 @@ class RobustProblem(Problem):
                             newlst[-2] = eps_tch*torch.tensor(np.eye(train.shape[1]), requires_grad=True)
                             var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
                             temploss, obj = unc_set.loss(*var_values, val_dset)
+                            evalloss, _ = unc_set.loss(*var_values, eval_set)
                             objv += obj
                             totloss += temploss
                         totloss = totloss/splits
@@ -259,14 +259,18 @@ class RobustProblem(Problem):
                         newrow = pd.Series(
                             {"steps": steps,
                              "Loss_val": totloss.item(),
+                             "Eval_val": evalloss.item(),
                              "Opt_val": objv.item()/splits,
                              "Rnorm": eps_tch[0].detach().numpy().copy()
                              })
                         df = df.append(newrow, ignore_index=True)
-                        opt.step()
-                        opt.zero_grad()
+                        if steps < step - 1:
+                            opt.step()
+                            opt.zero_grad()
+
                     self._values = {'T': (eps_tch*torch.tensor(np.eye(train.shape[1]))).detach().numpy().copy(), 'b': (
                         eps_tch[0]*torch.tensor(np.mean(train, axis=0))).detach().numpy().copy()}
+
                     self._trained = True
                     unc_set._trained = True
         return df
