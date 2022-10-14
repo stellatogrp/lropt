@@ -10,12 +10,13 @@ from cvxpy.reductions import Dcp2Cone, Qp2SymbolicQp
 from cvxpy.reductions.solvers.solving_chain import (SolvingChain,
                                                     construct_solving_chain)
 from cvxpylayers.torch import CvxpyLayer
-from sklearn.model_selection import train_test_split
 
 from lro.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lro.uncertain import UncertainParameter
 from lro.uncertain_canon.uncertain_chain import UncertainChain
 from lro.utils import unique_list
+
+# from sklearn.model_selection import train_test_split
 
 
 class RobustProblem(Problem):
@@ -164,7 +165,9 @@ class RobustProblem(Problem):
                 df = pd.DataFrame(columns=["steps", "Opt_val", "Loss_val", "Rnorm"])
 
                 # setup train and test data
-                train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]/5))
+                # train, test = train_test_split(unc_set.data, test_size=int#(unc_set.data.shape[0]/5))
+                train = unc_set.data
+                test = unc_set.data
                 val_dset = torch.tensor(test, requires_grad=True)
 
                 # create cvxpylayer
