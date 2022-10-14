@@ -2,7 +2,9 @@ import unittest
 
 import cvxpy as cp
 import numpy as np
+import numpy.random as npr
 import numpy.testing as npt
+import torch
 
 from lro.robust_problem import RobustProblem
 from lro.uncertain import UncertainParameter
@@ -75,5 +77,42 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         npt.assert_allclose(x_cvxpy, x_robust, rtol=RTOL, atol=ATOL)
 
-    #  def test_reverse_inequality(self):
-    #  def test_uncertainty_in_objective(self):
+    @unittest.skip('Work in progress')
+    def test_ellipsoidal_learning(self):
+
+        torch.seed()
+        cov_scale = 5
+        data_dim = 10
+        data_num = 100
+        data_mean = torch.zeros(data_dim)
+        cov = cov_scale * torch.eye(data_dim)
+        X = torch.tensor(npr.multivariate_normal(data_mean, cov, data_num))
+        c = torch.rand(data_dim, requires_grad=True)
+        b = 3
+
+        # def cvar_loss(x_soln, data, alpha, lmbda = 1):
+        #     tau = cp.variable()
+        #     y = cp.variable()
+
+        #     obj = y
+        #     constr = []
+        #     constr += [tau*(1-1/alpha) -
+        #   (torch.mean(torch.maximum(data @ x_soln - b, torch.zeros(data_dim))))/alpha <= y]
+        #     constr += [tau <= y]
+        #     problem = cp.Problem(obj, constr)
+        #     problem.solve()
+
+        #     return c @ x_soln + lmbda * problem.value
+
+        def violation_loss(x_soln, data, lmbda=1):
+            npt.assert_equal(x_soln.shape[0], data.shape[1])
+            return c @ x_soln + lmbda * torch.mean(torch.maximum(data @ x_soln - b, torch.zeros(data_dim)))
+
+        unc_set = Ellipsoidal()
+        u = UncertainParameter(data_dim, uncertainty_set=unc_set, data=X, loss=violation_loss)
+        x = cp.Variable()
+        objective = c @ x
+        constraints = [u @ x <= b]
+
+        prob_robust = RobustProblem(objective, constraints)
+        prob_robust.solve(solver=SOLVER)

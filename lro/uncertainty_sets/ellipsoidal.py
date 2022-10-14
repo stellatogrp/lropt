@@ -24,7 +24,7 @@ class Ellipsoidal(UncertaintySet):
         if data is not None:
             if affine_transform:
                 raise ValueError("You must provide either data"
-                                 "or an affine transform."
+                                 "or an affine transform, not both"
                                  )
             else:
                 dat_shape = data.shape[1]
@@ -118,8 +118,8 @@ class Ellipsoidal(UncertaintySet):
 
     def conjugate(self, var, shape):
         if self.data is not None:
-            newvar = Variable(self.data.shape[1])
             if shape == 1:
+                newvar = Variable(self.data.shape[1])  # z conjugate variables
                 lmbda = Variable()
                 constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
                 constr += [self.paramT.T@newvar == var[0]]
