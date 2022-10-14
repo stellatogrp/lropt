@@ -77,17 +77,20 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         npt.assert_allclose(x_cvxpy, x_robust, rtol=RTOL, atol=ATOL)
 
-    @unittest.skip('need to combine with new code')
+    # @unittest.skip('need to combine with new code')
     def test_ellipsoidal_learning(self):
-
+        # import ipdb
+        # ipdb.set_trace()
         torch.seed()
         cov_scale = 5
         data_dim = 10
         data_num = 100
         data_mean = torch.zeros(data_dim)
         cov = cov_scale * torch.eye(data_dim)
-        X = torch.tensor(npr.multivariate_normal(data_mean, cov, data_num))
-        c = torch.rand(data_dim, requires_grad=True)
+        X = npr.multivariate_normal(data_mean, cov, data_num)
+        c = npr.rand(data_dim)
+        c_tch = torch.tensor(c, requires_grad=True)
+
         b = 3
 
         # def cvar_loss(x_soln, data, alpha, lmbda = 1):
@@ -105,16 +108,24 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         #     return c @ x_soln + lmbda * problem.value
 
         def violation_loss(x_soln, data, lmbda=1):
+            # import ipdb
+            # ipdb.set_trace()
             npt.assert_equal(x_soln.shape[0], data.shape[1])
-            return c @ x_soln + lmbda * torch.mean(torch.maximum(data @ x_soln - b, torch.zeros(data_dim)))
+            return c_tch @ x_soln + lmbda * torch.mean(
+                torch.maximum(torch.tensor(data, requires_grad=True) @
+                              x_soln - b, torch.tensor(0., requires_grad=True))), \
+                c_tch @ x_soln
 
-        unc_set = Ellipsoidal()
-        u = UncertainParameter(data_dim, uncertainty_set=unc_set, data=X, loss=violation_loss)
+        unc_set = Ellipsoidal(data=X, loss=violation_loss)
+        u = UncertainParameter(data_dim, uncertainty_set=unc_set)
         x = cp.Variable(data_dim)
-        objective = c @ x
-        constraints = [u @ x <= b]
+        objective = cp.Minimize(-c @ x)
+        constraints = [u @ x <= b, x >= 0, x <= 5]
 
         prob_robust = RobustProblem(objective, constraints)
+        df = prob_robust.train()
+        print(df)
         prob_robust.solve(solver=SOLVER)
+        print(x.value)
 
         # Need prob_robust.train
