@@ -104,9 +104,9 @@ class RobustProblem(Problem):
         return SolvingChain(reductions=new_reductions)
 
     def train(
-        self, solver: Optional[str] = None, gp: bool = False,
+        self, eps=False, solver: Optional[str] = None, gp: bool = False,
         enforce_dpp: bool = True, ignore_dpp: bool = False,
-        solver_opts: Optional[dict] = None, eps=False
+        solver_opts: Optional[dict] = None
     ):
         """
         Construct the chains required to reformulate and solve the problem.
