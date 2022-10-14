@@ -77,7 +77,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         npt.assert_allclose(x_cvxpy, x_robust, rtol=RTOL, atol=ATOL)
 
-    @unittest.skip('Work in progress')
+    @unittest.skip('need to combine with new code')
     def test_ellipsoidal_learning(self):
 
         torch.seed()
@@ -110,9 +110,11 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         unc_set = Ellipsoidal()
         u = UncertainParameter(data_dim, uncertainty_set=unc_set, data=X, loss=violation_loss)
-        x = cp.Variable()
+        x = cp.Variable(data_dim)
         objective = c @ x
         constraints = [u @ x <= b]
 
         prob_robust = RobustProblem(objective, constraints)
         prob_robust.solve(solver=SOLVER)
+
+        # Need prob_robust.train
