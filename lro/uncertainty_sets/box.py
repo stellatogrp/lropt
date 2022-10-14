@@ -37,7 +37,12 @@ class Box(Ellipsoidal):
 
     def __init__(self, rho=1.,
                  center=None, side=None,
-                 affine_transform=None, data=None):
+                 affine_transform=None, data=None, loss=None):
+
+        # import ipdb
+        # ipdb.set_trace()
+        if data is not None and loss is None:
+            raise ValueError("You must provide a loss function")
 
         if data is None and center is None and side is None and affine_transform is None:
             raise ValueError("You must provide either data "
@@ -77,13 +82,13 @@ class Box(Ellipsoidal):
         if rho <= 0:
             raise ValueError("Rho value must be positive.")
 
-        if data:
+        if data is not None:
             super(Box, self).__init__(
                 p=np.inf,
                 rho=rho,
-                affine_transform=None, data=data)
+                affine_transform=None, data=data, loss=loss)
         else:
             super(Box, self).__init__(
                 p=np.inf,
                 rho=rho,
-                affine_transform=affine_transform, data=None)
+                affine_transform=affine_transform, data=None, loss=None)

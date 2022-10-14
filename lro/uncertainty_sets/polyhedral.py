@@ -16,7 +16,10 @@ class Polyhedral(UncertaintySet):
     """
 
     def __init__(self, d, D,
-                 affine_transform=None, data=None):
+                 affine_transform=None, data=None, loss=None):
+
+        if data is not None and loss is None:
+            raise ValueError("You must provide a loss function")
 
         if data is not None:
             if affine_transform:
@@ -25,9 +28,12 @@ class Polyhedral(UncertaintySet):
                                  )
             else:
                 paramT = Parameter((data.shape[1], data.shape[1]))
+                paramb = Parameter(data.shape[1])
                 assert (data.shape[1] == D.shape[1])
+                self.affine_transform_temp = None
         else:
             paramT = None
+            paramb = None
             if affine_transform:
                 check_affine_transform(affine_transform)
                 affine_transform['A'] = np.array(affine_transform['A'])
@@ -41,6 +47,9 @@ class Polyhedral(UncertaintySet):
         self._D = D
         self._data = data
         self._paramT = paramT
+        self._paramb = paramb
+        self._loss = loss
+        self._trained = False
 
     @property
     def d(self):
@@ -57,6 +66,14 @@ class Polyhedral(UncertaintySet):
     @property
     def data(self):
         return self._data
+
+    @property
+    def loss(self):
+        return self._loss
+
+    @property
+    def trained(self):
+        return self._trained
 
     def canonicalize(self, x, var):
         trans = self.affine_transform_temp
@@ -115,11 +132,11 @@ class Polyhedral(UncertaintySet):
                 if len(self.d) == 1:
                     constr += [newvar == lmbda*self.D]
                     constr += [self.paramT.T@newvar == var[0]]
-                    return lmbda*self.d, constr, self.paramT
+                    return lmbda*self.d, constr
                 else:
                     constr += [newvar == lmbda@self.D]
                     constr += [self.paramT.T@newvar == var[0]]
-                    return lmbda@self.d, constr, self.paramT
+                    return lmbda@self.d, constr
             else:
                 lmbda = Variable((shape, len(self.d)))
                 constr = [lmbda >= 0]
@@ -127,20 +144,20 @@ class Polyhedral(UncertaintySet):
                 for ind in range(shape):
                     constr += [newvar[ind] == lmbda[ind]@self.D]
                     constr += [self.paramT.T@newvar[ind] == var[ind]]
-                return lmbda@self.d, constr, self.paramT
+                return lmbda@self.d, constr
         else:
             if shape == 1:
                 lmbda = Variable(len(self.d))
                 constr = [lmbda >= 0]
                 if len(self.d) == 1:
                     constr += [var[0] == lmbda*self.D]
-                    return lmbda*self.d, constr, None
+                    return lmbda*self.d, constr
                 else:
                     constr += [var[0] == lmbda@self.D]
-                    return lmbda@self.d, constr, None
+                    return lmbda@self.d, constr
             else:
                 lmbda = Variable((shape, len(self.d)))
                 constr = [lmbda >= 0]
                 for ind in range(shape):
                     constr += [var[ind] == lmbda[ind]@self.D]
-                return lmbda@self.d, constr, None
+                return lmbda@self.d, constr

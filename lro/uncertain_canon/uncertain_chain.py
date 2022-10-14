@@ -74,17 +74,12 @@ class UncertainChain(Reduction):
         # import ipdb
         # ipdb.set_trace()
         inverse_data = []
-        for r in self.reductions[:-1]:
+        for r in self.reductions:
             if verbose:
                 s.LOGGER.info('Applying reduction %s', type(r).__name__)
             problem, inv = r.apply(problem)
             inverse_data.append(inv)
-        r = self.reductions[-1]
-        if verbose:
-            s.LOGGER.info('Applying reduction %s', type(r).__name__)
-        problem, inv, newparam = r.newapply(problem)
-        inverse_data.append(inv)
-        return problem, inverse_data, newparam
+        return problem, inverse_data
 
     def invert(self, solution, inverse_data):
         """Returns a solution to the original problem given the inverse_data.

@@ -3,7 +3,8 @@ import unittest
 import cvxpy as cp
 import numpy as np
 import numpy.testing as npt
-import pytest
+# import pytest
+import torch
 
 from lro.robust_problem import RobustProblem
 from lro.uncertain import UncertainParameter
@@ -165,35 +166,53 @@ class TestBoxUncertainty(unittest.TestCase):
     #  def test_reverse_inequality(self):
     #  def test_uncertainty_in_objective(self):
 
-    def test_flip(self):
-        x = cp.Variable(4)
-        objective = cp.Maximize(10*cp.sum(x))
-        # import ipdb
-        # ipdb.set_trace()
-        u = UncertainParameter(4,
-                               uncertainty_set=Box(rho=2., affine_transform={'A': np.eye(4), 'b': [4., 2., 6, 3]})
-                               )
-        constraints = [0 <= x, x <= 10,
-                       x <= u]
-        prob = RobustProblem(objective, constraints)
-        prob.solve(solver=SOLVER)
-        npt.assert_allclose(x.value, [2, 0, 4, 1], rtol=RTOL, atol=ATOL)
-    #  def test_reverse_inequality(self):
-    #  def test_uncertainty_in_objective(self):
-
-    @pytest.mark.skip(reason="Need to add quad")
-    def test_param(self):
+    def test_param_eps(self):
         # import ipdb
         # ipdb.set_trace()
         x = cp.Variable()
         y = cp.Parameter()
         objective = cp.Minimize(-10 * x)
+
+        def loss_f(x, data_eval):
+            return torch.tensor(-10)*x + 20*torch.mean(
+                torch.maximum(torch.tensor(data_eval)*x - torch.tensor(2), torch.tensor(0))), -10*x
+
+        data = np.array([[1.], [1.], [2.], [1.], [2.]])
         u = UncertainParameter(
-            uncertainty_set=Box(data=np.ones((1, 1)))
+            uncertainty_set=Box(data=data, loss=loss_f)
         )
         constraints = [0 <= x, x <= y,
                        u*x <= 2]
         prob = RobustProblem(objective, constraints)
         y.value = 10
+        df = prob.train(eps=True)
         prob.solve(solver=SOLVER)
-        npt.assert_allclose(x.value, 1, rtol=RTOL, atol=ATOL)
+        print(x.value)
+        print(df)
+        # npt.assert_allclose(x.value, 1, rtol=RTOL, atol=ATOL)
+
+    def test_param_matrix(self):
+        # import ipdb
+        # ipdb.set_trace()
+        x = cp.Variable()
+        y = cp.Parameter()
+        objective = cp.Minimize(-10 * x)
+
+        def loss_f(x, data_eval):
+            return torch.tensor(-10)*x \
+                + 20*torch.mean(torch.maximum(
+                    torch.tensor(data_eval)*x - torch.tensor(2), torch.tensor(0))), -10*x
+
+        data = np.array([[1.], [1.], [2.], [1.], [2.]])
+        u = UncertainParameter(
+            uncertainty_set=Box(data=data, loss=loss_f)
+        )
+        constraints = [0 <= x, x <= y,
+                       u*x <= 2]
+        prob = RobustProblem(objective, constraints)
+        y.value = 10
+        df = prob.train()
+        prob.solve(solver=SOLVER)
+        print(x.value)
+        print(df)
+        # npt.assert_allclose(x.value, 1, rtol=RTOL, atol=ATOL)

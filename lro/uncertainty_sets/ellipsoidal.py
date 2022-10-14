@@ -15,11 +15,14 @@ class Ellipsoidal(UncertaintySet):
     """
 
     def __init__(self, p=2, rho=1.,
-                 affine_transform=None, data=None):
+                 affine_transform=None, data=None, loss=None):
         if rho <= 0:
             raise ValueError("Rho value must be positive.")
         if p < 0.:
             raise ValueError("Order must be a nonnegative number.")
+
+        if data is not None and loss is None:
+            raise ValueError("You must provide a loss function")
 
         if data is not None:
             if affine_transform:
@@ -29,8 +32,11 @@ class Ellipsoidal(UncertaintySet):
             else:
                 dat_shape = data.shape[1]
                 paramT = Parameter((dat_shape, dat_shape))
+                paramb = Parameter(dat_shape)
+                self.affine_transform_temp = None
         else:
             paramT = None
+            paramb = None
             if affine_transform:
                 check_affine_transform(affine_transform)
                 affine_transform['A'] = np.array(affine_transform['A'])
@@ -45,6 +51,9 @@ class Ellipsoidal(UncertaintySet):
         self._rho = rho
         self._data = data
         self._paramT = paramT
+        self._paramb = paramb
+        self._trained = False
+        self._loss = loss
 
     @property
     def p(self):
@@ -59,8 +68,20 @@ class Ellipsoidal(UncertaintySet):
         return self._paramT
 
     @property
+    def paramb(self):
+        return self._paramb
+
+    @property
     def data(self):
         return self._data
+
+    @property
+    def loss(self):
+        return self._loss
+
+    @property
+    def trained(self):
+        return self._trained
 
     def dual_norm(self):
         return 1. + 1. / (self.p - 1.)
@@ -124,7 +145,7 @@ class Ellipsoidal(UncertaintySet):
                 constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
                 constr += [self.paramT.T@newvar == var[0]]
                 constr += [lmbda >= 0]
-                return self.rho * lmbda, constr, self.paramT
+                return self.rho * lmbda + var[0]*self.paramb, constr
             else:
                 constr = []
                 lmbda = Variable(shape)
@@ -133,17 +154,18 @@ class Ellipsoidal(UncertaintySet):
                 for ind in range(shape):
                     constr += [norm(var[ind], p=self.dual_norm()) <= lmbda[ind]]
                     constr += [self.paramT.T@newvar[ind] == var[ind]]
-                return self.rho * lmbda, constr, self.paramT
+
+                return self.rho * lmbda + var@self.paramb, constr
         else:
             if shape == 1:
                 lmbda = Variable()
                 constr = [norm(var[0], p=self.dual_norm()) <= lmbda]
                 constr += [lmbda >= 0]
-                return self.rho * lmbda, constr, None
+                return self.rho * lmbda, constr
             else:
                 constr = []
                 lmbda = Variable(shape)
                 constr += [lmbda >= 0]
                 for ind in range(shape):
                     constr += [norm(var[ind], p=self.dual_norm()) <= lmbda[ind]]
-                return self.rho * lmbda, constr, None
+                return self.rho * lmbda, constr
