@@ -2,7 +2,7 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-import scipy as sc
+# import scipy as sc
 import torch
 from cvxpy.problems.problem import Problem
 from cvxpy.reductions import Dcp2Cone, Qp2SymbolicQp
@@ -162,6 +162,7 @@ class RobustProblem(Problem):
             prob, inverse_data = newchain.apply(self)
             if unc_set.paramT is not None:
                 df = pd.DataFrame(columns=["steps", "Opt_val", "Eval_val", "Loss_val", "Rnorm"])
+                df1 = pd.DataFrame(columns=["steps", "Opt_val", "Eval_val", "Loss_val", "Rnorm"])
 
                 # setup train and test data
                 train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]/5))
@@ -172,7 +173,8 @@ class RobustProblem(Problem):
                 if not eps:
                     # initialize parameters to train
                     if len(np.shape(np.cov(train.T))) >= 1:
-                        init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
+                        # init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
+                        init = 0.2*np.eye(train.shape[1])
                         paramb_tch = torch.tensor(init@np.mean(train, axis=0), requires_grad=True)
                     else:
                         init = np.array([[np.cov(train.T)]])
@@ -261,16 +263,52 @@ class RobustProblem(Problem):
                              "Loss_val": totloss.item(),
                              "Eval_val": evalloss.item(),
                              "Opt_val": objv.item()/splits,
-                             "Rnorm": eps_tch[0].detach().numpy().copy()
+                             "Rnorm": eps_tch[0][0].detach().numpy().copy()
                              })
                         df = df.append(newrow, ignore_index=True)
                         if steps < step - 1:
                             opt.step()
                             opt.zero_grad()
 
+                    eps_tch = torch.tensor([[1/5.]], requires_grad=True)
+                    paramb_tch = eps_tch[0]*torch.tensor(np.mean(train, axis=0), requires_grad=True)
+                    paramT_tch = eps_tch*torch.tensor(np.eye(train.shape[1]), requires_grad=True)
+
+                    # assign parameter values
+                    paramlst = prob.parameters()
+                    newlst = []
+                    for i in paramlst[:-2]:
+                        newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
+                    newlst.append(paramT_tch)
+                    newlst.append(paramb_tch)
+                    epslst = np.linspace(0.1, 5, 20)
+                    # train
+                    for epss in epslst:
+                        # import ipdb
+                        eps_tch = torch.tensor([[epss]], requires_grad=True)
+                        # ipdb.set_trace()
+                        totloss = 0
+                        objv = 0
+                        splits = 1
+                        for sets in range(splits):
+                            newlst[-1] = eps_tch[0]*torch.tensor(np.mean(train, axis=0), requires_grad=True)
+                            newlst[-2] = eps_tch*torch.tensor(np.eye(train.shape[1]), requires_grad=True)
+                            var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
+                            temploss, obj = unc_set.loss(*var_values, val_dset)
+                            evalloss, _ = unc_set.loss(*var_values, eval_set)
+                            objv += obj
+                            totloss += temploss
+                        totloss = totloss/splits
+                        newrow = pd.Series(
+                            {"steps": steps,
+                             "Loss_val": totloss.item(),
+                             "Eval_val": evalloss.item(),
+                             "Opt_val": objv.item()/splits,
+                             "Rnorm": eps_tch[0][0].detach().numpy().copy()
+                             })
+                        df1 = df1.append(newrow, ignore_index=True)
                     self._values = {'T': (eps_tch*torch.tensor(np.eye(train.shape[1]))).detach().numpy().copy(), 'b': (
                         eps_tch[0]*torch.tensor(np.mean(train, axis=0))).detach().numpy().copy()}
-
                     self._trained = True
                     unc_set._trained = True
-        return df
+        return df, df1

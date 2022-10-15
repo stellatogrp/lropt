@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random as npr
 import numpy.testing as npt
+import pandas as pd
 import torch
 
 from lro.robust_problem import RobustProblem
@@ -124,7 +125,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         constraints = [u @ x <= b, x >= 0, x <= 5]
 
         prob_robust = RobustProblem(objective, constraints)
-        df = prob_robust.train(eps=True)
+        df, _ = prob_robust.train(eps=True, lr=0.005, step=46)
         print(df)
         prob_robust.solve(solver=SOLVER)
         print(x.value)
@@ -135,7 +136,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         objective = cp.Minimize(-c @ x)
         constraints = [u @ x <= b, x >= 0, x <= 5]
         prob_robust1 = RobustProblem(objective, constraints)
-        df1 = prob_robust1.train()
+        df1, _ = prob_robust1.train(lr=0.002, step=46)
         print(df1)
         prob_robust1.solve(solver=SOLVER)
         print(x.value)
@@ -146,6 +147,74 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         plt.plot(df1['steps'], df1['Loss_val'], color="tab:orange", label="Reshape")
         plt.plot(df1['steps'], df1['Eval_val'], linestyle='--', color="tab:orange")
         plt.legend()
-        plt.savefig("plot")
+        # plt.savefig("plot")
 
         # Need prob_robust.train
+
+    def test_portfolio_learning(self):
+        # import ipdb
+        # ipdb.set_trace()
+        torch.seed()
+        sp500 = pd.read_csv('tests/experiments/stock_data/prices_sp500.csv').to_numpy()
+
+        num_stocks = 100
+        num_rets = 500
+
+        npr.seed(1)
+        stock_idxs = np.random.choice(sp500.shape[1], num_stocks, replace=False)
+
+        sp_prices = sp500[:num_rets+1, stock_idxs]
+        sp_rets = (sp_prices[1:, :] - sp_prices[:-1, :])/sp_prices[1:, :]
+        sp_rets = sp_rets + 0.05
+        # for i in range(sp_rets.shape[0]):
+        #     u = np.random.uniform()
+        #     if u > 0.8:
+        #         sp_rets[i] += np.random.normal(0,0.05, num_stocks)
+
+        def violation_loss(t_soln, x_soln, data, lmbda=1):
+            # import ipdb
+            # ipdb.set_trace()
+            # print(x_soln.shape)
+            npt.assert_equal(x_soln.shape[0], data.shape[1])
+            return t_soln + lmbda * torch.mean(
+                torch.maximum(-data @ x_soln - t_soln, torch.tensor(0., requires_grad=True))), t_soln
+
+        unc_set = Ellipsoidal(data=sp_rets, loss=violation_loss)
+        u = UncertainParameter(num_stocks, uncertainty_set=unc_set)
+
+        x = cp.Variable(num_stocks)
+        t = cp.Variable()
+
+        objective = cp.Minimize(t)
+        cons = [-u @ x <= t]
+        cons += [cp.sum(x) == 1, x >= 0]
+
+        prob_robust = RobustProblem(objective, cons)
+        df, dfgrid = prob_robust.train(eps=True, lr=0.05, step=100)
+        prob_robust.solve(solver=SOLVER)
+
+        unc_set = Ellipsoidal(data=sp_rets, loss=violation_loss)
+        u = UncertainParameter(num_stocks, uncertainty_set=unc_set)
+
+        x = cp.Variable(num_stocks)
+        t = cp.Variable()
+
+        objective = cp.Minimize(t)
+        cons = [-u @ x <= t]
+        cons += [cp.sum(x) == 1, x >= 0]
+
+        prob_robust1 = RobustProblem(objective, cons)
+        df1, _ = prob_robust1.train(lr=0.05, step=100)
+        prob_robust1.solve(solver=SOLVER)
+        # df.to_csv('df_eps.csv')
+        # df1.to_csv('df_R.csv')
+        # dfgrid.to_csv('df_grid.csv')
+        plt.figure(figsize=(9, 5))
+        plt.plot(df['steps'], df['Loss_val'], color="tab:blue", label=r"$/epsilon$ training")
+        plt.plot(df['steps'], df['Eval_val'], linestyle='--', color="tab:blue", label=r"$/epsilon$ testing")
+        plt.plot(df1['steps'], df1['Loss_val'], color="tab:orange", label="Reshape training")
+        plt.plot(df1['steps'], df1['Eval_val'], linestyle='--', color="tab:orange", label="Reshape testing")
+        plt.legend()
+        plt.xlabel("Iterations")
+        plt.ylabel("Training and Testing Loss")
+        # plt.savefig("plot")

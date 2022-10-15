@@ -68,6 +68,8 @@ class Uncertain_Canonicalization(Reduction):
                                if isinstance(v, UncertainParameter)]
                 canon_constr, aux_constr = self.remove_uncertainty(unc_lst, unc_params[0], std_lst)
                 canon_constraints += aux_constr + [canon_constr]
+                # import ipdb
+                # ipdb.set_trace()
                 if unc_params[0].uncertainty_set.trained:
                     unc_params[0].uncertainty_set.paramT.value = problem.param_values['T']
                     unc_params[0].uncertainty_set.paramb.value = problem.param_values['b']
