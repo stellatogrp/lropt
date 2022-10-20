@@ -15,6 +15,9 @@ authors = [
 ]
 dependencies = [
     "cvxpy @ git+https://git@github.com/cvxpy/cvxpy@master",
+    "torch",
+    "sklearn",
+    "cvxpylayers"
 ]
 
 [project.optional-dependencies]
