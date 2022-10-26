@@ -70,6 +70,8 @@ class Uncertain_Canonicalization(Reduction):
                 canon_constraints += aux_constr + [canon_constr]
                 # import ipdb
                 # ipdb.set_trace()
+                # if unc_params[0].uncertainty_set.data is not None and not unc_params[0].uncertainty_set.trained:
+                #     raise ValueError("You must first train the uncertainty with problem.train()")
                 if unc_params[0].uncertainty_set.trained:
                     unc_params[0].uncertainty_set.paramT.value = problem.param_values['T']
                     unc_params[0].uncertainty_set.paramb.value = problem.param_values['b']
@@ -291,6 +293,7 @@ class Uncertain_Canonicalization(Reduction):
                 unc_lst, std_lst = self.separate_uncertainty(expr.args[1])
                 if isinstance(expr.args[0], NegExpression):
                     new_std_lst = [-1 * h_x @ expr.args[0].args[0] for h_x in std_lst]
+                    new_unc_lst = [-1 * g_x @ expr.args[0].args[0] for g_x in unc_lst]
                     return (new_unc_lst, new_std_lst)
                 elif isinstance(expr.args[0], Promote):
                     new_unc_lst = [expr.args[0].value[0] * g_u for g_u in unc_lst]

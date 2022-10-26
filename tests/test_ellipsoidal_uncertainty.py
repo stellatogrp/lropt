@@ -1,7 +1,7 @@
 import unittest
 
 import cvxpy as cp
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random as npr
 import numpy.testing as npt
@@ -125,28 +125,22 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         constraints = [u @ x <= b, x >= 0, x <= 5]
 
         prob_robust = RobustProblem(objective, constraints)
-        df, _ = prob_robust.train(eps=True, lr=0.005, step=46)
+        df = prob_robust.train(eps=True, lr=0.005, step=46)
         print(df)
         prob_robust.solve(solver=SOLVER)
         print(x.value)
 
-        unc_set = Ellipsoidal(data=X, loss=violation_loss)
-        u = UncertainParameter(data_dim, uncertainty_set=unc_set)
-        x = cp.Variable(data_dim)
-        objective = cp.Minimize(-c @ x)
-        constraints = [u @ x <= b, x >= 0, x <= 5]
-        prob_robust1 = RobustProblem(objective, constraints)
-        df1, _ = prob_robust1.train(lr=0.002, step=46)
+        df1 = prob_robust.train(lr=0.002, step=46)
         print(df1)
-        prob_robust1.solve(solver=SOLVER)
+        prob_robust.solve(solver=SOLVER)
         print(x.value)
 
-        plt.figure(figsize=(9, 5))
-        plt.plot(df['steps'], df['Loss_val'], color="tab:blue", label="Eps")
-        plt.plot(df['steps'], df['Eval_val'], linestyle='--', color="tab:blue")
-        plt.plot(df1['steps'], df1['Loss_val'], color="tab:orange", label="Reshape")
-        plt.plot(df1['steps'], df1['Eval_val'], linestyle='--', color="tab:orange")
-        plt.legend()
+        # plt.figure(figsize=(9, 5))
+        # plt.plot(df['steps'], df['Loss_val'], color="tab:blue", label="Eps")
+        # plt.plot(df['steps'], df['Eval_val'], linestyle='--', color="tab:blue")
+        # plt.plot(df1['steps'], df1['Loss_val'], color="tab:orange", label="Reshape")
+        # plt.plot(df1['steps'], df1['Eval_val'], linestyle='--', color="tab:orange")
+        # plt.legend()
         # plt.savefig("plot")
 
         # Need prob_robust.train
@@ -190,31 +184,35 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         cons += [cp.sum(x) == 1, x >= 0]
 
         prob_robust = RobustProblem(objective, cons)
-        df, dfgrid = prob_robust.train(eps=True, lr=0.05, step=100)
+        df = prob_robust.train(eps=True, lr=0.05, step=100, momentum=0.8, optimizer="SGD", initeps=5)
         prob_robust.solve(solver=SOLVER)
-
-        unc_set = Ellipsoidal(data=sp_rets, loss=violation_loss)
-        u = UncertainParameter(num_stocks, uncertainty_set=unc_set)
-
-        x = cp.Variable(num_stocks)
-        t = cp.Variable()
-
-        objective = cp.Minimize(t)
-        cons = [-u @ x <= t]
-        cons += [cp.sum(x) == 1, x >= 0]
-
-        prob_robust1 = RobustProblem(objective, cons)
-        df1, _ = prob_robust1.train(lr=0.05, step=100)
-        prob_robust1.solve(solver=SOLVER)
+        df1 = prob_robust.train(lr=0.05, step=100, momentum=0.8, optimizer="SGD")
+        prob_robust.solve(solver=SOLVER)
+        dfgrid = prob_robust.grid(epslst=np.linspace(0.1, 5, 20))
+        print(df, df1, dfgrid)
         # df.to_csv('df_eps.csv')
         # df1.to_csv('df_R.csv')
         # dfgrid.to_csv('df_grid.csv')
-        plt.figure(figsize=(9, 5))
-        plt.plot(df['steps'], df['Loss_val'], color="tab:blue", label=r"$/epsilon$ training")
-        plt.plot(df['steps'], df['Eval_val'], linestyle='--', color="tab:blue", label=r"$/epsilon$ testing")
-        plt.plot(df1['steps'], df1['Loss_val'], color="tab:orange", label="Reshape training")
-        plt.plot(df1['steps'], df1['Eval_val'], linestyle='--', color="tab:orange", label="Reshape testing")
-        plt.legend()
-        plt.xlabel("Iterations")
-        plt.ylabel("Training and Testing Loss")
-        # plt.savefig("plot")
+        # plt.figure(figsize=(9, 5))
+        # plt.plot(df['step'], df['Loss_val'], color="tab:blue", label=r"$/epsilon$ training")
+        # plt.plot(df['step'], df['Eval_val'], linestyle='--', color="tab:blue", label=r"$/epsilon$ testing")
+        # plt.plot(df1['step'], df1['Loss_val'], color="tab:orange", label="Reshape training")
+        # plt.plot(df1['step'], df1['Eval_val'], linestyle='--', color="tab:orange", label="Reshape testing")
+        # plt.legend()
+        # plt.xlabel("Iterations")
+        # plt.ylabel("Training and Testing Loss")
+        # plt.savefig("plot.pdf")
+
+    def test_tut(self):
+        m = 5
+        n = 4
+        ellip_unc = Ellipsoidal(p=2, rho=2.)
+        ellip_u = UncertainParameter(m, uncertainty_set=ellip_unc)
+        x = cp.Variable(4)
+        P = 3. * np.eye(m)[:n, :]
+        a = 0.1 * np.random.rand(n)
+        c = np.random.rand(n)
+        objective = cp.Minimize(c@x)
+        constraints = [(P@ellip_u + a) @ x <= 10]
+        prob_robust = RobustProblem(objective, constraints)
+        prob_robust.solve()

@@ -1,7 +1,8 @@
-# import numpy as np
-# from cvxpy.atoms.affine.unary_operators import NegExpression
+import numpy as np
 
 from lro.uncertain import UncertainParameter
+
+# from cvxpy.atoms.affine.unary_operators import NegExpression
 
 
 def mulexpression_canon(expr, args, var):
@@ -36,12 +37,13 @@ def mulexpression_canon(expr, args, var):
 
 
 def mulexpression_canon_transform(u, P):
+    # import ipdb
+    # ipdb.set_trace()
     # adjust affine transform
     uset = u.uncertainty_set
-    trans = uset.affine_transform_temp
-    if trans:
-        trans['b'] = P@trans['b']
-        trans['A'] = P@trans['A']
+    if uset.affine_transform_temp:
+        uset.affine_transform_temp['b'] = P@uset.affine_transform_temp['b']
+        uset.affine_transform_temp['A'] = P@uset.affine_transform_temp['A']
     else:
-        trans = {'A': P, 'b': 0}
+        uset.affine_transform_temp = {'A': P, 'b': np.zeros(np.shape(P)[0])}
     return u

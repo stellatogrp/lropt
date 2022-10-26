@@ -42,16 +42,15 @@ def mul_canon_transform(u, c):
     # import ipdb
     # ipdb.set_trace()
     uset = u.uncertainty_set
-    trans = uset.affine_transform_temp
     if isinstance(c, Promote):
         c = c.value[0]
-    if trans:
-        trans['b'] = c*trans['b']
-        trans['A'] = c*trans['A']
+    if uset.affine_transform_temp:
+        uset.affine_transform_temp['b'] = c*uset.affine_transform_temp['b']
+        uset.affine_transform_temp['A'] = c*uset.affine_transform_temp['A']
     else:
         if len(u.shape) == 0:
-            trans = {'A': c*np.eye(1), 'b': 0}
+            uset.affine_transform_temp = {'A': c*np.eye(1), 'b': 0}
         else:
-            trans = {'A': c*np.eye(u.shape[0]), 'b': 0}
+            uset.affine_transform_temp = {'A': c*np.eye(u.shape[0]), 'b': np.zeros(u.shape[0])}
 
     return u
