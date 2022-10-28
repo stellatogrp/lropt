@@ -1,8 +1,7 @@
 from lro.robust_problem import RobustProblem
+from lro.settings import OPTIMIZERS
 from lro.uncertain import UncertainParameter
 from lro.uncertainty_sets.box import Box
 from lro.uncertainty_sets.budget import Budget
 from lro.uncertainty_sets.ellipsoidal import Ellipsoidal
 from lro.uncertainty_sets.polyhedral import Polyhedral
-
-# from lro.settings import *

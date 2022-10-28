@@ -13,6 +13,7 @@ from cvxpylayers.torch import CvxpyLayer
 from sklearn.model_selection import train_test_split
 
 from lro.remove_uncertain.remove_uncertain import RemoveUncertainParameters
+from lro.settings import OPTIMIZERS
 from lro.uncertain import UncertainParameter
 from lro.uncertain_canon.uncertain_chain import UncertainChain
 from lro.utils import unique_list
@@ -370,22 +371,3 @@ class RobustProblem(Problem):
                 self._trained = True
                 unc_set._trained = True
         return df
-
-
-OPTIMIZERS = {
-    "Adadelta": torch.optim.Adadelta,
-    "Adagrad": torch.optim.Adagrad,
-    "Adam": torch.optim.Adam,
-    "AdamW": torch.optim.AdamW,
-    "SparseAdam": torch.optim.SparseAdam,
-    "Adamax": torch.optim.Adamax,
-    "ASGD": torch.optim.ASGD,
-    "LBFGS": torch.optim.LBFGS,
-    "NAdam": torch.optim.NAdam,
-    "RAdam": torch.optim.RAdam,
-    "RMSprop": torch.optim.RMSprop,
-    "Rprop": torch.optim.Rprop,
-    "SGD": torch.optim.SGD
-}
-
-ECOS = "ECOS"
