@@ -13,6 +13,18 @@ class Polyhedral(UncertaintySet):
 
     where :math:`\\Pi(u)` is an identity by default but can be
     an affine transformation :math:`A u + b`.
+    Parameters
+    ----------
+    D : 2 dimentional np.array
+        D matrix
+    d : np.array
+        d vector
+    affine_transform : dict, optional
+        Affine transformation dictionary with keys 'A' and 'b'.
+    Returns
+    -------
+    Polyhedral
+        Polyhedral uncertainty set.
     """
 
     def __init__(self, d, D,

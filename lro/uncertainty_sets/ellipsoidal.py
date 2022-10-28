@@ -12,6 +12,23 @@ class Ellipsoidal(UncertaintySet):
 
     where :math:`\\Pi(u)` is an identity by default but can be
     an affine transformation :math:`A u + b`.
+    Parameters
+    ----------
+    rho : float, optional
+        Ellipsoid scaling. Default 1.0.
+    p : integer, optional
+        Order of the norm. Default 2.
+    affine_transform : dict, optional
+        Affine transformation dictionary with keys 'A' and 'b'.
+    data: np.array, required if uncertainty set parameters should be trained
+        An array of uncertainty realizations, where each row is one realization.
+        Passed only if the uncertainty should be trained. Default None.
+    loss: function, required if uncertainty set parameters should be trained
+        The loss function used to train the uncertainty set.
+    Returns
+    -------
+    Ellipsoidal
+        Ellipsoidal uncertainty set.
     """
 
     def __init__(self, p=2, rho=1.,

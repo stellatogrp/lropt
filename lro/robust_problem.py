@@ -116,18 +116,35 @@ class RobustProblem(Problem):
         Arguments
         ---------
         eps : bool, optional
-            If True, train both the shape and size. Else, train only epsilon
+           If True, train only epsilon, where A = epsilon I,
+           b = epsilon bar{d}, where bar{d} is the centroid of the
+           training data. Default False.
         step : int, optional
-            The number of iterations to use
+            The total number of gradient steps performed. Default 45.
         lr : float, optional
-            The learning rate
-        optimizer: str, optional
-            The optimizer to use
+            The learning rate of gradient descent. Default 0.01.
+        momentum: float between 0 and 1, optional
+            The momentum for gradient descent. Default 0.8.
+        optimizer: str or letters, optional
+            The optimizer to use tor the descent algorithm. Default "SGD".
         initeps : float, optional
-            Epsilon to initialize
+            The epsilon to initialize A and b, if passed. If not passed,
+            A will be initialized as the inverse square root of the
+            covariance of the data, and b will be initialized as bar{d}.
         Returns
         -------
-        A dataframe with information on each iteration
+        A pandas dataframe with information on each iteration.
+        The columns are:
+        "step": integer
+            The iteration number
+        "Opt_val": float
+            The objective value of the Robust Problem
+        "Loss_val": float
+            The value of the loss function applied to the training data
+        "Eval_val": float
+            The value of the loss function applied to the evaluation data
+        "A_norm": float
+            When eps = False, the 2-norm of the A matrix. When eps = True, the epsilon value.
         """
         # if enforce_dpp is False:
         #      warnings.warn("should enforce problem is dpp")
@@ -290,11 +307,19 @@ class RobustProblem(Problem):
         Performs grid search for epsilon
         Arguments
         ---------
-        epslist:
-            The list of epsilon to iterate over
+        epslist: np.array, optional
+            The list of epsilon to iterate over. Default np.logspace(-3, 1, 20)
         Returns
         -------
-        A data frame
+        A data frame with information on each epsilon. The columns are:
+        "Opt_val": float
+            The objective value of the Robust Problem
+        "Loss_val": float
+            The value of the loss function applied to the training data
+        "Eval_val": float
+            The value of the loss function applied to the evaluation data
+        "Eps": float
+            The epsilon value
         """
         # if enforce_dpp is False:
         #      warnings.warn("should enforce problem is dpp")

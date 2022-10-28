@@ -8,10 +8,28 @@ from lro.utils import check_affine_transform
 class Budget(UncertaintySet):
     """
     Uncertainty set where the norm is constrained as
-    :math:`\\{\\Pi(u) | \\| u \\|_infty \\le \\rho_1, \\| u \\|_1 \\le \\rho_2,\\}`
+    :math:`\\{\\Pi(u) | \\| u \\|_infty \\le \\rho1, \\| u \\|_1 \\le \\rho2,\\}`
 
     where :math:`\\Pi(u)` is an identity by default but can be
     an affine transformation :math:`A u + b`.
+
+    Parameters
+    ----------
+    rho1 : float, optional
+        Box scaling. Default 1.0.
+    rho2 : float, optional
+        1-norm scaling. Default 1.0.
+    affine_transform : dict, optional
+        Affine transformation dictionary with keys 'A' and 'b'.
+    data: np.array, required if uncertainty set parameters should be trained
+        An array of uncertainty realizations, where each row is one realization.
+        Passed only if the uncertainty should be trained. Default None.
+    loss: function, required if uncertainty set parameters should be trained
+        The loss function used to train the uncertainty set.
+    Returns
+    -------
+    Budget
+        Budget uncertainty set.
     """
 
     def __init__(self, rho1=1., rho2=1.,
