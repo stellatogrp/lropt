@@ -240,7 +240,7 @@ class Uncertain_Canonicalization(Reduction):
             raise ValueError("DRP error: not able to process non multiplication/additions")
 
         func = sep_methods[type(expr)]
-        return (func(self, expr))
+        return func(self, expr)
 
     def remove_const(self, expr, cons):
         # import ipdb
