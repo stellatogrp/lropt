@@ -32,7 +32,6 @@ def mulexpression_sep(unc_canon, expr):
         raise ValueError("DRP error: Cannot have uncertainty multiplied by each other")
 
     unc_param, non_unc_param = expr.args
-
     if unc_canon.has_unc_param(non_unc_param):
         non_unc_param, unc_param = expr.args
 
@@ -42,10 +41,3 @@ def mulexpression_sep(unc_canon, expr):
 
     func = SEPARATION_SUB_METHODS[type(non_unc_param)]
     return func(non_unc_param, unc_lst, std_lst)
-    # else:
-    #     unc_lst, std_lst = unc_canon.separate_uncertainty(expr.args[1])
-    #     if type(expr.args[0]) not in SEPARATION_SUB_METHODS:
-    #         return default_sep_sub(expr.args[0], unc_lst, std_lst)
-
-    #     func = SEPARATION_SUB_METHODS[type(expr.args[0])]
-    #     return func(expr.args[0], unc_lst, std_lst)
