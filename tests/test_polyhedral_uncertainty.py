@@ -94,3 +94,31 @@ class TestPolyhedralUncertainty(unittest.TestCase):
 
     #  def test_reverse_inequality(self):
     #  def test_uncertainty_in_objective(self):
+    def test_poly1(self):
+        m = 5
+        D = np.vstack((np.eye(m), -2*np.eye(m)))
+        d = np.concatenate((0.1*np.ones(m), 0.1*np.ones(m)))
+        poly_u = UncertainParameter(m,
+                                    uncertainty_set=Polyhedral(
+                                        D=D,
+                                        d=d))
+        n = 4
+        # formulate cvxpy variable
+        x = cp.Variable(n)
+
+        # formulate problem constants
+        P1 = 0.5 * np.eye(m)[:n, :]
+        P2 = 3*np.random.rand(n, m)
+        a = 0.1 * np.random.rand(n)
+        c = np.random.rand(n)
+
+        # formulate objective
+        objective = cp.Minimize(-c@x)
+
+        # formulate constraints
+        constraints = [(P1@poly_u + a) @ x <= 10, x <= 5]
+        constraints += [(P2@poly_u) @ x <= 5]
+        # formulate Robust Problem
+        prob_robust = RobustProblem(objective, constraints)
+        # solve
+        prob_robust.solve()

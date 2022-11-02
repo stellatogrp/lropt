@@ -1,7 +1,8 @@
 import numpy as np
-import scipy.sparse as spa
 
 from lro.uncertainty_sets.ellipsoidal import Ellipsoidal
+
+# import scipy.sparse as spa
 
 
 class Box(Ellipsoidal):
@@ -75,7 +76,7 @@ class Box(Ellipsoidal):
             if len(center) != len(side):
                 raise ValueError("Center and side must have the same size.")
 
-            A = spa.diags(.5 * side)
+            A = np.diag(.5 * side)
             b = center
             affine_transform = {'A': A, 'b': b}
 

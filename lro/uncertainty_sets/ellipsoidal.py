@@ -148,10 +148,11 @@ class Ellipsoidal(UncertaintySet):
                 new_constraints = [var == -trans['A'].T @ e]
             else:
                 new_constraints = [var == - e]
-        if self.affine_transform:
-            self.affine_transform_temp = self.affine_transform.copy()
-        else:
-            self.affine_transform_temp = None
+        if i == (num_constr - 1):
+            if self.affine_transform:
+                self.affine_transform_temp = self.affine_transform.copy()
+            else:
+                self.affine_transform_temp = None
         return new_expr, new_constraints
 
     def conjugate(self, var, shape):
@@ -162,7 +163,7 @@ class Ellipsoidal(UncertaintySet):
                 constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
                 constr += [self.paramT.T@newvar == var[0]]
                 constr += [lmbda >= 0]
-                return self.rho * lmbda + var[0]*self.paramb, constr
+                return self.rho * lmbda - var[0]*self.paramb, constr
             else:
                 constr = []
                 lmbda = Variable(shape)
@@ -172,7 +173,7 @@ class Ellipsoidal(UncertaintySet):
                     constr += [norm(newvar[ind], p=self.dual_norm()) <= lmbda[ind]]
                     constr += [self.paramT.T@newvar[ind] == var[ind]]
 
-                return self.rho * lmbda + var@self.paramb, constr
+                return self.rho * lmbda - var@self.paramb, constr
         else:
             if shape == 1:
                 lmbda = Variable()

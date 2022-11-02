@@ -133,6 +133,8 @@ class Budget(UncertaintySet):
         return new_expr, new_constraints
 
     def isolated_unc(self, i, var, num_constr):
+        # import ipdb
+        # ipdb.set_trace()
         trans = self.affine_transform_temp
         new_expr = 0
         if i == 0:
@@ -149,13 +151,16 @@ class Budget(UncertaintySet):
                 new_constraints = [var == -trans['A'].T @ e]
             else:
                 new_constraints = [var == - e]
-        if self.affine_transform:
-            self.affine_transform_temp = self.affine_transform.copy()
-        else:
-            self.affine_transform_temp = None
+        if i == (num_constr-1):
+            if self.affine_transform:
+                self.affine_transform_temp = self.affine_transform.copy()
+            else:
+                self.affine_transform_temp = None
         return new_expr, new_constraints
 
     def conjugate(self, var, shape):
+        # import ipdb
+        # ipdb.set_trace()
         newvar1 = Variable(var.shape)
         newvar2 = Variable(var.shape)
         constr = [newvar1 + newvar2 == var]
@@ -168,7 +173,7 @@ class Budget(UncertaintySet):
                 constr += [norm(newvar2[0], np.inf) <= lmbda2]
                 constr += [self.paramT.T@newvar == newvar1[0]]
                 constr += [lmbda1 >= 0, lmbda2 >= 0]
-                return self.rho1 * lmbda1 + self.rho2 * lmbda2 + newvar1[0]*self.paramb, constr
+                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar1[0]*self.paramb, constr
             else:
                 constr = []
                 lmbda1 = Variable(shape)
@@ -179,7 +184,7 @@ class Budget(UncertaintySet):
                     constr += [norm(newvar[ind], p=1) <= lmbda1[ind]]
                     constr += [norm(newvar2[ind], p=np.inf) <= lmbda2[ind]]
                     constr += [self.paramT.T@newvar[ind] == newvar1[ind]]
-                return self.rho * lmbda1 + newvar1@self.paramb, constr
+                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar1@self.paramb, constr
         elif self.data is not None and not self.train_box:
             if shape == 1:
                 newvar = Variable(self.data.shape[1])  # z conjugate variables
@@ -189,7 +194,7 @@ class Budget(UncertaintySet):
                 constr += [norm(newvar[0], np.inf) <= lmbda2]
                 constr += [self.paramT.T@newvar == newvar2[0]]
                 constr += [lmbda1 >= 0, lmbda2 >= 0]
-                return self.rho1 * lmbda1 + self.rho2 * lmbda2 + newvar2[0]*self.paramb, constr
+                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar2[0]*self.paramb, constr
             else:
                 constr = []
                 lmbda1 = Variable(shape)
@@ -200,7 +205,7 @@ class Budget(UncertaintySet):
                     constr += [norm(newvar1[ind], p=1) <= lmbda1[ind]]
                     constr += [norm(newvar[ind], p=np.inf) <= lmbda2[ind]]
                     constr += [self.paramT.T@newvar[ind] == newvar2[ind]]
-                return self.rho * lmbda1 + newvar2@self.paramb, constr
+                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar2@self.paramb, constr
         else:
             if shape == 1:
                 lmbda1 = Variable()
