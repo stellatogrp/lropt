@@ -1,9 +1,6 @@
 from cvxpy import Variable, problems
 # from cvxpy.expressions.variable import Variable
 # from cvxpy.atoms.affine.add_expr import AddExpression
-from cvxpy.atoms.affine.binary_operators import MulExpression, multiply
-from cvxpy.atoms.affine.promote import Promote
-from cvxpy.atoms.affine.unary_operators import NegExpression
 # Type Checking
 from cvxpy.constraints.nonpos import Inequality
 from cvxpy.expressions import cvxtypes
@@ -15,6 +12,8 @@ from cvxpy.reductions.solution import Solution
 from lro.remove_uncertain.atom_canonicalizers.mul_canon import \
     mul_canon_transform
 from lro.uncertain import UncertainParameter
+from lro.uncertain_canon.remove_constant import \
+    REMOVE_CONSTANT_METHODS as rm_const_methods
 from lro.uncertain_canon.separate_uncertainty import \
     SEPARATION_METHODS as sep_methods
 from lro.utils import unique_list
@@ -134,7 +133,7 @@ class Uncertain_Canonicalization(Reduction):
         "canonicalize each term separately with inf convolution"
         # import ipdb
         # ipdb.set_trace()
-        num = len(unc_lst)
+        num_unc_fns = len(unc_lst)
         if len(unc_lst[0].shape) >= 1:
             num_constr = unc_lst[0].shape[0]
         else:
@@ -150,21 +149,23 @@ class Uncertain_Canonicalization(Reduction):
         else:
             shape = 1
         if shape == 1:
-            z = Variable(num)
+            z = Variable(num_unc_fns)
         else:
-            z = Variable((num, shape))
+            z = Variable((num_unc_fns, shape))
         z_cons = 0
         z_new_cons = {}
         new_vars = {}
         aux_expr = 0
         aux_const = []
         j = 0
-        for ind in range(num):
+        for ind in range(num_unc_fns):
+
             # if len(unc_lst[ind].variables()) (check if has variable)
             u_expr, cons = self.remove_const(unc_lst[ind], 1)
             uvar = mul_canon_transform(uvar, cons)
             new_expr, new_const = self.canonicalize_tree(u_expr, z[ind])
             if self.has_unc_param(new_expr):
+                # ONLY HERE IN ISOLATED U CASE
                 assert (num_constr == shape)
                 if shape == 1:
                     new_vars[ind] = Variable((num_constr, shape))
@@ -183,6 +184,8 @@ class Uncertain_Canonicalization(Reduction):
 
                 j = 1
             else:
+                # import ipdb
+                # ipdb.set_trace()
                 aux_expr = aux_expr + new_expr
                 aux_const += new_const
                 z_cons += z[ind]
@@ -247,34 +250,40 @@ class Uncertain_Canonicalization(Reduction):
         # ipdb.set_trace()
         if len(expr.args) == 0:
             return expr, cons
-        elif isinstance(expr, multiply):
-            if expr.args[0].is_constant() and not self.has_unc_param(expr.args[0]):
-                if expr.args[0].is_scalar():
-                    cons = (cons*expr.args[0]).value
-                elif isinstance(expr.args[0], Promote):
-                    cons = (cons*expr.args[0].args[0]).value
-                return self.remove_const(expr.args[1], cons)
-            if expr.args[1].is_constant() and not self.has_unc_param(expr.args[1]):
-                if expr.args[1].is_scalar():
-                    cons = (cons*expr.args[1]).value
-                elif isinstance(expr.args[1], Promote):
-                    cons = (cons*expr.args[1].args[0]).value
-                return self.remove_const(expr.args[0], cons)
-            if isinstance(expr.args[0], NegExpression) and isinstance(expr.args[1], NegExpression):
-                return self.remove_const(expr.args[0].args[0]*expr.args[1].args[0], cons)
-            elif isinstance(expr.args[0], NegExpression):
-                cons = (-1*cons).value
-                return self.remove_const(expr.args[0].args[0], cons)
-            elif isinstance(expr.args[1], NegExpression):
-                cons = (-1*cons).value
-                return self.remove_const(expr.args[1].args[0], cons)
-            else:
-                expr1, cons = self.remove_const(expr.args[0], cons)
-                expr2, cons = self.remove_const(expr.args[1], cons)
-                return expr1*expr2, cons
-        elif isinstance(expr, MulExpression):
-            expr1, cons = self.remove_const(expr.args[0], cons)
-            expr2, cons = self.remove_const(expr.args[1], cons)
-            return expr1*expr2, cons
-        else:
+
+        if type(expr) not in rm_const_methods:
             return expr, cons
+        else:
+            func = rm_const_methods[type(expr)]
+            return func(self, expr, cons)
+        # elif isinstance(expr, multiply):
+        #     if expr.args[0].is_constant() and not self.has_unc_param(expr.args[0]):
+        #         if expr.args[0].is_scalar():
+        #             cons = (cons*expr.args[0]).value
+        #         elif isinstance(expr.args[0], Promote):
+        #             cons = (cons*expr.args[0].args[0]).value
+        #         return self.remove_const(expr.args[1], cons)
+        #     if expr.args[1].is_constant() and not self.has_unc_param(expr.args[1]):
+        #         if expr.args[1].is_scalar():
+        #             cons = (cons*expr.args[1]).value
+        #         elif isinstance(expr.args[1], Promote):
+        #             cons = (cons*expr.args[1].args[0]).value
+        #         return self.remove_const(expr.args[0], cons)
+        #     if isinstance(expr.args[0], NegExpression) and isinstance(expr.args[1], NegExpression):
+        #         return self.remove_const(expr.args[0].args[0]*expr.args[1].args[0], cons)
+        #     elif isinstance(expr.args[0], NegExpression):
+        #         cons = (-1*cons).value
+        #         return self.remove_const(expr.args[0].args[0], cons)
+        #     elif isinstance(expr.args[1], NegExpression):
+        #         cons = (-1*cons).value
+        #         return self.remove_const(expr.args[1].args[0], cons)
+        #     else:
+        #         expr1, cons = self.remove_const(expr.args[0], cons)
+        #         expr2, cons = self.remove_const(expr.args[1], cons)
+        #         return expr1*expr2, cons
+        # elif isinstance(expr, MulExpression):
+        #     expr1, cons = self.remove_const(expr.args[0], cons)
+        #     expr2, cons = self.remove_const(expr.args[1], cons)
+        #     return expr1*expr2, cons
+        # else:
+        #     return expr, cons
