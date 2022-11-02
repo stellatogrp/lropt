@@ -221,14 +221,19 @@ class Uncertain_Canonicalization(Reduction):
             return 0
 
     def separate_uncertainty(self, expr):
-        '''takes in a constraint or expression and returns 2 lists:
+        '''separate cvxpy expression into subexpressions with uncertain parameters and without.
+        Input:
+            expr :
+                a cvxpy expression
+        Output:
             unc_lst :
                 EX: [g_1(u_1,x), g_2(u_1,x)]
-                a list of lists corresponding to the number of
-                unique uncertain parameters in the expression
+                a list of cvxpy multiplication expressions from expr each containing one uncertain parameter
             std_lst :
                 Ex: [h_1(x),h_2(x)]
-                any other functions without uncertainty
+                any other cvxpy expressions
+
+        The original expr is equivalnet to the sum of expressions in unc_lst and std_lst
             '''
         # Check Initial Conditions
         if self.count_unq_uncertain_param(expr) == 0:
@@ -246,6 +251,7 @@ class Uncertain_Canonicalization(Reduction):
         return func(self, expr)
 
     def remove_const(self, expr, cons):
+        '''remove the constants at the beginning of an expression with uncertainty'''
         # import ipdb
         # ipdb.set_trace()
         if len(expr.args) == 0:
@@ -256,34 +262,3 @@ class Uncertain_Canonicalization(Reduction):
         else:
             func = rm_const_methods[type(expr)]
             return func(self, expr, cons)
-        # elif isinstance(expr, multiply):
-        #     if expr.args[0].is_constant() and not self.has_unc_param(expr.args[0]):
-        #         if expr.args[0].is_scalar():
-        #             cons = (cons*expr.args[0]).value
-        #         elif isinstance(expr.args[0], Promote):
-        #             cons = (cons*expr.args[0].args[0]).value
-        #         return self.remove_const(expr.args[1], cons)
-        #     if expr.args[1].is_constant() and not self.has_unc_param(expr.args[1]):
-        #         if expr.args[1].is_scalar():
-        #             cons = (cons*expr.args[1]).value
-        #         elif isinstance(expr.args[1], Promote):
-        #             cons = (cons*expr.args[1].args[0]).value
-        #         return self.remove_const(expr.args[0], cons)
-        #     if isinstance(expr.args[0], NegExpression) and isinstance(expr.args[1], NegExpression):
-        #         return self.remove_const(expr.args[0].args[0]*expr.args[1].args[0], cons)
-        #     elif isinstance(expr.args[0], NegExpression):
-        #         cons = (-1*cons).value
-        #         return self.remove_const(expr.args[0].args[0], cons)
-        #     elif isinstance(expr.args[1], NegExpression):
-        #         cons = (-1*cons).value
-        #         return self.remove_const(expr.args[1].args[0], cons)
-        #     else:
-        #         expr1, cons = self.remove_const(expr.args[0], cons)
-        #         expr2, cons = self.remove_const(expr.args[1], cons)
-        #         return expr1*expr2, cons
-        # elif isinstance(expr, MulExpression):
-        #     expr1, cons = self.remove_const(expr.args[0], cons)
-        #     expr2, cons = self.remove_const(expr.args[1], cons)
-        #     return expr1*expr2, cons
-        # else:
-        #     return expr, cons
