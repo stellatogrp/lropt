@@ -1,9 +1,6 @@
 from cvxpy import Variable, problems
 # from cvxpy.expressions.variable import Variable
-from cvxpy.atoms.affine.add_expr import AddExpression
-from cvxpy.atoms.affine.binary_operators import MulExpression, multiply
-from cvxpy.atoms.affine.promote import Promote
-from cvxpy.atoms.affine.unary_operators import NegExpression
+# from cvxpy.atoms.affine.add_expr import AddExpression
 # Type Checking
 from cvxpy.constraints.nonpos import Inequality
 from cvxpy.expressions import cvxtypes
@@ -15,6 +12,10 @@ from cvxpy.reductions.solution import Solution
 from lro.remove_uncertain.atom_canonicalizers.mul_canon import \
     mul_canon_transform
 from lro.uncertain import UncertainParameter
+from lro.uncertain_canon.remove_constant import \
+    REMOVE_CONSTANT_METHODS as rm_const_methods
+from lro.uncertain_canon.separate_uncertainty import \
+    SEPARATION_METHODS as sep_methods
 from lro.utils import unique_list
 
 
@@ -132,7 +133,7 @@ class Uncertain_Canonicalization(Reduction):
         "canonicalize each term separately with inf convolution"
         # import ipdb
         # ipdb.set_trace()
-        num = len(unc_lst)
+        num_unc_fns = len(unc_lst)
         if len(unc_lst[0].shape) >= 1:
             num_constr = unc_lst[0].shape[0]
         else:
@@ -148,16 +149,17 @@ class Uncertain_Canonicalization(Reduction):
         else:
             shape = 1
         if shape == 1:
-            z = Variable(num)
+            z = Variable(num_unc_fns)
         else:
-            z = Variable((num, shape))
+            z = Variable((num_unc_fns, shape))
         z_cons = 0
         z_new_cons = {}
         new_vars = {}
         aux_expr = 0
         aux_const = []
         j = 0
-        for ind in range(num):
+        for ind in range(num_unc_fns):
+
             # if len(unc_lst[ind].variables()) (check if has variable)
             u_expr, cons = self.remove_const(unc_lst[ind], 1)
             uvar = mul_canon_transform(uvar, cons)
@@ -178,6 +180,8 @@ class Uncertain_Canonicalization(Reduction):
 
                 j = 1
             else:
+                # import ipdb
+                # ipdb.set_trace()
                 aux_expr = aux_expr + new_expr
                 aux_const += new_const
                 z_cons += z[ind]
@@ -200,8 +204,7 @@ class Uncertain_Canonicalization(Reduction):
             unc_params += [v for v in expr.parameters()
                            if isinstance(v, UncertainParameter)]
             return len(unique_list(unc_params))
-        # elif expr.is_constant():
-        #     return 0
+
         else:
             unc_params += [v for v in expr.parameters()
                            if isinstance(v, UncertainParameter)]
@@ -214,21 +217,22 @@ class Uncertain_Canonicalization(Reduction):
             return 0
 
     def separate_uncertainty(self, expr):
-        '''takes in a constraint or expression and returns 3 lists:
+        '''separate cvxpy expression into subexpressions with uncertain parameters and without.
+        Input:
+            expr :
+                a cvxpy expression
+        Output:
             unc_lst :
                 EX: [g_1(u_1,x), g_2(u_1,x)]
-                a list of lists corresponding to the number of
-                unique uncertain parameters in the expression
+                a list of cvxpy multiplication expressions from expr each containing one uncertain parameter
             std_lst :
                 Ex: [h_1(x),h_2(x)]
-                any other functions without uncertainty
+                any other cvxpy expressions
+
+        The original expr is equivalnet to the sum of expressions in unc_lst and std_lst
             '''
-        # import ipdb
-        # ipdb.set_trace()
         # Check Initial Conditions
-        if isinstance(expr, Inequality):
-            return self.separate_uncertainty(expr.args[0] + -1*expr.args[1])
-        elif self.count_unq_uncertain_param(expr) == 0:
+        if self.count_unq_uncertain_param(expr) == 0:
             return ([], [expr])
         elif self.count_unq_uncertain_param(expr) > 1:
             raise ValueError("DRP error: Cannot have multiple uncertain params in the same expr")
@@ -236,129 +240,21 @@ class Uncertain_Canonicalization(Reduction):
             assert (self.has_unc_param(expr))
             return ([expr], [])
 
-        elif isinstance(expr, multiply):
-            if self.has_unc_param(expr.args[0]) and \
-                    self.has_unc_param(expr.args[1]):
-                raise ValueError("DRP error: Cannot have uncertainty multiplied by each other")
-            if self.has_unc_param(expr.args[0]):
-                unc_lst, std_lst = self.separate_uncertainty(expr.args[0])
-                if isinstance(expr.args[1], NegExpression):
-                    new_unc_lst = [-1*expr.args[1].args[0] * g_u for g_u in unc_lst]
-                    new_std_lst = [-1*expr.args[1].args[0] * h_x for h_x in std_lst]
-                    return (new_unc_lst, new_std_lst)
-                elif isinstance(expr.args[1], Promote):
-                    new_unc_lst = [expr.args[1].value[0] * g_u for g_u in unc_lst]
-                    new_std_lst = [expr.args[1].value[0] * h_x for h_x in std_lst]
-                    return (new_unc_lst, new_std_lst)
-                new_unc_lst = [expr.args[1] * g_u for g_u in unc_lst]
-                new_std_lst = [expr.args[1] * h_x for h_x in std_lst]
-                return (new_unc_lst, new_std_lst)
-            else:
-                unc_lst, std_lst = self.separate_uncertainty(expr.args[1])
-                if isinstance(expr.args[0], NegExpression):
-                    new_unc_lst = [-1*expr.args[0].args[0] * g_u for g_u in unc_lst]
-                    new_std_lst = [-1*expr.args[0].args[0] * h_x for h_x in std_lst]
-                    return (new_unc_lst, new_std_lst)
-                elif isinstance(expr.args[0], Promote):
-                    new_unc_lst = [expr.args[0].value[0] * g_u for g_u in unc_lst]
-                    new_std_lst = [expr.args[0].value[0] * h_x for h_x in std_lst]
-                    return (new_unc_lst, new_std_lst)
-                new_unc_lst = [expr.args[0] * g_u for g_u in unc_lst]
-                new_std_lst = [expr.args[0] * h_x for h_x in std_lst]
-                return (new_unc_lst, new_std_lst)
-
-        elif isinstance(expr, MulExpression):
-            # import ipdb
-            # ipdb.set_trace()
-            if self.has_unc_param(expr.args[0]) and \
-                    self.has_unc_param(expr.args[1]):
-                raise ValueError("DRP error: Cannot have uncertainty multiplied by each other")
-            if self.has_unc_param(expr.args[0]):
-                unc_lst, std_lst = self.separate_uncertainty(expr.args[0])
-                if isinstance(expr.args[1], NegExpression):
-                    new_unc_lst = [-1 * g_u @ expr.args[1].args[0] for g_u in unc_lst]
-                    new_std_lst = [-1 * h_x @ expr.args[1].args[0] for h_x in std_lst]
-                    return (new_unc_lst, new_std_lst)
-                elif isinstance(expr.args[1], Promote):
-                    new_unc_lst = [g_u * expr.args[1].value[0] for g_u in unc_lst]
-                    new_std_lst = [h_x * expr.args[1].value[0] for h_x in std_lst]
-                    return (new_unc_lst, new_std_lst)
-                new_unc_lst = [g_u @ expr.args[1] for g_u in unc_lst]
-                new_std_lst = [h_x @ expr.args[1] for h_x in std_lst]
-                return (new_unc_lst, new_std_lst)
-            else:
-                unc_lst, std_lst = self.separate_uncertainty(expr.args[1])
-                if isinstance(expr.args[0], NegExpression):
-                    new_std_lst = [-1 * h_x @ expr.args[0].args[0] for h_x in std_lst]
-                    new_unc_lst = [-1 * g_x @ expr.args[0].args[0] for g_x in unc_lst]
-                    return (new_unc_lst, new_std_lst)
-                elif isinstance(expr.args[0], Promote):
-                    new_unc_lst = [expr.args[0].value[0] * g_u for g_u in unc_lst]
-                    new_std_lst = [expr.args[0].value[0] * h_x for h_x in std_lst]
-                    return (new_unc_lst, new_std_lst)
-                new_unc_lst = [expr.args[0] @ g_u for g_u in unc_lst]
-                new_std_lst = [expr.args[0] @ h_x for h_x in std_lst]
-                return (new_unc_lst, new_std_lst)
-
-        elif isinstance(expr, AddExpression):
-            if self.has_unc_param(expr.args[0]) and \
-                    self.has_unc_param(expr.args[1]):
-                unc_lst_0, std_lst_0 = self.separate_uncertainty(expr.args[0])
-                unc_lst_1, std_lst_1 = self.separate_uncertainty(expr.args[1])
-                return (unc_lst_0 + unc_lst_1, std_lst_0 + std_lst_1)
-            elif self.has_unc_param(expr.args[0]):
-                unc_lst, std_lst = self.separate_uncertainty(expr.args[0])
-                std_lst.append(expr.args[1])
-                return (unc_lst, std_lst)
-            else:
-                unc_lst, std_lst = self.separate_uncertainty(expr.args[1])
-                std_lst.append(expr.args[0])
-                return (unc_lst, std_lst)
-        elif isinstance(expr, NegExpression):
-            unc_lst, std_lst = self.separate_uncertainty(expr.args[0])
-            new_unc_lst = [-1 * g_u for g_u in unc_lst]
-            new_std_lst = [-1 * h_x for h_x in std_lst]
-            return (new_unc_lst, new_std_lst)
-        elif isinstance(expr, Promote):
+        elif type(expr) not in sep_methods:
             raise ValueError("DRP error: not able to process non multiplication/additions")
-        else:
-            # import ipdb
-            # ipdb.set_trace()
-            raise ValueError("DRP error: not able to process non multiplication/additions")
+
+        func = sep_methods[type(expr)]
+        return func(self, expr)
 
     def remove_const(self, expr, cons):
+        '''remove the constants at the beginning of an expression with uncertainty'''
         # import ipdb
         # ipdb.set_trace()
         if len(expr.args) == 0:
             return expr, cons
-        elif isinstance(expr, multiply):
-            if expr.args[0].is_constant() and not self.has_unc_param(expr.args[0]):
-                if expr.args[0].is_scalar():
-                    cons = (cons*expr.args[0]).value
-                elif isinstance(expr.args[0], Promote):
-                    cons = (cons*expr.args[0].args[0]).value
-                return self.remove_const(expr.args[1], cons)
-            if expr.args[1].is_constant() and not self.has_unc_param(expr.args[1]):
-                if expr.args[1].is_scalar():
-                    cons = (cons*expr.args[1]).value
-                elif isinstance(expr.args[1], Promote):
-                    cons = (cons*expr.args[1].args[0]).value
-                return self.remove_const(expr.args[0], cons)
-            if isinstance(expr.args[0], NegExpression) and isinstance(expr.args[1], NegExpression):
-                return self.remove_const(expr.args[0].args[0]*expr.args[1].args[0], cons)
-            elif isinstance(expr.args[0], NegExpression):
-                cons = (-1*cons).value
-                return self.remove_const(expr.args[0].args[0], cons)
-            elif isinstance(expr.args[1], NegExpression):
-                cons = (-1*cons).value
-                return self.remove_const(expr.args[1].args[0], cons)
-            else:
-                expr1, cons = self.remove_const(expr.args[0], cons)
-                expr2, cons = self.remove_const(expr.args[1], cons)
-                return expr1*expr2, cons
-        elif isinstance(expr, MulExpression):
-            expr1, cons = self.remove_const(expr.args[0], cons)
-            expr2, cons = self.remove_const(expr.args[1], cons)
-            return expr1*expr2, cons
-        else:
+
+        if type(expr) not in rm_const_methods:
             return expr, cons
+        else:
+            func = rm_const_methods[type(expr)]
+            return func(self, expr, cons)

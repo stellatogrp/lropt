@@ -31,9 +31,9 @@ def mul_canon(expr, args, var):
         return args[0]*args[1], []
 
     # adjust affine transform when multiplied by a constant
-    if (x.is_constant()):
-        u = mul_canon_transform(u, x)
-        return u, []
+    # if (x.is_constant()):
+    #     u = mul_canon_transform(u, x)
+    #     return u, []
     return u.canonicalize(x, var)
 
 
