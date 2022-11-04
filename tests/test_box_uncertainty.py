@@ -9,6 +9,7 @@ import torch
 from lro.robust_problem import RobustProblem
 from lro.uncertain import UncertainParameter
 from lro.uncertainty_sets.box import Box
+from lro.uncertainty_sets.budget import Budget
 from lro.uncertainty_sets.polyhedral import Polyhedral
 from tests.settings import SOLVER
 from tests.settings import TESTS_ATOL as ATOL
@@ -216,3 +217,64 @@ class TestBoxUncertainty(unittest.TestCase):
         print(x.value)
         print(df)
         # npt.assert_allclose(x.value, 1, rtol=RTOL, atol=ATOL)
+
+    def test_boxe(self):
+        # formulate the box set
+        m = 5
+        box_u = UncertainParameter(m,
+                                   uncertainty_set=Box(center=0.1*np.ones(m),
+                                                       side=0.01*np.array([1, 2, 3, 4, 5]),
+                                                       rho=2.))
+        n = 5
+
+        # formulate cvxpy variable
+        x = cp.Variable(n)
+
+        # formulate problem constants
+        P = np.random.rand(n, m)
+        c = np.random.rand(n)
+
+        # formulate objective
+        objective = cp.Minimize(-c@x)
+
+        # formulate constraints
+        constraints = [P@box_u @ x <= 10 + 2.5*box_u@x, x >= 0, x <= 1]
+
+        # formulate Robust Problem
+        prob_robust = RobustProblem(objective, constraints)
+
+        # solve
+        prob_robust.solve()
+
+    def test_budget(self):
+        # import ipdb
+        # ipdb.set_trace()
+        # restate the ellipsoidal set
+        m = 5
+        budget_u = UncertainParameter(m,
+                                      uncertainty_set=Budget(rho1=2.,
+                                                             rho2=1.))
+        n = 5
+        # formulate cvxpy variable
+        x = cp.Variable(n)
+
+        # formulate problem constants
+        P = 3. * np.eye(m)[:n, :]
+        P1 = 3*np.random.rand(n, m)
+        a = 0.1 * np.random.rand(n)
+        c = np.random.rand(n)
+
+        # formulate objective
+        objective = cp.Minimize(c@x)
+
+        # formulate constraints
+        constraints = [(P@budget_u + a) @ x <= 10]
+        constraints += [x >= P1@budget_u]
+
+        # formulate Robust Problem
+        prob_robust = RobustProblem(objective, constraints)
+
+        # solve
+        prob_robust.solve()
+
+        print("LRO objective value: ", prob_robust.objective.value, "\nLRO x: ", x.value)

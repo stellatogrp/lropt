@@ -165,12 +165,8 @@ class Uncertain_Canonicalization(Reduction):
             uvar = mul_canon_transform(uvar, cons)
             new_expr, new_const = self.canonicalize_tree(u_expr, z[ind])
             if self.has_unc_param(new_expr):
-                # ONLY HERE IN ISOLATED U CASE
-                assert (num_constr == shape)
-                if shape == 1:
-                    new_vars[ind] = Variable((num_constr, shape))
-                else:
-                    new_vars[ind] = Variable((num_constr, shape))
+                # assert (num_constr == shape)
+                new_vars[ind] = Variable((num_constr, shape))
                 for idx in range(num_constr):
                     # import ipdb
                     # ipdb.set_trace()

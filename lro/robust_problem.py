@@ -106,7 +106,7 @@ class RobustProblem(Problem):
 
     def train(
         self, eps=False, step=45, lr=0.01, momentum=0.8,
-        optimizer="SGD", initeps=None, solver: Optional[str] = None,
+        optimizer="SGD", initeps=None, seed=1, solver: Optional[str] = None,
         gp: bool = False,
         enforce_dpp: bool = True, ignore_dpp: bool = False,
         solver_opts: Optional[dict] = None
@@ -131,6 +131,8 @@ class RobustProblem(Problem):
             The epsilon to initialize A and b, if passed. If not passed,
             A will be initialized as the inverse square root of the
             covariance of the data, and b will be initialized as bar{d}.
+        seed : int, optional
+            The seed to control the random state of the train-test data split. Default 1.
         Returns
         -------
         A pandas dataframe with information on each iteration.
@@ -179,7 +181,7 @@ class RobustProblem(Problem):
                 df = pd.DataFrame(columns=["step", "Opt_val", "Eval_val", "Loss_val", "A_norm"])
 
                 # setup train and test data
-                train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]/5))
+                train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]/5), random_state=seed)
                 val_dset = torch.tensor(train, requires_grad=True)
                 eval_set = torch.tensor(test, requires_grad=True)
                 # create cvxpylayer
@@ -191,13 +193,13 @@ class RobustProblem(Problem):
                             init = (1/initeps)*np.eye(train.shape[1])
                         else:
                             init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
-                        paramb_tch = torch.tensor(init@np.mean(train, axis=0), requires_grad=True)
+                        paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True)
                     else:
                         if initeps:
                             init = (1/initeps)*np.eye(1)
                         else:
                             init = np.array([[np.cov(train.T)]])
-                        paramb_tch = torch.tensor(init@np.mean(train, axis=0), requires_grad=True)
+                        paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True)
 
                     paramT_tch = torch.tensor(init, requires_grad=True)
                     variables = [paramT_tch, paramb_tch]
@@ -249,8 +251,8 @@ class RobustProblem(Problem):
                         eps_tch = torch.tensor([[1/initeps]], requires_grad=True)
                     else:
                         eps_tch = torch.tensor([[1/np.mean(np.cov(train.T))]], requires_grad=True)
-                    paramb_tch = eps_tch[0]*torch.tensor(np.mean(train, axis=0), requires_grad=True)
-                    paramT_tch = eps_tch*torch.tensor(np.eye(train.shape[1]), requires_grad=True)
+                    paramb_tch = eps_tch[0][0]*torch.tensor(-np.mean(train, axis=0), requires_grad=True)
+                    paramT_tch = eps_tch[0][0]*torch.tensor(np.eye(train.shape[1]), requires_grad=True)
                     variables = [eps_tch]
                     opt = OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
                     # opt = torch.optim.SGD(variables, lr=lr, momentum=.8)
@@ -271,8 +273,8 @@ class RobustProblem(Problem):
                         objv = 0
                         splits = 1
                         for sets in range(splits):
-                            newlst[-1] = eps_tch[0]*torch.tensor(np.mean(train, axis=0), requires_grad=True)
-                            newlst[-2] = eps_tch*torch.tensor(np.eye(train.shape[1]), requires_grad=True)
+                            newlst[-1] = eps_tch[0][0]*torch.tensor(-np.mean(train, axis=0), requires_grad=True)
+                            newlst[-2] = eps_tch[0][0]*torch.tensor(np.eye(train.shape[1]), requires_grad=True)
                             var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
                             temploss, obj = unc_set.loss(*var_values, val_dset)
                             evalloss, _ = unc_set.loss(*var_values, eval_set)
@@ -299,7 +301,7 @@ class RobustProblem(Problem):
         return df
 
     def grid(
-        self, epslst=np.logspace(-3, 1, 20), solver: Optional[str] = None, gp: bool = False,
+        self, epslst=np.logspace(-3, 1, 20), seed=1, solver: Optional[str] = None, gp: bool = False,
         enforce_dpp: bool = True, ignore_dpp: bool = False,
         solver_opts: Optional[dict] = None
     ):
@@ -309,6 +311,7 @@ class RobustProblem(Problem):
         ---------
         epslist: np.array, optional
             The list of epsilon to iterate over. Default np.logspace(-3, 1, 20)
+        seed: The seed to control the train test split. Default 1.
         Returns
         -------
         A data frame with information on each epsilon. The columns are:
@@ -354,14 +357,14 @@ class RobustProblem(Problem):
                 df = pd.DataFrame(columns=["Opt_val", "Eval_val", "Loss_val", "Eps"])
 
                 # setup train and test data
-                train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]/5))
+                train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]/5), random_state=seed)
                 val_dset = torch.tensor(train, requires_grad=True)
                 eval_set = torch.tensor(test, requires_grad=True)
                 # create cvxpylayer
                 cvxpylayer = CvxpyLayer(prob, parameters=prob.parameters(), variables=self.variables())
                 eps_tch = torch.tensor([[epslst[0]]], requires_grad=True)
-                paramb_tch = eps_tch[0]*torch.tensor(np.mean(train, axis=0), requires_grad=True)
-                paramT_tch = eps_tch*torch.tensor(np.eye(train.shape[1]), requires_grad=True)
+                paramb_tch = eps_tch[0][0]*torch.tensor(-np.mean(train, axis=0), requires_grad=True)
+                paramT_tch = eps_tch[0][0]*torch.tensor(np.eye(train.shape[1]), requires_grad=True)
                 # assign parameter values
                 paramlst = prob.parameters()
                 newlst = []
@@ -375,8 +378,8 @@ class RobustProblem(Problem):
                     # import ipdb
                     eps_tch1 = torch.tensor([[epss]], requires_grad=True)
                     # ipdb.set_trace()
-                    newlst[-1] = eps_tch1[0]*torch.tensor(np.mean(train, axis=0), requires_grad=True)
-                    newlst[-2] = eps_tch1*torch.tensor(np.eye(train.shape[1]), requires_grad=True)
+                    newlst[-1] = eps_tch1[0][0]*torch.tensor(-np.mean(train, axis=0), requires_grad=True)
+                    newlst[-2] = eps_tch1[0][0]*torch.tensor(np.eye(train.shape[1]), requires_grad=True)
                     var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
                     totloss, obj = unc_set.loss(*var_values, val_dset)
                     evalloss, _ = unc_set.loss(*var_values, eval_set)
