@@ -1,11 +1,12 @@
 import numpy as np
 
+# from cvxpy.atoms.affine.unary_operators import NegExpression
+from lro.remove_uncertain.atom_canonicalizers.mul_canon import \
+    mul_canon_transform
 from lro.uncertain import UncertainParameter
 
-# from cvxpy.atoms.affine.unary_operators import NegExpression
 
-
-def mulexpression_canon(expr, args, var):
+def mulexpression_canon(expr, args, var, cons):
 
     # import ipdb
     # ipdb.set_trace()
@@ -33,6 +34,7 @@ def mulexpression_canon(expr, args, var):
     if (x.is_constant()):
         u = mulexpression_canon_transform(u, x)
         return u, []
+    u = mul_canon_transform(u, cons)
     return u.canonicalize(x, var)
 
 

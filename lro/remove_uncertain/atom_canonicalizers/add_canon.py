@@ -10,7 +10,7 @@ from lro.uncertain import UncertainParameter
 # mulexpression_canon_transform
 
 
-def add_canon(expr, args, var):
+def add_canon(expr, args, var, cons):
 
     # import ipdb
     # ipdb.set_trace()
