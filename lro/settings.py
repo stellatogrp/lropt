@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 Adadelta = "Adadelta"
@@ -43,3 +44,5 @@ OPTIMIZERS = {
     Rprop: torch.optim.Rprop,
     SGD: torch.optim.SGD
 }
+
+EPS_LST_DEFAULT = np.logspace(-3, 1, 20)
