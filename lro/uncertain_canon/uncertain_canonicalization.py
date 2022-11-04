@@ -161,7 +161,7 @@ class Uncertain_Canonicalization(Reduction):
         for ind in range(num_unc_fns):
 
             # if len(unc_lst[ind].variables()) (check if has variable)
-            u_expr, cons = self.remove_const(unc_lst[ind], 1)
+            u_expr, cons = self.remove_const(unc_lst[ind])
             uvar = mul_canon_transform(uvar, cons)
             new_expr, new_const = self.canonicalize_tree(u_expr, z[ind])
             if self.has_unc_param(new_expr):
@@ -233,7 +233,7 @@ class Uncertain_Canonicalization(Reduction):
                 Ex: [h_1(x),h_2(x)]
                 any other cvxpy expressions
 
-        The original expr is equivalnet to the sum of expressions in unc_lst and std_lst
+        The original expr is equivalent to the sum of expressions in unc_lst and std_lst
             '''
         # Check Initial Conditions
         if self.count_unq_uncertain_param(expr) == 0:
@@ -250,7 +250,7 @@ class Uncertain_Canonicalization(Reduction):
         func = sep_methods[type(expr)]
         return func(self, expr)
 
-    def remove_const(self, expr, cons):
+    def remove_const(self, expr, cons=1):
         '''remove the constants at the beginning of an expression with uncertainty'''
         # import ipdb
         # ipdb.set_trace()
