@@ -6,15 +6,15 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'lro docs'
+project = 'LRO documentation'
 copyright = '2022, Irina Wang, Cole Becker, Bart Van Parys, Bartolomeo Stellato'
 author = 'Irina Wang, Cole Becker, Bart Van Parys, Bartolomeo Stellato'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = []
-
+extensions = ['sphinx.ext.autodoc',
+              'nbsphinx']
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
@@ -23,4 +23,3 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'furo'
-html_static_path = ['_static']
