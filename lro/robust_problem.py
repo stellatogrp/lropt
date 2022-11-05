@@ -39,7 +39,13 @@ class RobustProblem(Problem):
         return self._values
 
     def uncertain_parameters(self):
-        """Find which variables are uncertain"""
+        """Find which variables are uncertain
+
+        Returns
+        -------
+        num_params : int
+            the number of unique uncertain parameters in robust problem
+        """
         unc_params = []
         # TODO: Add also in cost
         for c in self.constraints:
