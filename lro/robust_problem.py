@@ -117,11 +117,11 @@ class RobustProblem(Problem):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. loss metric
 
-        Arguments
+        Parameters
         ---------
         eps : bool, optional
-           If True, train only epsilon, where A = epsilon I,
-           b = epsilon bar{d}, where bar{d} is the centroid of the
+           If True, train only epsilon, where :math:`A = \epsilon I, \
+           b = \epsilon \bar{d}`, where :math:`\bar{d}` is the centroid of the
            training data. Default False.
         step : int, optional
             The total number of gradient steps performed. Default 45.
@@ -132,9 +132,9 @@ class RobustProblem(Problem):
         optimizer: str or letters, optional
             The optimizer to use tor the descent algorithm. Default "SGD".
         initeps : float, optional
-            The epsilon to initialize A and b, if passed. If not passed,
-            A will be initialized as the inverse square root of the
-            covariance of the data, and b will be initialized as bar{d}.
+            The epsilon to initialize :math:`A` and :math:`b`, if passed. If not passed,
+            :math:`A` will be initialized as the inverse square root of the
+            covariance of the data, and b will be initialized as :math:`\bar{d}`.
         seed : int, optional
             The seed to control the random state of the train-test data split. Default 1.
 
@@ -149,7 +149,7 @@ class RobustProblem(Problem):
             Eval_val: float
                 The value of the loss function applied to the evaluation data
             Eps: float
-                The epsilon value
+                The :math:`\epsilon` value
         """
         # if enforce_dpp is False:
         #      warnings.warn("should enforce problem is dpp")
@@ -314,7 +314,7 @@ class RobustProblem(Problem):
         Parameters
         ---------
         epslst : np.array, optional
-            The list of epsilon to iterate over. "Default np.logspace(-3, 1, 20)
+            The list of :math:`\epsilon` to iterate over. "Default np.logspace(-3, 1, 20)
         seed: int
             The seed to control the train test split. Default 1.
         solver: optional
