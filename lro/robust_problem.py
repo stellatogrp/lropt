@@ -13,7 +13,7 @@ from cvxpylayers.torch import CvxpyLayer
 from sklearn.model_selection import train_test_split
 
 from lro.remove_uncertain.remove_uncertain import RemoveUncertainParameters
-from lro.settings import OPTIMIZERS
+from lro.settings import EPS_LST_DEFAULT, OPTIMIZERS
 from lro.uncertain import UncertainParameter
 from lro.uncertain_canon.uncertain_chain import UncertainChain
 from lro.utils import unique_list
@@ -39,7 +39,13 @@ class RobustProblem(Problem):
         return self._values
 
     def uncertain_parameters(self):
-        """Find which variables are uncertain"""
+        """Find which variables are uncertain
+
+        Returns
+        -------
+        num_params : int
+            the number of unique uncertain parameters in robust problem
+        """
         unc_params = []
         # TODO: Add also in cost
         for c in self.constraints:
@@ -106,18 +112,16 @@ class RobustProblem(Problem):
 
     def train(
         self, eps=False, step=45, lr=0.01, momentum=0.8,
-        optimizer="SGD", initeps=None, seed=1, solver: Optional[str] = None,
-        gp: bool = False,
-        enforce_dpp: bool = True, ignore_dpp: bool = False,
-        solver_opts: Optional[dict] = None
+        optimizer="SGD", initeps=None, seed=1, solver: Optional[str] = None
     ):
-        """
-        Trains the problem parameters
-        Arguments
+        r"""
+        Trains the uncertainty set parameters to find optimal set w.r.t. loss metric
+
+        Parameters
         ---------
         eps : bool, optional
-           If True, train only epsilon, where A = epsilon I,
-           b = epsilon bar{d}, where bar{d} is the centroid of the
+           If True, train only epsilon, where :math:`A = \epsilon I, \
+           b = \epsilon \bar{d}`, where :math:`\bar{d}` is the centroid of the
            training data. Default False.
         step : int, optional
             The total number of gradient steps performed. Default 45.
@@ -128,43 +132,46 @@ class RobustProblem(Problem):
         optimizer: str or letters, optional
             The optimizer to use tor the descent algorithm. Default "SGD".
         initeps : float, optional
-            The epsilon to initialize A and b, if passed. If not passed,
-            A will be initialized as the inverse square root of the
-            covariance of the data, and b will be initialized as bar{d}.
+            The epsilon to initialize :math:`A` and :math:`b`, if passed. If not passed,
+            :math:`A` will be initialized as the inverse square root of the
+            covariance of the data, and b will be initialized as :math:`\bar{d}`.
         seed : int, optional
             The seed to control the random state of the train-test data split. Default 1.
+
         Returns
         -------
-        A pandas dataframe with information on each iteration.
-        The columns are:
-        "step": integer
-            The iteration number
-        "Opt_val": float
-            The objective value of the Robust Problem
-        "Loss_val": float
-            The value of the loss function applied to the training data
-        "Eval_val": float
-            The value of the loss function applied to the evaluation data
-        "A_norm": float
-            When eps = False, the 2-norm of the A matrix. When eps = True, the epsilon value.
+        A pandas data frame with information on each :math:r`\epsilon` having the following columns:
+        Columns:
+            Opt_val: float
+                The objective value of the Robust Problem
+            Loss_val: float
+                The value of the loss function applied to the training data
+            Eval_val: float
+                The value of the loss function applied to the evaluation data
+            Eps: float
+                The :math:`\epsilon` value
         """
         # if enforce_dpp is False:
         #      warnings.warn("should enforce problem is dpp")
 
-        candidate_solvers = self._find_candidate_solvers(solver=solver, gp=gp)
+        candidate_solvers = self._find_candidate_solvers(solver=solver, gp=False)
         self._sort_candidate_solvers(candidate_solvers)
-        solving_chain = construct_solving_chain(self, candidate_solvers, gp=gp,
-                                                enforce_dpp=enforce_dpp,
-                                                ignore_dpp=ignore_dpp,
+        solving_chain = construct_solving_chain(self, candidate_solvers, gp=False,
+                                                enforce_dpp=True,
+                                                ignore_dpp=False,
                                                 # Comment this for now. Useful
                                                 # in next cvxpy release
-                                                solver_opts=solver_opts
+                                                solver_opts=None
                                                 )
         #
         if self.uncertain_parameters():
             # import ipdb
             # ipdb.set_trace()
             unc_set = self.uncertain_parameters()[0].uncertainty_set
+
+            if unc_set.data is None:
+                raise ValueError("Cannot train without uncertainty set data")
+
             new_reductions = solving_chain.reductions
             # Find position of Dcp2Cone or Qp2SymbolicQp
             for idx in range(len(new_reductions)):
@@ -300,47 +307,55 @@ class RobustProblem(Problem):
                     unc_set._trained = True
         return df
 
-    def grid(
-        self, epslst=np.logspace(-3, 1, 20), seed=1, solver: Optional[str] = None, gp: bool = False,
-        enforce_dpp: bool = True, ignore_dpp: bool = False,
-        solver_opts: Optional[dict] = None
-    ):
-        """
-        Performs grid search for epsilon
-        Arguments
+    def grid(self, epslst=None, seed=1, solver: Optional[str] = None):
+        r"""
+        performs gridsearch to find optimal :math:`\epsilon`-ball around data with respect to user-defined loss
+
+        Parameters
         ---------
-        epslist: np.array, optional
-            The list of epsilon to iterate over. Default np.logspace(-3, 1, 20)
-        seed: The seed to control the train test split. Default 1.
+        epslst : np.array, optional
+            The list of :math:`\epsilon` to iterate over. "Default np.logspace(-3, 1, 20)
+        seed: int
+            The seed to control the train test split. Default 1.
+        solver: optional
+            A solver to perform gradient-based learning
+
         Returns
         -------
-        A data frame with information on each epsilon. The columns are:
-        "Opt_val": float
-            The objective value of the Robust Problem
-        "Loss_val": float
-            The value of the loss function applied to the training data
-        "Eval_val": float
-            The value of the loss function applied to the evaluation data
-        "Eps": float
-            The epsilon value
+        A pandas data frame with information on each :math:`\epsilon` having the following columns:
+        Columns:
+            Opt_val: float
+                The objective value of the Robust Problem
+            Loss_val: float
+                The value of the loss function applied to the training data
+            Eval_val: float
+                The value of the loss function applied to the evaluation data
+            Eps: float
+                The epsilon value
         """
         # if enforce_dpp is False:
         #      warnings.warn("should enforce problem is dpp")
+        if epslst is None:
+            epslst = EPS_LST_DEFAULT
 
-        candidate_solvers = self._find_candidate_solvers(solver=solver, gp=gp)
+        candidate_solvers = self._find_candidate_solvers(solver=solver, gp=False)
         self._sort_candidate_solvers(candidate_solvers)
-        solving_chain = construct_solving_chain(self, candidate_solvers, gp=gp,
-                                                enforce_dpp=enforce_dpp,
-                                                ignore_dpp=ignore_dpp,
+        solving_chain = construct_solving_chain(self, candidate_solvers,  gp=False,
+                                                enforce_dpp=True,
+                                                ignore_dpp=False,
                                                 # Comment this for now. Useful
                                                 # in next cvxpy release
-                                                solver_opts=solver_opts
+                                                solver_opts=None
                                                 )
         #
         if self.uncertain_parameters():
             # import ipdb
             # ipdb.set_trace()
             unc_set = self.uncertain_parameters()[0].uncertainty_set
+
+            if unc_set.data is None:
+                raise ValueError("Cannot train without uncertainty set data")
+
             new_reductions = solving_chain.reductions
             # Find position of Dcp2Cone or Qp2SymbolicQp
             for idx in range(len(new_reductions)):
