@@ -108,8 +108,8 @@ class RobustProblem(Problem):
         self, eps=False, step=45, lr=0.01, momentum=0.8,
         optimizer="SGD", initeps=None, seed=1, solver: Optional[str] = None
     ):
-        """
-        Trains the problem parameters
+        r"""
+        Trains the uncertainty set parameters to find optimal set w.r.t. loss metric
 
         Arguments
         ---------
@@ -134,19 +134,16 @@ class RobustProblem(Problem):
 
         Returns
         -------
-        pandas.DataFrame
-
+        A pandas data frame with information on each :math:r`\epsilon` having the following columns:
         Columns:
-            "step": integer
-                The iteration number
-            "Opt_val": float
+            Opt_val: float
                 The objective value of the Robust Problem
-            "Loss_val": float
+            Loss_val: float
                 The value of the loss function applied to the training data
-            "Eval_val": float
+            Eval_val: float
                 The value of the loss function applied to the evaluation data
-            "A_norm": float
-                When eps = False, the 2-norm of the A matrix. When eps = True, the epsilon value.
+            Eps: float
+                The epsilon value
         """
         # if enforce_dpp is False:
         #      warnings.warn("should enforce problem is dpp")
@@ -304,30 +301,36 @@ class RobustProblem(Problem):
                     unc_set._trained = True
         return df
 
-    def grid(self, epslst=EPS_LST_DEFAULT, seed=1, solver: Optional[str] = None):
-        """
-        Performs grid search for epsilon
+    def grid(self, epslst=None, seed=1, solver: Optional[str] = None):
+        r"""
+        performs gridsearch to find optimal :math:`\epsilon`-ball around data with respect to user-defined loss
 
-        Arguments
+        Parameters
         ---------
-        epslist: np.array, optional
-            The list of epsilon to iterate over. Default np.logspace(-3, 1, 20)
-        seed: The seed to control the train test split. Default 1.
+        epslst : np.array, optional
+            The list of epsilon to iterate over. "Default np.logspace(-3, 1, 20)
+        seed: int
+            The seed to control the train test split. Default 1.
+        solver: optional
+            A solver to perform gradient-based learning
 
         Returns
         -------
-        A data frame with information on each epsilon. The columns are:
-        "Opt_val": float
-            The objective value of the Robust Problem
-        "Loss_val": float
-            The value of the loss function applied to the training data
-        "Eval_val": float
-            The value of the loss function applied to the evaluation data
-        "Eps": float
-            The epsilon value
+        A pandas data frame with information on each :math:`\epsilon` having the following columns:
+        Columns:
+            Opt_val: float
+                The objective value of the Robust Problem
+            Loss_val: float
+                The value of the loss function applied to the training data
+            Eval_val: float
+                The value of the loss function applied to the evaluation data
+            Eps: float
+                The epsilon value
         """
         # if enforce_dpp is False:
         #      warnings.warn("should enforce problem is dpp")
+        if epslst is None:
+            epslst = EPS_LST_DEFAULT
 
         candidate_solvers = self._find_candidate_solvers(solver=solver, gp=False)
         self._sort_candidate_solvers(candidate_solvers)
