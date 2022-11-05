@@ -8,4 +8,4 @@ Here is a list of :code:`lro` code examples
    :maxdepth: 1
    :glob:
 
-   portfolio/portfolio
+   experiments/tutorial_learning
