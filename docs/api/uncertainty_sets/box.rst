@@ -1,0 +1,3 @@
+
+.. autoclass:: lro.Box
+   :members:

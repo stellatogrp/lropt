@@ -6,11 +6,13 @@ from lro.utils import check_affine_transform
 
 
 class Budget(UncertaintySet):
-    """
-    Uncertainty set where the norm is constrained as
-    :math:`\\{\\Pi(u) | \\| u \\|_infty \\le \\rho1, \\| u \\|_1 \\le \\rho2,\\}`
+    r"""
+    Budget uncertainty set defined as
 
-    where :math:`\\Pi(u)` is an identity by default but can be
+    .. math::
+        \mathcal{U}_{\text{budget}} = \{\Pi(u) \ | \ \| u \|_\infty \le \rho_1, \| u \|_1 \leq \rho_2\}
+
+    where :math:`\Pi(u)` is an identity by default but can be
     an affine transformation :math:`A u + b`.
 
     Parameters
@@ -20,12 +22,18 @@ class Budget(UncertaintySet):
     rho2 : float, optional
         1-norm scaling. Default 1.0.
     affine_transform : dict, optional
-        Affine transformation dictionary with keys 'A' and 'b'.
-    data: np.array, required if uncertainty set parameters should be trained
-        An array of uncertainty realizations, where each row is one realization.
-        Passed only if the uncertainty should be trained. Default None.
-    loss: function, required if uncertainty set parameters should be trained
-        The loss function used to train the uncertainty set.
+        Affine transformation dictionary with keys :math:`A` and :math:`b` to transform
+        the set to
+
+        .. math::
+            \mathcal{U}_{\text{budget}} = \{Au+b \ | \ \| u \|_\infty \le \rho_1, \| u \|_1 \leq \rho_2\}
+    data: np.array, optional
+        An array of uncertainty realizations, where each row is one realization. Required if the uncertainty should
+        be trained, or if `loss` function passed.
+    loss: function, optional
+        The loss function used to train the uncertainty set. Required if uncertainty set parameters should be trained
+        or if `data` is passed. function must use torch tensors, and arguments to loss function must be given in the
+        same order as cvxpy variables defined in problem.
     Returns
     -------
     Budget
