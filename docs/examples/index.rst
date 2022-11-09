@@ -9,3 +9,4 @@ Here is a list of :code:`lro` code examples
    :glob:
 
    experiments/tutorial_deterministic
+   experiments/tutorial_learning

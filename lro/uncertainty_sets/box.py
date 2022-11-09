@@ -6,14 +6,11 @@ from lro.uncertainty_sets.ellipsoidal import Ellipsoidal
 
 
 class Box(Ellipsoidal):
-    """
-    Box uncertainty set where :math:`u` satisfies
-    :math:`\\{\\Pi(u) | \\| u \\|_{\\infty} \\le \\rho\\}`
+    r"""
+    Box uncertainty set defined as
 
-    where :math:`\\Pi(u)` is an identity by default but can be
-    an arbitrary affine transformation :math:`A u + b` explicitly
-    passed by the user or an affine transformation to match the parameters
-    center and length.
+    .. math::
+        \mathcal{U}_{\text{box}} = \{\Pi(u) \ | \ \| u \|_\infty \le \rho\}
 
     Parameters
     ----------
@@ -28,7 +25,19 @@ class Box(Ellipsoidal):
         Length of each side of the box. If center is passed but side not
         it defaults to an array of 2.
     affine_transform : dict, optional
-        Affine transformation dictionary with keys 'A' and 'b'.
+        Affine transformation dictionary with keys :math:`A` and :math:`b` to tranform the set to
+        to transform set to
+
+        .. math::
+            \mathcal{U}_{\text{box}} = \{\ A u + b \ | \ \| u \|_\infty \leq \rho\}
+
+    data: np.array, optional
+        An array of uncertainty realizations, where each row is one realization. Required if the uncertainty should
+        be trained, or if `loss` function passed.
+    loss: function, optional
+        The loss function used to train the uncertainty set. Required if uncertainty set parameters should be trained
+        or if `data` is passed. function must use torch tensors, and arguments to loss function must be given in the
+        same order as cvxpy variables defined in problem.
 
     Returns
     -------

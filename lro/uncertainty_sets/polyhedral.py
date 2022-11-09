@@ -6,21 +6,27 @@ from lro.utils import check_affine_transform
 
 
 class Polyhedral(UncertaintySet):
-    """
-    Uncertainty set where the parameter is constrained to lie in a
-    polyhedron of the form
-    :math:`\\{D\\Pi(u) \\le d\\}`
+    r"""
+    Polyhedral uncertainty set, defined as
 
-    where :math:`\\Pi(u)` is an identity by default but can be
-    an affine transformation :math:`A u + b`.
+    .. math::
+        \mathcal{U}_{\text{poly}} = \{D \ \Pi(u) \leq d\}
+
+    where :math:`\Pi(u) = u` is an identity by default with the option to be an affine transformation
+    :math:`\Pi(u) = A u + b`.
+
     Parameters
     ----------
     D : 2 dimentional np.array
-        D matrix
+         :math:`D` matrix
     d : np.array
-        d vector
+         :math:`d` vector
     affine_transform : dict, optional
-        Affine transformation dictionary with keys 'A' and 'b'.
+        Affine transformation dictionary with keys  :math:`A` and  :math:`b` to transform set into
+
+        .. math::
+            \mathcal{U}_{\text{poly}} =\{D \ (Au +b) \leq d\}
+
     Returns
     -------
     Polyhedral
@@ -28,7 +34,9 @@ class Polyhedral(UncertaintySet):
     """
 
     def __init__(self, d, D,
-                 affine_transform=None, data=None, loss=None):
+                 affine_transform=None):
+
+        data, loss = None, None
 
         if data is not None or loss is not None:
             raise ValueError("You cannot train a polyhedral set")

@@ -223,10 +223,10 @@ class Uncertain_Canonicalization(Reduction):
                 a cvxpy expression
         Output:
             unc_lst :
-                EX: [g_1(u_1,x), g_2(u_1,x)]
+                EX: :math:`[g_1(u_1,x), g_2(u_1,x)]`
                 a list of cvxpy multiplication expressions from expr each containing one uncertain parameter
             std_lst :
-                Ex: [h_1(x),h_2(x)]
+                Ex: :math:`[h_1(x),h_2(x)]`
                 any other cvxpy expressions
 
         The original expr is equivalnet to the sum of expressions in unc_lst and std_lst

@@ -7,12 +7,13 @@ from lro.utils import check_affine_transform
 
 
 class MRO(UncertaintySet):
-    """
+    r"""
     Uncertainty set where the parameter is constrained to lie in a
     Wasserstein ball of the form
-    :math:`\\{ \\sum( w_k||\\Pi(u_k) - d_k ||^p)\\le eps\\}`
+    .. math::
+        \{ \sum( w_k||\Pi(u_k) - d_k ||^p)\leq eps\\}
 
-    where :math:`\\Pi(u)` is an identity by default but can be
+    where :math:`\Pi(u)` is an identity by default but can be
     an affine transformation :math:`A u + b`.
     """
 

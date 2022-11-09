@@ -6,12 +6,16 @@ from lro.utils import check_affine_transform
 
 
 class Ellipsoidal(UncertaintySet):
-    """
-    Uncertainty set where the norm is constrained as
-    :math:`\\{\\Pi(u) | \\| u \\|_p \\le \\rho\\}`
+    r"""
+    Ellipsoidal uncertainty set, defined as
 
-    where :math:`\\Pi(u)` is an identity by default but can be
-    an affine transformation :math:`A u + b`.
+    .. math::
+        \mathcal{U}_{\text{ellips}} = \{\Pi(u) \ | \ \| u \|_p \le \rho\}
+
+    where :math:`\Pi(u) = u` is an identity by default with the option to be an affine transformation
+    :math:`\Pi(u) = A u + b`.
+
+
     Parameters
     ----------
     rho : float, optional
@@ -19,12 +23,17 @@ class Ellipsoidal(UncertaintySet):
     p : integer, optional
         Order of the norm. Default 2.
     affine_transform : dict, optional
-        Affine transformation dictionary with keys 'A' and 'b'.
-    data: np.array, required if uncertainty set parameters should be trained
-        An array of uncertainty realizations, where each row is one realization.
-        Passed only if the uncertainty should be trained. Default None.
-    loss: function, required if uncertainty set parameters should be trained
-        The loss function used to train the uncertainty set.
+        Affine transformation dictionary with keys :math:`A` and :math:`b` to transform set to
+
+        .. math::
+            \mathcal{U}_{\text{ellips}} = \{\ A u + b \ | \ \| u \|_p \leq \rho\}
+    data: np.array, optional
+        An array of uncertainty realizations, where each row is one realization. Required if the uncertainty should
+        be trained, or if `loss` function passed.
+    loss: function, optional
+        The loss function used to train the uncertainty set. Required if uncertainty set parameters should be trained
+        or if `data` is passed. function must use torch tensors, and arguments to loss function must be given in the
+        same order as cvxpy variables defined in problem.
     Returns
     -------
     Ellipsoidal
