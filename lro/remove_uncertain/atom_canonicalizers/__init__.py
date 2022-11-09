@@ -7,11 +7,11 @@ from lro.remove_uncertain.atom_canonicalizers.mulexpression_canon import \
     mulexpression_canon
 from lro.remove_uncertain.atom_canonicalizers.quad_canon import quad_canon
 # from cvxpy.atoms.quad_form import QuadForm
-from lro.uncertain_atoms.quad_form import QuadForm
+from lro.uncertain_atoms.quad_form import UncertainQuadForm
 
 CANON_METHODS = {
     AddExpression : add_canon,
     MulExpression: mulexpression_canon,
     multiply: mul_canon,  # TODO: Create separate for scalars?
-    QuadForm: quad_canon
+    UncertainQuadForm: quad_canon
 }

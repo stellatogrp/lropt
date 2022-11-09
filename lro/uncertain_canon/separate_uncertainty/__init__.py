@@ -7,7 +7,7 @@ from cvxpy.atoms.affine.unary_operators import NegExpression
 from cvxpy.constraints.nonpos import Inequality
 
 # from cvxpy.atoms.quad_form import QuadForm
-from lro.uncertain_atoms.quad_form import QuadForm
+from lro.uncertain_atoms.quad_form import UncertainQuadForm
 from lro.uncertain_canon.separate_uncertainty.addexpression_sep import \
     addexpression_sep
 from lro.uncertain_canon.separate_uncertainty.inequality_sep import \
@@ -25,5 +25,5 @@ SEPARATION_METHODS = {
     MulExpression: mulexpression_sep,
     AddExpression: addexpression_sep,
     NegExpression: negexpression_sep,
-    QuadForm: quadform_sep
+    UncertainQuadForm: quadform_sep
     }

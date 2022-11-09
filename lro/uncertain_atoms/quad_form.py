@@ -27,9 +27,104 @@ from cvxpy.expressions.expression import Expression
 from cvxpy.interface.matrix_utilities import is_sparse
 from scipy import linalg as LA
 
+from lro.uncertain import UncertainParameter
+from lro.utils import unique_list
+
 
 class CvxPyDomainError(Exception):
     pass
+
+
+class UncertainQuadForm(Atom):
+    _allow_complex = True
+
+    def __init__(self, x, P) -> None:
+        """Atom representing :math:`u^T Px[i] u`."""
+        super(UncertainQuadForm, self).__init__(x, P)
+
+    def numeric(self, values):
+        prod = values[1].dot(values[0])
+        if self.args[0].is_complex():
+            quad = np.dot(np.conj(values[0]).T, prod)
+        else:
+            quad = np.dot(np.transpose(values[0]), prod)
+        return np.real(quad)
+
+    def validate_arguments(self) -> None:
+        super(UncertainQuadForm, self).validate_arguments()
+        n = self.args[1].shape[0]
+        if self.args[1].shape[1] != n or self.args[0].shape not in [(n, 1), (n,)]:
+            raise ValueError("Invalid dimensions for arguments.")
+        if not self.args[1].args[0].is_hermitian():
+            raise ValueError("P must be symmetric/Hermitian.")
+
+    def sign_from_args(self) -> Tuple[bool, bool]:
+        """Returns sign (is positive, is negative) of the expression.
+        """
+        return (self.is_atom_convex(), self.is_atom_concave())
+
+    def is_atom_convex(self) -> bool:
+        """Is the atom convex?
+        """
+        P = self.args[1]
+        return P.is_constant() and P.is_psd()
+
+    def is_atom_concave(self) -> bool:
+        """Is the atom concave?
+        """
+        P = self.args[1]
+        return P.is_constant() and P.is_nsd()
+
+    def is_atom_log_log_convex(self) -> bool:
+        """Is the atom log-log convex?
+        """
+        return True
+
+    def is_atom_log_log_concave(self) -> bool:
+        """Is the atom log-log concave?
+        """
+        return False
+
+    def is_incr(self, idx) -> bool:
+        """Is the composition non-decreasing in argument idx?
+        """
+        return (self.args[0].is_nonneg() and self.args[1].is_nonneg()) or \
+               (self.args[0].is_nonpos() and self.args[1].is_nonneg())
+
+    def is_decr(self, idx) -> bool:
+        """Is the composition non-increasing in argument idx?
+        """
+        return (self.args[0].is_nonneg() and self.args[1].is_nonpos()) or \
+               (self.args[0].is_nonpos() and self.args[1].is_nonpos())
+
+    def is_quadratic(self) -> bool:
+        """Is the atom quadratic?
+        """
+        return True
+
+    def has_quadratic_term(self) -> bool:
+        """Always a quadratic term.
+        """
+        return True
+
+    def is_pwl(self) -> bool:
+        """Is the atom piecewise linear?
+        """
+        return False
+
+    def name(self) -> str:
+        return "%s(%s, %s)" % (self.__class__.__name__,
+                               self.args[0],
+                               self.args[1])
+
+    def _grad(self, values):
+        x = np.array(values[0])
+        P = np.array(values[1])
+        D = (P + np.conj(P.T)) @ x
+        return [sp.csc_matrix(D.ravel(order="F")).T]
+
+    def shape_from_args(self) -> Tuple[int, ...]:
+        return tuple() if self.args[0].ndim == 0 else (1, 1)
 
 
 class QuadForm(Atom):
@@ -52,8 +147,8 @@ class QuadForm(Atom):
         n = self.args[1].shape[0]
         if self.args[1].shape[1] != n or self.args[0].shape not in [(n, 1), (n,)]:
             raise ValueError("Invalid dimensions for arguments.")
-        # if not self.args[1].is_hermitian():
-        #     raise ValueError("P must be symmetric/Hermitian.")
+        if not self.args[1].is_hermitian():
+            raise ValueError("P must be symmetric/Hermitian.")
 
     def sign_from_args(self) -> Tuple[bool, bool]:
         """Returns sign (is positive, is negative) of the expression.
@@ -235,9 +330,21 @@ def quad_form(x, P, assume_PSD: bool = False):
     # Check dimensions.
     if not P.ndim == 2 or P.shape[0] != P.shape[1] or max(x.shape, (1,))[0] != P.shape[0]:
         raise Exception("Invalid dimensions for arguments.")
+
     if x.is_constant():
-        return QuadForm(x, P)
-        # return x.H @ P @ x
+        if not isinstance(x, int) and not isinstance(x, float):
+            unc_params = []
+            unc_params += [v for v in x.parameters()
+                           if isinstance(v, UncertainParameter)]
+            if len(unique_list(unc_params)) == 1:
+                if isinstance(x, UncertainParameter):
+                    return UncertainQuadForm(x, P)
+                else:
+                    raise ValueError("uncertain parameter must be by itself")
+            elif len(unique_list(unc_params)) == 0:
+                return x.H @ P @ x
+        else:
+            return x.H @ P @ x
     elif P.is_constant():
         if assume_PSD:
             P = psd_wrap(P)
