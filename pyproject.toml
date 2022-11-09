@@ -21,9 +21,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+<<<<<<< HEAD
+dev = ["pytest", "pre-commit", "python-lsp-server[all]", "sphinx", "furo", "nbsphinx"]
+=======
 dev = ["pytest", "pre-commit", "python-lsp-server[all]",
        "sphinx", "furo", "nbsphinx", "ipython",
        "pandas"]
+>>>>>>> docs
 
 [tool.autopep8]
 max_line_length = 120

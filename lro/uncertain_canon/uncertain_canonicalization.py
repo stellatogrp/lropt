@@ -51,7 +51,7 @@ class Uncertain_Canonicalization(Reduction):
         # import ipdb
         # ipdb.set_trace()
         canon_objective, canon_constraints = self.canonicalize_tree(
-            problem.objective, 0)
+            problem.objective, 0, 1)
 
         for constraint in problem.constraints:
             # canon_constr is the constraint rexpressed in terms of
@@ -98,34 +98,34 @@ class Uncertain_Canonicalization(Reduction):
         return Solution(solution.status, solution.opt_val, pvars, dvars,
                         solution.attr)
 
-    def canonicalize_tree(self, expr, var):
+    def canonicalize_tree(self, expr, var, cons):
         """Recursively canonicalize an Expression."""
         # TODO don't copy affine expressions?
         if type(expr) == cvxtypes.partial_problem():
             canon_expr, constrs = self.canonicalize_tree(
-                expr.args[0].objective.expr, var)
+                expr.args[0].objective.expr, var, cons)
             for constr in expr.args[0].constraints:
-                canon_constr, aux_constr = self.canonicalize_tree(constr, var)
+                canon_constr, aux_constr = self.canonicalize_tree(constr, var, cons)
                 constrs += [canon_constr] + aux_constr
         else:
             canon_args = []
             constrs = []
             for arg in expr.args:
-                canon_arg, c = self.canonicalize_tree(arg, var)
+                canon_arg, c = self.canonicalize_tree(arg, var, cons)
                 canon_args += [canon_arg]
                 constrs += c
-            canon_expr, c = self.canonicalize_expr(expr, canon_args, var)
+            canon_expr, c = self.canonicalize_expr(expr, canon_args, var, cons)
             constrs += c
         return canon_expr, constrs
 
-    def canonicalize_expr(self, expr, args, var):
+    def canonicalize_expr(self, expr, args, var, cons):
         """Canonicalize an expression, w.r.t. canonicalized arguments."""
         # Constant trees are collapsed, but parameter trees are preserved.
         if isinstance(expr, Expression) and (
                 expr.is_constant() and not expr.parameters()):
             return expr, []
         elif type(expr) in self.canon_methods:
-            return self.canon_methods[type(expr)](expr, args, var)
+            return self.canon_methods[type(expr)](expr, args, var, cons)
         else:
             return expr.copy(args), []
 
@@ -161,10 +161,12 @@ class Uncertain_Canonicalization(Reduction):
         for ind in range(num_unc_fns):
 
             # if len(unc_lst[ind].variables()) (check if has variable)
-            u_expr, cons = self.remove_const(unc_lst[ind], 1)
-            uvar = mul_canon_transform(uvar, cons)
-            new_expr, new_const = self.canonicalize_tree(u_expr, z[ind])
+            u_expr, cons = self.remove_const(unc_lst[ind])
+            # uvar = mul_canon_transform(uvar, cons)
+            new_expr, new_const = self.canonicalize_tree(u_expr, z[ind], cons)
             if self.has_unc_param(new_expr):
+                if j == 0:
+                    uvar = mul_canon_transform(uvar, cons)
                 # assert (num_constr == shape)
                 new_vars[ind] = Variable((num_constr, shape))
                 for idx in range(num_constr):
@@ -229,7 +231,7 @@ class Uncertain_Canonicalization(Reduction):
                 Ex: :math:`[h_1(x),h_2(x)]`
                 any other cvxpy expressions
 
-        The original expr is equivalnet to the sum of expressions in unc_lst and std_lst
+        The original expr is equivalent to the sum of expressions in unc_lst and std_lst
             '''
         # Check Initial Conditions
         if self.count_unq_uncertain_param(expr) == 0:
@@ -246,7 +248,7 @@ class Uncertain_Canonicalization(Reduction):
         func = sep_methods[type(expr)]
         return func(self, expr)
 
-    def remove_const(self, expr, cons):
+    def remove_const(self, expr, cons=1):
         '''remove the constants at the beginning of an expression with uncertainty'''
         # import ipdb
         # ipdb.set_trace()

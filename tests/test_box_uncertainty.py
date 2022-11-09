@@ -219,11 +219,12 @@ class TestBoxUncertainty(unittest.TestCase):
         # npt.assert_allclose(x.value, 1, rtol=RTOL, atol=ATOL)
 
     def test_boxe(self):
-        # formulate the box set
         m = 5
+        center = 0.5*np.ones(m)
+        side = 0.1*np.array([1, 2, 3, 4, 5])
         box_u = UncertainParameter(m,
-                                   uncertainty_set=Box(center=0.1*np.ones(m),
-                                                       side=0.01*np.array([1, 2, 3, 4, 5]),
+                                   uncertainty_set=Box(center=center,
+                                                       side=side,
                                                        rho=2.))
         n = 5
 
@@ -231,20 +232,37 @@ class TestBoxUncertainty(unittest.TestCase):
         x = cp.Variable(n)
 
         # formulate problem constants
-        P = np.random.rand(n, m)
+        P = 3*np.random.rand(n, m)
         c = np.random.rand(n)
 
         # formulate objective
         objective = cp.Minimize(-c@x)
 
         # formulate constraints
-        constraints = [P@box_u @ x <= 10 + 2.5*box_u@x, x >= 0, x <= 1]
+        constraints = [P@box_u @ x - 2*box_u@x <= 10, x >= 0, x <= 1]
 
         # formulate Robust Problem
         prob_robust = RobustProblem(objective, constraints)
-
         # solve
         prob_robust.solve()
+
+        # formulate in cvxpy
+        A = np.diag(0.5*side)
+        b = center
+        x_cvx = cp.Variable(5)
+        # formulate objective
+        objective = cp.Minimize(-c@x_cvx)
+
+        # formulate constraints
+        constraints = [(P@b)@x_cvx - 2*b@x_cvx + 2*cp.norm((P@A).T@x_cvx -
+                                                           2*A.T@x_cvx, p=1) <= 10, x_cvx >= 0, x_cvx <= 1]
+
+        # formulate Robust Problem
+        prob_cvxpy = cp.Problem(objective, constraints)
+
+        # solve
+        prob_cvxpy.solve()
+        npt.assert_allclose(x.value, x_cvx.value, rtol=RTOL, atol=ATOL)
 
     def test_budget(self):
         # import ipdb

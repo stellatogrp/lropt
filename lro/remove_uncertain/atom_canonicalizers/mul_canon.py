@@ -6,7 +6,7 @@ from lro.uncertain import UncertainParameter
 # from cvxpy.atoms.affine.unary_operators import NegExpression
 
 
-def mul_canon(expr, args, var):
+def mul_canon(expr, args, var, cons):
 
     # import ipdb
     # ipdb.set_trace()
@@ -34,6 +34,7 @@ def mul_canon(expr, args, var):
     # if (x.is_constant()):
     #     u = mul_canon_transform(u, x)
     #     return u, []
+    u = mul_canon_transform(u, cons)
     return u.canonicalize(x, var)
 
 
