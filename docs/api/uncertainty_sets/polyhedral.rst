@@ -1,0 +1,2 @@
+.. autoclass:: lro.Polyhedral
+   :members:
