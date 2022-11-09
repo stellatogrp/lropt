@@ -4,9 +4,10 @@ from cvxpy.atoms.affine.add_expr import AddExpression
 from cvxpy.atoms.affine.binary_operators import MulExpression, multiply
 from cvxpy.atoms.affine.promote import Promote
 from cvxpy.atoms.affine.unary_operators import NegExpression
-from cvxpy.atoms.quad_form import QuadForm
 from cvxpy.constraints.nonpos import Inequality
 
+# from cvxpy.atoms.quad_form import QuadForm
+from lro.uncertain_atoms.quad_form import QuadForm
 from lro.uncertain_canon.separate_uncertainty.addexpression_sep import \
     addexpression_sep
 from lro.uncertain_canon.separate_uncertainty.inequality_sep import \

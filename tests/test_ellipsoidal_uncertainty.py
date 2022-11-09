@@ -149,7 +149,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # import ipdb
         # ipdb.set_trace()
         torch.seed()
-        sp500 = pd.read_csv('lro/tests/experiments/stock_data/prices_sp500.csv').to_numpy()
+        sp500 = pd.read_csv('tests/experiments/stock_data/prices_sp500.csv').to_numpy()
 
         num_stocks = 100
         num_rets = 500

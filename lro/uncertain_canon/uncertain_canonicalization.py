@@ -244,7 +244,8 @@ class Uncertain_Canonicalization(Reduction):
 
         elif type(expr) not in sep_methods:
             raise ValueError("DRP error: not able to process non multiplication/additions")
-
+        # import ipdb
+        # ipdb.set_trace()
         func = sep_methods[type(expr)]
         return func(self, expr)
 

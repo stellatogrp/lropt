@@ -15,7 +15,7 @@ def quad_canon(expr, args, var, cons):
             raise ValueError("You must multiply the matrix by a variable")
         P = matrix.args[0]
         x = matrix.args[1].args[0]
-        P_invsqrt = sc.linalg.sqrtm(np.linalg.inv(P))
+        P_invsqrt = sc.linalg.sqrtm(np.linalg.inv(P.value))
         new_expr = quad_over_lin(var@P_invsqrt, (4*x)*cons)
 
         return new_expr, []
