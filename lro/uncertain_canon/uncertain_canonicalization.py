@@ -162,6 +162,7 @@ class Uncertain_Canonicalization(Reduction):
 
             # if len(unc_lst[ind].variables()) (check if has variable)
             u_expr, cons = self.remove_const(unc_lst[ind])
+
             # uvar = mul_canon_transform(uvar, cons)
             new_expr, new_const = self.canonicalize_tree(u_expr, z[ind], cons)
             if self.has_unc_param(new_expr):

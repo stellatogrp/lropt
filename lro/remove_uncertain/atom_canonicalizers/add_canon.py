@@ -51,9 +51,8 @@ def add_canon(expr, args, var, cons):
 def add_canon_transform(u, c):
     # adjust affine transform
     uset = u.uncertainty_set
-    trans = uset.affine_transform_temp
-    if trans:
-        trans['b'] = c + trans['b']
+    if uset.affine_transform_temp:
+        uset.affine_transform_temp['b'] = c + uset.affine_transform_temp['b']
     else:
-        trans = {'A': np.eye(u.shape[0]), 'b': c}
+        uset.affine_transform_temp = {'A': np.eye(u.shape[0]), 'b': c}
     return u

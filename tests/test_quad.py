@@ -50,10 +50,10 @@ class TestQuad(unittest.TestCase):
             Ainv[i] = sc.linalg.sqrtm(np.linalg.inv(A[i]))
 
         objective = cp.Minimize(t)
-        constraints = [cp.sum([0.5*quad_form(u, A[i]*x[i]) for i in range(m)]) <= t]
+        constraints = [cp.sum([-0.5*quad_form(u, A[i]*x[i]) for i in range(m)]) <= t]
         constraints += [x >= 0, x <= 1]
-        # import ipdb
-        # ipdb.set_trace()
+        import ipdb
+        ipdb.set_trace()
         prob = RobustProblem(objective, constraints)
         newprob = prob.convert()
         newprob.solve(solver=SOLVER)

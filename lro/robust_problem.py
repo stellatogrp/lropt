@@ -4,8 +4,10 @@ import numpy as np
 import pandas as pd
 import scipy as sc
 import torch
+from cvxpy.problems.objective import Maximize
 from cvxpy.problems.problem import Problem
 from cvxpy.reductions import Dcp2Cone, Qp2SymbolicQp
+from cvxpy.reductions.flip_objective import FlipObjective
 # from cvxpy.reductions.chain import Chain
 from cvxpy.reductions.solvers.solving_chain import (SolvingChain,
                                                     construct_solving_chain)
@@ -181,7 +183,11 @@ class RobustProblem(Problem):
             #         unc_reductions = new_reductions[:idx+1]
             #         break
         # return a chain instead (chain.apply, return the problem and inverse data)
-            unc_reductions = [RemoveUncertainParameters()]
+            unc_reductions = []
+            if type(self.objective) == Maximize:
+                unc_reductions += [FlipObjective()]
+            unc_reductions += [RemoveUncertainParameters()]
+
             newchain = UncertainChain(self, reductions=unc_reductions)
             prob, inverse_data = newchain.apply(self)
             if unc_set.paramT is not None:
@@ -227,6 +233,8 @@ class RobustProblem(Problem):
                         objv = 0
                         splits = 1
                         for sets in range(splits):
+                            newlst[-1] = paramb_tch
+                            newlst[-2] = paramT_tch
                             var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
                             temploss, obj = unc_set.loss(*var_values, val_dset)
                             evalloss, _ = unc_set.loss(*var_values, eval_set)
@@ -248,7 +256,8 @@ class RobustProblem(Problem):
                     self._values = {'T': paramT_tch.detach().numpy().copy(), 'b': paramb_tch.detach().numpy().copy()}
                     self._trained = True
                     unc_set._trained = True
-                    var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
+                    unc_set.paramT.value = paramT_tch.detach().numpy().copy()
+                    unc_set.paramb.value = paramb_tch.detach().numpy().copy()
 
                 else:
                     # import ipdb
@@ -305,6 +314,10 @@ class RobustProblem(Problem):
                         eps_tch[0]*torch.tensor(np.mean(train, axis=0))).detach().numpy().copy()}
                     self._trained = True
                     unc_set._trained = True
+
+                    unc_set.paramT.value = (eps_tch*torch.tensor(np.eye(train.shape[1]))).detach().numpy().copy()
+                    unc_set.paramb.value = (
+                        eps_tch[0]*torch.tensor(np.mean(train, axis=0))).detach().numpy().copy()
         return df
 
     def grid(self, epslst=None, seed=1, solver: Optional[str] = None):
@@ -365,7 +378,10 @@ class RobustProblem(Problem):
         #             unc_reductions = new_reductions[:idx+1]
         #             break
         # # return a chain instead (chain.apply, return the problem and inverse data)
-            unc_reductions = [RemoveUncertainParameters()]
+            unc_reductions = []
+            if type(self.objective) == Maximize:
+                unc_reductions += [FlipObjective()]
+            unc_reductions += [RemoveUncertainParameters()]
             newchain = UncertainChain(self, reductions=unc_reductions)
             prob, inverse_data = newchain.apply(self)
             if unc_set.paramT is not None:
@@ -413,12 +429,19 @@ class RobustProblem(Problem):
                     mineps[0]*torch.tensor(np.mean(train, axis=0))).detach().numpy().copy()}
                 self._trained = True
                 unc_set._trained = True
+                unc_set.paramT.value = (mineps*torch.tensor(np.eye(train.shape[1]))).detach().numpy().copy()
+                unc_set.paramb.value = (
+                    mineps[0]*torch.tensor(np.mean(train, axis=0))).detach().numpy().copy()
         return df
 
     def convert(self):
         # import ipdb
         # ipdb.set_trace()
         if self.uncertain_parameters():
-            newchain = UncertainChain(self, reductions=[RemoveUncertainParameters()])
+            unc_reductions = []
+            if type(self.objective) == Maximize:
+                unc_reductions += [FlipObjective()]
+            unc_reductions += [RemoveUncertainParameters()]
+            newchain = UncertainChain(self, reductions=unc_reductions)
             prob, _ = newchain.apply(self)
             return prob

@@ -16,7 +16,8 @@ def quad_canon(expr, args, var, cons):
         P = matrix.args[0]
         x = matrix.args[1].args[0]
         P_invsqrt = sc.linalg.sqrtm(np.linalg.inv(P.value))
-        new_expr = quad_over_lin(var@P_invsqrt, (4*x)*cons)
+        assert cons <= 0, "quad form must be negative (concave)"
+        new_expr = quad_over_lin(var@P_invsqrt, -(4*x)*cons)
 
         return new_expr, []
     else:
