@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="prev" title="Robust Portfolio Optimization" href="../examples/portfolio/portfolio.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="&lt;no title&gt;" href="robust_problem/index.html" /><link rel="prev" title="Learned Uncertainty Sets" href="../examples/experiments/tutorial_learning.html" />
 
     <meta name="generator" content="sphinx-5.3.0, furo 2022.09.29"/>
         <title>API - LRO documentation documentation</title>
@@ -134,7 +134,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -158,10 +158,16 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../getting_started/index.html">Getting started</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../examples/index.html">Examples</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../examples/portfolio/portfolio.html">Robust Portfolio Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/experiments/tutorial_deterministic.html">Deterministic Uncertainty Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/experiments/tutorial_learning.html">Learned Uncertainty Sets</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">API</a></li>
+<li class="toctree-l1 current has-children current-page"><a class="current reference internal" href="#">API</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="uncertainty_sets/index.html">Uncertainty Sets</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 
 </div>
@@ -190,7 +196,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
@@ -198,105 +204,17 @@
         <article role="main">
           <section id="api">
 <h1>API<a class="headerlink" href="#api" title="Permalink to this heading">#</a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="lro.RobustProblem">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lro.</span></span><span class="sig-name descname"><span class="pre">RobustProblem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">objective</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraints</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lro.RobustProblem" title="Permalink to this definition">#</a></dt>
-<dd><p>Problem with uncertain variables</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="lro.RobustProblem.grid">
-<span class="sig-name descname"><span class="pre">grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epslst</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lro.RobustProblem.grid" title="Permalink to this definition">#</a></dt>
-<dd><p>performs gridsearch to find optimal <span class="math notranslate nohighlight">\(\epsilon\)</span>-ball around data with respect to user-defined loss</p>
-<section id="parameters">
-<h2>Parameters<a class="headerlink" href="#parameters" title="Permalink to this heading">#</a></h2>
-<dl class="simple">
-<dt>epslst<span class="classifier">np.array, optional</span></dt><dd><p>The list of <span class="math notranslate nohighlight">\(\epsilon\)</span> to iterate over. “Default np.logspace(-3, 1, 20)</p>
-</dd>
-<dt>seed: int</dt><dd><p>The seed to control the train test split. Default 1.</p>
-</dd>
-<dt>solver: optional</dt><dd><p>A solver to perform gradient-based learning</p>
-</dd>
-</dl>
-</section>
-<section id="returns">
-<h2>Returns<a class="headerlink" href="#returns" title="Permalink to this heading">#</a></h2>
-<p>A pandas data frame with information on each <span class="math notranslate nohighlight">\(\epsilon\)</span> having the following columns:
-Columns:</p>
 <blockquote>
-<div><dl class="simple">
-<dt>Opt_val: float</dt><dd><p>The objective value of the Robust Problem</p>
-</dd>
-<dt>Loss_val: float</dt><dd><p>The value of the loss function applied to the training data</p>
-</dd>
-<dt>Eval_val: float</dt><dd><p>The value of the loss function applied to the evaluation data</p>
-</dd>
-<dt>Eps: float</dt><dd><p>The epsilon value</p>
-</dd>
-</dl>
+<div><p>API documentation to solve robust problems!</p>
 </div></blockquote>
-</section>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lro.RobustProblem.train">
-<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">45</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">momentum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SGD'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initeps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lro.RobustProblem.train" title="Permalink to this definition">#</a></dt>
-<dd><p>Trains the uncertainty set parameters to find optimal set w.r.t. loss metric</p>
-<section id="id1">
-<h2>Parameters<a class="headerlink" href="#id1" title="Permalink to this heading">#</a></h2>
-<dl class="simple">
-<dt>eps<span class="classifier">bool, optional</span></dt><dd><p>If True, train only epsilon, where <span class="math notranslate nohighlight">\(A = \epsilon I, \
-b = \epsilon \bar{d}\)</span>, where <span class="math notranslate nohighlight">\(\bar{d}\)</span> is the centroid of the
-training data. Default False.</p>
-</dd>
-<dt>step<span class="classifier">int, optional</span></dt><dd><p>The total number of gradient steps performed. Default 45.</p>
-</dd>
-<dt>lr<span class="classifier">float, optional</span></dt><dd><p>The learning rate of gradient descent. Default 0.01.</p>
-</dd>
-<dt>momentum: float between 0 and 1, optional</dt><dd><p>The momentum for gradient descent. Default 0.8.</p>
-</dd>
-<dt>optimizer: str or letters, optional</dt><dd><p>The optimizer to use tor the descent algorithm. Default “SGD”.</p>
-</dd>
-<dt>initeps<span class="classifier">float, optional</span></dt><dd><p>The epsilon to initialize <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(b\)</span>, if passed. If not passed,
-<span class="math notranslate nohighlight">\(A\)</span> will be initialized as the inverse square root of the
-covariance of the data, and b will be initialized as <span class="math notranslate nohighlight">\(\bar{d}\)</span>.</p>
-</dd>
-<dt>seed<span class="classifier">int, optional</span></dt><dd><p>The seed to control the random state of the train-test data split. Default 1.</p>
-</dd>
-</dl>
-</section>
-<section id="id2">
-<h2>Returns<a class="headerlink" href="#id2" title="Permalink to this heading">#</a></h2>
-<p>A pandas data frame with information on each :math:r`epsilon` having the following columns:
-Columns:</p>
-<blockquote>
-<div><dl class="simple">
-<dt>Opt_val: float</dt><dd><p>The objective value of the Robust Problem</p>
-</dd>
-<dt>Loss_val: float</dt><dd><p>The value of the loss function applied to the training data</p>
-</dd>
-<dt>Eval_val: float</dt><dd><p>The value of the loss function applied to the evaluation data</p>
-</dd>
-<dt>Eps: float</dt><dd><p>The <span class="math notranslate nohighlight">\(\epsilon\)</span> value</p>
-</dd>
-</dl>
-</div></blockquote>
-</section>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lro.RobustProblem.uncertain_parameters">
-<span class="sig-name descname"><span class="pre">uncertain_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lro.RobustProblem.uncertain_parameters" title="Permalink to this definition">#</a></dt>
-<dd><p>Find which variables are uncertain</p>
-<section id="id3">
-<h2>Returns<a class="headerlink" href="#id3" title="Permalink to this heading">#</a></h2>
-<dl class="simple">
-<dt>num_params<span class="classifier">int</span></dt><dd><p>the number of unique uncertain parameters in robust problem</p>
-</dd>
-</dl>
-</section>
-</dd></dl>
-
-</dd></dl>
-
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="uncertainty_sets/index.html">Uncertainty Sets</a><ul class="simple">
+</ul>
+</li>
+</ul>
+</div>
 </section>
 
         </article>
@@ -304,15 +222,23 @@ Columns:</p>
       <footer>
         
         <div class="related-pages">
-          
-          <a class="prev-page" href="../examples/portfolio/portfolio.html">
+          <a class="next-page" href="robust_problem/index.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">&lt;no title&gt;</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="../examples/experiments/tutorial_learning.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Robust Portfolio Optimization</div>
+                <div class="title">Learned Uncertainty Sets</div>
                 
               </div>
             </a>
@@ -336,32 +262,8 @@ Columns:</p>
         
       </footer>
     </div>
-    <aside class="toc-drawer">
+    <aside class="toc-drawer no-toc">
       
-      
-      <div class="toc-sticky toc-scroll">
-        <div class="toc-title-container">
-          <span class="toc-title">
-            On this page
-          </span>
-        </div>
-        <div class="toc-tree-container">
-          <div class="toc-tree">
-            <ul>
-<li><a class="reference internal" href="#">API</a><ul>
-<li><a class="reference internal" href="#lro.RobustProblem"><code class="docutils literal notranslate"><span class="pre">RobustProblem</span></code></a><ul>
-<li><a class="reference internal" href="#lro.RobustProblem.grid"><code class="docutils literal notranslate"><span class="pre">RobustProblem.grid()</span></code></a></li>
-<li><a class="reference internal" href="#lro.RobustProblem.train"><code class="docutils literal notranslate"><span class="pre">RobustProblem.train()</span></code></a></li>
-<li><a class="reference internal" href="#lro.RobustProblem.uncertain_parameters"><code class="docutils literal notranslate"><span class="pre">RobustProblem.uncertain_parameters()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-
-          </div>
-        </div>
-      </div>
       
       
     </aside>
@@ -374,7 +276,5 @@ Columns:</p>
     <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/scripts/furo.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>
