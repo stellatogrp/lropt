@@ -434,7 +434,7 @@ class RobustProblem(Problem):
                     mineps[0]*torch.tensor(np.mean(train, axis=0))).detach().numpy().copy()
         return df
 
-    def convert(self):
+    def dualize(self):
         # import ipdb
         # ipdb.set_trace()
         if self.uncertain_parameters():

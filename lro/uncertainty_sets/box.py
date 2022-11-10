@@ -47,7 +47,7 @@ class Box(Ellipsoidal):
 
     def __init__(self, rho=1.,
                  center=None, side=None,
-                 affine_transform=None, data=None, loss=None):
+                 affine_transform=None, data=None, loss=None, A=None, b=None):
 
         # import ipdb
         # ipdb.set_trace()
@@ -85,9 +85,9 @@ class Box(Ellipsoidal):
             if len(center) != len(side):
                 raise ValueError("Center and side must have the same size.")
 
-            A = np.diag(.5 * side)
-            b = center
-            affine_transform = {'A': A, 'b': b}
+            A_init = np.diag(.5 * side)
+            b_init = center
+            affine_transform = {'A': A_init, 'b': b_init}
 
         if rho <= 0:
             raise ValueError("Rho value must be positive.")
@@ -96,9 +96,9 @@ class Box(Ellipsoidal):
             super(Box, self).__init__(
                 p=np.inf,
                 rho=rho,
-                affine_transform=None, data=data, loss=loss)
+                affine_transform=None, data=data, loss=loss, A=A, b=b)
         else:
             super(Box, self).__init__(
                 p=np.inf,
                 rho=rho,
-                affine_transform=affine_transform, data=None, loss=None)
+                affine_transform=affine_transform, data=None, loss=None, A=A, b=b)

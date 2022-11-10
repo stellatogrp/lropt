@@ -66,14 +66,18 @@ class UncertainQuadForm(Atom):
     def is_atom_convex(self) -> bool:
         """Is the atom convex?
         """
-        P = self.args[1]
-        return P.is_constant() and P.is_psd()
+        P = self.args[1].args[0]
+        x = self.args[0]
+        return (P.is_constant() and P.is_psd() and x.is_nonneg()) or \
+            (P.is_constant() and P.is_nsd() and x.is_nonpos())
 
     def is_atom_concave(self) -> bool:
         """Is the atom concave?
         """
-        P = self.args[1]
-        return P.is_constant() and P.is_nsd()
+        P = self.args[1].args[0]
+        x = self.args[0]
+        return (P.is_constant() and P.is_nsd() and x.is_nonneg()) or \
+            (P.is_constant() and P.is_psd() and x.is_nonpos())
 
     def is_atom_log_log_convex(self) -> bool:
         """Is the atom log-log convex?
