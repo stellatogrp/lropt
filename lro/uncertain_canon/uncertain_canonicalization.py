@@ -150,26 +150,17 @@ class Uncertain_Canonicalization(Reduction):
         "canonicalize each term separately with inf convolution"
         # import ipdb
         # ipdb.set_trace()
+        u_shape = self.get_u_shape(uvar)
         num_unc_fns = len(unc_lst)
         if num_unc_fns > 0:
             if len(unc_lst[0].shape) >= 1:
                 num_constr = unc_lst[0].shape[0]
             else:
                 num_constr = 1
-            trans = uvar.uncertainty_set.affine_transform
-            if trans:
-                if len(trans['A'].shape) > 1:
-                    shape = trans['A'].shape[1]
-                else:
-                    shape = 1
-            elif len(uvar.shape) >= 1:
-                shape = uvar.shape[0]
-            else:
-                shape = 1
-            if shape == 1:
+            if u_shape == 1:
                 z = Variable(num_unc_fns)
             else:
-                z = Variable((num_unc_fns, shape))
+                z = Variable((num_unc_fns, u_shape))
             z_cons = 0
             z_new_cons = {}
             new_vars = {}
@@ -179,15 +170,15 @@ class Uncertain_Canonicalization(Reduction):
             for ind in range(num_unc_fns):
 
                 # if len(unc_lst[ind].variables()) (check if has variable)
-                u_expr, cons = self.remove_const(unc_lst[ind])
+                u_expr, constant = self.remove_constant(unc_lst[ind])
 
                 # uvar = mul_canon_transform(uvar, cons)
-                new_expr, new_const = self.canonicalize_tree(u_expr, z[ind], cons)
+                new_expr, new_const = self.canonicalize_tree(u_expr, z[ind], constant)
                 if self.has_unc_param(new_expr):
                     if j == 0:
-                        uvar = mul_canon_transform(uvar, cons)
+                        uvar = mul_canon_transform(uvar, constant)
                     # assert (num_constr == shape)
-                    new_vars[ind] = Variable((num_constr, shape))
+                    new_vars[ind] = Variable((num_constr, u_shape))
                     for idx in range(num_constr):
                         # import ipdb
                         # ipdb.set_trace()
@@ -198,7 +189,6 @@ class Uncertain_Canonicalization(Reduction):
                             z_new_cons[idx] += new_vars[ind][idx]
                         else:
                             z_new_cons[idx] = new_vars[ind][idx]
-
                     j = 1
                 else:
                     # import ipdb
@@ -206,7 +196,7 @@ class Uncertain_Canonicalization(Reduction):
                     aux_expr = aux_expr + new_expr
                     aux_const += new_const
                     z_cons += z[ind]
-            z_unc = Variable((num_constr, shape))
+            z_unc = Variable((num_constr, u_shape))
             if j == 1:
                 for ind in range(num_constr):
                     aux_const += [z_cons + z_new_cons[ind] == -z_unc[ind]]
@@ -216,11 +206,7 @@ class Uncertain_Canonicalization(Reduction):
             aux_expr = aux_expr + new_expr
             aux_const = aux_const + new_const
         else:
-            if len(uvar.shape) >= 1:
-                shape = uvar.shape[0]
-            else:
-                shape = 1
-            aux_expr, aux_const, lmbda = uvar.conjugate(shape, 1)
+            aux_expr, aux_const, lmbda = uvar.conjugate(u_shape, 1)
         for expr in std_lst:
             aux_expr = aux_expr + expr
         return aux_expr <= 0, aux_const, lmbda
@@ -242,6 +228,22 @@ class Uncertain_Canonicalization(Reduction):
             return self.count_unq_uncertain_param(expr) == 1
         else:
             return 0
+
+    def get_u_shape(self, uvar):
+        trans = uvar.uncertainty_set.affine_transform
+
+        # find shape of uncertainty parameter
+        if trans:
+            if len(trans['A'].shape) > 1:
+                u_shape = trans['A'].shape[1]
+            else:
+                u_shape = 1
+        elif len(uvar.shape) >= 1:
+            u_shape = uvar.shape[0]
+        else:
+            u_shape = 1
+
+        return u_shape
 
     def separate_uncertainty(self, expr):
         '''separate cvxpy expression into subexpressions with uncertain parameters and without.
@@ -276,15 +278,15 @@ class Uncertain_Canonicalization(Reduction):
         func = sep_methods[type(expr)]
         return func(self, expr)
 
-    def remove_const(self, expr, cons=1):
+    def remove_constant(self, expr, constant=1):
         '''remove the constants at the beginning of an expression with uncertainty'''
         # import ipdb
         # ipdb.set_trace()
         if len(expr.args) == 0:
-            return expr, cons
+            return expr, constant
 
         if type(expr) not in rm_const_methods:
-            return expr, cons
+            return expr, constant
         else:
             func = rm_const_methods[type(expr)]
-            return func(self, expr, cons)
+            return func(self, expr, constant)

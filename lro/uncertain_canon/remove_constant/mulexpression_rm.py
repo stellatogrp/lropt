@@ -1,4 +1,4 @@
-def mulexpression_rm(unc_canon, expr, cons):
-    expr1, cons = unc_canon.remove_const(expr.args[0], cons)
-    expr2, cons = unc_canon.remove_const(expr.args[1], cons)
-    return expr1*expr2, cons
+def mulexpression_rm(unc_canon, expr, constant):
+    expr1, constant = unc_canon.remove_constant(expr.args[0], constant)
+    expr2, constant = unc_canon.remove_constant(expr.args[1], constant)
+    return expr1*expr2, constant

@@ -79,6 +79,20 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         npt.assert_allclose(x_cvxpy, x_robust, rtol=RTOL, atol=ATOL)
 
+    def test_simple_ellipsoidal(self):
+        b, x, n, objective, rho, p = \
+            self.b, self.x, self.n, self.objective, self.rho, self.p
+        # Robust set
+        A_unc = 3. * np.eye(n)
+        b_unc = 0.1 * np.random.rand(n)
+        # Formulate robust constraints with lro
+        unc_set = Ellipsoidal(p=p, rho=rho)
+        a = UncertainParameter(n,
+                               uncertainty_set=unc_set)
+        constraints = [2 * (A_unc @ a + b_unc) @ x * 1 <= b]
+        prob_robust = RobustProblem(objective, constraints)
+        prob_robust.solve(solver=SOLVER)
+
     # @unittest.skip('need to combine with new code')
     def test_ellipsoidal_learning(self):
         # import ipdb
@@ -149,7 +163,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # import ipdb
         # ipdb.set_trace()
         torch.seed()
-        sp500 = pd.read_csv('tests/experiments/stock_data/prices_sp500.csv').to_numpy()
+        sp500 = pd.read_csv('docs/examples/experiments/stock_data/prices_sp500.csv').to_numpy()
 
         num_stocks = 100
         num_rets = 500

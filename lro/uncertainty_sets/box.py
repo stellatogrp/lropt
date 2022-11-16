@@ -93,9 +93,9 @@ class Box(Ellipsoidal):
             super(Box, self).__init__(
                 p=np.inf,
                 rho=rho,
-                affine_transform=None, data=data, loss=loss, A=A, b=b)
+                A=A, b=b, affine_transform=None, data=data, loss=loss)
         else:
             super(Box, self).__init__(
                 p=np.inf,
                 rho=rho,
-                affine_transform=affine_transform, data=None, loss=None, A=A, b=b)
+                A=A, b=b, affine_transform=affine_transform, data=None, loss=None)
