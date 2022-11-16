@@ -136,6 +136,22 @@ class TestBoxUncertainty(unittest.TestCase):
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
 
+    def test_box_std(self):
+        n = 5
+        x = cp.Variable(n)
+        c = np.ones(n)
+        A_unc = np.eye(n)
+        b_unc = 3*np.ones(n)
+
+        objective = cp.Minimize(c @ x)
+        u = UncertainParameter(n,
+                               uncertainty_set=Box(rho=2.))
+
+        constraints = [0 <= x, x <= 10,
+                       2 * ((A_unc @ u + b_unc) @ x)*-1 <= 2]
+        prob = RobustProblem(objective, constraints)
+        prob.solve(solver=SOLVER)
+
     # @pytest.mark.skip(reason="Need to add quad")
     def test_isolate_scalar(self):
         x = cp.Variable()

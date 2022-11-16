@@ -11,10 +11,7 @@ class MRO(UncertaintySet):
     Uncertainty set where the parameter is constrained to lie in a
     Wasserstein ball of the form
     .. math::
-        \{ \sum( w_k||\Pi(u_k) - d_k ||^p)\leq eps\\}
-
-    where :math:`\Pi(u)` is an identity by default but can be
-    an affine transformation :math:`A u + b`.
+        \{ \sum( w_k||u_k - d_k ||^p)\leq eps\\}
     """
 
     def __init__(self, K, eps, D_in, p, norm=2,
