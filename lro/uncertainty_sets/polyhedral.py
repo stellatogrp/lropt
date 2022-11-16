@@ -114,18 +114,21 @@ class Polyhedral(UncertaintySet):
         return new_expr, new_constraints
 
     def conjugate(self, var, shape):
-        if shape == 1:
-            lmbda = Variable(len(self.d))
-            constr = [lmbda >= 0]
-            if len(self.d) == 1:
-                constr += [var[0] == lmbda*self.D]
-                return lmbda*self.d, constr
+        if not var.is_constant():
+            if shape == 1:
+                lmbda = Variable(len(self.d))
+                constr = [lmbda >= 0]
+                if len(self.d) == 1:
+                    constr += [var[0] == lmbda*self.D]
+                    return lmbda*self.d, constr, lmbda
+                else:
+                    constr += [var[0] == lmbda@self.D]
+                    return lmbda@self.d, constr, lmbda
             else:
-                constr += [var[0] == lmbda@self.D]
-                return lmbda@self.d, constr
+                lmbda = Variable((shape, len(self.d)))
+                constr = [lmbda >= 0]
+                for ind in range(shape):
+                    constr += [var[ind] == lmbda[ind]@self.D]
+                return lmbda@self.d, constr, lmbda
         else:
-            lmbda = Variable((shape, len(self.d)))
-            constr = [lmbda >= 0]
-            for ind in range(shape):
-                constr += [var[ind] == lmbda[ind]@self.D]
-            return lmbda@self.d, constr
+            return 0, [], 0

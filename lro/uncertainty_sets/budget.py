@@ -171,7 +171,16 @@ class Budget(UncertaintySet):
     def conjugate(self, var, shape):
         # import ipdb
         # ipdb.set_trace()
-        ushape = var.shape[1]
+        if not var.is_constant():
+            ushape = var.shape[1]
+            newvar1 = Variable(var.shape)
+            newvar2 = Variable(var.shape)
+            constr = [newvar1 + newvar2 == var]
+        else:
+            ushape = var
+            newvar1 = Variable(ushape)
+            newvar2 = Variable(ushape)
+            constr = [newvar1 + newvar2 == 0]
         if self._A1 is None:
             self._A1 = np.eye(ushape)
         if self._A2 is None:
@@ -180,9 +189,6 @@ class Budget(UncertaintySet):
             self._b1 = np.zeros(ushape)
         if self._b2 is None:
             self._b2 = np.zeros(ushape)
-        newvar1 = Variable(var.shape)
-        newvar2 = Variable(var.shape)
-        constr = [newvar1 + newvar2 == var]
         if self.data is not None and self.train_box:
             if shape == 1:
                 newvar = Variable(ushape)  # z conjugate variables
@@ -192,7 +198,7 @@ class Budget(UncertaintySet):
                 constr += [norm(newvar2[0], np.inf) <= lmbda2]
                 constr += [self.paramT.T@newvar == newvar1[0]]
                 constr += [lmbda1 >= 0, lmbda2 >= 0]
-                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar1[0]*self.paramb, constr
+                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar1[0]*self.paramb, constr, (lmbda1, lmbda2)
             else:
                 lmbda1 = Variable(shape)
                 lmbda2 = Variable(shape)
@@ -202,7 +208,7 @@ class Budget(UncertaintySet):
                     constr += [norm(newvar[ind], p=1) <= lmbda1[ind]]
                     constr += [norm(newvar2[ind], p=np.inf) <= lmbda2[ind]]
                     constr += [self.paramT.T@newvar[ind] == newvar1[ind]]
-                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar1@self.paramb, constr
+                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar1@self.paramb, constr, (lmbda1, lmbda2)
         elif self.data is not None and not self.train_box:
             if shape == 1:
                 newvar = Variable(ushape)  # z conjugate variables
@@ -212,7 +218,7 @@ class Budget(UncertaintySet):
                 constr += [norm(newvar[0], np.inf) <= lmbda2]
                 constr += [self.paramT.T@newvar == newvar2[0]]
                 constr += [lmbda1 >= 0, lmbda2 >= 0]
-                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar2[0]*self.paramb, constr
+                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar2[0]*self.paramb, constr, (lmbda1, lmbda2)
             else:
                 lmbda1 = Variable(shape)
                 lmbda2 = Variable(shape)
@@ -222,7 +228,7 @@ class Budget(UncertaintySet):
                     constr += [norm(newvar1[ind], p=1) <= lmbda1[ind]]
                     constr += [norm(newvar[ind], p=np.inf) <= lmbda2[ind]]
                     constr += [self.paramT.T@newvar[ind] == newvar2[ind]]
-                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar2@self.paramb, constr
+                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar2@self.paramb, constr, (lmbda1, lmbda2)
         # else:
         #     if shape == 1:
         #         lmbda1 = Variable()
@@ -250,7 +256,9 @@ class Budget(UncertaintySet):
                 constr += [self._A1.T@newvar_1 == newvar1[0]]
                 constr += [self._A2.T@newvar_2 == newvar2[0]]
                 constr += [lmbda1 >= 0, lmbda2 >= 0]
-                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar1[0]*self._b1 - newvar2[0]*self._b2, constr
+                return self.rho1 * lmbda1 + self.rho2 * lmbda2 \
+                    - newvar1[0]*self._b1 - newvar2[0]*self._b2,\
+                    constr, (lmbda1, lmbda2)
             else:
                 lmbda1 = Variable(shape)
                 lmbda2 = Variable(shape)
@@ -262,4 +270,6 @@ class Budget(UncertaintySet):
                     constr += [norm(newvar_2[ind], p=np.inf) <= lmbda2[ind]]
                     constr += [self._A1.T@newvar_1[ind] == newvar1[ind]]
                     constr += [self._A2.T@newvar_2[ind] == newvar2[ind]]
-                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar1@self._b1 - newvar2@self._b2, constr
+                return self.rho1 * lmbda1 + self.rho2 * lmbda2 \
+                    - newvar1@self._b1 - newvar2@self._b2, constr,\
+                    (lmbda1, lmbda2)
