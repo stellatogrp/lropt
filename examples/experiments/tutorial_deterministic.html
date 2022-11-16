@@ -461,10 +461,12 @@ div.rendered_html tbody tr:hover {
 }
 </style>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
+<span class="kn">import</span> <span class="nn">scipy</span> <span class="k">as</span> <span class="nn">sc</span>
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">datasets</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">numpy.random</span> <span class="k">as</span> <span class="nn">npr</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -475,7 +477,6 @@ div.rendered_html tbody tr:hover {
 <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
     <span class="s2">&quot;text.usetex&quot;</span><span class="p">:</span><span class="kc">True</span><span class="p">,</span>
-
     <span class="s2">&quot;font.size&quot;</span><span class="p">:</span><span class="mi">18</span><span class="p">,</span>
     <span class="s2">&quot;font.family&quot;</span><span class="p">:</span> <span class="s2">&quot;serif&quot;</span>
 <span class="p">})</span>
@@ -488,27 +489,13 @@ div.rendered_html tbody tr:hover {
 <h1>Deterministic Uncertainty Sets<a class="headerlink" href="#Deterministic-Uncertainty-Sets" title="Permalink to this heading">#</a></h1>
 <section id="Formulating-the-uncertainty-set">
 <h2>Formulating the uncertainty set<a class="headerlink" href="#Formulating-the-uncertainty-set" title="Permalink to this heading">#</a></h2>
-<p>The first step is to formulate the uncertainty set. There are multiple options, with their associated input parameters</p>
+<p>The first step is to formulate the uncertainty set. There are multiple options, with their associated input parameters. The uncertainty set can be formulated within the uncertain parameter, which takes in the size of the uncertainty and an uncertainty set as parameters.</p>
 <div class="line-block">
-<div class="line">Box uncertainty: $ { u <span class="math">\mid</span>| u |_:nbsphinx-math:<cite>infty `:nbsphinx-math:</cite>leq <cite>:nbsphinx-math:</cite>rho <cite>}$ - :math:</cite>rho` : float, optional</div>
+<div class="line">Box uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid\| u \|_\infty \leq \rho \}\)</span> - <span class="math notranslate nohighlight">\(\rho\)</span> : float, optional</div>
 <div class="line">* Box scaling. Default 1.0. - center : np.array, optional</div>
 <div class="line">* An array of dimension n, n the dimension of the uncertanty. Translation of the center of the box. If lengths is passed but not center it defaults to an array of zeros. - side : np.array, optional</div>
 <div class="line">* An array of dimension n, n the dimension of the uncertanty. Length of each side of the box. If center is passed but side not it defaults to an array of 2.</div>
 </div>
-<div class="line-block">
-<div class="line">Ellipsoidal uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| u \|_p \leq \rho \}\)</span> - <span class="math notranslate nohighlight">\(\rho\)</span> : float, optional</div>
-<div class="line">* Ellipsoid scaling. Default 1.0. - <span class="math notranslate nohighlight">\(p\)</span> : integer, optional</div>
-<div class="line">* Order of the norm. Default 2.</div>
-</div>
-<div class="line-block">
-<div class="line">Budget uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| u \|_\infty \leq \rho_1, \| u \|_1 \leq \rho_2\}\)</span> - <span class="math notranslate nohighlight">\(\rho_1\)</span> : float, optional</div>
-<div class="line">* Box scaling. Default 1.0. - <span class="math notranslate nohighlight">\(\rho_2\)</span> : float, optional * 1-norm scaling. Default 1.0.</div>
-</div>
-<div class="line-block">
-<div class="line">Polyhedral uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid Du \leq d\}\)</span> - <span class="math notranslate nohighlight">\(D\)</span> : np.array</div>
-<div class="line">- <span class="math notranslate nohighlight">\(d\)</span> : np.array</div>
-</div>
-<p>The uncertainty set can be formulated within the uncertain parameter, which takes in the size of the uncertainty and an uncertainty set as parameters.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
@@ -521,18 +508,49 @@ div.rendered_html tbody tr:hover {
                               <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">center</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">m</span><span class="p">),</span>
                                                         <span class="n">side</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">m</span><span class="p">),</span>
                                                         <span class="n">rho</span><span class="o">=</span><span class="mf">2.</span><span class="p">))</span>
-
-<span class="c1"># Ellipsoidal uncertainty set example</span>
+</pre></div>
+</div>
+</div>
+<div class="line-block">
+<div class="line">Ellipsoidal uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| u \|_p \leq \rho \}\)</span> - <span class="math notranslate nohighlight">\(\rho\)</span> : float, optional</div>
+<div class="line">* Ellipsoid scaling. Default 1.0. - <span class="math notranslate nohighlight">\(p\)</span> : integer, optional</div>
+<div class="line">* Order of the norm. Default 2.</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Ellipsoidal uncertainty set example</span>
 <span class="n">ellip_u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">m</span><span class="p">,</span>
                                 <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">p</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
                                                                   <span class="n">rho</span><span class="o">=</span><span class="mf">2.</span><span class="p">))</span>
-
-<span class="c1"># Budget uncertainty set example</span>
+</pre></div>
+</div>
+</div>
+<div class="line-block">
+<div class="line">Budget uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| u \|_\infty \leq \rho_1, \| u \|_1 \leq \rho_2\}\)</span> - <span class="math notranslate nohighlight">\(\rho_1\)</span> : float, optional</div>
+<div class="line">* Box scaling. Default 1.0. - <span class="math notranslate nohighlight">\(\rho_2\)</span> : float, optional * 1-norm scaling. Default 1.0.</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Budget uncertainty set example</span>
 <span class="n">budget_u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">m</span><span class="p">,</span>
                                   <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">Budget</span><span class="p">(</span><span class="n">rho1</span><span class="o">=</span><span class="mf">2.</span><span class="p">,</span>
                                                                <span class="n">rho2</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">))</span>
-
-<span class="c1"># Polyhedral uncertainty set example</span>
+</pre></div>
+</div>
+</div>
+<div class="line-block">
+<div class="line">Polyhedral uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid Du \leq d\}\)</span> - <span class="math notranslate nohighlight">\(D\)</span> : np.array</div>
+<div class="line">- <span class="math notranslate nohighlight">\(d\)</span> : np.array</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Polyhedral uncertainty set example</span>
 <span class="n">poly_u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">m</span><span class="p">,</span>
                                 <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">Polyhedral</span><span class="p">(</span>
                                                         <span class="n">D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span><span class="n">m</span><span class="p">)),</span>
@@ -556,13 +574,13 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>where <span class="math notranslate nohighlight">\(c\)</span>, <span class="math notranslate nohighlight">\(P\)</span>, and <span class="math notranslate nohighlight">\(a\)</span> are constants, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from the ellipsoidal set above.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#restate the ellipsoidal set</span>
 <span class="n">ellip_u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">m</span><span class="p">,</span>
                                 <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">p</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
-                                                                  <span class="n">rho</span><span class="o">=</span><span class="mf">2.</span><span class="p">))</span>
+                                                                  <span class="n">rho</span><span class="o">=</span><span class="mf">2.</span><span class="p">,</span> <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">m</span><span class="p">)))</span>
 <span class="n">n</span> <span class="o">=</span> <span class="mi">4</span>
 
 <span class="c1"># formulate cvxpy variable</span>
@@ -583,9 +601,9 @@ div.rendered_html tbody tr:hover {
 <span class="n">prob_robust</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
 
 <span class="c1"># solve</span>
-<span class="n">prob_robust</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;LRO objective value: &quot;</span><span class="p">,</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">LRO x: &quot;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<span class="n">new_prob</span> <span class="o">=</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">dualize</span><span class="p">()</span>
+<span class="n">new_prob</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;LRO objective value: &quot;</span><span class="p">,</span> <span class="n">new_prob</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">LRO x: &quot;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
 <br/></pre></div>
 </div>
 </div>
@@ -594,8 +612,8 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -1.605248342128033
-LRO x:  [-0.04025229 -0.92272464 -0.58919502 -1.29007898]
+LRO objective value:  -2.374499675812607
+LRO x:  [-0.54633788 -0.89025808 -0.59611945 -1.20725722]
 </pre></div></div>
 </div>
 <p>We compare the above with its explicit reformulation and solution</p>
@@ -607,7 +625,7 @@ LRO x:  [-0.04025229 -0.92272464 -0.58919502 -1.29007898]
 \end{array}\end{split}\]</div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate cvxpy variable</span>
@@ -619,7 +637,7 @@ LRO x:  [-0.04025229 -0.92272464 -0.58919502 -1.29007898]
 <span class="c1"># formulate constraints</span>
 <span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="nd">@x</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">cp</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">T</span><span class="nd">@x</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">10</span><span class="p">]</span>
 
-<span class="c1"># formulate Robust Problem</span>
+<span class="c1"># formulate problem</span>
 <span class="n">prob_cvxpy</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
 
 <span class="c1"># solve</span>
@@ -634,8 +652,8 @@ LRO x:  [-0.04025229 -0.92272464 -0.58919502 -1.29007898]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -1.6052483481202044
-Cvxpy x:  [-0.04023457 -0.92272019 -0.5891926  -1.29008361]
+Cvxpy objective value:  -2.374499670724283
+Cvxpy x:  [-0.54633711 -0.89025879 -0.59612032 -1.20725663]
 </pre></div></div>
 </div>
 <p>We see that they provide the same solution.</p>
@@ -663,7 +681,7 @@ Cvxpy x:  [-0.04023457 -0.92272019 -0.5891926  -1.29008361]
 \end{array}\end{split}\]</div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#formulate using the box set</span>
@@ -672,7 +690,7 @@ Cvxpy x:  [-0.04023457 -0.92272019 -0.5891926  -1.29008361]
 <span class="n">box_u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">m</span><span class="p">,</span>
                               <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">center</span><span class="o">=</span><span class="n">center</span><span class="p">,</span>
                                                         <span class="n">side</span><span class="o">=</span><span class="n">side</span><span class="p">,</span>
-                                                        <span class="n">rho</span><span class="o">=</span><span class="mf">2.</span><span class="p">))</span>
+                                                        <span class="n">rho</span><span class="o">=</span><span class="mf">2.</span><span class="p">,</span> <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">m</span><span class="p">)))</span>
 <span class="n">n</span> <span class="o">=</span> <span class="mi">5</span>
 
 <span class="c1"># formulate cvxpy variable</span>
@@ -692,9 +710,9 @@ Cvxpy x:  [-0.04023457 -0.92272019 -0.5891926  -1.29008361]
 <span class="n">prob_robust</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
 
 <span class="c1"># solve</span>
-<span class="n">prob_robust</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Box objective value: &quot;</span><span class="p">,</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Box x: &quot;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<span class="n">newprob</span> <span class="o">=</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">dualize</span><span class="p">()</span>
+<span class="n">newprob</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Box objective value: &quot;</span><span class="p">,</span> <span class="n">newprob</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Box x: &quot;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
 
 <span class="c1">#formulate using the ellipsoidal set</span>
 <span class="n">ellip_u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">m</span><span class="p">,</span>
@@ -719,9 +737,10 @@ Cvxpy x:  [-0.04023457 -0.92272019 -0.5891926  -1.29008361]
 <span class="n">prob_robust</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
 
 <span class="c1"># solve</span>
-<span class="n">prob_robust</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">newprob</span> <span class="o">=</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">dualize</span><span class="p">()</span>
+<span class="n">newprob</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Ellipsoidal objective value: &quot;</span><span class="p">,</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Ellipsoidal x: &quot;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Ellipsoidal objective value: &quot;</span><span class="p">,</span> <span class="n">newprob</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Ellipsoidal x: &quot;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
 <br/></pre></div>
 </div>
 </div>
@@ -730,11 +749,11 @@ Cvxpy x:  [-0.04023457 -0.92272019 -0.5891926  -1.29008361]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Box objective value:  -2.0632850368185394
-Box x:  [8.36989663e-01 6.18907224e-12 1.00000000e+00 1.86572218e-10
+Box objective value:  -3.0183862729206528
+Box x:  [1.00000000e+00 5.21544514e-12 2.08928938e-01 1.00000000e+00
  1.00000000e+00]
-Ellipsoidal objective value:  -2.0632850368185394
-Ellipsoidal x:  [8.36989663e-01 6.18907224e-12 1.00000000e+00 1.86572218e-10
+Ellipsoidal objective value:  -3.0183862729206528
+Ellipsoidal x:  [1.00000000e+00 5.21541110e-12 2.08928938e-01 1.00000000e+00
  1.00000000e+00]
 </pre></div></div>
 </div>
@@ -747,7 +766,7 @@ Ellipsoidal x:  [8.36989663e-01 6.18907224e-12 1.00000000e+00 1.86572218e-10
 \end{array}\end{split}\]</div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate using cvxpy</span>
@@ -758,7 +777,7 @@ Ellipsoidal x:  [8.36989663e-01 6.18907224e-12 1.00000000e+00 1.86572218e-10
 <span class="c1"># formulate constraints</span>
 <span class="n">constraints</span> <span class="o">=</span> <span class="p">[(</span><span class="n">P</span><span class="nd">@b</span><span class="p">)</span><span class="nd">@x</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="n">b</span><span class="nd">@x</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">cp</span><span class="o">.</span><span class="n">norm</span><span class="p">((</span><span class="n">P</span><span class="nd">@A</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="nd">@x</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="nd">@x</span><span class="p">,</span><span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">&lt;=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">x</span><span class="o">&gt;=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x</span><span class="o">&lt;=</span><span class="mi">1</span><span class="p">]</span>
 
-<span class="c1"># formulate Robust Problem</span>
+<span class="c1"># formulate problem</span>
 <span class="n">prob_cvxpy</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
 
 <span class="c1"># solve</span>
@@ -773,8 +792,8 @@ Ellipsoidal x:  [8.36989663e-01 6.18907224e-12 1.00000000e+00 1.86572218e-10
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -2.063285036828997
-Cvxpy x:  [8.36989663e-01 5.81510357e-13 1.00000000e+00 1.09806422e-10
+Cvxpy objective value:  -3.0183862729291984
+Cvxpy x:  [1.00000000e+00 2.37934591e-12 2.08928938e-01 1.00000000e+00
  1.00000000e+00]
 </pre></div></div>
 </div>
@@ -793,7 +812,7 @@ Cvxpy x:  [8.36989663e-01 5.81510357e-13 1.00000000e+00 1.09806422e-10
 </div>
 <p>where <span class="math notranslate nohighlight">\(c\)</span>, <span class="math notranslate nohighlight">\(P_1\)</span>, <span class="math notranslate nohighlight">\(P_2\)</span>, and <span class="math notranslate nohighlight">\(a\)</span> are constants, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from a polyhedral uncertainty set</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[53]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#restate the ellipsoidal set</span>
@@ -824,9 +843,11 @@ Cvxpy x:  [8.36989663e-01 5.81510357e-13 1.00000000e+00 1.09806422e-10
 <span class="n">prob_robust</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
 
 <span class="c1"># solve</span>
-<span class="n">prob_robust</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;LRO objective value: &quot;</span><span class="p">,</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">LRO x: &quot;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
-<br/></pre></div>
+
+<span class="n">new_prob</span> <span class="o">=</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">dualize</span><span class="p">()</span>
+<span class="n">new_prob</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;LRO objective value: &quot;</span><span class="p">,</span> <span class="n">new_prob</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">LRO x: &quot;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<br/><br/></pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -834,8 +855,8 @@ Cvxpy x:  [8.36989663e-01 5.81510357e-13 1.00000000e+00 1.09806422e-10
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -7.405980464790736
-LRO x:  [-10.97547718   5.           5.           4.97149827]
+LRO objective value:  -9.345357399838553
+LRO x:  [  5.         -11.01853896   5.           5.        ]
 </pre></div></div>
 </div>
 <p>We compare it with its direct reformulation, where each uncertain constraint is treated independently,</p>
@@ -853,7 +874,7 @@ LRO x:  [-10.97547718   5.           5.           4.97149827]
 </div>
 <p>where <span class="math notranslate nohighlight">\(w_1\)</span>, <span class="math notranslate nohighlight">\(w_2\)</span> are new variables introduced.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[54]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate using cvxpy</span>
@@ -883,8 +904,8 @@ LRO x:  [-10.97547718   5.           5.           4.97149827]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -7.405980464754247
-Cvxpy x:  [-10.97547718   5.           5.           4.97149827]
+Cvxpy objective value:  -9.34535739966449
+Cvxpy x:  [  5.         -11.01853896   5.           5.        ]
 </pre></div></div>
 </div>
 </section>
@@ -901,13 +922,13 @@ Cvxpy x:  [-10.97547718   5.           5.           4.97149827]
 </div>
 <p>where <span class="math notranslate nohighlight">\(c\)</span>, <span class="math notranslate nohighlight">\(P\)</span>,and <span class="math notranslate nohighlight">\(a\)</span> are constants, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from a budet uncertainty set. We can include constraints that relates directly the values of <span class="math notranslate nohighlight">\(x\)</span> and <span class="math notranslate nohighlight">\(u\)</span>, as in the second constraint.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[57]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#restate the ellipsoidal set</span>
 <span class="n">budget_u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">m</span><span class="p">,</span>
                                   <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">Budget</span><span class="p">(</span><span class="n">rho1</span><span class="o">=</span><span class="mf">2.</span><span class="p">,</span>
-                                                               <span class="n">rho2</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">))</span>
+                                                               <span class="n">rho2</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">A1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">m</span><span class="p">),</span> <span class="n">A2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">m</span><span class="p">)))</span>
 <span class="n">n</span> <span class="o">=</span> <span class="mi">4</span>
 <span class="c1"># formulate cvxpy variable</span>
 <span class="n">x</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
@@ -929,9 +950,9 @@ Cvxpy x:  [-10.97547718   5.           5.           4.97149827]
 <span class="n">prob_robust</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
 
 <span class="c1"># solve</span>
-<span class="n">prob_robust</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;LRO objective value: &quot;</span><span class="p">,</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">LRO x: &quot;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<span class="n">new_prob</span> <span class="o">=</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">dualize</span><span class="p">()</span>
+<span class="n">new_prob</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;LRO objective value: &quot;</span><span class="p">,</span> <span class="n">new_prob</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">LRO x: &quot;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
 <br/></pre></div>
 </div>
 </div>
@@ -940,8 +961,8 @@ Cvxpy x:  [-10.97547718   5.           5.           4.97149827]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  5.51385853825704
-LRO x:  [1.40030234 2.59399093 2.74036352 2.62214987]
+LRO objective value:  6.727711091160589
+LRO x:  [2.89132115 2.96117293 2.59768808 2.57108353]
 </pre></div></div>
 </div>
 <p>We compare this with its direct reformulation,</p>
@@ -955,10 +976,10 @@ LRO x:  [1.40030234 2.59399093 2.74036352 2.62214987]
 </div>
 <p>where <span class="math notranslate nohighlight">\((P_1^T)_i\)</span> is the <span class="math notranslate nohighlight">\(i\)</span>’th row of <span class="math notranslate nohighlight">\(P_1\)</span>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[58]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate using cvxpy</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate cvxpy variables</span>
 <span class="n">x</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
 <span class="n">y</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
 <span class="n">z</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">((</span><span class="n">n</span><span class="p">,</span><span class="n">m</span><span class="p">))</span>
@@ -970,6 +991,7 @@ LRO x:  [1.40030234 2.59399093 2.74036352 2.62214987]
 <span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="nd">@x</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">cp</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">cp</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">T</span><span class="nd">@x</span><span class="o">-</span><span class="n">y</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">10</span><span class="p">]</span>
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
   <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">cp</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">z</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">cp</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">P1</span><span class="o">.</span><span class="n">T</span><span class="o">@</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">)[</span><span class="n">i</span><span class="p">])</span> <span class="o">-</span> <span class="n">z</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">]</span>
+
 <span class="c1"># formulate Robust Problem</span>
 <span class="n">prob_cvxpy</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
 
@@ -984,17 +1006,120 @@ LRO x:  [1.40030234 2.59399093 2.74036352 2.62214987]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  5.5138585389233405
-Cvxpy x:  [1.40030234 2.59399093 2.74036352 2.62214987]
+Cvxpy objective value:  6.727711090714715
+Cvxpy x:  [2.89132115 2.96117293 2.59768808 2.57108353]
 </pre></div></div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</section>
+<section id="Example-5:-Quadratic-uncertainty,-ellipsoidal-set">
+<h3>Example 5: Quadratic uncertainty, ellipsoidal set<a class="headerlink" href="#Example-5:-Quadratic-uncertainty,-ellipsoidal-set" title="Permalink to this heading">#</a></h3>
+<p>We solve the problem</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{array}{ll}
+\text{minimize} &amp; \tau\\
+\text{subject to}  &amp; -(1/2)\sum_{i=1}^n (u^TP_iu)x_i  \leq  \tau\\
+&amp; \mathbf{1}^Tx = 3\\
+&amp; x \geq 0, \quad x \leq 1
+\end{array}\end{split}\]</div>
+</div>
+<p>where each <span class="math notranslate nohighlight">\(P_i\in \mathbf{R}^{n\times n}\)</span> is a symmetric positive definite matrix, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from an ellipsoidal uncertainty set.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[64]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate uncertainty set</span>
+<span class="n">n</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span>
+                        <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">lro</span><span class="o">.</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                                    <span class="n">rho</span><span class="o">=</span><span class="mf">0.5</span><span class="p">))</span>
+<span class="c1"># formulate cvxpy variables</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
+
+<span class="c1"># formulate problem constants</span>
+<span class="n">P</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">P_inv</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="n">P</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">make_spd_matrix</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
+    <span class="n">P_inv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">P</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+
+<span class="c1"># formulate objective</span>
+<span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+
+<span class="c1"># formulate constraints</span>
+<span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="n">lro</span><span class="o">.</span><span class="n">uncertain_atoms</span><span class="o">.</span><span class="n">quad_form</span><span class="o">.</span><span class="n">quad_form</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">P</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)])</span> <span class="o">&lt;=</span> <span class="n">t</span><span class="p">]</span>
+<span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">==</span><span class="mi">3</span><span class="p">]</span>
+<span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">]</span>
+
+<span class="c1"># formulate Robust Problem</span>
+<span class="n">prob_robust</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+
+<span class="n">new_prob</span> <span class="o">=</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">dualize</span><span class="p">()</span>
+<span class="n">new_prob</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;LRO objective value: &quot;</span><span class="p">,</span> <span class="n">new_prob</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">LRO x: &quot;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+LRO objective value:  -2.0112953979060528e-10
+LRO x:  [0.59924155 0.60078786 0.60049851 0.59924718 0.60022489]
+</pre></div></div>
+</div>
+<dl class="simple">
+<dt>We compare this with the direct reformulation, :nbsphinx-math:<a href="#id1"><span class="problematic" id="id2">`</span></a>begin{equation}</dt><dd><dl class="simple">
+<dt>begin{array}{lll}</dt><dd><p>&amp;text{minimize} &amp; f(x)\
+&amp;text{subject to} &amp; (1/2)sum_{i=1}^n (z_i^TP_i^{-1}z_i)/x_i + rho|z|_2 le 0\
+&amp;&amp; sum_{i=1}^n z_i = z,\</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>&amp;&amp; mathbf{1}^Tx = 3\
+&amp;&amp; x geq 0, quad x leq 1</p>
+<blockquote>
+<div><p>end{array}</p>
+</div></blockquote>
+<p>end{equation}` where we have <span class="math notranslate nohighlight">\(\gamma \in \mathbf{R}^m, z \in \mathbf{R}^n, z_i \in \mathbf{R}^n\)</span>, <span class="math notranslate nohighlight">\(i = 1,\dots,n\)</span>, as auxiliary variables.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[65]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate using cvxpy</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
+<span class="n">z</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">((</span><span class="n">n</span><span class="p">,</span><span class="n">n</span><span class="p">))</span>
+<span class="n">gam</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+<span class="c1"># formulate objective</span>
+<span class="n">objective</span> <span class="o">=</span> <span class="n">t</span>
+
+<span class="c1"># formulate constraints</span>
+<span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="n">cp</span><span class="o">.</span><span class="n">quad_over_lin</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="nd">@P_inv</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="mi">2</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)])</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">cp</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">z</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">t</span><span class="p">]</span>
+<span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="n">z</span><span class="p">]</span>
+<span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">]</span>
+<span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">]</span>
+
+<span class="c1"># formulate problem</span>
+<span class="n">prob_cvxpy</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">objective</span><span class="p">),</span> <span class="n">constraints</span><span class="p">)</span>
+<span class="n">prob_cvxpy</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Cvxpy objective value: &quot;</span><span class="p">,</span> <span class="n">prob_cvxpy</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Cvxpy x: &quot;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Cvxpy objective value:  -2.1503648051128625e-10
+Cvxpy x:  [0.59941355 0.6005882  0.60039012 0.59941816 0.60018998]
+</pre></div></div>
 </div>
 </section>
 </section>
@@ -1064,6 +1189,7 @@ Cvxpy x:  [1.40030234 2.59399093 2.74036352 2.62214987]
 <li><a class="reference internal" href="#Example-2:-Multiple-uncertain-terms,-box-uncertainty">Example 2: Multiple uncertain terms, box uncertainty</a></li>
 <li><a class="reference internal" href="#Example-3:-Multiple-uncertain-constraints,-polyhedral-uncertainty">Example 3: Multiple uncertain constraints, polyhedral uncertainty</a></li>
 <li><a class="reference internal" href="#Example-4:-Direct-comparison-constraints,-budget-uncertainty">Example 4: Direct comparison constraints, budget uncertainty</a></li>
+<li><a class="reference internal" href="#Example-5:-Quadratic-uncertainty,-ellipsoidal-set">Example 5: Quadratic uncertainty, ellipsoidal set</a></li>
 </ul>
 </li>
 </ul>

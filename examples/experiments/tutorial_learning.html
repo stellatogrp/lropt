@@ -461,13 +461,15 @@ div.rendered_html tbody tr:hover {
 }
 </style>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[67]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
+<span class="kn">import</span> <span class="nn">scipy</span> <span class="k">as</span> <span class="nn">sc</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">numpy.random</span> <span class="k">as</span> <span class="nn">npr</span>
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">datasets</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">lro</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
@@ -490,16 +492,16 @@ div.rendered_html tbody tr:hover {
 <h2>Formulating the uncertainty set<a class="headerlink" href="#Formulating-the-uncertainty-set" title="Permalink to this heading">#</a></h2>
 <p>We now formulate the uncertainty set slightly differently, where data and a loss function is passed as parameters instead of the uncertainty set parameters. The new parameters for the uncertainty set, <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(b\)</span>, will be trained through differentiable optimization.</p>
 <div class="line-block">
-<div class="line">Box uncertainty: $ { u <span class="math">\mid</span>| Au - b |_:nbsphinx-math:<cite>infty `:nbsphinx-math:</cite>leq <a href="#id1"><span class="problematic" id="id2">`</span></a>1 }$ - data : np.array</div>
+<div class="line">Box uncertainty: $ { u <span class="math">\mid</span>| Au + b |_:nbsphinx-math:<cite>infty `:nbsphinx-math:</cite>leq <a href="#id1"><span class="problematic" id="id2">`</span></a>1 }$ - data : np.array</div>
 <div class="line">* An array of uncertainty realizations, where each row is one realization. - loss : function * The loss function used to train the uncertainty set.</div>
 </div>
 <div class="line-block">
-<div class="line">Ellipsoidal uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| Au - b \|_p \leq 1 \}\)</span> - <span class="math notranslate nohighlight">\(p\)</span> : integer, optional</div>
+<div class="line">Ellipsoidal uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| Au + b \|_p \leq 1 \}\)</span> - <span class="math notranslate nohighlight">\(p\)</span> : integer, optional</div>
 <div class="line">* Order of the norm. Default 2. - data : np.array</div>
 <div class="line">* An array of uncertainty realizations, where each row is one realization. - loss : function * The loss function used to train the uncertainty set.</div>
 </div>
 <div class="line-block">
-<div class="line">Budget uncertainty: 1. train the box portion only: <span class="math notranslate nohighlight">\(\{u \mid \| Au - b \|_\infty \leq 1, \| u \|_1 \leq \rho_2\}\)</span> 2. train the 1-norm portion only: <span class="math notranslate nohighlight">\(\{u \mid \| u \|_\infty \leq \rho_1, \| Au - b \|_1 \leq 1\}\)</span> - train_box: boolean, optional * If True, train the box portion only. Default True. - <span class="math notranslate nohighlight">\(\rho_1\)</span> : float, optional * Box scaling. Default 1.0. - <span class="math notranslate nohighlight">\(\rho_2\)</span> : float, optional * 1-norm scaling. Default 1.0. - data : np.array</div>
+<div class="line">Budget uncertainty: 1. train the box portion only: <span class="math notranslate nohighlight">\(\{u \mid \| Au + b \|_\infty \leq 1, \| u \|_1 \leq \rho_2\}\)</span> 2. train the 1-norm portion only: <span class="math notranslate nohighlight">\(\{u \mid \| u \|_\infty \leq \rho_1, \| Au + b \|_1 \leq 1\}\)</span> - train_box: boolean, optional * If True, train the box portion only. Default True. - <span class="math notranslate nohighlight">\(\rho_1\)</span> : float, optional * Box scaling. Default 1.0. - <span class="math notranslate nohighlight">\(\rho_2\)</span> : float, optional * 1-norm scaling. Default 1.0. - data : np.array</div>
 <div class="line">* An array of uncertainty realizations, where each row is one realization. - loss : function * The loss function used to train the uncertainty set.</div>
 </div>
 </section>
@@ -507,55 +509,23 @@ div.rendered_html tbody tr:hover {
 <h2>Formulating the loss function<a class="headerlink" href="#Formulating-the-loss-function" title="Permalink to this heading">#</a></h2>
 <div class="line-block">
 <div class="line">The loss function passed into the uncertainty set must be a function that returns torch tensors with gradient information. The function must take in as inputs all the variables defined in the Robust Problem, as well as the data used to evaluate the loss. There may also be other inputs to the function, depending on the type of loss.</div>
-<div class="line">- Violation loss</div>
-<div class="line">* inputs: * <em>vars: all the variables of the Robust Problem.</em> data: np.array. * lmbda: float, the scale for the constraint violations. * outputs: * the violation loss as a torch tensor: the Robust Problem’s objective function + the sum of constraint violations, scaled by lmbda. * the Robust Problem’s objective function as a torch tensor.</div>
+<div class="line">An example of a violation loss is</div>
 </div>
+<blockquote>
+<div><div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathcal{L}(\mathcal{D}, x) = f(x)  + \frac{\lambda }{N}\sum_{i=1}^{N} g(d_i,x)_+,\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\mathcal{D}\)</span> is the dataset, <span class="math notranslate nohighlight">\(\lambda\)</span> is the weight on the violation loss, <span class="math notranslate nohighlight">\(N\)</span> is the total number of datapoints in the dataset, and <span class="math notranslate nohighlight">\(d_i\)</span> is sample <span class="math notranslate nohighlight">\(i\)</span> of the dataset.</p>
+</div></blockquote>
 </section>
 <section id="Training-the-uncertainty-set">
 <h2>Training the uncertainty set<a class="headerlink" href="#Training-the-uncertainty-set" title="Permalink to this heading">#</a></h2>
-<p>To train the uncertainty set, after setting up the robust problem, call <code class="docutils literal notranslate"><span class="pre">problem.train()</span></code>, with parameters specified below:</p>
-<ul class="simple">
-<li><p>eps: boolean, optional</p>
-<ul>
-<li><p>If True, train only <span class="math notranslate nohighlight">\(\epsilon\)</span>, where <span class="math notranslate nohighlight">\(A = \epsilon I, b = \epsilon \bar{d}\)</span>, where <span class="math notranslate nohighlight">\(\bar{d}\)</span> is the centroid of the training data. Default False.</p></li>
-</ul>
-</li>
-<li><p>step: integer, optional</p>
-<ul>
-<li><p>The total number of gradient steps performed. Default 45.</p></li>
-</ul>
-</li>
-<li><p>lr: float, optional</p>
-<ul>
-<li><p>The learning rate of gradient descent. Default 0.01.</p></li>
-</ul>
-</li>
-<li><p>momentum: float between 0 and 1, optional</p>
-<ul>
-<li><p>The momentum for gradient descent. Default 0.8.</p></li>
-</ul>
-</li>
-<li><p>optimizer: str, optional</p>
-<ul>
-<li><p>The optimizer to use tor the descent algorithm. Default “SGD”.</p></li>
-</ul>
-</li>
-<li><p>initeps: float, optional</p>
-<ul>
-<li><p>The <span class="math notranslate nohighlight">\(\epsilon\)</span> to initialize <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(b\)</span>, if passed. If not passed, <span class="math notranslate nohighlight">\(A\)</span> will be initialized as the inverse square root of the covariance of the data, and <span class="math notranslate nohighlight">\(b\)</span> will be initialized as <span class="math notranslate nohighlight">\(\bar{d}\)</span>.</p></li>
-</ul>
-</li>
-</ul>
-<div class="line-block">
-<div class="line">The function will output a pandas DataFrame, with a row for each iteration. The columns are: * “step”: integer</div>
-<div class="line">* The iteration number * “Opt_val”: float</div>
-<div class="line">* The objective value of the Robust Problem * “Loss_val”: float</div>
-<div class="line">* The value of the loss function applied to the training data * “Eval_val”: float</div>
-<div class="line">* The value of the loss function applied to the evaluation data * “A_norm”: float</div>
-<div class="line">* When eps = False, the 2-norm of the <span class="math notranslate nohighlight">\(A\)</span> matrix. When eps = True, the <span class="math notranslate nohighlight">\(\epsilon\)</span> value.</div>
-</div>
-<section id="Simple-Portfolio-Example">
-<h3>Simple Portfolio Example<a class="headerlink" href="#Simple-Portfolio-Example" title="Permalink to this heading">#</a></h3>
+<p>To train the uncertainty set, after setting up the robust problem, call <code class="docutils literal notranslate"><span class="pre">problem.train()</span></code>, with optional parameters to control whether to train only <span class="math notranslate nohighlight">\(\epsilon\)</span> or both <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(b\)</span>, the total number of iterations, the learning rate of the problem, the optimizer to use, and intial values for <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(b\)</span>.</p>
+<p>The function will return a pandas DataFrame with information on the iterates, as well as the reformulated problem.</p>
+</section>
+<section id="Example-1:-Linear-Portfolio">
+<h2>Example 1: Linear Portfolio<a class="headerlink" href="#Example-1:-Linear-Portfolio" title="Permalink to this heading">#</a></h2>
 <p>Consider the simple portfolio problem where we want to select a portfolio of stocks that maximizes returns. The Robust Problem is formulated as</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -568,56 +538,48 @@ div.rendered_html tbody tr:hover {
 <p>where <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter.</p>
 <p>We train an ellipsoidal uncertainty set with <span class="math notranslate nohighlight">\(p = 2\)</span>, and consider the violation loss <span class="math notranslate nohighlight">\(\tau + \lambda(-u^Tx - \tau)\)</span>, where <span class="math notranslate nohighlight">\(\lambda = 1\)</span> is the scaling for the sum of violations.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># The violation loss function, in torch tensors</span>
 <span class="k">def</span> <span class="nf">violation_loss</span><span class="p">(</span><span class="n">t_soln</span><span class="p">,</span> <span class="n">x_soln</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">lmbda</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">t_soln</span> <span class="o">+</span> <span class="n">lmbda</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="o">-</span><span class="n">data</span> <span class="o">@</span> <span class="n">x_soln</span> <span class="o">-</span> <span class="n">t_soln</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">))),</span> <span class="n">t_soln</span>
-</pre></div>
-</div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup the problem data</span>
-<span class="n">torch</span><span class="o">.</span><span class="n">seed</span><span class="p">()</span>
-<span class="n">sp500</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">&#39;stock_data/prices_sp500.csv&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
-<span class="n">num_stocks</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="n">num_rets</span> <span class="o">=</span> <span class="mi">500</span>
-<span class="n">npr</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<span class="n">stock_idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">sp500</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">num_stocks</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<span class="n">sp_prices</span> <span class="o">=</span> <span class="n">sp500</span><span class="p">[:</span><span class="n">num_rets</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">stock_idxs</span><span class="p">]</span>
-<span class="n">sp_rets</span> <span class="o">=</span> <span class="p">(</span><span class="n">sp_prices</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">sp_prices</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:])</span><span class="o">/</span><span class="n">sp_prices</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:]</span>
-<span class="n">sp_rets</span> <span class="o">=</span> <span class="n">sp_rets</span> <span class="o">+</span> <span class="mf">0.05</span>
-</pre></div>
-</div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">normal_returns</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+<span class="c1"># Generate data</span>
+<span class="k">def</span> <span class="nf">normal_returns</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
         <span class="n">i</span><span class="o">*</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="mf">0.02</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="mf">0.025</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)),</span> <span class="n">N</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="o">+</span><span class="mi">1</span><span class="p">)])</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">R</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span>
 <span class="k">def</span> <span class="nf">normal_returns1</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
         <span class="n">i</span><span class="o">*</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="mf">0.01</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="mf">0.035</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)),</span> <span class="n">N</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="o">+</span><span class="mi">1</span><span class="p">)])</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">R</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span>
-<span class="n">d1</span> <span class="o">=</span> <span class="n">normal_returns</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="mi">250</span><span class="p">)</span>
-<span class="n">d2</span> <span class="o">=</span> <span class="n">normal_returns1</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="mi">250</span><span class="p">)</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">d1</span><span class="p">,</span><span class="n">d2</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[60]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Problem size</span>
+<span class="n">num_stocks</span> <span class="o">=</span> <span class="mi">50</span>
+<span class="n">N</span> <span class="o">=</span> <span class="mi">400</span>
+
+<span class="c1"># Formulate the data</span>
+<span class="n">d1</span> <span class="o">=</span> <span class="n">normal_returns</span><span class="p">(</span><span class="n">num_stocks</span><span class="p">,</span><span class="nb">int</span><span class="p">(</span><span class="n">N</span><span class="o">/</span><span class="mi">2</span><span class="p">))</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">d1</span>
+<span class="c1"># d2 = normal_returns1(num_stocks,int(2*N/3))</span>
+<span class="c1"># data = np.concatenate((d1,d2))</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[63]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Formulate the uncertainty set and uncertain parameter</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Formulate the uncertainty set and uncertain parameter</span>
 <span class="n">unc_set</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="n">violation_loss</span><span class="p">)</span>
 <span class="n">u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">num_stocks</span><span class="p">,</span> <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">unc_set</span><span class="p">)</span>
 
@@ -630,21 +592,19 @@ div.rendered_html tbody tr:hover {
 <span class="n">cons</span> <span class="o">+=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">]</span>
 
 <span class="n">prob_robust</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">cons</span><span class="p">)</span>
+<span class="n">s</span> <span class="o">=</span> <span class="mi">10</span>
 
 <span class="c1"># Train only epsilon</span>
-<span class="n">df</span> <span class="o">=</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">initeps</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">df</span><span class="p">,</span> <span class="n">newprob</span> <span class="o">=</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">initeps</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">)</span>
 
 <span class="c1"># Train A and b</span>
-<span class="n">df1</span><span class="o">=</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">)</span>
+<span class="n">df1</span><span class="p">,</span> <span class="n">newprob</span> <span class="o">=</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">initeps</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">)</span>
 
 <span class="c1"># Grid search epsilno</span>
-<span class="n">dfgrid</span><span class="o">=</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">20</span><span class="p">))</span>
+<span class="n">dfgrid</span><span class="p">,</span> <span class="n">newprob</span> <span class="o">=</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">)</span>
 
 <span class="c1"># Plot results</span>
-<span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s1">&#39;df_eps.csv&#39;</span><span class="p">)</span>
-<span class="n">df1</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s1">&#39;df_R.csv&#39;</span><span class="p">)</span>
-<span class="n">dfgrid</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s1">&#39;df_grid.csv&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">],</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;Loss_val&#39;</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;$\epsilon$ training&quot;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">],</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;Eval_val&#39;</span><span class="p">],</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;$\epsilon$ testing&quot;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df1</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">],</span> <span class="n">df1</span><span class="p">[</span><span class="s1">&#39;Loss_val&#39;</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Reshape training&quot;</span><span class="p">)</span>
@@ -652,8 +612,33 @@ div.rendered_html tbody tr:hover {
 <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Iterations&quot;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Training and Testing Loss&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;plot.pdf&quot;</span><span class="p">)</span>
-<br/></pre></div>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_experiments_tutorial_learning_11_0.png" src="../../_images/examples_experiments_tutorial_learning_11_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[64]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compare best values</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">styles</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;s&quot;</span><span class="p">,</span><span class="s1">&#39;o&#39;</span><span class="p">,</span><span class="s2">&quot;^&quot;</span><span class="p">,</span><span class="s2">&quot;v&quot;</span><span class="p">,</span><span class="s2">&quot;&lt;&quot;</span><span class="p">,</span><span class="s2">&quot;&gt;&quot;</span><span class="p">,</span><span class="s2">&quot;o&quot;</span><span class="p">,</span><span class="s1">&#39;s&#39;</span><span class="p">,</span><span class="s2">&quot;^&quot;</span><span class="p">,</span><span class="s2">&quot;v&quot;</span><span class="p">,</span><span class="s2">&quot;&lt;&quot;</span><span class="p">,</span><span class="s2">&quot;&gt;&quot;</span><span class="p">]</span>
+<span class="n">j</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">[</span><span class="s2">&quot;Eps&quot;</span><span class="p">],</span> <span class="n">dfgrid</span><span class="p">[</span><span class="s2">&quot;Eval_val&quot;</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="n">colors</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;$\epsilon$ grid&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;A_norm&quot;</span><span class="p">],</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;Eval_val&quot;</span><span class="p">],</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="n">styles</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;$\epsilon$ SGD&quot;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">hlines</span><span class="p">(</span> <span class="n">xmin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">[</span><span class="s2">&quot;Eps&quot;</span><span class="p">]),</span> <span class="n">xmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">[</span><span class="s2">&quot;Eps&quot;</span><span class="p">]),</span> <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">df1</span><span class="p">[</span><span class="s2">&quot;Eval_val&quot;</span><span class="p">]),</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;$R$ best&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span> <span class="s2">&quot;red&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;$\epsilon$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Testing loss&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -663,22 +648,123 @@ div.rendered_html tbody tr:hover {
 <img alt="../../_images/examples_experiments_tutorial_learning_12_0.png" src="../../_images/examples_experiments_tutorial_learning_12_0.png" />
 </div>
 </div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</section>
+<section id="Example-2:-Quadratic-uncertainty">
+<h2>Example 2: Quadratic uncertainty<a class="headerlink" href="#Example-2:-Quadratic-uncertainty" title="Permalink to this heading">#</a></h2>
+<p>We consider a problem with quadratic uncertainty,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[g(u,x) = \sum_{i=1}^n g_i(u,x), \quad \text{where } \quad g_i(u,x) = -(1/2)u^T(P_ix_i)u.\]</div>
+</div>
+<p>We have each <span class="math notranslate nohighlight">\(P_i\in \mathbf{R}^{n\times n}\)</span> a symmetric positive definite matrix, <span class="math notranslate nohighlight">\(u \in \mathbf{R}^n\)</span> from an ellipsoidal set, and <span class="math notranslate nohighlight">\(x \in \mathbf{R}^{n}_{+}\)</span>. The robust formulation is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{array}{ll}
+\text{minimize} &amp; \tau\\
+\text{subject to}  &amp; -(1/2)\sum_{i=1}^n (u^TP_iu)x_i  \leq  \tau \quad \forall u \in \mathcal{U}(\theta)\\
+&amp; \mathbf{1}^Tx = 1\\
+&amp; x \geq 0, \quad x \leq 1,
+\end{array}\end{split}\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\theta\)</span> encodes the training parameters <span class="math notranslate nohighlight">\((A,b)\)</span>.</p>
+<dl>
+<dt>The reformulation is :nbsphinx-math:<a href="#id3"><span class="problematic" id="id4">`</span></a>begin{equation}</dt><dd><dl class="simple">
+<dt>begin{array}{lll}</dt><dd><p>&amp;text{minimize} &amp; f(x)\
+&amp;text{subject to} &amp; (1/2)sum_{i=1}^n (z_i^TP_i^{-1}z_i)/x_i + b^Tz + |gamma|_q le 0\
+&amp;&amp; A^Tgamma = z\
+&amp;&amp; sum_{i=1}^n z_i = z,\
+&amp;&amp; mathbf{1}^Tx = 1\
+&amp;&amp; x geq 0, quad x leq 1,</p>
+</dd>
+</dl>
+<p>end{array}</p>
+</dd>
+</dl>
+<p>end{equation}` where we have <span class="math notranslate nohighlight">\(\gamma \in \mathbf{R}^m, z \in \mathbf{R}^n, z_i \in \mathbf{R}^n\)</span>, <span class="math notranslate nohighlight">\(i = 1,\dots,n\)</span>, as auxiliary variables.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[279]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define the loss function</span>
+<span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">data</span><span class="p">,</span><span class="n">l</span> <span class="o">=</span> <span class="mi">2</span><span class="p">):</span>
+    <span class="n">cur_sum</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">cur_sum</span> <span class="o">=</span> <span class="n">cur_sum</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="nd">@torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">P</span><span class="p">[</span><span class="n">ind</span><span class="p">],</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+                                                                  <span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="nd">@data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)],</span> <span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span>
+                                          <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">t</span> <span class="o">+</span> <span class="n">l</span><span class="o">*</span><span class="n">cur_sum</span><span class="o">/</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">t</span>
 
-<span class="n">styles</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;s&quot;</span><span class="p">,</span><span class="s1">&#39;o&#39;</span><span class="p">,</span><span class="s2">&quot;^&quot;</span><span class="p">,</span><span class="s2">&quot;v&quot;</span><span class="p">,</span><span class="s2">&quot;&lt;&quot;</span><span class="p">,</span><span class="s2">&quot;&gt;&quot;</span><span class="p">,</span><span class="s2">&quot;o&quot;</span><span class="p">,</span><span class="s1">&#39;s&#39;</span><span class="p">,</span><span class="s2">&quot;^&quot;</span><span class="p">,</span><span class="s2">&quot;v&quot;</span><span class="p">,</span><span class="s2">&quot;&lt;&quot;</span><span class="p">,</span><span class="s2">&quot;&gt;&quot;</span><span class="p">]</span>
-<span class="n">j</span><span class="o">=</span><span class="mi">0</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">[</span><span class="s2">&quot;Eps&quot;</span><span class="p">],</span> <span class="n">dfgrid</span><span class="p">[</span><span class="s2">&quot;Eval_val&quot;</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="n">colors</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;$\epsilon$ grid&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;A_norm&quot;</span><span class="p">],</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;Eval_val&quot;</span><span class="p">],</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="n">styles</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;$\epsilon$ SGD&quot;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">hlines</span><span class="p">(</span> <span class="n">xmin</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">xmax</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">df1</span><span class="p">[</span><span class="s2">&quot;Eval_val&quot;</span><span class="p">]),</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;$R$ best&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span> <span class="s2">&quot;red&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">normal_returns_scaled</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">scale</span><span class="p">):</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
+        <span class="n">i</span><span class="o">*</span><span class="mf">0.03</span><span class="o">*</span><span class="n">scale</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="mf">0.02</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="mf">0.025</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)),</span> <span class="n">N</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="o">+</span><span class="mi">1</span><span class="p">)])</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">R</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span>
 
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;$\epsilon$&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Testing loss&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">))</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;loss_compare.pdf&quot;</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">data_modes</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">scales</span><span class="p">):</span>
+    <span class="n">modes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">scales</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="o">+</span><span class="mi">100</span><span class="p">,</span> <span class="n">m</span><span class="p">))</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">N</span><span class="o">/</span><span class="n">modes</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">modes</span><span class="p">):</span>
+        <span class="n">d</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">weights</span><span class="p">:(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">weights</span><span class="p">,</span>
+          <span class="p">:]</span> <span class="o">=</span> <span class="n">normal_returns_scaled</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">scales</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">N</span><span class="p">,</span> <span class="p">:]</span>
+
+<span class="c1">#Generate data</span>
+<span class="n">P</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">P_inv</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">n</span> <span class="o">=</span> <span class="mi">15</span>
+<span class="n">N</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="n">P</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">make_spd_matrix</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
+    <span class="n">P_inv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">P</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+<span class="n">d1</span> <span class="o">=</span> <span class="n">normal_returns</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">N</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">data_modes</span><span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="n">n</span><span class="p">,[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">5</span><span class="p">])</span>
+<span class="c1"># d2 = normal_returns1(n,N)</span>
+<span class="c1"># data = np.concatenate((d1,d2))</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[287]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#Formulate the problem</span>
+<span class="n">s</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span>
+                        <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">lro</span><span class="o">.</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                                    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">,</span>
+                                                    <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span><span class="p">))</span>
+<span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="n">lro</span><span class="o">.</span><span class="n">uncertain_atoms</span><span class="o">.</span><span class="n">quad_form</span><span class="o">.</span><span class="n">quad_form</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">P</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)])</span> <span class="o">&lt;=</span> <span class="n">t</span><span class="p">]</span>
+<span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">]</span>
+<span class="c1"># import ipdb</span>
+<span class="c1"># ipdb.set_trace()</span>
+<span class="n">prob</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+<span class="n">df_eps</span><span class="p">,</span> <span class="n">newprob</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">initeps</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">)</span>
+
+<span class="n">df1</span><span class="p">,</span> <span class="n">newprob</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">)</span>
+
+<span class="n">df2</span><span class="p">,</span> <span class="n">newprob</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">initeps</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[288]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df_eps</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">],</span> <span class="n">df_eps</span><span class="p">[</span><span class="s1">&#39;Loss_val&#39;</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;$\epsilon$ training&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df_eps</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">],</span> <span class="n">df_eps</span><span class="p">[</span><span class="s1">&#39;Eval_val&#39;</span><span class="p">],</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;$\epsilon$ testing&quot;</span><span class="p">)</span>
+<span class="c1"># plt.plot(df1[&#39;step&#39;], df1[&#39;Loss_val&#39;], color=&quot;tab:orange&quot;, label=&quot;Reshape training init $\Sigma^{-1/2}$&quot;)</span>
+<span class="c1"># plt.plot(df1[&#39;step&#39;], df1[&#39;Eval_val&#39;], linestyle=&#39;--&#39;, color=&quot;tab:orange&quot;, label=&quot;Reshape testing init $\Sigma^{-1/2}$&quot;)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df2</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">],</span> <span class="n">df2</span><span class="p">[</span><span class="s1">&#39;Loss_val&#39;</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:green&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Reshape training init $I$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df2</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">],</span> <span class="n">df2</span><span class="p">[</span><span class="s1">&#39;Eval_val&#39;</span><span class="p">],</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:green&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Reshape testing init $I$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;lower right&quot;</span><span class="p">,</span> <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">1.6</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Iterations&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Training and Testing Loss&quot;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -687,140 +773,8 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_13_0.png" src="../../_images/examples_experiments_tutorial_learning_13_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_16_0.png" src="../../_images/examples_experiments_tutorial_learning_16_0.png" />
 </div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
-</pre></div>
-</div>
-<div class="output_area rendered_html docutils container">
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>step</th>
-      <th>Opt_val</th>
-      <th>Eval_val</th>
-      <th>Loss_val</th>
-      <th>A_norm</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>0</td>
-      <td>-3.497303</td>
-      <td>-3.109004</td>
-      <td>-3.1269</td>
-      <td>1.0</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>1</td>
-      <td>-4.401766</td>
-      <td>-3.491702</td>
-      <td>-3.50553</td>
-      <td>1.2209296</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>2</td>
-      <td>-5.628721</td>
-      <td>-3.779345</td>
-      <td>-3.760773</td>
-      <td>1.522933</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>3</td>
-      <td>-6.804139</td>
-      <td>-3.880533</td>
-      <td>-3.856316</td>
-      <td>1.8150833</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>4</td>
-      <td>-7.805257</td>
-      <td>-3.90838</td>
-      <td>-3.875616</td>
-      <td>2.0661862</td>
-    </tr>
-    <tr>
-      <th>...</th>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-    </tr>
-    <tr>
-      <th>95</th>
-      <td>95</td>
-      <td>-14.379596</td>
-      <td>-4.005046</td>
-      <td>-3.895698</td>
-      <td>3.732837</td>
-    </tr>
-    <tr>
-      <th>96</th>
-      <td>96</td>
-      <td>-14.40106</td>
-      <td>-4.005083</td>
-      <td>-3.895758</td>
-      <td>3.738286</td>
-    </tr>
-    <tr>
-      <th>97</th>
-      <td>97</td>
-      <td>-14.422573</td>
-      <td>-4.005121</td>
-      <td>-3.895819</td>
-      <td>3.7437472</td>
-    </tr>
-    <tr>
-      <th>98</th>
-      <td>98</td>
-      <td>-14.44415</td>
-      <td>-4.005157</td>
-      <td>-3.89588</td>
-      <td>3.7492247</td>
-    </tr>
-    <tr>
-      <th>99</th>
-      <td>99</td>
-      <td>-14.465802</td>
-      <td>-4.00519</td>
-      <td>-3.89594</td>
-      <td>3.7547212</td>
-    </tr>
-  </tbody>
-</table>
-<p>100 rows × 5 columns</p>
-</div></div>
 </div>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
@@ -830,7 +784,6 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-</section>
 </section>
 </section>
 
@@ -894,10 +847,9 @@ div.rendered_html tbody tr:hover {
 <li><a class="reference internal" href="#">Learned Uncertainty Sets</a><ul>
 <li><a class="reference internal" href="#Formulating-the-uncertainty-set">Formulating the uncertainty set</a></li>
 <li><a class="reference internal" href="#Formulating-the-loss-function">Formulating the loss function</a></li>
-<li><a class="reference internal" href="#Training-the-uncertainty-set">Training the uncertainty set</a><ul>
-<li><a class="reference internal" href="#Simple-Portfolio-Example">Simple Portfolio Example</a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#Training-the-uncertainty-set">Training the uncertainty set</a></li>
+<li><a class="reference internal" href="#Example-1:-Linear-Portfolio">Example 1: Linear Portfolio</a></li>
+<li><a class="reference internal" href="#Example-2:-Quadratic-uncertainty">Example 2: Quadratic uncertainty</a></li>
 </ul>
 </li>
 </ul>
