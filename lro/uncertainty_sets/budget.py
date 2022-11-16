@@ -10,10 +10,7 @@ class Budget(UncertaintySet):
     Budget uncertainty set defined as
 
     .. math::
-        \mathcal{U}_{\text{budget}} = \{\Pi(u) \ | \ \| u \|_\infty \le \rho_1, \| u \|_1 \leq \rho_2\}
-
-    where :math:`\Pi(u)` is an identity by default but can be
-    an affine transformation :math:`A u + b`.
+        \mathcal{U}_{\text{budget}} = \{u \ | \ \| A_1 u + b_1 \|_\infty \le \rho_1, \| A_2 u + b_2å \|_1 \leq \rho_2\}
 
     Parameters
     ----------
@@ -21,12 +18,14 @@ class Budget(UncertaintySet):
         Box scaling. Default 1.0.
     rho2 : float, optional
         1-norm scaling. Default 1.0.
-    affine_transform : dict, optional
-        Affine transformation dictionary with keys :math:`A` and :math:`b` to transform
-        the set to
-
-        .. math::
-            \mathcal{U}_{\text{budget}} = \{Au+b \ | \ \| u \|_\infty \le \rho_1, \| u \|_1 \leq \rho_2\}
+    A1 : np.array, optional
+        matrix defining :math:`A_1` in uncertainty set definition. By default :math:`A_1 = I`
+    A2 : np.array, optional
+        matrix defining :math:`A_2` in uncertainty set definition. By default :math:`A_2 = I`
+    b1 : np.array, optional
+        vector defining :math:`b_1` in uncertainty set definition. By default :math:`b_1 = 0`
+    b2 : np.array, optional
+        vector defining :math:`b_2` in uncertainty set definition. By default :math:`b_2 = 0`
     data: np.array, optional
         An array of uncertainty realizations, where each row is one realization. Required if the uncertainty should
         be trained, or if `loss` function passed.
@@ -41,7 +40,7 @@ class Budget(UncertaintySet):
     """
 
     def __init__(self, rho1=1., rho2=1.,
-                 affine_transform=None, data=None, loss=None, train_box=True, A1=None, A2=None, b1=None, b2=None):
+                 A1=None, A2=None, b1=None, b2=None, affine_transform=None, data=None, loss=None, train_box=True):
         if rho2 <= 0 or rho1 <= 0:
             raise ValueError("Rho values must be positive.")
 

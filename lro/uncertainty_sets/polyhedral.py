@@ -10,10 +10,7 @@ class Polyhedral(UncertaintySet):
     Polyhedral uncertainty set, defined as
 
     .. math::
-        \mathcal{U}_{\text{poly}} = \{D \ \Pi(u) \leq d\}
-
-    where :math:`\Pi(u) = u` is an identity by default with the option to be an affine transformation
-    :math:`\Pi(u) = A u + b`.
+        \mathcal{U}_{\text{poly}} = \{D u \leq d\}
 
     Parameters
     ----------
@@ -21,11 +18,6 @@ class Polyhedral(UncertaintySet):
          :math:`D` matrix
     d : np.array
          :math:`d` vector
-    affine_transform : dict, optional
-        Affine transformation dictionary with keys  :math:`A` and  :math:`b` to transform set into
-
-        .. math::
-            \mathcal{U}_{\text{poly}} =\{D \ (Au +b) \leq d\}
 
     Returns
     -------

@@ -143,7 +143,6 @@ class RobustProblem(Problem):
         Returns
         -------
         A pandas data frame with information on each :math:r`\epsilon` having the following columns:
-        Columns:
             Opt_val: float
                 The objective value of the Robust Problem
             Loss_val: float
@@ -336,7 +335,6 @@ class RobustProblem(Problem):
         Returns
         -------
         A pandas data frame with information on each :math:`\epsilon` having the following columns:
-        Columns:
             Opt_val: float
                 The objective value of the Robust Problem
             Loss_val: float

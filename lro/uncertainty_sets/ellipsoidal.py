@@ -10,10 +10,7 @@ class Ellipsoidal(UncertaintySet):
     Ellipsoidal uncertainty set, defined as
 
     .. math::
-        \mathcal{U}_{\text{ellips}} = \{\Pi(u) \ | \ \| u \|_p \le \rho\}
-
-    where :math:`\Pi(u) = u` is an identity by default with the option to be an affine transformation
-    :math:`\Pi(u) = A u + b`.
+        \mathcal{U}_{\text{ellips}} = \{u \ | \ \| Au + b\|_p \le \rho\}
 
 
     Parameters
@@ -22,11 +19,10 @@ class Ellipsoidal(UncertaintySet):
         Ellipsoid scaling. Default 1.0.
     p : integer, optional
         Order of the norm. Default 2.
-    affine_transform : dict, optional
-        Affine transformation dictionary with keys :math:`A` and :math:`b` to transform set to
-
-        .. math::
-            \mathcal{U}_{\text{ellips}} = \{\ A u + b \ | \ \| u \|_p \leq \rho\}
+    A : np.array, optional
+        matrix defining :math:`A` in uncertainty set definition. By default :math:`A = I`
+    b : np.array, optional
+        vector defining :math:`b` in uncertainty set definition. By default :math:`b = 0`
     data: np.array, optional
         An array of uncertainty realizations, where each row is one realization. Required if the uncertainty should
         be trained, or if `loss` function passed.
@@ -41,7 +37,7 @@ class Ellipsoidal(UncertaintySet):
     """
 
     def __init__(self, p=2, rho=1.,
-                 affine_transform=None, data=None, loss=None, A=None, b=None):
+                 A=None, b=None, affine_transform=None, data=None, loss=None):
         if rho <= 0:
             raise ValueError("Rho value must be positive.")
         if p < 0.:

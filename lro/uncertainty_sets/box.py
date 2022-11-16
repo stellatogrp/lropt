@@ -10,7 +10,7 @@ class Box(Ellipsoidal):
     Box uncertainty set defined as
 
     .. math::
-        \mathcal{U}_{\text{box}} = \{\Pi(u) \ | \ \| u \|_\infty \le \rho\}
+        \mathcal{U}_{\text{box}} = \{u \ | \ \| Au + b \|_\infty \le \rho\}
 
     Parameters
     ----------
@@ -20,17 +20,14 @@ class Box(Ellipsoidal):
         An array of dimension n, n the dimension of the uncertanty.
         Translation of the center of the box. If lengths is passed but
         not center it defaults to an array of zeros.
+    A : np.array, optional
+        matrix defining :math:`A` in uncertainty set definition. By default :math:`A = I`
+    b : np.array, optional
+        vector defining :math:`b` in uncertainty set definition. By default :math:`b = 0`
     side : np.array, optional
         An array of dimension n, n the dimension of the uncertanty.
         Length of each side of the box. If center is passed but side not
         it defaults to an array of 2.
-    affine_transform : dict, optional
-        Affine transformation dictionary with keys :math:`A` and :math:`b` to tranform the set to
-        to transform set to
-
-        .. math::
-            \mathcal{U}_{\text{box}} = \{\ A u + b \ | \ \| u \|_\infty \leq \rho\}
-
     data: np.array, optional
         An array of uncertainty realizations, where each row is one realization. Required if the uncertainty should
         be trained, or if `loss` function passed.
@@ -46,18 +43,18 @@ class Box(Ellipsoidal):
     """
 
     def __init__(self, rho=1.,
-                 center=None, side=None,
-                 affine_transform=None, data=None, loss=None, A=None, b=None):
+                 A=None, b=None, center=None, side=None,
+                 affine_transform=None, data=None, loss=None):
 
         # import ipdb
         # ipdb.set_trace()
         if data is not None and loss is None:
             raise ValueError("You must provide a loss function")
 
-        if data is None and center is None and side is None and affine_transform is None:
-            raise ValueError("You must provide either data "
-                             "or an affine transform "
-                             "or a center/side.")
+        # if data is None and center is None and side is None and affine_transform is None:
+        #     raise ValueError("You must provide either data "
+        #                      "or an affine transform "
+        #                      "or a center/side.")
         if data is not None and affine_transform:
             raise ValueError("You must provide either data "
                              "or an affine transform "
