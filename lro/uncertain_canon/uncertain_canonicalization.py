@@ -131,8 +131,7 @@ class Uncertain_Canonicalization(Reduction):
 
     def remove_uncertainty(self, unc_lst, uvar, std_lst):
         "canonicalize each term separately with inf convolution"
-        # import ipdb
-        # ipdb.set_trace()
+
         num_unc_fns = len(unc_lst)
         u_shape = self.get_u_shape(uvar)
 
@@ -151,15 +150,17 @@ class Uncertain_Canonicalization(Reduction):
         z_new_cons = {}
         new_vars = {}
         aux_expr = 0
-        aux_const = []
+        aux_constraint = []
         j = 0
+
+        import ipdb
+        ipdb.set_trace()
         for ind in range(num_unc_fns):
 
             # if len(unc_lst[ind].variables()) (check if has variable)
             u_expr, constant = self.remove_constant(unc_lst[ind])
 
-            # uvar = mul_canon_transform(uvar, constant)
-            new_expr, new_const = self.canonicalize_tree(u_expr, z[ind], constant)
+            new_expr, new_constraint = self.canonicalize_tree(u_expr, z[ind], constant)
             if self.has_unc_param(new_expr):
                 if j == 0:
                     uvar = mul_canon_transform(uvar, constant)
@@ -168,9 +169,9 @@ class Uncertain_Canonicalization(Reduction):
                 for idx in range(num_constr):
                     # import ipdb
                     # ipdb.set_trace()
-                    new_expr, new_const = uvar.isolated_unc(idx, new_vars[ind][idx], num_constr)
+                    new_expr, new_constraint = uvar.isolated_unc(idx, new_vars[ind][idx], num_constr)
                     aux_expr = aux_expr + new_expr
-                    aux_const += new_const
+                    aux_constraint += new_constraint
                     if j == 1:
                         z_new_cons[idx] += new_vars[ind][idx]
                     else:
@@ -181,20 +182,20 @@ class Uncertain_Canonicalization(Reduction):
                 # import ipdb
                 # ipdb.set_trace()
                 aux_expr = aux_expr + new_expr
-                aux_const += new_const
+                aux_constraint += new_constraint
                 z_cons += z[ind]
         z_unc = Variable((num_constr, u_shape))
         if j == 1:
             for ind in range(num_constr):
-                aux_const += [z_cons + z_new_cons[ind] == -z_unc[ind]]
+                aux_constraint += [z_cons + z_new_cons[ind] == -z_unc[ind]]
         else:
-            aux_const += [z_cons == -z_unc[0]]
-        new_expr, new_const = uvar.conjugate(z_unc, num_constr)
-        aux_const += new_const
+            aux_constraint += [z_cons == -z_unc[0]]
+        new_expr, new_constraint = uvar.conjugate(z_unc, num_constr)
+        aux_constraint += new_constraint
         aux_expr = aux_expr + new_expr
         for expr in std_lst:
             aux_expr = aux_expr + expr
-        return aux_expr <= 0, aux_const
+        return aux_expr <= 0, aux_constraint
 
     def count_unq_uncertain_param(self, expr):
         unc_params = []
