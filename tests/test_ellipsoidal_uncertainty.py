@@ -125,14 +125,14 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         constraints = [u @ x <= b, x >= 0, x <= 5]
 
         prob_robust = RobustProblem(objective, constraints)
-        df = prob_robust.train(eps=True, lr=0.005, step=46)
+        df, newprob = prob_robust.train(eps=True, lr=0.005, step=46)
         print(df)
-        prob_robust.solve(solver=SOLVER)
+        newprob.solve(solver=SOLVER)
         print(x.value)
 
-        df1 = prob_robust.train(lr=0.002, step=46)
+        df1, newprob = prob_robust.train(lr=0.002, step=46)
         print(df1)
-        prob_robust.solve(solver=SOLVER)
+        newprob.solve(solver=SOLVER)
         print(x.value)
 
         # plt.figure(figsize=(9, 5))
@@ -183,12 +183,14 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         cons = [-u @ x <= t]
         cons += [cp.sum(x) == 1, x >= 0]
 
+        # import ipdb
+        # ipdb.set_trace()
         prob_robust = RobustProblem(objective, cons)
-        df = prob_robust.train(eps=True, lr=0.05, step=100, momentum=0.8, optimizer="SGD", initeps=5)
-        prob_robust.solve(solver=SOLVER)
-        df1 = prob_robust.train(lr=0.05, step=100, momentum=0.8, optimizer="SGD")
-        prob_robust.solve(solver=SOLVER)
-        dfgrid = prob_robust.grid(epslst=np.linspace(0.1, 5, 20))
+        df, newprob = prob_robust.train(eps=True, lr=0.05, step=100, momentum=0.8, optimizer="SGD", initeps=5)
+        newprob.solve(solver=SOLVER)
+        df1, newprob = prob_robust.train(lr=0.05, step=100, momentum=0.8, optimizer="SGD")
+        newprob.solve(solver=SOLVER)
+        dfgrid, newprob = prob_robust.grid(epslst=np.linspace(0.1, 5, 20))
         print(df, df1, dfgrid)
         # df.to_csv('df_eps.csv')
         # df1.to_csv('df_R.csv')

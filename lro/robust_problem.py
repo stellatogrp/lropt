@@ -318,7 +318,7 @@ class RobustProblem(Problem):
                     unc_set.paramT.value = (eps_tch*torch.tensor(np.eye(train.shape[1]))).detach().numpy().copy()
                     unc_set.paramb.value = (
                         eps_tch[0]*torch.tensor(np.mean(train, axis=0))).detach().numpy().copy()
-        return df
+        return df, prob
 
     def grid(self, epslst=None, seed=1, solver: Optional[str] = None):
         r"""
@@ -407,7 +407,7 @@ class RobustProblem(Problem):
 
                 for epss in epslst:
                     # import ipdb
-                    eps_tch1 = torch.tensor([[epss]], requires_grad=True)
+                    eps_tch1 = torch.tensor([[1/epss]], requires_grad=True)
                     # ipdb.set_trace()
                     newlst[-1] = eps_tch1[0][0]*torch.tensor(-np.mean(train, axis=0), requires_grad=True)
                     newlst[-2] = eps_tch1[0][0]*torch.tensor(np.eye(train.shape[1]), requires_grad=True)
@@ -432,7 +432,7 @@ class RobustProblem(Problem):
                 unc_set.paramT.value = (mineps*torch.tensor(np.eye(train.shape[1]))).detach().numpy().copy()
                 unc_set.paramb.value = (
                     mineps[0]*torch.tensor(np.mean(train, axis=0))).detach().numpy().copy()
-        return df
+        return df, prob
 
     def dualize(self):
         # import ipdb
