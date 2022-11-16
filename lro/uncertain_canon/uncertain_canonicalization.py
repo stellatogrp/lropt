@@ -163,7 +163,7 @@ class Uncertain_Canonicalization(Reduction):
             if self.has_unc_param(new_expr):
                 if j == 0:
                     uvar = mul_canon_transform(uvar, constant)
-                # assert (num_constr == u_shape)
+
                 new_vars[ind] = Variable((num_constr, u_shape))
                 for idx in range(num_constr):
                     # import ipdb
