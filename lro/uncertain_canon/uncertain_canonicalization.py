@@ -16,6 +16,8 @@ from lro.uncertain_canon.remove_constant import \
     REMOVE_CONSTANT_METHODS as rm_const_methods
 from lro.uncertain_canon.separate_uncertainty import \
     SEPARATION_METHODS as sep_methods
+from lro.uncertainty_sets.budget import Budget
+from lro.uncertainty_sets.polyhedral import Polyhedral
 from lro.utils import unique_list
 
 
@@ -63,12 +65,27 @@ class Uncertain_Canonicalization(Reduction):
             if self.has_unc_param(constraint):
                 # import ipdb
                 # ipdb.set_trace()
-                unc_lst, std_lst = self.separate_uncertainty(constraint)
+                unc_lst, std_lst, is_max = self.separate_uncertainty(constraint)
                 unc_params = []
                 unc_params += [v for v in unc_lst[0].parameters()
                                if isinstance(v, UncertainParameter)]
-                canon_constr, aux_constr = self.remove_uncertainty(unc_lst, unc_params[0], std_lst)
-                canon_constraints += aux_constr + [canon_constr]
+                if is_max == 1:
+                    canon_constr, aux_constr, lmda = self.remove_uncertainty(unc_lst[0], unc_params[0], std_lst[0])
+                    canon_constraints += aux_constr + [canon_constr]
+
+                    for new_cons_idx in range(1, len(unc_lst)):
+                        canon_constr, aux_constr, new_lmda = self.remove_uncertainty(
+                            unc_lst[new_cons_idx], unc_params[0], std_lst[new_cons_idx])
+                        canon_constraints += aux_constr + [canon_constr]
+
+                        if isinstance(type(unc_params[0].uncertainty_set), Budget):
+                            canon_constraints += [lmda[0] == new_lmda[0], lmda[1] == new_lmda[1]]
+
+                        elif not isinstance(type(unc_params[0].uncertainty_set), Polyhedral):
+                            canon_constraints += [lmda == new_lmda]
+                else:
+                    canon_constr, aux_constr, lmbda = self.remove_uncertainty(unc_lst, unc_params[0], std_lst)
+                    canon_constraints += aux_constr + [canon_constr]
                 # import ipdb
                 # ipdb.set_trace()
                 # if unc_params[0].uncertainty_set.data is not None and not unc_params[0].uncertainty_set.trained:
@@ -134,72 +151,79 @@ class Uncertain_Canonicalization(Reduction):
         # import ipdb
         # ipdb.set_trace()
         num_unc_fns = len(unc_lst)
-        if len(unc_lst[0].shape) >= 1:
-            num_constr = unc_lst[0].shape[0]
-        else:
-            num_constr = 1
-        trans = uvar.uncertainty_set.affine_transform
-        if trans:
-            if len(trans['A'].shape) > 1:
-                shape = trans['A'].shape[1]
+        if num_unc_fns > 0:
+            if len(unc_lst[0].shape) >= 1:
+                num_constr = unc_lst[0].shape[0]
+            else:
+                num_constr = 1
+            trans = uvar.uncertainty_set.affine_transform
+            if trans:
+                if len(trans['A'].shape) > 1:
+                    shape = trans['A'].shape[1]
+                else:
+                    shape = 1
+            elif len(uvar.shape) >= 1:
+                shape = uvar.shape[0]
             else:
                 shape = 1
-        elif len(uvar.shape) >= 1:
-            shape = uvar.shape[0]
-        else:
-            shape = 1
-        if shape == 1:
-            z = Variable(num_unc_fns)
-        else:
-            z = Variable((num_unc_fns, shape))
-        z_cons = 0
-        z_new_cons = {}
-        new_vars = {}
-        aux_expr = 0
-        aux_const = []
-        j = 0
-        for ind in range(num_unc_fns):
+            if shape == 1:
+                z = Variable(num_unc_fns)
+            else:
+                z = Variable((num_unc_fns, shape))
+            z_cons = 0
+            z_new_cons = {}
+            new_vars = {}
+            aux_expr = 0
+            aux_const = []
+            j = 0
+            for ind in range(num_unc_fns):
 
-            # if len(unc_lst[ind].variables()) (check if has variable)
-            u_expr, cons = self.remove_const(unc_lst[ind])
+                # if len(unc_lst[ind].variables()) (check if has variable)
+                u_expr, cons = self.remove_const(unc_lst[ind])
 
-            # uvar = mul_canon_transform(uvar, cons)
-            new_expr, new_const = self.canonicalize_tree(u_expr, z[ind], cons)
-            if self.has_unc_param(new_expr):
-                if j == 0:
-                    uvar = mul_canon_transform(uvar, cons)
-                # assert (num_constr == shape)
-                new_vars[ind] = Variable((num_constr, shape))
-                for idx in range(num_constr):
+                # uvar = mul_canon_transform(uvar, cons)
+                new_expr, new_const = self.canonicalize_tree(u_expr, z[ind], cons)
+                if self.has_unc_param(new_expr):
+                    if j == 0:
+                        uvar = mul_canon_transform(uvar, cons)
+                    # assert (num_constr == shape)
+                    new_vars[ind] = Variable((num_constr, shape))
+                    for idx in range(num_constr):
+                        # import ipdb
+                        # ipdb.set_trace()
+                        new_expr, new_const = uvar.isolated_unc(idx, new_vars[ind][idx], num_constr)
+                        aux_expr = aux_expr + new_expr
+                        aux_const += new_const
+                        if j == 1:
+                            z_new_cons[idx] += new_vars[ind][idx]
+                        else:
+                            z_new_cons[idx] = new_vars[ind][idx]
+
+                    j = 1
+                else:
                     # import ipdb
                     # ipdb.set_trace()
-                    new_expr, new_const = uvar.isolated_unc(idx, new_vars[ind][idx], num_constr)
                     aux_expr = aux_expr + new_expr
                     aux_const += new_const
-                    if j == 1:
-                        z_new_cons[idx] += new_vars[ind][idx]
-                    else:
-                        z_new_cons[idx] = new_vars[ind][idx]
-
-                j = 1
+                    z_cons += z[ind]
+            z_unc = Variable((num_constr, shape))
+            if j == 1:
+                for ind in range(num_constr):
+                    aux_const += [z_cons + z_new_cons[ind] == -z_unc[ind]]
             else:
-                # import ipdb
-                # ipdb.set_trace()
-                aux_expr = aux_expr + new_expr
-                aux_const += new_const
-                z_cons += z[ind]
-        z_unc = Variable((num_constr, shape))
-        if j == 1:
-            for ind in range(num_constr):
-                aux_const += [z_cons + z_new_cons[ind] == -z_unc[ind]]
+                aux_const += [z_cons == -z_unc[0]]
+            new_expr, new_const, lmbda = uvar.conjugate(z_unc, num_constr)
+            aux_expr = aux_expr + new_expr
+            aux_const = aux_const + new_const
         else:
-            aux_const += [z_cons == -z_unc[0]]
-        new_expr, new_const = uvar.conjugate(z_unc, num_constr)
-        aux_const += new_const
-        aux_expr = aux_expr + new_expr
+            if len(uvar.shape) >= 1:
+                shape = uvar.shape[0]
+            else:
+                shape = 1
+            aux_expr, aux_const, lmbda = uvar.conjugate(shape, 1)
         for expr in std_lst:
             aux_expr = aux_expr + expr
-        return aux_expr <= 0, aux_const
+        return aux_expr <= 0, aux_const, lmbda
 
     def count_unq_uncertain_param(self, expr):
         unc_params = []
@@ -234,14 +258,16 @@ class Uncertain_Canonicalization(Reduction):
 
         The original expr is equivalent to the sum of expressions in unc_lst and std_lst
             '''
+        # import ipdb
+        # ipdb.set_trace()
         # Check Initial Conditions
         if self.count_unq_uncertain_param(expr) == 0:
-            return ([], [expr])
+            return [], [expr], 0
         elif self.count_unq_uncertain_param(expr) > 1:
             raise ValueError("DRP error: Cannot have multiple uncertain params in the same expr")
         elif len(expr.args) == 0:
             assert (self.has_unc_param(expr))
-            return ([expr], [])
+            return [expr], [], 0
 
         elif type(expr) not in sep_methods:
             raise ValueError("DRP error: not able to process non multiplication/additions")

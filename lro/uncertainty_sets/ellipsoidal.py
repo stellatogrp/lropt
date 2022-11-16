@@ -168,37 +168,44 @@ class Ellipsoidal(UncertaintySet):
         return new_expr, new_constraints
 
     def conjugate(self, var, shape):
-        ushape = var.shape[1]  # shape of uncertainty
-        if self.paramb is None:
-            self._paramb = np.zeros(ushape)
-        if self.data is not None or self.paramT is not None:
-            if shape == 1:
-                newvar = Variable(ushape)  # gamma aux variable
-                lmbda = Variable()
-                constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
-                constr += [self.paramT.T@newvar == var[0]]
-                constr += [lmbda >= 0]
-                return self.rho * lmbda - var[0]*self.paramb, constr
-            else:
-                constr = []
-                lmbda = Variable(shape)
-                newvar = Variable((shape, ushape))
-                constr += [lmbda >= 0]
-                for ind in range(shape):
-                    constr += [norm(newvar[ind], p=self.dual_norm()) <= lmbda[ind]]
-                    constr += [self.paramT.T@newvar[ind] == var[ind]]
-
-                return self.rho * lmbda - var@self.paramb, constr
+        # import ipdb
+        # ipdb.set_trace()
+        if var.is_constant():
+            lmbda = Variable()
+            constr = [lmbda >= 0]
+            return self.rho*lmbda, constr, lmbda
         else:
-            if shape == 1:
-                lmbda = Variable()
-                constr = [norm(var[0], p=self.dual_norm()) <= lmbda]
-                constr += [lmbda >= 0]
-                return self.rho * lmbda - var[0]*self.paramb, constr
+            ushape = var.shape[1]  # shape of uncertainty
+            if self.paramb is None:
+                self._paramb = np.zeros(ushape)
+            if self.data is not None or self.paramT is not None:
+                if shape == 1:
+                    newvar = Variable(ushape)  # gamma aux variable
+                    lmbda = Variable()
+                    constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
+                    constr += [self.paramT.T@newvar == var[0]]
+                    constr += [lmbda >= 0]
+                    return self.rho * lmbda - var[0]*self.paramb, constr, lmbda
+                else:
+                    constr = []
+                    lmbda = Variable(shape)
+                    newvar = Variable((shape, ushape))
+                    constr += [lmbda >= 0]
+                    for ind in range(shape):
+                        constr += [norm(newvar[ind], p=self.dual_norm()) <= lmbda[ind]]
+                        constr += [self.paramT.T@newvar[ind] == var[ind]]
+
+                    return self.rho * lmbda - var@self.paramb, constr, lmbda
             else:
-                constr = []
-                lmbda = Variable(shape)
-                constr += [lmbda >= 0]
-                for ind in range(shape):
-                    constr += [norm(var[ind], p=self.dual_norm()) <= lmbda[ind]]
-                return self.rho * lmbda - var@self.paramb, constr
+                if shape == 1:
+                    lmbda = Variable()
+                    constr = [norm(var[0], p=self.dual_norm()) <= lmbda]
+                    constr += [lmbda >= 0]
+                    return self.rho * lmbda - var[0]*self.paramb, constr, lmbda
+                else:
+                    constr = []
+                    lmbda = Variable(shape)
+                    constr += [lmbda >= 0]
+                    for ind in range(shape):
+                        constr += [norm(var[ind], p=self.dual_norm()) <= lmbda[ind]]
+                    return self.rho * lmbda - var@self.paramb, constr, lmbda
