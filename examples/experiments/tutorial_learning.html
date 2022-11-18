@@ -492,7 +492,7 @@ div.rendered_html tbody tr:hover {
 <h2>Formulating the uncertainty set<a class="headerlink" href="#Formulating-the-uncertainty-set" title="Permalink to this heading">#</a></h2>
 <p>We now formulate the uncertainty set slightly differently, where data and a loss function is passed as parameters instead of the uncertainty set parameters. The new parameters for the uncertainty set, <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(b\)</span>, will be trained through differentiable optimization.</p>
 <div class="line-block">
-<div class="line">Box uncertainty: $ { u <span class="math">\mid</span>| Au + b |_:nbsphinx-math:<cite>infty `:nbsphinx-math:</cite>leq <a href="#id1"><span class="problematic" id="id2">`</span></a>1 }$ - data : np.array</div>
+<div class="line">Box uncertainty: $ { u <span class="math">\mid</span>| Au + b |_:nbsphinx-math:<cite>infty `:nbsphinx-math:</cite>leq 1` }$ - data : np.array</div>
 <div class="line">* An array of uncertainty realizations, where each row is one realization. - loss : function * The loss function used to train the uncertainty set.</div>
 </div>
 <div class="line-block">
@@ -668,7 +668,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>where <span class="math notranslate nohighlight">\(\theta\)</span> encodes the training parameters <span class="math notranslate nohighlight">\((A,b)\)</span>.</p>
 <dl>
-<dt>The reformulation is :nbsphinx-math:<a href="#id3"><span class="problematic" id="id4">`</span></a>begin{equation}</dt><dd><dl class="simple">
+<dt>The reformulation is :nbsphinx-math:<a href="#id1"><span class="problematic" id="id2">`</span></a>begin{equation}</dt><dd><dl class="simple">
 <dt>begin{array}{lll}</dt><dd><p>&amp;text{minimize} &amp; f(x)\
 &amp;text{subject to} &amp; (1/2)sum_{i=1}^n (z_i^TP_i^{-1}z_i)/x_i + b^Tz + |gamma|_q le 0\
 &amp;&amp; A^Tgamma = z\
