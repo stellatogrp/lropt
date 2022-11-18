@@ -114,7 +114,7 @@ class Polyhedral(UncertaintySet):
         return new_expr, new_constraints
 
     def conjugate(self, var, shape):
-        if not var.is_constant():
+        if isinstance(var, Variable):
             if shape == 1:
                 lmbda = Variable(len(self.d))
                 constr = [lmbda >= 0]

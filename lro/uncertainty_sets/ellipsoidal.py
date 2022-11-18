@@ -145,20 +145,26 @@ class Ellipsoidal(UncertaintySet):
         return new_expr, new_constraints
 
     def isolated_unc(self, i, var, num_constr):
+        # import ipdb
+        # ipdb.set_trace()
         trans = self.affine_transform_temp
         new_expr = 0
         if i == 0:
             if trans:
                 new_expr += trans['b']
         e = np.eye(num_constr)[i]
+        if len(trans['A'].shape) == 1:
+            newA = np.reshape(trans['A'].value, (1, trans['A'].shape[0]))
+        else:
+            newA = trans['A']
         if var.is_scalar():
             if trans:
-                new_constraints = [var == -trans['A'] * e]
+                new_constraints = [var == -newA * e]
             else:
                 new_constraints = [var == - e]
         else:
             if trans:
-                new_constraints = [var == -trans['A'].T @ e]
+                new_constraints = [var == -newA.T @ e]
             else:
                 new_constraints = [var == - e]
         if i == (num_constr - 1):
@@ -171,8 +177,8 @@ class Ellipsoidal(UncertaintySet):
     def conjugate(self, var, shape):
         # import ipdb
         # ipdb.set_trace()
-        if var.is_constant():
-            lmbda = Variable()
+        if not isinstance(var, Variable):
+            lmbda = Variable(shape)
             constr = [lmbda >= 0]
             return self.rho*lmbda, constr, lmbda
         else:
