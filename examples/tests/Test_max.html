@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
     <meta name="generator" content="sphinx-5.3.0, furo 2022.09.29"/>
-        <title>&lt;no title&gt; - LRO documentation documentation</title>
+        <title>Max of Concave Test - LRO documentation documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?digest=d81277517bee4d6b0349d71bb2661d4890b5617c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
@@ -159,7 +159,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../index.html">Examples</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../experiments/tutorial_deterministic.html">Deterministic Uncertainty Sets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../experiments/tutorial_learning.html">Learned Uncertainty Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../experiments/tutorial_learning.html">Learning Uncertainty Sets</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../api/index.html">API</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -460,8 +460,10 @@ div.rendered_html tbody tr:hover {
   background: rgba(66, 165, 245, 0.2);
 }
 </style>
+<section id="Max-of-Concave-Test">
+<h1>Max of Concave Test<a class="headerlink" href="#Max-of-Concave-Test" title="Permalink to this heading">#</a></h1>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[209]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">scipy</span> <span class="k">as</span> <span class="nn">sc</span>
@@ -491,10 +493,10 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[210]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">createproblem_quad</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">P_inv</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">createproblem_port</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
     <span class="c1"># PARAMETERS #</span>
     <span class="n">A</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Parameter</span><span class="p">((</span><span class="n">n</span><span class="p">,</span><span class="n">n</span><span class="p">))</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
@@ -502,21 +504,20 @@ div.rendered_html tbody tr:hover {
     <span class="c1"># weights, s_i, lambda, tau</span>
     <span class="n">x</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
     <span class="n">t</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
-    <span class="n">z</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-    <span class="n">y</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">((</span><span class="n">n</span><span class="p">,</span><span class="n">n</span><span class="p">))</span>
+    <span class="n">tau</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
     <span class="n">gam</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
     <span class="c1"># OBJECTIVE #</span>
     <span class="n">objective</span> <span class="o">=</span> <span class="n">t</span>
 
     <span class="c1"># CONSTRAINTS #</span>
-    <span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="n">cp</span><span class="o">.</span><span class="n">quad_over_lin</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="nd">@P_inv</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="mi">2</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)])</span> <span class="o">+</span> <span class="n">b</span><span class="nd">@z</span> <span class="o">+</span> <span class="n">cp</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">gam</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">t</span><span class="p">]</span>
-    <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="nd">@gam</span> <span class="o">==</span> <span class="n">z</span><span class="p">]</span>
-    <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="n">z</span><span class="p">]</span>
+    <span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="o">*</span><span class="n">tau</span> <span class="o">+</span> <span class="mi">5</span><span class="o">*</span><span class="n">b</span><span class="nd">@x</span> <span class="o">+</span> <span class="n">cp</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">gam</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">t</span><span class="p">]</span>
+    <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="nd">@gam</span> <span class="o">==</span> <span class="mi">5</span><span class="o">*</span><span class="n">x</span><span class="p">]</span>
+    <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">t</span> <span class="o">&gt;=</span> <span class="n">tau</span><span class="p">]</span>
     <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span>
     <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">]</span>
     <span class="c1"># PROBLEM #</span>
     <span class="n">problem</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">objective</span><span class="p">),</span> <span class="n">constraints</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">problem</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span>
+    <span class="k">return</span> <span class="n">problem</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span>
 
 <span class="k">def</span> <span class="nf">normal_returns</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
     <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
@@ -526,46 +527,40 @@ div.rendered_html tbody tr:hover {
     <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
         <span class="n">i</span><span class="o">*</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="mf">0.01</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="mf">0.035</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)),</span> <span class="n">N</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="o">+</span><span class="mi">1</span><span class="p">)])</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">R</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span>
-<span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">t</span><span class="p">,</span><span class="n">data</span><span class="p">,</span><span class="n">l</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
-    <span class="n">cur_sum</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-        <span class="n">cur_sum</span> <span class="o">=</span> <span class="n">cur_sum</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="nd">@torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">P</span><span class="p">[</span><span class="n">ind</span><span class="p">],</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
-                                                                  <span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="nd">@data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">)],</span> <span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span>
-                                          <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">t</span> <span class="o">+</span> <span class="n">l</span><span class="o">*</span><span class="n">cur_sum</span><span class="o">/</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">t</span><span class="p">,</span> <span class="n">cur_sum</span><span class="o">/</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">t</span><span class="p">,</span><span class="n">tau</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span><span class="n">l</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">t</span> <span class="o">+</span> <span class="n">l</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="o">*</span><span class="n">data</span><span class="nd">@x</span> <span class="o">-</span> <span class="mi">4</span><span class="o">*</span><span class="n">tau</span><span class="p">,</span> <span class="n">tau</span><span class="p">)</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))),</span> <span class="n">t</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="o">*</span><span class="n">data</span><span class="nd">@x</span> <span class="o">-</span> <span class="mi">4</span><span class="o">*</span><span class="n">tau</span><span class="p">,</span> <span class="n">tau</span><span class="p">)</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)))</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[211]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">loss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">m</span><span class="p">)),</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="n">val_dset</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">loss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">m</span><span class="p">)),</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="n">val_dset</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[211]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 (tensor(1., dtype=torch.float64, grad_fn=&lt;AddBackward0&gt;),
  tensor(1),
- tensor(0., dtype=torch.float64, grad_fn=&lt;DivBackward0&gt;))
+ tensor(0., dtype=torch.float64, grad_fn=&lt;MeanBackward0&gt;))
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[222]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">P</span> <span class="o">=</span> <span class="p">{}</span>
-<span class="n">P_inv</span> <span class="o">=</span> <span class="p">{}</span>
-<span class="n">m</span> <span class="o">=</span> <span class="mi">15</span>
-<span class="n">N</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
-    <span class="n">P</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">make_spd_matrix</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
-    <span class="n">P_inv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">P</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">m</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">N</span> <span class="o">=</span> <span class="mi">500</span>
 <span class="n">d1</span> <span class="o">=</span> <span class="n">normal_returns</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">N</span><span class="p">)</span>
 <span class="n">d2</span> <span class="o">=</span> <span class="n">normal_returns1</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">N</span><span class="p">)</span>
 <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">d1</span><span class="p">,</span><span class="n">d2</span><span class="p">))</span>
@@ -573,23 +568,23 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[223]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">w</span> <span class="o">=</span> <span class="mi">5</span>
-<span class="n">problem</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span><span class="n">t</span><span class="p">,</span><span class="n">A</span><span class="p">,</span><span class="n">b</span> <span class="o">=</span> <span class="n">createproblem_quad</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">P_inv</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">w</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">problem</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">createproblem_port</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
 <span class="n">df1</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="s2">&quot;Opt_val&quot;</span><span class="p">,</span> <span class="s2">&quot;Violations1&quot;</span><span class="p">,</span> <span class="s2">&quot;Violations2&quot;</span><span class="p">,</span><span class="s2">&quot;Eval_val&quot;</span><span class="p">,</span> <span class="s2">&quot;Loss_val&quot;</span><span class="p">,</span> <span class="s2">&quot;A_norm&quot;</span><span class="p">])</span>
-<span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">5</span><span class="p">),</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+<span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">5</span><span class="p">),</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">119</span><span class="p">)</span>
 <span class="n">val_dset</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">eval_set</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="c1"># create cvxpylayer</span>
-<span class="n">cvxpylayer</span> <span class="o">=</span> <span class="n">CvxpyLayer</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">],</span> <span class="n">variables</span><span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">])</span>
+<span class="n">cvxpylayer</span> <span class="o">=</span> <span class="n">CvxpyLayer</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">],</span> <span class="n">variables</span><span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">])</span>
 
 <span class="n">init</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">T</span><span class="p">)))</span>
 <span class="n">paramb_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="o">-</span><span class="n">init</span><span class="nd">@np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">paramT_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">variables</span> <span class="o">=</span> <span class="p">[</span><span class="n">paramT_tch</span><span class="p">,</span> <span class="n">paramb_tch</span><span class="p">]</span>
-<span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+<span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
 <span class="n">step</span> <span class="o">=</span> <span class="mi">50</span>
 <span class="k">for</span> <span class="n">steps</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
     <span class="n">var_values</span> <span class="o">=</span> <span class="n">cvxpylayer</span><span class="p">(</span><span class="n">paramT_tch</span><span class="p">,</span> <span class="n">paramb_tch</span><span class="p">,</span> <span class="n">solver_args</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;solve_method&#39;</span><span class="p">:</span> <span class="s1">&#39;ECOS&#39;</span><span class="p">})</span>
@@ -610,15 +605,14 @@ div.rendered_html tbody tr:hover {
         <span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
         <span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
 
-<span class="n">problem</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span><span class="n">t</span><span class="p">,</span><span class="n">A</span><span class="p">,</span><span class="n">b</span> <span class="o">=</span> <span class="n">createproblem_quad</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">P_inv</span><span class="p">)</span>
-<span class="n">cvxpylayer</span> <span class="o">=</span> <span class="n">CvxpyLayer</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">],</span> <span class="n">variables</span><span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">])</span>
+<span class="n">problem</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">createproblem_port</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+<span class="n">cvxpylayer</span> <span class="o">=</span> <span class="n">CvxpyLayer</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">],</span> <span class="n">variables</span><span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">])</span>
 <span class="n">df2</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="s2">&quot;Opt_val&quot;</span><span class="p">,</span> <span class="s2">&quot;Violations1&quot;</span><span class="p">,</span> <span class="s2">&quot;Violations2&quot;</span><span class="p">,</span><span class="s2">&quot;Eval_val&quot;</span><span class="p">,</span> <span class="s2">&quot;Loss_val&quot;</span><span class="p">,</span> <span class="s2">&quot;A_norm&quot;</span><span class="p">])</span>
 <span class="n">init</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
 <span class="n">paramb_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="o">-</span><span class="n">init</span><span class="nd">@np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">paramT_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">variables</span> <span class="o">=</span> <span class="p">[</span><span class="n">paramT_tch</span><span class="p">,</span> <span class="n">paramb_tch</span><span class="p">]</span>
-<span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
-<span class="n">step</span> <span class="o">=</span> <span class="mi">50</span>
+<span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">steps</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
     <span class="n">var_values</span> <span class="o">=</span> <span class="n">cvxpylayer</span><span class="p">(</span><span class="n">paramT_tch</span><span class="p">,</span> <span class="n">paramb_tch</span><span class="p">,</span> <span class="n">solver_args</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;solve_method&#39;</span><span class="p">:</span> <span class="s1">&#39;ECOS&#39;</span><span class="p">})</span>
     <span class="n">totloss</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">v1</span> <span class="o">=</span> <span class="n">loss</span><span class="p">(</span><span class="o">*</span><span class="n">var_values</span><span class="p">,</span> <span class="n">val_dset</span><span class="p">,</span> <span class="n">l</span><span class="o">=</span><span class="n">w</span><span class="p">)</span>
@@ -637,15 +631,15 @@ div.rendered_html tbody tr:hover {
     <span class="k">if</span> <span class="n">steps</span> <span class="o">&lt;</span> <span class="n">step</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
         <span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
-<span class="n">problem</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span><span class="n">t</span><span class="p">,</span><span class="n">A</span><span class="p">,</span><span class="n">b</span> <span class="o">=</span> <span class="n">createproblem_quad</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">P_inv</span><span class="p">)</span>
-<span class="n">cvxpylayer</span> <span class="o">=</span> <span class="n">CvxpyLayer</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">],</span> <span class="n">variables</span><span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">])</span>
+
+<span class="n">problem</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">createproblem_port</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+<span class="n">cvxpylayer</span> <span class="o">=</span> <span class="n">CvxpyLayer</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">],</span> <span class="n">variables</span><span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">])</span>
 <span class="n">df_eps</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="s2">&quot;Opt_val&quot;</span><span class="p">,</span> <span class="s2">&quot;Violations1&quot;</span><span class="p">,</span> <span class="s2">&quot;Violations2&quot;</span><span class="p">,</span><span class="s2">&quot;Eval_val&quot;</span><span class="p">,</span> <span class="s2">&quot;Loss_val&quot;</span><span class="p">,</span> <span class="s2">&quot;A_norm&quot;</span><span class="p">])</span>
 <span class="n">eps_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">1</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">paramb_tch</span> <span class="o">=</span> <span class="n">eps_tch</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">paramT_tch</span> <span class="o">=</span> <span class="n">eps_tch</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">variables</span> <span class="o">=</span> <span class="p">[</span><span class="n">eps_tch</span><span class="p">]</span>
 <span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
-<span class="n">step</span> <span class="o">=</span> <span class="mi">50</span>
 <span class="k">for</span> <span class="n">steps</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
     <span class="n">paramb_tch</span> <span class="o">=</span> <span class="n">eps_tch</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">paramT_tch</span> <span class="o">=</span> <span class="n">eps_tch</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -670,7 +664,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[224]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[46]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
@@ -691,563 +685,8 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_examples_Quad_test_5_0.png" src="../../_images/examples_examples_Quad_test_5_0.png" />
+<img alt="../../_images/examples_tests_Test_max_6_0.png" src="../../_images/examples_tests_Test_max_6_0.png" />
 </div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[199]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df_eps</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s1">&#39;df_eps.csv&#39;</span><span class="p">)</span>
-<span class="n">df2</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s1">&#39;df_R_I.csv&#39;</span><span class="p">)</span>
-<span class="n">df1</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s1">&#39;df_R_C.csv&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[221]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df_eps</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[221]:
-</pre></div>
-</div>
-<div class="output_area rendered_html docutils container">
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>step</th>
-      <th>Opt_val</th>
-      <th>Violations1</th>
-      <th>Violations2</th>
-      <th>Eval_val</th>
-      <th>Loss_val</th>
-      <th>A_norm</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>0</td>
-      <td>-0.167884</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>-0.167884</td>
-      <td>-0.167884</td>
-      <td>1.0</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>1</td>
-      <td>-0.206825</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>-0.206825</td>
-      <td>-0.206825</td>
-      <td>1.019239</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>2</td>
-      <td>-0.291613</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>-0.291613</td>
-      <td>-0.291613</td>
-      <td>1.055871</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>3</td>
-      <td>-0.443507</td>
-      <td>0.001985</td>
-      <td>0.000411</td>
-      <td>-0.44145</td>
-      <td>-0.433582</td>
-      <td>1.110233</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>4</td>
-      <td>-0.686957</td>
-      <td>0.013876</td>
-      <td>0.016657</td>
-      <td>-0.603672</td>
-      <td>-0.617577</td>
-      <td>1.1807393</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>5</td>
-      <td>-1.028322</td>
-      <td>0.06258</td>
-      <td>0.06488</td>
-      <td>-0.70392</td>
-      <td>-0.71542</td>
-      <td>1.2610352</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>6</td>
-      <td>-1.337795</td>
-      <td>0.145449</td>
-      <td>0.147241</td>
-      <td>-0.601591</td>
-      <td>-0.610548</td>
-      <td>1.3223374</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>7</td>
-      <td>-1.45943</td>
-      <td>0.186225</td>
-      <td>0.189558</td>
-      <td>-0.51164</td>
-      <td>-0.528305</td>
-      <td>1.3443513</td>
-    </tr>
-    <tr>
-      <th>8</th>
-      <td>8</td>
-      <td>-1.32313</td>
-      <td>0.141014</td>
-      <td>0.142577</td>
-      <td>-0.610248</td>
-      <td>-0.61806</td>
-      <td>1.319617</td>
-    </tr>
-    <tr>
-      <th>9</th>
-      <td>9</td>
-      <td>-1.08507</td>
-      <td>0.075639</td>
-      <td>0.075503</td>
-      <td>-0.707555</td>
-      <td>-0.706873</td>
-      <td>1.2729485</td>
-    </tr>
-    <tr>
-      <th>10</th>
-      <td>10</td>
-      <td>-0.879669</td>
-      <td>0.035234</td>
-      <td>0.04174</td>
-      <td>-0.670967</td>
-      <td>-0.703501</td>
-      <td>1.228066</td>
-    </tr>
-    <tr>
-      <th>11</th>
-      <td>11</td>
-      <td>-0.785537</td>
-      <td>0.023439</td>
-      <td>0.027524</td>
-      <td>-0.647918</td>
-      <td>-0.668342</td>
-      <td>1.2056776</td>
-    </tr>
-    <tr>
-      <th>12</th>
-      <td>12</td>
-      <td>-0.79059</td>
-      <td>0.024017</td>
-      <td>0.028247</td>
-      <td>-0.649357</td>
-      <td>-0.670506</td>
-      <td>1.2069126</td>
-    </tr>
-    <tr>
-      <th>13</th>
-      <td>13</td>
-      <td>-0.870013</td>
-      <td>0.033882</td>
-      <td>0.040278</td>
-      <td>-0.668625</td>
-      <td>-0.700605</td>
-      <td>1.2258275</td>
-    </tr>
-    <tr>
-      <th>14</th>
-      <td>14</td>
-      <td>-0.997423</td>
-      <td>0.056095</td>
-      <td>0.059582</td>
-      <td>-0.699511</td>
-      <td>-0.71695</td>
-      <td>1.2544006</td>
-    </tr>
-    <tr>
-      <th>15</th>
-      <td>15</td>
-      <td>-1.105998</td>
-      <td>0.080497</td>
-      <td>0.080799</td>
-      <td>-0.702003</td>
-      <td>-0.703513</td>
-      <td>1.2772591</td>
-    </tr>
-    <tr>
-      <th>16</th>
-      <td>16</td>
-      <td>-1.143476</td>
-      <td>0.089972</td>
-      <td>0.091413</td>
-      <td>-0.686412</td>
-      <td>-0.693618</td>
-      <td>1.2848724</td>
-    </tr>
-    <tr>
-      <th>17</th>
-      <td>17</td>
-      <td>-1.097155</td>
-      <td>0.078407</td>
-      <td>0.078418</td>
-      <td>-0.705064</td>
-      <td>-0.705118</td>
-      <td>1.275443</td>
-    </tr>
-    <tr>
-      <th>18</th>
-      <td>18</td>
-      <td>-1.017805</td>
-      <td>0.060354</td>
-      <td>0.062982</td>
-      <td>-0.702894</td>
-      <td>-0.716036</td>
-      <td>1.2587892</td>
-    </tr>
-    <tr>
-      <th>19</th>
-      <td>19</td>
-      <td>-0.950023</td>
-      <td>0.046834</td>
-      <td>0.0524</td>
-      <td>-0.688024</td>
-      <td>-0.715855</td>
-      <td>1.244007</td>
-    </tr>
-    <tr>
-      <th>20</th>
-      <td>20</td>
-      <td>-0.916108</td>
-      <td>0.040751</td>
-      <td>0.047261</td>
-      <td>-0.679803</td>
-      <td>-0.712353</td>
-      <td>1.2364018</td>
-    </tr>
-    <tr>
-      <th>21</th>
-      <td>21</td>
-      <td>-0.913625</td>
-      <td>0.040317</td>
-      <td>0.046885</td>
-      <td>-0.679201</td>
-      <td>-0.712038</td>
-      <td>1.2358392</td>
-    </tr>
-    <tr>
-      <th>22</th>
-      <td>22</td>
-      <td>-0.942272</td>
-      <td>0.045407</td>
-      <td>0.051225</td>
-      <td>-0.686145</td>
-      <td>-0.715237</td>
-      <td>1.2422816</td>
-    </tr>
-    <tr>
-      <th>23</th>
-      <td>23</td>
-      <td>-0.991142</td>
-      <td>0.05481</td>
-      <td>0.058631</td>
-      <td>-0.697989</td>
-      <td>-0.717094</td>
-      <td>1.2530386</td>
-    </tr>
-    <tr>
-      <th>24</th>
-      <td>24</td>
-      <td>-1.031185</td>
-      <td>0.063206</td>
-      <td>0.065397</td>
-      <td>-0.704199</td>
-      <td>-0.715154</td>
-      <td>1.2616444</td>
-    </tr>
-    <tr>
-      <th>25</th>
-      <td>25</td>
-      <td>-1.035924</td>
-      <td>0.064324</td>
-      <td>0.066252</td>
-      <td>-0.704661</td>
-      <td>-0.714304</td>
-      <td>1.262651</td>
-    </tr>
-    <tr>
-      <th>26</th>
-      <td>26</td>
-      <td>-1.005246</td>
-      <td>0.05771</td>
-      <td>0.060768</td>
-      <td>-0.701406</td>
-      <td>-0.716697</td>
-      <td>1.2560905</td>
-    </tr>
-    <tr>
-      <th>27</th>
-      <td>27</td>
-      <td>-0.974432</td>
-      <td>0.051483</td>
-      <td>0.056099</td>
-      <td>-0.693939</td>
-      <td>-0.717017</td>
-      <td>1.2493926</td>
-    </tr>
-    <tr>
-      <th>28</th>
-      <td>28</td>
-      <td>-0.956577</td>
-      <td>0.048043</td>
-      <td>0.053393</td>
-      <td>-0.689612</td>
-      <td>-0.716361</td>
-      <td>1.24546</td>
-    </tr>
-    <tr>
-      <th>29</th>
-      <td>29</td>
-      <td>-0.961507</td>
-      <td>0.048979</td>
-      <td>0.05414</td>
-      <td>-0.690807</td>
-      <td>-0.716611</td>
-      <td>1.2465498</td>
-    </tr>
-    <tr>
-      <th>30</th>
-      <td>30</td>
-      <td>-0.978363</td>
-      <td>0.052261</td>
-      <td>0.056694</td>
-      <td>-0.694891</td>
-      <td>-0.71706</td>
-      <td>1.2502532</td>
-    </tr>
-    <tr>
-      <th>31</th>
-      <td>31</td>
-      <td>-0.998551</td>
-      <td>0.056325</td>
-      <td>0.059753</td>
-      <td>-0.699784</td>
-      <td>-0.716924</td>
-      <td>1.2546448</td>
-    </tr>
-    <tr>
-      <th>32</th>
-      <td>32</td>
-      <td>-1.01486</td>
-      <td>0.059734</td>
-      <td>0.062451</td>
-      <td>-0.702606</td>
-      <td>-0.71619</td>
-      <td>1.258158</td>
-    </tr>
-    <tr>
-      <th>33</th>
-      <td>33</td>
-      <td>-1.021182</td>
-      <td>0.061065</td>
-      <td>0.063592</td>
-      <td>-0.703224</td>
-      <td>-0.715858</td>
-      <td>1.2595116</td>
-    </tr>
-    <tr>
-      <th>34</th>
-      <td>34</td>
-      <td>-1.01941</td>
-      <td>0.060692</td>
-      <td>0.063272</td>
-      <td>-0.703051</td>
-      <td>-0.715952</td>
-      <td>1.2591326</td>
-    </tr>
-    <tr>
-      <th>35</th>
-      <td>35</td>
-      <td>-1.011186</td>
-      <td>0.05896</td>
-      <td>0.061788</td>
-      <td>-0.702247</td>
-      <td>-0.716383</td>
-      <td>1.257369</td>
-    </tr>
-    <tr>
-      <th>36</th>
-      <td>36</td>
-      <td>-0.997901</td>
-      <td>0.056192</td>
-      <td>0.059655</td>
-      <td>-0.699627</td>
-      <td>-0.716939</td>
-      <td>1.254504</td>
-    </tr>
-    <tr>
-      <th>37</th>
-      <td>37</td>
-      <td>-0.98734</td>
-      <td>0.054036</td>
-      <td>0.058054</td>
-      <td>-0.697068</td>
-      <td>-0.717158</td>
-      <td>1.2522119</td>
-    </tr>
-    <tr>
-      <th>38</th>
-      <td>38</td>
-      <td>-0.985513</td>
-      <td>0.053675</td>
-      <td>0.057778</td>
-      <td>-0.696625</td>
-      <td>-0.717139</td>
-      <td>1.2518141</td>
-    </tr>
-    <tr>
-      <th>39</th>
-      <td>39</td>
-      <td>-0.990643</td>
-      <td>0.054708</td>
-      <td>0.058555</td>
-      <td>-0.697868</td>
-      <td>-0.717105</td>
-      <td>1.2529302</td>
-    </tr>
-    <tr>
-      <th>40</th>
-      <td>40</td>
-      <td>-0.994757</td>
-      <td>0.055549</td>
-      <td>0.059178</td>
-      <td>-0.698865</td>
-      <td>-0.717011</td>
-      <td>1.253823</td>
-    </tr>
-    <tr>
-      <th>41</th>
-      <td>41</td>
-      <td>-0.998055</td>
-      <td>0.056224</td>
-      <td>0.059678</td>
-      <td>-0.699664</td>
-      <td>-0.716935</td>
-      <td>1.2545373</td>
-    </tr>
-    <tr>
-      <th>42</th>
-      <td>42</td>
-      <td>-1.000697</td>
-      <td>0.056765</td>
-      <td>0.060079</td>
-      <td>-0.700302</td>
-      <td>-0.716872</td>
-      <td>1.2551087</td>
-    </tr>
-    <tr>
-      <th>43</th>
-      <td>43</td>
-      <td>-1.002814</td>
-      <td>0.057198</td>
-      <td>0.0604</td>
-      <td>-0.700816</td>
-      <td>-0.716822</td>
-      <td>1.2555659</td>
-    </tr>
-    <tr>
-      <th>44</th>
-      <td>44</td>
-      <td>-0.997808</td>
-      <td>0.056173</td>
-      <td>0.059641</td>
-      <td>-0.699604</td>
-      <td>-0.716941</td>
-      <td>1.2544839</td>
-    </tr>
-    <tr>
-      <th>45</th>
-      <td>45</td>
-      <td>-0.993813</td>
-      <td>0.055356</td>
-      <td>0.059035</td>
-      <td>-0.698637</td>
-      <td>-0.717033</td>
-      <td>1.2536184</td>
-    </tr>
-    <tr>
-      <th>46</th>
-      <td>46</td>
-      <td>-0.990623</td>
-      <td>0.054703</td>
-      <td>0.058552</td>
-      <td>-0.697864</td>
-      <td>-0.717106</td>
-      <td>1.2529259</td>
-    </tr>
-    <tr>
-      <th>47</th>
-      <td>47</td>
-      <td>-0.988075</td>
-      <td>0.054182</td>
-      <td>0.058166</td>
-      <td>-0.697246</td>
-      <td>-0.717164</td>
-      <td>1.2523719</td>
-    </tr>
-    <tr>
-      <th>48</th>
-      <td>48</td>
-      <td>-0.986039</td>
-      <td>0.053779</td>
-      <td>0.057857</td>
-      <td>-0.696753</td>
-      <td>-0.717144</td>
-      <td>1.2519287</td>
-    </tr>
-    <tr>
-      <th>49</th>
-      <td>49</td>
-      <td>-0.991005</td>
-      <td>0.054782</td>
-      <td>0.05861</td>
-      <td>-0.697956</td>
-      <td>-0.717097</td>
-      <td>1.2530088</td>
-    </tr>
-  </tbody>
-</table>
-</div></div>
 </div>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
@@ -1257,6 +696,7 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
+</section>
 
         </article>
       </div>

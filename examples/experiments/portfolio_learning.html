@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
     <meta name="generator" content="sphinx-5.3.0, furo 2022.09.29"/>
-        <title>Import Dataset and choose random stocks - LRO documentation documentation</title>
+        <title>Portfolio Optimization - LRO documentation documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?digest=d81277517bee4d6b0349d71bb2661d4890b5617c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
@@ -134,7 +134,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -159,7 +159,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../index.html">Examples</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="tutorial_deterministic.html">Deterministic Uncertainty Sets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial_learning.html">Learned Uncertainty Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_learning.html">Learning Uncertainty Sets</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../api/index.html">API</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -197,7 +197,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
@@ -460,6 +460,8 @@ div.rendered_html tbody tr:hover {
   background: rgba(66, 165, 245, 0.2);
 }
 </style>
+<section id="Portfolio-Optimization">
+<h1>Portfolio Optimization<a class="headerlink" href="#Portfolio-Optimization" title="Permalink to this heading">#</a></h1>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
@@ -474,7 +476,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <section id="Import-Dataset-and-choose-random-stocks">
-<h1>Import Dataset and choose random stocks<a class="headerlink" href="#Import-Dataset-and-choose-random-stocks" title="Permalink to this heading">#</a></h1>
+<h2>Import Dataset and choose random stocks<a class="headerlink" href="#Import-Dataset-and-choose-random-stocks" title="Permalink to this heading">#</a></h2>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
@@ -518,7 +520,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Create-LRO-problem">
-<h1>Create LRO problem<a class="headerlink" href="#Create-LRO-problem" title="Permalink to this heading">#</a></h1>
+<h2>Create LRO problem<a class="headerlink" href="#Create-LRO-problem" title="Permalink to this heading">#</a></h2>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
@@ -631,6 +633,7 @@ torch.Size([100, 10])
 </div>
 </div>
 </section>
+</section>
 
         </article>
       </div>
@@ -659,8 +662,28 @@ torch.Size([100, 10])
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Portfolio Optimization</a><ul>
+<li><a class="reference internal" href="#Import-Dataset-and-choose-random-stocks">Import Dataset and choose random stocks</a></li>
+<li><a class="reference internal" href="#Create-LRO-problem">Create LRO problem</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>

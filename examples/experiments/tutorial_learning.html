@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="API" href="../../api/index.html" /><link rel="prev" title="Deterministic Uncertainty Sets" href="tutorial_deterministic.html" />
 
     <meta name="generator" content="sphinx-5.3.0, furo 2022.09.29"/>
-        <title>Learned Uncertainty Sets - LRO documentation documentation</title>
+        <title>Learning Uncertainty Sets - LRO documentation documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?digest=d81277517bee4d6b0349d71bb2661d4890b5617c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
@@ -159,7 +159,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">Examples</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="tutorial_deterministic.html">Deterministic Uncertainty Sets</a></li>
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Learned Uncertainty Sets</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Learning Uncertainty Sets</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../api/index.html">API</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -460,8 +460,10 @@ div.rendered_html tbody tr:hover {
   background: rgba(66, 165, 245, 0.2);
 }
 </style>
+<section id="Learning-Uncertainty-Sets">
+<h1>Learning Uncertainty Sets<a class="headerlink" href="#Learning-Uncertainty-Sets" title="Permalink to this heading">#</a></h1>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[67]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
@@ -486,13 +488,11 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<section id="Learned-Uncertainty-Sets">
-<h1>Learned Uncertainty Sets<a class="headerlink" href="#Learned-Uncertainty-Sets" title="Permalink to this heading">#</a></h1>
 <section id="Formulating-the-uncertainty-set">
 <h2>Formulating the uncertainty set<a class="headerlink" href="#Formulating-the-uncertainty-set" title="Permalink to this heading">#</a></h2>
 <p>We now formulate the uncertainty set slightly differently, where data and a loss function is passed as parameters instead of the uncertainty set parameters. The new parameters for the uncertainty set, <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(b\)</span>, will be trained through differentiable optimization.</p>
 <div class="line-block">
-<div class="line">Box uncertainty: $ { u <span class="math">\mid</span>| Au + b |_:nbsphinx-math:<cite>infty `:nbsphinx-math:</cite>leq 1` }$ - data : np.array</div>
+<div class="line">Box uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid\| Au + b \|_\infty \leq 1 \}\)</span> - data : np.array</div>
 <div class="line">* An array of uncertainty realizations, where each row is one realization. - loss : function * The loss function used to train the uncertainty set.</div>
 </div>
 <div class="line-block">
@@ -521,7 +521,7 @@ div.rendered_html tbody tr:hover {
 </section>
 <section id="Training-the-uncertainty-set">
 <h2>Training the uncertainty set<a class="headerlink" href="#Training-the-uncertainty-set" title="Permalink to this heading">#</a></h2>
-<p>To train the uncertainty set, after setting up the robust problem, call <code class="docutils literal notranslate"><span class="pre">problem.train()</span></code>, with optional parameters to control whether to train only <span class="math notranslate nohighlight">\(\epsilon\)</span> or both <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(b\)</span>, the total number of iterations, the learning rate of the problem, the optimizer to use, and intial values for <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(b\)</span>.</p>
+<p>To train the uncertainty set, after setting up the robust problem, call <code class="docutils literal notranslate"><span class="pre">problem.train()</span></code>, with optional parameters to control whether to train only <span class="math notranslate nohighlight">\(\epsilon\)</span> or both <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(b\)</span>, the total number of iterations, the learning rate of the problem, the optimizer to use, and initial values for <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(b\)</span>.</p>
 <p>The function will return a pandas DataFrame with information on the iterates, as well as the reformulated problem.</p>
 </section>
 <section id="Example-1:-Linear-Portfolio">
@@ -532,7 +532,7 @@ div.rendered_html tbody tr:hover {
 \[\begin{split}\begin{array}{ll}
 \text{minimize} &amp; \tau\\
 \text{subject to}  &amp; -u^Tx \leq  \tau\\
-&amp; \mathbf{1}^Tx = 1, x \geq 0,
+&amp;\mathbf{1}^Tx = 1, x \geq 0,
 \end{array}\end{split}\]</div>
 </div>
 <p>where <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter.</p>
@@ -844,7 +844,7 @@ div.rendered_html tbody tr:hover {
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Learned Uncertainty Sets</a><ul>
+<li><a class="reference internal" href="#">Learning Uncertainty Sets</a><ul>
 <li><a class="reference internal" href="#Formulating-the-uncertainty-set">Formulating the uncertainty set</a></li>
 <li><a class="reference internal" href="#Formulating-the-loss-function">Formulating the loss function</a></li>
 <li><a class="reference internal" href="#Training-the-uncertainty-set">Training the uncertainty set</a></li>
