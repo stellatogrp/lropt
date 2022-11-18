@@ -58,3 +58,30 @@ class TestQuad(unittest.TestCase):
         newprob = prob.dualize()
         newprob.solve(solver=SOLVER)
         print(x.value)
+
+    def test_max(self):
+        n = 2
+        u = UncertainParameter(n,
+                               uncertainty_set=Ellipsoidal(p=2,
+                                                           rho=1))
+        # formulate cvxpy variables
+        x = cp.Variable(n)
+        t = cp.Variable()
+
+        # formulate constants
+        a = np.array([2, 3])
+        d = np.array([3, 4])
+
+        # formulate objective
+        objective = cp.Minimize(t)
+
+        # formulate constraints
+        constraints = [cp.maximum(a@x - d@x, a@x - d@u) <= t]
+        constraints += [x >= 0]
+        # import ipdb
+        # ipdb.set_trace()
+        # formulate Robust Problem
+        prob_robust = RobustProblem(objective, constraints)
+
+        new_prob = prob_robust.dualize()
+        new_prob.solve()

@@ -171,7 +171,7 @@ class Budget(UncertaintySet):
     def conjugate(self, var, shape):
         # import ipdb
         # ipdb.set_trace()
-        if not var.is_constant():
+        if isinstance(var, Variable):
             ushape = var.shape[1]
             newvar1 = Variable(var.shape)
             newvar2 = Variable(var.shape)
@@ -262,8 +262,8 @@ class Budget(UncertaintySet):
             else:
                 lmbda1 = Variable(shape)
                 lmbda2 = Variable(shape)
-                newvar_1 = Variable(var.shape)
-                newvar_2 = Variable(var.shape)
+                newvar_1 = Variable((shape, ushape))
+                newvar_2 = Variable((shape, ushape))
                 constr += [lmbda1 >= 0, lmbda2 >= 0]
                 for ind in range(shape):
                     constr += [norm(newvar_1[ind], p=1) <= lmbda1[ind]]

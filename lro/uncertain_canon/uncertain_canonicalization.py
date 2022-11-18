@@ -66,16 +66,27 @@ class Uncertain_Canonicalization(Reduction):
                 # import ipdb
                 # ipdb.set_trace()
                 unc_lst, std_lst, is_max = self.separate_uncertainty(constraint)
+                if is_max:
+                    unc_lst_tot = []
+                    for cons_idx in range(len(unc_lst)):
+                        unc_lst_tot += unc_lst[cons_idx]
+                else:
+                    unc_lst_tot = unc_lst
+                if len(unc_lst_tot[0].shape) >= 1:
+                    element_shape = unc_lst_tot[0].shape[0]
+                else:
+                    element_shape = 1
                 unc_params = []
-                unc_params += [v for v in unc_lst[0].parameters()
+                unc_params += [v for v in unc_lst_tot[0].parameters()
                                if isinstance(v, UncertainParameter)]
                 if is_max == 1:
-                    canon_constr, aux_constr, lmda = self.remove_uncertainty(unc_lst[0], unc_params[0], std_lst[0])
+                    canon_constr, aux_constr, lmda = self.remove_uncertainty(
+                        unc_lst[0], unc_params[0], std_lst[0], element_shape)
                     canon_constraints += aux_constr + [canon_constr]
 
                     for new_cons_idx in range(1, len(unc_lst)):
                         canon_constr, aux_constr, new_lmda = self.remove_uncertainty(
-                            unc_lst[new_cons_idx], unc_params[0], std_lst[new_cons_idx])
+                            unc_lst[new_cons_idx], unc_params[0], std_lst[new_cons_idx], element_shape)
                         canon_constraints += aux_constr + [canon_constr]
 
                         if isinstance(type(unc_params[0].uncertainty_set), Budget):
@@ -84,7 +95,8 @@ class Uncertain_Canonicalization(Reduction):
                         elif not isinstance(type(unc_params[0].uncertainty_set), Polyhedral):
                             canon_constraints += [lmda == new_lmda]
                 else:
-                    canon_constr, aux_constr, lmbda = self.remove_uncertainty(unc_lst, unc_params[0], std_lst)
+                    canon_constr, aux_constr, lmbda = self.remove_uncertainty(
+                        unc_lst, unc_params[0], std_lst, element_shape)
                     canon_constraints += aux_constr + [canon_constr]
                 # import ipdb
                 # ipdb.set_trace()
@@ -146,17 +158,13 @@ class Uncertain_Canonicalization(Reduction):
         else:
             return expr.copy(args), []
 
-    def remove_uncertainty(self, unc_lst, uvar, std_lst):
+    def remove_uncertainty(self, unc_lst, uvar, std_lst, num_constr):
         "canonicalize each term separately with inf convolution"
         # import ipdb
         # ipdb.set_trace()
         u_shape = self.get_u_shape(uvar)
         num_unc_fns = len(unc_lst)
         if num_unc_fns > 0:
-            if len(unc_lst[0].shape) >= 1:
-                num_constr = unc_lst[0].shape[0]
-            else:
-                num_constr = 1
             if u_shape == 1:
                 z = Variable(num_unc_fns)
             else:
@@ -206,7 +214,7 @@ class Uncertain_Canonicalization(Reduction):
             aux_expr = aux_expr + new_expr
             aux_constraint = aux_constraint + new_constraint
         else:
-            aux_expr, aux_constraint, lmbda = uvar.conjugate(u_shape, 1)
+            aux_expr, aux_constraint, lmbda = uvar.conjugate(u_shape, num_constr)
         for expr in std_lst:
             aux_expr = aux_expr + expr
         return aux_expr <= 0, aux_constraint, lmbda
