@@ -22,7 +22,7 @@ from lro.utils import unique_list
 
 
 class RobustProblem(Problem):
-    """Problem with uncertain variables"""
+    """Create a Robust Optimization Problem with uncertain variables"""
 
     def __init__(self, objective, constraints):
         self._trained = False
