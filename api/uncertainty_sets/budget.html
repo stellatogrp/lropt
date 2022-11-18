@@ -134,7 +134,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -201,7 +201,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
@@ -209,6 +209,47 @@
         <article role="main">
           <section id="budget-uncertainty">
 <h1>Budget Uncertainty<a class="headerlink" href="#budget-uncertainty" title="Permalink to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="lro.Budget">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lro.</span></span><span class="sig-name descname"><span class="pre">Budget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">affine_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_box</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lro.Budget" title="Permalink to this definition">#</a></dt>
+<dd><p>Budget uncertainty set defined as</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathcal{U}_{\text{budget}} = \{u \ | \ \| A_1 u + b_1 \|_\infty \le \rho_1, \| A_2 u + b_2å \|_1 \leq \rho_2\}\]</div>
+</div>
+<section id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Permalink to this heading">#</a></h2>
+<dl class="simple">
+<dt>rho1<span class="classifier">float, optional</span></dt><dd><p>Box scaling. Default 1.0.</p>
+</dd>
+<dt>rho2<span class="classifier">float, optional</span></dt><dd><p>1-norm scaling. Default 1.0.</p>
+</dd>
+<dt>A1<span class="classifier">np.array, optional</span></dt><dd><p>matrix defining <span class="math notranslate nohighlight">\(A_1\)</span> in uncertainty set definition. By default <span class="math notranslate nohighlight">\(A_1 = I\)</span></p>
+</dd>
+<dt>A2<span class="classifier">np.array, optional</span></dt><dd><p>matrix defining <span class="math notranslate nohighlight">\(A_2\)</span> in uncertainty set definition. By default <span class="math notranslate nohighlight">\(A_2 = I\)</span></p>
+</dd>
+<dt>b1<span class="classifier">np.array, optional</span></dt><dd><p>vector defining <span class="math notranslate nohighlight">\(b_1\)</span> in uncertainty set definition. By default <span class="math notranslate nohighlight">\(b_1 = 0\)</span></p>
+</dd>
+<dt>b2<span class="classifier">np.array, optional</span></dt><dd><p>vector defining <span class="math notranslate nohighlight">\(b_2\)</span> in uncertainty set definition. By default <span class="math notranslate nohighlight">\(b_2 = 0\)</span></p>
+</dd>
+<dt>data: np.array, optional</dt><dd><p>An array of uncertainty realizations, where each row is one realization. Required if the uncertainty should
+be trained, or if <cite>loss</cite> function passed.</p>
+</dd>
+<dt>loss: function, optional</dt><dd><p>The loss function used to train the uncertainty set. Required if uncertainty set parameters should be trained
+or if <cite>data</cite> is passed. function must use torch tensors, and arguments to loss function must be given in the
+same order as cvxpy variables defined in problem.</p>
+</dd>
+</dl>
+</section>
+<section id="returns">
+<h2>Returns<a class="headerlink" href="#returns" title="Permalink to this heading">#</a></h2>
+<dl class="simple">
+<dt>Budget</dt><dd><p>Budget uncertainty set.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
 </section>
 
         </article>
@@ -248,8 +289,27 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Budget Uncertainty</a><ul>
+<li><a class="reference internal" href="#lro.Budget"><code class="docutils literal notranslate"><span class="pre">Budget</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -262,5 +322,7 @@
     <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/scripts/furo.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

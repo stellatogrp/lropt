@@ -495,19 +495,69 @@ div.rendered_html tbody tr:hover {
 <section id="Formulating-the-uncertainty-set">
 <h2>Formulating the uncertainty set<a class="headerlink" href="#Formulating-the-uncertainty-set" title="Permalink to this heading">#</a></h2>
 <p>We now formulate the uncertainty set slightly differently, where data and a loss function is passed as parameters instead of the uncertainty set parameters. The new parameters for the uncertainty set, <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(b\)</span>, will be trained through differentiable optimization.</p>
-<div class="line-block">
-<div class="line">Box uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid\| Au + b \|_\infty \leq 1 \}\)</span> - data : np.array</div>
-<div class="line">* An array of uncertainty realizations, where each row is one realization. - loss : function * The loss function used to train the uncertainty set.</div>
-</div>
-<div class="line-block">
-<div class="line">Ellipsoidal uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| Au + b \|_p \leq 1 \}\)</span> - <span class="math notranslate nohighlight">\(p\)</span> : integer, optional</div>
-<div class="line">* Order of the norm. Default 2. - data : np.array</div>
-<div class="line">* An array of uncertainty realizations, where each row is one realization. - loss : function * The loss function used to train the uncertainty set.</div>
-</div>
-<div class="line-block">
-<div class="line">Budget uncertainty: 1. train the box portion only: <span class="math notranslate nohighlight">\(\{u \mid \| Au + b \|_\infty \leq 1, \| u \|_1 \leq \rho_2\}\)</span> 2. train the 1-norm portion only: <span class="math notranslate nohighlight">\(\{u \mid \| u \|_\infty \leq \rho_1, \| Au + b \|_1 \leq 1\}\)</span> - train_box: boolean, optional * If True, train the box portion only. Default True. - <span class="math notranslate nohighlight">\(\rho_1\)</span> : float, optional * Box scaling. Default 1.0. - <span class="math notranslate nohighlight">\(\rho_2\)</span> : float, optional * 1-norm scaling. Default 1.0. - data : np.array</div>
-<div class="line">* An array of uncertainty realizations, where each row is one realization. - loss : function * The loss function used to train the uncertainty set.</div>
-</div>
+<p>Box uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid\| Au + b \|_\infty \leq 1 \}\)</span></p>
+<ul class="simple">
+<li><p>data : np.array</p>
+<ul>
+<li><p>An array of uncertainty realizations, where each row is one realization.</p></li>
+</ul>
+</li>
+<li><p>loss : function</p>
+<ul>
+<li><p>The loss function used to train the uncertainty set.</p></li>
+</ul>
+</li>
+</ul>
+<p>Ellipsoidal uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| Au + b \|_p \leq 1 \}\)</span></p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(p\)</span> : integer, optional</p>
+<ul>
+<li><p>Order of the norm. Default 2.</p></li>
+</ul>
+</li>
+<li><p>data : np.array</p>
+<ul>
+<li><p>An array of uncertainty realizations, where each row is one realization.</p></li>
+</ul>
+</li>
+<li><p>loss : function</p>
+<ul>
+<li><p>The loss function used to train the uncertainty set.</p></li>
+</ul>
+</li>
+</ul>
+<p>Budget uncertainty:</p>
+<ol class="arabic simple">
+<li><p>train the box portion only: <span class="math notranslate nohighlight">\(\{u \mid \| Au + b \|_\infty \leq 1, \| u \|_1 \leq \rho_2\}\)</span></p></li>
+<li><p>train the 1-norm portion only: <span class="math notranslate nohighlight">\(\{u \mid \| u \|_\infty \leq \rho_1, \| Au + b \|_1 \leq 1\}\)</span></p></li>
+</ol>
+<ul class="simple">
+<li><p>train_box: boolean, optional</p>
+<ul>
+<li><p>If True, train the box portion only. Default True.</p></li>
+</ul>
+</li>
+<li><p><span class="math notranslate nohighlight">\(\rho_1\)</span> : float, optional</p>
+<ul>
+<li><p>Box scaling. Default 1.0.</p></li>
+</ul>
+</li>
+<li><p><span class="math notranslate nohighlight">\(\rho_2\)</span> : float, optional</p>
+<ul>
+<li><p>1-norm scaling. Default 1.0.</p></li>
+</ul>
+</li>
+<li><p>data : np.array</p>
+<ul>
+<li><p>An array of uncertainty realizations, where each row is one realization.</p></li>
+</ul>
+</li>
+<li><p>loss : function</p>
+<ul>
+<li><p>The loss function used to train the uncertainty set.</p></li>
+</ul>
+</li>
+</ul>
 </section>
 <section id="Formulating-the-loss-function">
 <h2>Formulating the loss function<a class="headerlink" href="#Formulating-the-loss-function" title="Permalink to this heading">#</a></h2>

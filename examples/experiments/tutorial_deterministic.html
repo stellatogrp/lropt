@@ -497,12 +497,24 @@ div.rendered_html tbody tr:hover {
 <section id="Formulating-the-uncertainty-set">
 <h2>Formulating the uncertainty set<a class="headerlink" href="#Formulating-the-uncertainty-set" title="Permalink to this heading">#</a></h2>
 <p>The first step is to formulate the uncertainty set. There are multiple options, with their associated input parameters. The uncertainty set can be formulated within the uncertain parameter, which takes in the size of the uncertainty and an uncertainty set as parameters.</p>
-<div class="line-block">
-<div class="line">Box uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid\| u \|_\infty \leq \rho \}\)</span> - <span class="math notranslate nohighlight">\(\rho\)</span> : float, optional</div>
-<div class="line">* Box scaling. Default 1.0. - center : np.array, optional</div>
-<div class="line">* An array of dimension n, n the dimension of the uncertanty. Translation of the center of the box. If lengths is passed but not center it defaults to an array of zeros. - side : np.array, optional</div>
-<div class="line">* An array of dimension n, n the dimension of the uncertanty. Length of each side of the box. If center is passed but side not it defaults to an array of 2.</div>
-</div>
+<p>Box uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid\| u \|_\infty \leq \rho \}\)</span></p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\rho\)</span> : float, optional</p>
+<ul>
+<li><p>Box scaling. Default 1.0.</p></li>
+</ul>
+</li>
+<li><p>center : np.array, optional</p>
+<ul>
+<li><p>An array of dimension n, n the dimension of the uncertanty. Translation of the center of the box. If lengths is passed but not center it defaults to an array of zeros.</p></li>
+</ul>
+</li>
+<li><p>side : np.array, optional</p>
+<ul>
+<li><p>An array of dimension n, n the dimension of the uncertanty. Length of each side of the box. If center is passed but side not it defaults to an array of 2.</p></li>
+</ul>
+</li>
+</ul>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
@@ -534,10 +546,19 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<div class="line-block">
-<div class="line">Budget uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| u \|_\infty \leq \rho_1, \| u \|_1 \leq \rho_2\}\)</span> - <span class="math notranslate nohighlight">\(\rho_1\)</span> : float, optional</div>
-<div class="line">* Box scaling. Default 1.0. - <span class="math notranslate nohighlight">\(\rho_2\)</span> : float, optional * 1-norm scaling. Default 1.0.</div>
-</div>
+<p>Budget uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| u \|_\infty \leq \rho_1, \| u \|_1 \leq \rho_2\}\)</span></p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\rho_1\)</span> : float, optional</p>
+<ul>
+<li><p>Box scaling. Default 1.0.</p></li>
+</ul>
+</li>
+<li><p><span class="math notranslate nohighlight">\(\rho_2\)</span> : float, optional</p>
+<ul>
+<li><p>1-norm scaling. Default 1.0.</p></li>
+</ul>
+</li>
+</ul>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
@@ -549,10 +570,11 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<div class="line-block">
-<div class="line">Polyhedral uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid Du \leq d\}\)</span> - <span class="math notranslate nohighlight">\(D\)</span> : np.array</div>
-<div class="line">- <span class="math notranslate nohighlight">\(d\)</span> : np.array</div>
-</div>
+<p>Polyhedral uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid Du \leq d\}\)</span></p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(D\)</span> : np.array</p></li>
+<li><p><span class="math notranslate nohighlight">\(d\)</span> : np.array</p></li>
+</ul>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>

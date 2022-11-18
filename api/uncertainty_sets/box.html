@@ -134,7 +134,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -201,7 +201,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
@@ -209,6 +209,49 @@
         <article role="main">
           <section id="box-uncertainty">
 <h1>Box Uncertainty<a class="headerlink" href="#box-uncertainty" title="Permalink to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="lro.Box">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lro.</span></span><span class="sig-name descname"><span class="pre">Box</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">side</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">affine_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lro.Box" title="Permalink to this definition">#</a></dt>
+<dd><p>Box uncertainty set defined as</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathcal{U}_{\text{box}} = \{u \ | \ \| Au + b \|_\infty \le \rho\}\]</div>
+</div>
+<section id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Permalink to this heading">#</a></h2>
+<dl class="simple">
+<dt>rho<span class="classifier">float, optional</span></dt><dd><p>Box scaling. Default 1.0.</p>
+</dd>
+<dt>center<span class="classifier">np.array, optional</span></dt><dd><p>An array of dimension n, n the dimension of the uncertanty.
+Translation of the center of the box. If lengths is passed but
+not center it defaults to an array of zeros.</p>
+</dd>
+<dt>A<span class="classifier">np.array, optional</span></dt><dd><p>matrix defining <span class="math notranslate nohighlight">\(A\)</span> in uncertainty set definition. By default <span class="math notranslate nohighlight">\(A = I\)</span></p>
+</dd>
+<dt>b<span class="classifier">np.array, optional</span></dt><dd><p>vector defining <span class="math notranslate nohighlight">\(b\)</span> in uncertainty set definition. By default <span class="math notranslate nohighlight">\(b = 0\)</span></p>
+</dd>
+<dt>side<span class="classifier">np.array, optional</span></dt><dd><p>An array of dimension n, n the dimension of the uncertanty.
+Length of each side of the box. If center is passed but side not
+it defaults to an array of 2.</p>
+</dd>
+<dt>data: np.array, optional</dt><dd><p>An array of uncertainty realizations, where each row is one realization. Required if the uncertainty should
+be trained, or if <cite>loss</cite> function passed.</p>
+</dd>
+<dt>loss: function, optional</dt><dd><p>The loss function used to train the uncertainty set. Required if uncertainty set parameters should be trained
+or if <cite>data</cite> is passed. function must use torch tensors, and arguments to loss function must be given in the
+same order as cvxpy variables defined in problem.</p>
+</dd>
+</dl>
+</section>
+<section id="returns">
+<h2>Returns<a class="headerlink" href="#returns" title="Permalink to this heading">#</a></h2>
+<dl class="simple">
+<dt>Box</dt><dd><p>Box uncertainty set.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
 </section>
 
         </article>
@@ -256,8 +299,27 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Box Uncertainty</a><ul>
+<li><a class="reference internal" href="#lro.Box"><code class="docutils literal notranslate"><span class="pre">Box</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -270,5 +332,7 @@
     <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/scripts/furo.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>
