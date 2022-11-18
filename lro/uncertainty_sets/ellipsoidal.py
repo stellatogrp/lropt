@@ -30,6 +30,7 @@ class Ellipsoidal(UncertaintySet):
         The loss function used to train the uncertainty set. Required if uncertainty set parameters should be trained
         or if `data` is passed. function must use torch tensors, and arguments to loss function must be given in the
         same order as cvxpy variables defined in problem.
+
     Returns
     -------
     Ellipsoidal
