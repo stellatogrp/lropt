@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
-<link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Box Uncertainty" href="box.html" /><link rel="prev" title="Uncertainty Sets" href="index.html" />
+<link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Box Uncertainty" href="box.html" /><link rel="prev" title="Norm Uncertainty" href="norm.html" />
 
     <meta name="generator" content="sphinx-5.3.0, furo 2022.09.29"/>
         <title>Ellipsoidal Uncertainty - LRO documentation documentation</title>
@@ -165,6 +165,7 @@
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">API</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../robust_problem/index.html">Robust Problem</a></li>
 <li class="toctree-l2 current has-children"><a class="reference internal" href="index.html">Uncertainty Sets</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="norm.html">Norm Uncertainty</a></li>
 <li class="toctree-l3 current current-page"><a class="current reference internal" href="#">Ellipsoidal Uncertainty</a></li>
 <li class="toctree-l3"><a class="reference internal" href="box.html">Box Uncertainty</a></li>
 <li class="toctree-l3"><a class="reference internal" href="polyhedral.html">Polyhedral Uncertainty</a></li>
@@ -211,18 +212,16 @@
 <h1>Ellipsoidal Uncertainty<a class="headerlink" href="#ellipsoidal-uncertainty" title="Permalink to this heading">#</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="lro.Ellipsoidal">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lro.</span></span><span class="sig-name descname"><span class="pre">Ellipsoidal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">affine_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lro.Ellipsoidal" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lro.</span></span><span class="sig-name descname"><span class="pre">Ellipsoidal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lro.Ellipsoidal" title="Permalink to this definition">#</a></dt>
 <dd><p>Ellipsoidal uncertainty set, defined as</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
-\[\mathcal{U}_{\text{ellips}} = \{u \ | \ \| Au + b\|_p \le \rho\}\]</div>
+\[\mathcal{U}_{\text{ellips}} = \{u \ | \ \| Au + b\|_2 \le \rho\}\]</div>
 </div>
 <section id="parameters">
 <h2>Parameters<a class="headerlink" href="#parameters" title="Permalink to this heading">#</a></h2>
 <dl class="simple">
 <dt>rho<span class="classifier">float, optional</span></dt><dd><p>Ellipsoid scaling. Default 1.0.</p>
-</dd>
-<dt>p<span class="classifier">integer, optional</span></dt><dd><p>Order of the norm. Default 2.</p>
 </dd>
 <dt>A<span class="classifier">np.array, optional</span></dt><dd><p>matrix defining <span class="math notranslate nohighlight">\(A\)</span> in uncertainty set definition. By default <span class="math notranslate nohighlight">\(A = I\)</span></p>
 </dd>
@@ -262,14 +261,14 @@ same order as cvxpy variables defined in problem.</p>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="index.html">
+          <a class="prev-page" href="norm.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Uncertainty Sets</div>
+                <div class="title">Norm Uncertainty</div>
                 
               </div>
             </a>

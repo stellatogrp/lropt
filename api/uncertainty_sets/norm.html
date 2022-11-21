@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
-<link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Polyhedral Uncertainty" href="polyhedral.html" /><link rel="prev" title="Ellipsoidal Uncertainty" href="ellipsoidal.html" />
+<link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Ellipsoidal Uncertainty" href="ellipsoidal.html" /><link rel="prev" title="Uncertainty Sets" href="index.html" />
 
     <meta name="generator" content="sphinx-5.3.0, furo 2022.09.29"/>
-        <title>Box Uncertainty - LRO documentation documentation</title>
+        <title>Norm Uncertainty - LRO documentation documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?digest=d81277517bee4d6b0349d71bb2661d4890b5617c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
@@ -134,7 +134,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -165,9 +165,9 @@
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">API</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../robust_problem/index.html">Robust Problem</a></li>
 <li class="toctree-l2 current has-children"><a class="reference internal" href="index.html">Uncertainty Sets</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="norm.html">Norm Uncertainty</a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">Norm Uncertainty</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ellipsoidal.html">Ellipsoidal Uncertainty</a></li>
-<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">Box Uncertainty</a></li>
+<li class="toctree-l3"><a class="reference internal" href="box.html">Box Uncertainty</a></li>
 <li class="toctree-l3"><a class="reference internal" href="polyhedral.html">Polyhedral Uncertainty</a></li>
 <li class="toctree-l3"><a class="reference internal" href="budget.html">Budget Uncertainty</a></li>
 </ul>
@@ -202,49 +202,14 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
         <article role="main">
-          <section id="box-uncertainty">
-<h1>Box Uncertainty<a class="headerlink" href="#box-uncertainty" title="Permalink to this heading">#</a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="lro.Box">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lro.</span></span><span class="sig-name descname"><span class="pre">Box</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lro.Box" title="Permalink to this definition">#</a></dt>
-<dd><p>Box uncertainty set defined as</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\mathcal{U}_{\text{box}} = \{u \ | \ \| Au + b \|_\infty \le \rho\}\]</div>
-</div>
-<section id="parameters">
-<h2>Parameters<a class="headerlink" href="#parameters" title="Permalink to this heading">#</a></h2>
-<dl class="simple">
-<dt>rho<span class="classifier">float, optional</span></dt><dd><p>Box scaling. Default 1.0.</p>
-</dd>
-<dt>A<span class="classifier">np.array, optional</span></dt><dd><p>matrix defining <span class="math notranslate nohighlight">\(A\)</span> in uncertainty set definition. By default <span class="math notranslate nohighlight">\(A = I\)</span></p>
-</dd>
-<dt>b<span class="classifier">np.array, optional</span></dt><dd><p>vector defining <span class="math notranslate nohighlight">\(b\)</span> in uncertainty set definition. By default <span class="math notranslate nohighlight">\(b = 0\)</span></p>
-</dd>
-<dt>data: np.array, optional</dt><dd><p>An array of uncertainty realizations, where each row is one realization. Required if the uncertainty should
-be trained, or if <cite>loss</cite> function passed.</p>
-</dd>
-<dt>loss: function, optional</dt><dd><p>The loss function used to train the uncertainty set. Required if uncertainty set parameters should be trained
-or if <cite>data</cite> is passed. function must use torch tensors, and arguments to loss function must be given in the
-same order as cvxpy variables defined in problem.</p>
-</dd>
-</dl>
-</section>
-<section id="returns">
-<h2>Returns<a class="headerlink" href="#returns" title="Permalink to this heading">#</a></h2>
-<dl class="simple">
-<dt>Box</dt><dd><p>Box uncertainty set.</p>
-</dd>
-</dl>
-</section>
-</dd></dl>
-
+          <section id="norm-uncertainty">
+<h1>Norm Uncertainty<a class="headerlink" href="#norm-uncertainty" title="Permalink to this heading">#</a></h1>
 </section>
 
         </article>
@@ -252,23 +217,23 @@ same order as cvxpy variables defined in problem.</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="polyhedral.html">
+          <a class="next-page" href="ellipsoidal.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Polyhedral Uncertainty</div>
+                <div class="title">Ellipsoidal Uncertainty</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="ellipsoidal.html">
+          <a class="prev-page" href="index.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Ellipsoidal Uncertainty</div>
+                <div class="title">Uncertainty Sets</div>
                 
               </div>
             </a>
@@ -292,27 +257,8 @@ same order as cvxpy variables defined in problem.</p>
         
       </footer>
     </div>
-    <aside class="toc-drawer">
+    <aside class="toc-drawer no-toc">
       
-      
-      <div class="toc-sticky toc-scroll">
-        <div class="toc-title-container">
-          <span class="toc-title">
-            On this page
-          </span>
-        </div>
-        <div class="toc-tree-container">
-          <div class="toc-tree">
-            <ul>
-<li><a class="reference internal" href="#">Box Uncertainty</a><ul>
-<li><a class="reference internal" href="#lro.Box"><code class="docutils literal notranslate"><span class="pre">Box</span></code></a></li>
-</ul>
-</li>
-</ul>
-
-          </div>
-        </div>
-      </div>
       
       
     </aside>
@@ -325,7 +271,5 @@ same order as cvxpy variables defined in problem.</p>
     <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/scripts/furo.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>
