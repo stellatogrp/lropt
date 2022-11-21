@@ -467,7 +467,7 @@ div.rendered_html tbody tr:hover {
 <section id="Deterministic-Uncertainty-Sets">
 <h1>Deterministic Uncertainty Sets<a class="headerlink" href="#Deterministic-Uncertainty-Sets" title="Permalink to this heading">#</a></h1>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
@@ -641,8 +641,8 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -2.2220977010172613
-LRO x:  [-0.99824674 -1.0170179  -0.38059305 -0.84866837]
+LRO objective value:  -2.378679016233533
+LRO x:  [-1.00957502 -0.87731418 -0.81080685 -0.62544043]
 </pre></div></div>
 </div>
 <p>We compare the above with its explicit reformulation and solution</p>
@@ -684,8 +684,8 @@ LRO x:  [-0.99824674 -1.0170179  -0.38059305 -0.84866837]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -2.2220976975136297
-Cvxpy x:  [-0.99824352 -1.01701471 -0.38060504 -0.84867089]
+Cvxpy objective value:  -2.378679018559093
+Cvxpy x:  [-1.00956218 -0.87733904 -0.8108016  -0.62543262]
 </pre></div></div>
 </div>
 <p>We see that they provide the same solution.</p>
@@ -784,12 +784,12 @@ Cvxpy x:  [-0.99824352 -1.01701471 -0.38060504 -0.84867089]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Box objective value:  -1.873180154775034
-Box x:  [1.00000000e+00 6.25519596e-01 9.99999999e-01 4.90558504e-11
- 1.40880238e-10]
-Ellipsoidal objective value:  -1.8731801547750322
-Ellipsoidal x:  [1.00000000e+00 6.25519596e-01 9.99999999e-01 4.90551238e-11
- 1.40878693e-10]
+Box objective value:  -1.2885060626185378
+Box x:  [3.04765908e-11 9.99999999e-01 5.87153904e-01 4.75264650e-12
+ 1.22946843e-11]
+Ellipsoidal objective value:  -1.2885060626185372
+Ellipsoidal x:  [3.04760236e-11 9.99999999e-01 5.87153904e-01 4.75237206e-12
+ 1.22942895e-11]
 </pre></div></div>
 </div>
 <p>We compare the above with its explicit reformulation and solution</p>
@@ -830,9 +830,9 @@ Ellipsoidal x:  [1.00000000e+00 6.25519596e-01 9.99999999e-01 4.90551238e-11
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -1.8731801548079365
-Cvxpy x:  [1.00000000e+00 6.25519596e-01 9.99999999e-01 3.18587860e-11
- 1.03709479e-10]
+Cvxpy objective value:  -1.2885060626771545
+Cvxpy x:  [ 1.32188099e-11  1.00000000e+00  5.87153904e-01 -1.29940259e-12
+  2.51386068e-11]
 </pre></div></div>
 </div>
 </section>
@@ -893,8 +893,8 @@ Cvxpy x:  [1.00000000e+00 6.25519596e-01 9.99999999e-01 3.18587860e-11
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -4.71582850351676
-LRO x:  [-4.39416814  5.          5.          2.53800077]
+LRO objective value:  -6.555535069924411
+LRO x:  [ 4.99999999 -8.6380955   4.99999999  5.        ]
 </pre></div></div>
 </div>
 <p>We compare it with its direct reformulation, where each uncertain constraint is treated independently,</p>
@@ -945,8 +945,8 @@ LRO x:  [-4.39416814  5.          5.          2.53800077]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -4.7158285036491305
-Cvxpy x:  [-4.39416814  5.          5.          2.53800077]
+Cvxpy objective value:  -6.555535069287435
+Cvxpy x:  [ 4.99999999 -8.6380955   4.99999999  5.        ]
 </pre></div></div>
 </div>
 </section>
@@ -1002,8 +1002,8 @@ Cvxpy x:  [-4.39416814  5.          5.          2.53800077]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  8.603363276249897
-LRO x:  [2.23422537 2.97229215 2.91104176 2.35340157]
+LRO objective value:  4.496154790918438
+LRO x:  [1.87415974 2.55262034 2.49203048 2.63230229]
 </pre></div></div>
 </div>
 <p>We compare this with its direct reformulation,</p>
@@ -1050,8 +1050,8 @@ LRO x:  [2.23422537 2.97229215 2.91104176 2.35340157]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  8.60336327790219
-Cvxpy x:  [2.23422537 2.97229215 2.91104176 2.35340157]
+Cvxpy objective value:  4.49615479535534
+Cvxpy x:  [1.87415974 2.55262034 2.49203048 2.6323023 ]
 </pre></div></div>
 </div>
 </section>
@@ -1116,8 +1116,8 @@ LRO x:  [0.79877228 0.80135493 0.80078944 0.79878038 0.80030297]
 </div>
 <dl class="simple">
 <dt>We compare this with the direct reformulation, :nbsphinx-math:<a href="#id1"><span class="problematic" id="id2">`</span></a>begin{equation}</dt><dd><dl class="simple">
-<dt>begin{array}{lll}</dt><dd><p>&amp;text{minimize} &amp; f(x)\
-&amp;text{subject to} &amp; (1/2)sum_{i=1}^n (z_i^TP_i^{-1}z_i)/x_i + rho|z|_2 le 0\
+<dt>begin{array}{lll}</dt><dd><p>&amp;text{minimize} &amp; tau \
+&amp;text{subject to} &amp; (1/2)sum_{i=1}^n (z_i^TP_i^{-1}z_i)/x_i + rho|z|_2 le tau\
 &amp;&amp; sum_{i=1}^n z_i = z,\</p>
 </dd>
 </dl>
@@ -1219,9 +1219,9 @@ Cvxpy x:  [0.79880041 0.80132141 0.80077192 0.79880835 0.80029791]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -21.647219476830386
-LRO x:  [5.83434195e-08 1.95663034e-10 2.20657553e-11 1.31625990e+01
- 4.34986404e-11]
+LRO objective value:  -28.168285595078142
+LRO x:  [ 4.05238169e-10  2.19685144e+01 -1.30208262e-10  7.53193128e-10
+  8.21804728e-10]
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
@@ -1255,9 +1255,9 @@ LRO x:  [5.83434195e-08 1.95663034e-10 2.20657553e-11 1.31625990e+01
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -21.647219445869396
-Cvxpy x:  [2.62399952e-06 9.47772829e-10 1.41821592e-09 1.31625975e+01
- 1.02770417e-09]
+Cvxpy objective value:  -28.168285548497916
+Cvxpy x:  [ 4.15394221e-09  2.19685144e+01 -3.19706124e-10  7.32772318e-09
+  4.16097968e-09]
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
