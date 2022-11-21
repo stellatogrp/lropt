@@ -42,16 +42,18 @@ class TestPortfolio(unittest.TestCase):
         # Uncertainty
         r_bar = self.returns.mean(axis=0)
         sigma = self.returns.std(axis=0)
-        r = UncertainParameter(n, uncertainty_set=Box(center=r_bar,
-                                                      side=2 * sigma,
-                                                      rho=1.2))
+
+        A = np.diag(sigma)
+        b = r_bar
+
+        r = UncertainParameter(n, uncertainty_set=Box(rho=1.2))
 
         x = cp.Variable(n)
         constraints = [cp.sum(x) == 1,
                        x >= 0]
 
         t = cp.Variable()  # Hack to add the objective
-        constraints += [r @ x <= -t]
+        constraints += [(A @ r + b) @ x <= -t]
 
         objective = cp.Maximize(t)
         problem = RobustProblem(objective, constraints)

@@ -38,15 +38,14 @@ class TestBoxUncertainty(unittest.TestCase):
         # Robust set
         # Affine transform
 
-        m_unc = 8
-        A_unc = 3. * np.eye(m_unc)[:n, :]
+        A_unc = 3. * np.eye(n)
         b_unc = 0.1 * np.random.rand(n)
 
         # Polyhedral constraint (make a box)
-        A_poly = np.vstack((np.eye(m_unc),
-                            -np.eye(m_unc)))
-        b_poly = np.concatenate((0.1 * np.ones(m_unc),
-                                 0.1 * np.ones(m_unc)))
+        A_poly = np.vstack((np.eye(n),
+                            -np.eye(n)))
+        b_poly = np.concatenate((0.1 * np.ones(n),
+                                 0.1 * np.ones(n)))
 
         # Formulate robust problem using box constraints in cvxpy
         constraints = [-2*b_unc @ x + 0.1 * cp.norm(-2*A_unc.T @ x, p=1) <= b]
@@ -55,22 +54,20 @@ class TestBoxUncertainty(unittest.TestCase):
         x_cvxpy_box = x.value
 
         # Formulate robust problem using box constraints in lro
-        unc_set = Box(rho=0.1,
-                      affine_transform={'A': A_unc, 'b': np.zeros(n)})
+        unc_set = Box(rho=0.1)
 
         a = UncertainParameter(n, uncertainty_set=unc_set)
-        constraints = [-2*(b_unc + np.eye(n)@a) @ x <= b]
+        constraints = [-2*(b_unc + np.eye(n)@(A_unc @ a)) @ x <= b]
         prob_robust_box = RobustProblem(objective, constraints)
         prob_robust_box.solve(solver=SOLVER)
         x_robust_box = x.value
 
         # Formulate robust problem using equivalent polyhedral constraint
         unc_set = Polyhedral(d=b_poly,
-                             D=A_poly,
-                             affine_transform={'A': -2*A_unc, 'b': -2*b_unc})
+                             D=A_poly)
         a = UncertainParameter(n,
                                uncertainty_set=unc_set)
-        constraints = [a @ x <= b]
+        constraints = [(-2 * A_unc @ a - 2 * b_unc) @ x <= b]
         prob_robust_poly = RobustProblem(objective, constraints)
         prob_robust_poly.solve(solver=SOLVER)
         x_robust_poly = x.value
@@ -85,7 +82,7 @@ class TestBoxUncertainty(unittest.TestCase):
         x = cp.Variable()
         objective = cp.Minimize(-10 * x)
         u = UncertainParameter(
-            uncertainty_set=Box(center=0., rho=2.)
+            uncertainty_set=Box(rho=2.)
         )
         constraints = [0 <= x, x <= 10,
                        u * x*-0.5 <= 2]
@@ -99,7 +96,7 @@ class TestBoxUncertainty(unittest.TestCase):
         x = cp.Variable()
         objective = cp.Minimize(-10 * x)
         u = UncertainParameter(
-            uncertainty_set=Box(center=0., rho=2.)
+            uncertainty_set=Box(rho=2.)
         )
         constraints = [0 <= x, x <= 10,
                        -(0 - 1*u) * x + u*x >= -2]
@@ -112,7 +109,7 @@ class TestBoxUncertainty(unittest.TestCase):
         x = cp.Variable()
         objective = cp.Minimize(-10 * x)
         u = UncertainParameter(
-            uncertainty_set=Box(rho=2., affine_transform={'A': 1., 'b': 0.})
+            uncertainty_set=Box(rho=2)
         )
         constraints = [0 <= x, x <= 10,
                        (2*-u*x)*-1 <= 2]
@@ -129,10 +126,10 @@ class TestBoxUncertainty(unittest.TestCase):
 
         objective = cp.Minimize(c @ x)
         u = UncertainParameter(n,
-                               uncertainty_set=Box(rho=2., affine_transform={'A': A_unc, 'b': b_unc}))
+                               uncertainty_set=Box(rho=2.))
 
         constraints = [0 <= x, x <= 10,
-                       2 * (u @ x)*-1 <= 2]
+                       2 * ((A_unc @ u + b_unc) @ x)*-1 <= 2]
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
 
@@ -157,10 +154,10 @@ class TestBoxUncertainty(unittest.TestCase):
         x = cp.Variable()
         objective = cp.Minimize(-10 * x)
         u = UncertainParameter(
-            uncertainty_set=Box(rho=2., affine_transform={'A': 1., 'b': 4.})
+            uncertainty_set=Box(rho=2.)
         )
         constraints = [-12 <= x, x <= 10,
-                       x <= -2*u]
+                       x <= -2*(u + 4)]
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
         npt.assert_allclose(x.value, -12, rtol=RTOL, atol=ATOL)
@@ -170,13 +167,15 @@ class TestBoxUncertainty(unittest.TestCase):
     def test_isolate_vec(self):
         x = cp.Variable(4)
         objective = cp.Minimize(-10*cp.sum(x))
+        A_unc = np.eye(4)
+        b_unc = [4., 2., 6, 3]
         # import ipdb
         # ipdb.set_trace()
         u = UncertainParameter(4,
-                               uncertainty_set=Box(rho=2., affine_transform={'A': np.eye(4), 'b': [4., 2., 6, 3]})
+                               uncertainty_set=Box(rho=2.)
                                )
         constraints = [0 <= x, x <= 10,
-                       x <= u]
+                       x <= (A_unc @ u + b_unc)]
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
         npt.assert_allclose(x.value, [2, 0, 4, 1], rtol=RTOL, atol=ATOL)
@@ -239,9 +238,7 @@ class TestBoxUncertainty(unittest.TestCase):
         center = 0.5*np.ones(m)
         side = 0.1*np.array([1, 2, 3, 4, 5])
         box_u = UncertainParameter(m,
-                                   uncertainty_set=Box(center=center,
-                                                       side=side,
-                                                       rho=2.))
+                                   uncertainty_set=Box(rho=2.))
         n = 5
 
         # formulate cvxpy variable
@@ -250,12 +247,14 @@ class TestBoxUncertainty(unittest.TestCase):
         # formulate problem constants
         P = 3*np.random.rand(n, m)
         c = np.random.rand(n)
+        A = np.diag(0.5*side)
+        b = center
 
         # formulate objective
         objective = cp.Minimize(-c@x)
 
         # formulate constraints
-        constraints = [P@box_u @ x - 2*box_u@x <= 10, x >= 0, x <= 1]
+        constraints = [P@(A @ box_u + b) @ x - 2*(A @ box_u + b)@x <= 10, x >= 0, x <= 1]
 
         # formulate Robust Problem
         prob_robust = RobustProblem(objective, constraints)
@@ -263,8 +262,7 @@ class TestBoxUncertainty(unittest.TestCase):
         prob_robust.solve()
 
         # formulate in cvxpy
-        A = np.diag(0.5*side)
-        b = center
+
         x_cvx = cp.Variable(5)
         # formulate objective
         objective = cp.Minimize(-c@x_cvx)

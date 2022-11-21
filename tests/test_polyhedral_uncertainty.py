@@ -25,8 +25,8 @@ class TestPolyhedralUncertainty(unittest.TestCase):
         self.rho = 0.2
         self.p = 2
 
-    def test_polyhedral_lp(self):
-        b, x, n, objective, p = \
+    def test_polyhedral_lp_new(self):
+        b, x, n, objective, _ = \
             self.b, self.x, self.n, self.objective, self.p
 
         # Polyhedral constraint (make a box)
@@ -54,7 +54,7 @@ class TestPolyhedralUncertainty(unittest.TestCase):
 
         npt.assert_allclose(x_cvxpy, x_robust, rtol=RTOL, atol=ATOL)
 
-    def test_polyhedral_lp_affine_transform(self):
+    def test_polyhedral_lp(self):
         # import ipdb
         # ipdb.set_trace()
 
@@ -62,7 +62,7 @@ class TestPolyhedralUncertainty(unittest.TestCase):
             self.b, self.x, self.n, self.objective, self.p
         # Robust set
         # Affine transform
-        m_unc = 8
+        m_unc = n
         A_unc = 3. * np.eye(m_unc)[:n, :]
         b_unc = 0.1 * np.random.rand(n)
 
@@ -81,11 +81,10 @@ class TestPolyhedralUncertainty(unittest.TestCase):
         x_cvxpy = x.value
         # Formulate robust constraints with lro
         unc_set = Polyhedral(d=b_poly,
-                             D=A_poly,
-                             affine_transform={'A': A_unc, 'b': b_unc})
+                             D=A_poly)
         a = UncertainParameter(n,
                                uncertainty_set=unc_set)
-        constraints = [a @ x <= b]
+        constraints = [(A_unc @ a + b_unc) @ x <= b]
         prob_robust = RobustProblem(objective, constraints)
         prob_robust.solve()
         x_robust = x.value

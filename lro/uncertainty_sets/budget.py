@@ -2,7 +2,6 @@ import numpy as np
 from cvxpy import Parameter, Variable, norm
 
 from lro.uncertainty_sets.uncertainty_set import UncertaintySet
-from lro.utils import check_affine_transform
 
 
 class Budget(UncertaintySet):
@@ -10,7 +9,7 @@ class Budget(UncertaintySet):
     Budget uncertainty set defined as
 
     .. math::
-        \mathcal{U}_{\text{budget}} = \{u \ | \ \| A_1 u + b_1 \|_\infty \le \rho_1, \| A_2 u + b_2å \|_1 \leq \rho_2\}
+        \mathcal{U}_{\text{budget}} = \{u \ | \ \| A_1 u + b_1 \|_\infty \le \rho_1, \| A_2 u + b_2 \|_1 \leq \rho_2\}
 
     Parameters
     ----------
@@ -41,7 +40,7 @@ class Budget(UncertaintySet):
     """
 
     def __init__(self, rho1=1., rho2=1.,
-                 A1=None, A2=None, b1=None, b2=None, affine_transform=None, data=None, loss=None, train_box=True):
+                 A1=None, A2=None, b1=None, b2=None, data=None, loss=None, train_box=True):
         if rho2 <= 0 or rho1 <= 0:
             raise ValueError("Rho values must be positive.")
 
@@ -49,27 +48,16 @@ class Budget(UncertaintySet):
             raise ValueError("You must provide a loss function")
 
         if data is not None:
-            if affine_transform:
-                raise ValueError("You must provide either data"
-                                 "or an affine transform, not both"
-                                 )
-            else:
-                dat_shape = data.shape[1]
-                paramT = Parameter((dat_shape, dat_shape))
-                paramb = Parameter(dat_shape)
-                self.affine_transform_temp = None
+            dat_shape = data.shape[1]
+            paramT = Parameter((dat_shape, dat_shape))
+            paramb = Parameter(dat_shape)
+
         else:
             paramT = None
             paramb = None
-            if affine_transform:
-                check_affine_transform(affine_transform)
-                affine_transform['A'] = np.array(affine_transform['A'])
-                affine_transform['b'] = np.array(affine_transform['b'])
-                self.affine_transform_temp = affine_transform.copy()
-            else:
-                self.affine_transform_temp = None
 
-        self.affine_transform = affine_transform
+        self.affine_transform_temp = None
+        self.affine_transform = None
         self._A1 = A1
         self._A2 = A2
         self._b1 = b1
