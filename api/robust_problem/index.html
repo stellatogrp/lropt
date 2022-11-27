@@ -248,11 +248,93 @@
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lro.RobustProblem.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lro.RobustProblem.solve" title="Permalink to this definition">#</a></dt>
+<dd><p>Compiles and solves the problem using the specified method.</p>
+<p>Populates the <code class="code docutils literal notranslate"><span class="pre">status</span></code> and <code class="code docutils literal notranslate"><span class="pre">value</span></code> attributes on the
+problem object as a side-effect.</p>
+<section id="arguments">
+<h2>Arguments<a class="headerlink" href="#arguments" title="Permalink to this heading">#</a></h2>
+<dl>
+<dt>solver<span class="classifier">str, optional</span></dt><dd><p>The solver to use. For example, ‘ECOS’, ‘SCS’, or ‘OSQP’.</p>
+</dd>
+<dt>verbose<span class="classifier">bool, optional</span></dt><dd><p>Overrides the default of hiding solver output, and prints
+logging information describing CVXPY’s compilation process.</p>
+</dd>
+<dt>gp<span class="classifier">bool, optional</span></dt><dd><p>If True, parses the problem as a disciplined geometric program
+instead of a disciplined convex program.</p>
+</dd>
+<dt>qcp<span class="classifier">bool, optional</span></dt><dd><p>If True, parses the problem as a disciplined quasiconvex program
+instead of a disciplined convex program.</p>
+</dd>
+<dt>requires_grad<span class="classifier">bool, optional</span></dt><dd><p>Makes it possible to compute gradients of a solution with respect to
+Parameters by calling <code class="docutils literal notranslate"><span class="pre">problem.backward()</span></code> after solving, or to
+compute perturbations to the variables given perturbations to Parameters by
+calling <code class="docutils literal notranslate"><span class="pre">problem.derivative()</span></code>.</p>
+<p>Gradients are only supported for DCP and DGP problems, not
+quasiconvex problems. When computing gradients (i.e., when
+this argument is True), the problem must satisfy the DPP rules.</p>
+</dd>
+<dt>enforce_dpp<span class="classifier">bool, optional</span></dt><dd><p>When True, a DPPError will be thrown when trying to solve a non-DPP
+problem (instead of just a warning). Only relevant for problems
+involving Parameters. Defaults to False.</p>
+</dd>
+<dt>ignore_dpp<span class="classifier">bool, optional</span></dt><dd><p>When True, DPP problems will be treated as non-DPP,
+which may speed up compilation. Defaults to False.</p>
+</dd>
+<dt>method<span class="classifier">function, optional</span></dt><dd><p>A custom solve method to use.</p>
+</dd>
+<dt>kwargs<span class="classifier">keywords, optional</span></dt><dd><p>Additional solver specific arguments. See Notes below.</p>
+</dd>
+</dl>
+</section>
+<section id="notes">
+<h2>Notes<a class="headerlink" href="#notes" title="Permalink to this heading">#</a></h2>
+<p>CVXPY interfaces with a wide range of solvers; the algorithms used by these solvers
+have arguments relating to stopping criteria, and strategies to improve solution quality.</p>
+<p>There is no one choice of arguments which is perfect for every problem. If you are not
+getting satisfactory results from a solver, you can try changing its arguments. The
+exact way this is done depends on the specific solver. Here are some examples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prob</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="s1">&#39;ECOS&#39;</span><span class="p">,</span> <span class="n">abstol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">)</span>
+<span class="n">prob</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="s1">&#39;OSQP&#39;</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span><span class="o">.</span>
+<span class="n">mydict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;MSK_DPAR_INTPNT_CO_TOL_NEAR_REL&quot;</span><span class="p">:</span>  <span class="mi">10</span><span class="p">}</span>
+<span class="n">prob</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="s1">&#39;MOSEK&#39;</span><span class="p">,</span> <span class="n">mosek_params</span><span class="o">=</span><span class="n">mydict</span><span class="p">)</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>You should refer to CVXPY’s web documentation for details on how to pass solver
+solver arguments, available at</p>
+<p><a class="reference external" href="https://www.cvxpy.org/tutorial/advanced/index.html#setting-solver-options">https://www.cvxpy.org/tutorial/advanced/index.html#setting-solver-options</a></p>
+</section>
+<section id="id1">
+<h2>Returns<a class="headerlink" href="#id1" title="Permalink to this heading">#</a></h2>
+<dl class="simple">
+<dt>float</dt><dd><p>The optimal value for the problem, or a string indicating
+why the problem could not be solved.</p>
+</dd>
+</dl>
+</section>
+<section id="raises">
+<h2>Raises<a class="headerlink" href="#raises" title="Permalink to this heading">#</a></h2>
+<dl class="simple">
+<dt>cvxpy.error.DCPError</dt><dd><p>Raised if the problem is not DCP and <cite>gp</cite> is False.</p>
+</dd>
+<dt>cvxpy.error.DGPError</dt><dd><p>Raised if the problem is not DGP and <cite>gp</cite> is True.</p>
+</dd>
+<dt>cvxpy.error.DPPError</dt><dd><p>Raised if DPP settings are invalid.</p>
+</dd>
+<dt>cvxpy.error.SolverError</dt><dd><p>Raised if no suitable solver exists among the installed solvers,
+or if an unanticipated error is encountered.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lro.RobustProblem.train">
 <span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">45</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">momentum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SGD'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initeps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lro.RobustProblem.train" title="Permalink to this definition">#</a></dt>
 <dd><p>Trains the uncertainty set parameters to find optimal set w.r.t. loss metric</p>
-<section id="id1">
-<h2>Parameters<a class="headerlink" href="#id1" title="Permalink to this heading">#</a></h2>
+<section id="id2">
+<h2>Parameters<a class="headerlink" href="#id2" title="Permalink to this heading">#</a></h2>
 <dl class="simple">
 <dt>eps<span class="classifier">bool, optional</span></dt><dd><p>If True, train only epsilon, where <span class="math notranslate nohighlight">\(A = \epsilon I, \
 b = \epsilon \bar{d}\)</span>, where <span class="math notranslate nohighlight">\(\bar{d}\)</span> is the centroid of the
@@ -274,8 +356,8 @@ covariance of the data, and b will be initialized as <span class="math notransla
 </dd>
 </dl>
 </section>
-<section id="id2">
-<h2>Returns<a class="headerlink" href="#id2" title="Permalink to this heading">#</a></h2>
+<section id="id3">
+<h2>Returns<a class="headerlink" href="#id3" title="Permalink to this heading">#</a></h2>
 <dl class="simple">
 <dt>A pandas data frame with information on each :math:r`epsilon` having the following columns:</dt><dd><dl class="simple">
 <dt>Opt_val: float</dt><dd><p>The objective value of the Robust Problem</p>
@@ -296,8 +378,8 @@ covariance of the data, and b will be initialized as <span class="math notransla
 <dt class="sig sig-object py" id="lro.RobustProblem.uncertain_parameters">
 <span class="sig-name descname"><span class="pre">uncertain_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lro.RobustProblem.uncertain_parameters" title="Permalink to this definition">#</a></dt>
 <dd><p>Find which variables are uncertain</p>
-<section id="id3">
-<h2>Returns<a class="headerlink" href="#id3" title="Permalink to this heading">#</a></h2>
+<section id="id4">
+<h2>Returns<a class="headerlink" href="#id4" title="Permalink to this heading">#</a></h2>
 <dl class="simple">
 <dt>num_params<span class="classifier">int</span></dt><dd><p>the number of unique uncertain parameters in robust problem</p>
 </dd>
@@ -369,6 +451,7 @@ covariance of the data, and b will be initialized as <span class="math notransla
 <li><a class="reference internal" href="#">Robust Problem</a><ul>
 <li><a class="reference internal" href="#lro.RobustProblem"><code class="docutils literal notranslate"><span class="pre">RobustProblem</span></code></a><ul>
 <li><a class="reference internal" href="#lro.RobustProblem.grid"><code class="docutils literal notranslate"><span class="pre">RobustProblem.grid()</span></code></a></li>
+<li><a class="reference internal" href="#lro.RobustProblem.solve"><code class="docutils literal notranslate"><span class="pre">RobustProblem.solve()</span></code></a></li>
 <li><a class="reference internal" href="#lro.RobustProblem.train"><code class="docutils literal notranslate"><span class="pre">RobustProblem.train()</span></code></a></li>
 <li><a class="reference internal" href="#lro.RobustProblem.uncertain_parameters"><code class="docutils literal notranslate"><span class="pre">RobustProblem.uncertain_parameters()</span></code></a></li>
 </ul>

@@ -468,7 +468,7 @@ div.rendered_html tbody tr:hover {
 <section id="Learning-Uncertainty-Sets">
 <h1>Learning Uncertainty Sets<a class="headerlink" href="#Learning-Uncertainty-Sets" title="Permalink to this heading">#</a></h1>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
@@ -593,7 +593,7 @@ div.rendered_html tbody tr:hover {
 <p>where <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter.</p>
 <p>We train an ellipsoidal uncertainty set with <span class="math notranslate nohighlight">\(p = 2\)</span>, and consider the violation loss <span class="math notranslate nohighlight">\(\tau + \lambda(-u^Tx - \tau)_+\)</span>, where <span class="math notranslate nohighlight">\(\lambda = 1\)</span> is the scaling for the sum of violations.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[123]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># The violation loss function, in torch tensors</span>
@@ -624,7 +624,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[128]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Formulate the uncertainty set and uncertain parameter</span>
@@ -700,7 +700,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>where <span class="math notranslate nohighlight">\(\theta\)</span> encodes the training parameters <span class="math notranslate nohighlight">\((A,b)\)</span>. We again consider the violation loss.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[116]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define the loss function</span>
@@ -725,7 +725,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[119]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Formulate the uncertainty set and uncertain parameter</span>
@@ -761,7 +761,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[120]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Plot results</span>
@@ -812,7 +812,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>where <span class="math notranslate nohighlight">\(\theta\)</span> encodes the training parameters <span class="math notranslate nohighlight">\((A,b)\)</span>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[205]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Formulate constants</span>
@@ -845,7 +845,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[206]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Formulate uncertainty set</span>
@@ -871,12 +871,12 @@ div.rendered_html tbody tr:hover {
 <span class="n">df1</span><span class="p">,</span> <span class="n">newprob</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">initeps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
 <span class="c1"># Grid search epsilon</span>
-<span class="n">dfgrid</span><span class="p">,</span> <span class="n">newprob</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">)</span>
+<span class="n">dfgrid</span><span class="p">,</span> <span class="n">newprob</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[207]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[35]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Plot results</span>
@@ -906,6 +906,14 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <img alt="../../_images/examples_experiments_tutorial_learning_18_0.png" src="../../_images/examples_experiments_tutorial_learning_18_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
 </div>
 </div>
 </section>
