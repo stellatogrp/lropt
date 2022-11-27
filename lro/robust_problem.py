@@ -31,6 +31,7 @@ class RobustProblem(Problem):
         super(RobustProblem, self).__init__(objective, constraints)
         self._trained = False
         self._values = None
+        self.new_prob = None
 
     @property
     def trained(self):
@@ -313,10 +314,10 @@ class RobustProblem(Problem):
                         eps_tch[0]*torch.tensor(np.mean(train, axis=0))).detach().numpy().copy()}
                     self._trained = True
                     unc_set._trained = True
-
                     unc_set.paramT.value = (eps_tch*torch.tensor(np.eye(train.shape[1]))).detach().numpy().copy()
                     unc_set.paramb.value = (
                         eps_tch[0]*torch.tensor(np.mean(train, axis=0))).detach().numpy().copy()
+                self.new_prob = prob
         return df, prob
 
     def grid(self, epslst=None, seed=1, solver: Optional[str] = None):
@@ -430,9 +431,10 @@ class RobustProblem(Problem):
                 unc_set.paramT.value = (mineps*torch.tensor(np.eye(train.shape[1]))).detach().numpy().copy()
                 unc_set.paramb.value = (
                     mineps[0]*torch.tensor(np.mean(train, axis=0))).detach().numpy().copy()
+                self.new_prob = prob
         return df, prob
 
-    def dualize(self):
+    def dualize_constraints(self):
         # import ipdb
         # ipdb.set_trace()
         if self.uncertain_parameters():
@@ -443,3 +445,20 @@ class RobustProblem(Problem):
             newchain = UncertainChain(self, reductions=unc_reductions)
             prob, _ = newchain.apply(self)
             return prob
+
+    def solve(self, solver: Optional[str] = None):
+        # import ipdb
+        # ipdb.set_trace()
+        if self.new_prob is not None:
+            return self.new_prob.solve(solver=solver)
+        elif self.uncertain_parameters():
+            if self.uncertain_parameters()[0].uncertainty_set.data is not None:
+                _, _ = self.train()
+                return self.new_prob.solve(solver=solver)
+            unc_reductions = []
+            if type(self.objective) == Maximize:
+                unc_reductions += [FlipObjective()]
+            unc_reductions += [RemoveUncertainParameters()]
+            newchain = UncertainChain(self, reductions=unc_reductions)
+            prob, _ = newchain.apply(self)
+            return prob.solve(solver=solver)

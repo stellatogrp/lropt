@@ -55,7 +55,7 @@ class TestQuad(unittest.TestCase):
         # import ipdb
         # ipdb.set_trace()
         prob = RobustProblem(objective, constraints)
-        newprob = prob.dualize()
+        newprob = prob.dualize_constraints()
         newprob.solve(solver=SOLVER)
         print(x.value)
 
@@ -83,5 +83,5 @@ class TestQuad(unittest.TestCase):
         # formulate Robust Problem
         prob_robust = RobustProblem(objective, constraints)
 
-        new_prob = prob_robust.dualize()
+        new_prob = prob_robust.dualize_constraints()
         new_prob.solve()
