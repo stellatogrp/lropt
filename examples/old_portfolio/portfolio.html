@@ -487,7 +487,7 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pwd</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>pwd
 </pre></div>
 </div>
 </div>
@@ -504,10 +504,10 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
-<span class="kn">import</span> <span class="nn">lro</span>
-<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Reset seed</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import numpy as np
+import cvxpy as cp
+import lro
+np.random.seed(0)  # Reset seed
 </pre></div>
 </div>
 </div>
@@ -534,26 +534,26 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">generate_data</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Generate synthetic portfolio data.&quot;&quot;&quot;</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>  <span class="c1"># Preallocate date</span>
-    <span class="n">beta</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="o">/</span> <span class="n">n</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)]</span>  <span class="c1"># Linking factors</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def generate_data(n, N):
+    &quot;&quot;&quot;Generate synthetic portfolio data.&quot;&quot;&quot;
+    data = np.zeros((N, n))  # Preallocate date
+    beta = [i / n for i in range(n)]  # Linking factors
 
-    <span class="k">for</span> <span class="n">sample_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
-        <span class="c1"># Common market factor, mean 3%, sd 5%, truncate at +- 3 sd</span>
-        <span class="n">mu</span><span class="p">,</span> <span class="n">std</span> <span class="o">=</span> <span class="mf">0.03</span><span class="p">,</span> <span class="mf">0.05</span>
-        <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">std</span><span class="p">)</span>
-        <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">mu</span> <span class="o">-</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">std</span><span class="p">),</span> <span class="n">mu</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">std</span><span class="p">)</span>
+    for sample_idx in range(N):
+        # Common market factor, mean 3%, sd 5%, truncate at +- 3 sd
+        mu, std = 0.03, 0.05
+        z = np.random.normal(mu, std)
+        z = np.minimum(np.maximum(z, mu - 3 * std), mu + 3 * std)
 
-        <span class="k">for</span> <span class="n">asset_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
-            <span class="c1"># Idiosyncratic contribution, mean 0%, sd 5%, truncated at +- 3 sd</span>
-            <span class="n">mu_id</span><span class="p">,</span> <span class="n">std_id</span> <span class="o">=</span> <span class="mf">0.00</span><span class="p">,</span> <span class="mf">0.05</span>
-            <span class="n">asset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">mu_id</span><span class="p">,</span> <span class="n">std_id</span><span class="p">)</span>
-            <span class="n">asset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">mu_id</span> <span class="o">-</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">std_id</span><span class="p">),</span> <span class="n">mu_id</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">std_id</span><span class="p">)</span>
+        for asset_idx in range(n):
+            # Idiosyncratic contribution, mean 0%, sd 5%, truncated at +- 3 sd
+            mu_id, std_id = 0.00, 0.05
+            asset = np.random.normal(mu_id, std_id)
+            asset = np.minimum(np.maximum(asset, mu_id - 3 * std_id), mu_id + 3 * std_id)
 
-            <span class="n">data</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">,</span> <span class="n">asset_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">beta</span><span class="p">[</span><span class="n">asset_idx</span><span class="p">]</span> <span class="o">*</span> <span class="n">z</span> <span class="o">+</span> <span class="n">asset</span>
+            data[sample_idx, asset_idx] = beta[asset_idx] * z + asset
 
-    <span class="k">return</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">data</span>
+    return 100 * data
 </pre></div>
 </div>
 </div>
@@ -561,9 +561,9 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">returns</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">10000</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Mean returns: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">returns</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Covariance returns: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">returns</span><span class="p">),</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">3</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>returns = generate_data(5, 10000)
+print(&quot;Mean returns: &quot;, np.round(np.mean(returns, 1), decimals=2))
+print(&quot;Covariance returns: &quot;, np.round(np.cov(returns), decimals=3))
 </pre></div>
 </div>
 </div>
@@ -589,16 +589,16 @@ Covariance returns:  [[ 43.658   3.415  20.09  ...  -5.64    7.607   3.32 ]
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">evaluate_portfolio</span><span class="p">(</span><span class="n">returns</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-    <span class="n">returns_x</span> <span class="o">=</span> <span class="n">returns</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-    <span class="n">returns_x</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
-    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">returns_x</span><span class="p">)</span>
-    <span class="c1"># Collect summary statistics for returns</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; minimum: </span><span class="si">%6.3f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">returns_x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; maximum: </span><span class="si">%6.3f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">returns_x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; mean:    </span><span class="si">%6.3f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">returns_x</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; std dev: </span><span class="si">%6.3f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">returns_x</span><span class="o">.</span><span class="n">std</span><span class="p">())</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; maximum: </span><span class="si">%6.3f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">returns_x</span><span class="o">.</span><span class="n">var</span><span class="p">())</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def evaluate_portfolio(returns, x):
+    returns_x = returns.dot(x)
+    returns_x.sort()
+    n = len(returns_x)
+    # Collect summary statistics for returns
+    print(&quot; minimum: %6.3f&quot; % returns_x[0])
+    print(&quot; maximum: %6.3f&quot; % returns_x[-1])
+    print(&quot; mean:    %6.3f&quot; % returns_x.mean())
+    print(&quot; std dev: %6.3f&quot; % returns_x.std())
+    print(&quot; maximum: %6.3f&quot; % returns_x.var())
 </pre></div>
 </div>
 </div>
@@ -606,8 +606,8 @@ Covariance returns:  [[ 43.658   3.415  20.09  ...  -5.64    7.607   3.32 ]
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Stats fora portfolio investing all equally&quot;</span><span class="p">)</span>
-<span class="n">evaluate_portfolio</span><span class="p">(</span><span class="n">returns</span><span class="p">,</span> <span class="mf">0.2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">5</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>print(&quot;Stats fora portfolio investing all equally&quot;)
+evaluate_portfolio(returns, 0.2 * np.ones(5))
 </pre></div>
 </div>
 </div>
@@ -631,19 +631,19 @@ Stats fora portfolio investing all equally
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">solve_deterministic_portfolio</span><span class="p">(</span><span class="n">returns</span><span class="p">,</span> <span class="n">min_return</span><span class="p">):</span>
-    <span class="c1"># Get data</span>
-    <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">returns</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="n">Sigma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">returns</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
-    <span class="n">n</span> <span class="o">=</span> <span class="n">returns</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def solve_deterministic_portfolio(returns, min_return):
+    # Get data
+    r = np.mean(returns, 0)
+    Sigma = np.cov(returns.T)
+    n = returns.shape[1]
 
-    <span class="c1"># Define and solve problem</span>
-    <span class="n">x</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-    <span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span>
-<span class="c1">#     constraints += [r * x &gt;= min_return]</span>
-<span class="c1">#     objective = cp.Minimize(cp.quad_form(x, Sigma))</span>
-    <span class="n">cp</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span>
+    # Define and solve problem
+    x = cp.Variable(n)
+    constraints = [0 &lt;= x, x &lt;= 1, cp.sum(x) == 1]
+#     constraints += [r * x &gt;= min_return]
+#     objective = cp.Minimize(cp.quad_form(x, Sigma))
+    cp.Problem(objective, constraints).solve(verbose=True)
+    return x.value
 </pre></div>
 </div>
 </div>
@@ -651,10 +651,10 @@ Stats fora portfolio investing all equally
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train_returns</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10000</span><span class="p">)</span>
-<span class="n">x_deterministic</span> <span class="o">=</span> <span class="n">solve_deterministic_portfolio</span><span class="p">(</span><span class="n">train_returns</span><span class="p">,</span> <span class="mf">1.216</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Portfolio: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">x_deterministic</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
-<span class="n">evaluate_portfolio</span><span class="p">(</span><span class="n">train_returns</span><span class="p">,</span> <span class="n">x_deterministic</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train_returns = generate_data(10, 10000)
+x_deterministic = solve_deterministic_portfolio(train_returns, 1.216)
+print(&quot;Portfolio: &quot;, np.round(x_deterministic, decimals=2))
+evaluate_portfolio(train_returns, x_deterministic)
 </pre></div>
 </div>
 </div>
@@ -725,29 +725,29 @@ Portfolio:  [0.13 0.13 0.12 0.12 0.09 0.09 0.09 0.08 0.07 0.07]
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">solve_portfolio_box</span><span class="p">(</span><span class="n">returns</span><span class="p">,</span> <span class="n">alpha</span><span class="p">):</span>
-    <span class="n">n</span> <span class="o">=</span> <span class="n">returns</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def solve_portfolio_box(returns, alpha):
+    n = returns.shape[1]
 
-    <span class="c1"># Uncertainty</span>
-    <span class="n">r_bar</span> <span class="o">=</span> <span class="n">returns</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="n">sigma</span> <span class="o">=</span> <span class="n">returns</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="n">r</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">lro</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">center</span><span class="o">=</span><span class="n">r_bar</span><span class="p">,</span>
-                                                            <span class="n">side</span><span class="o">=</span><span class="mi">2</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">,</span>
-                                                            <span class="n">rho</span><span class="o">=</span><span class="n">alpha</span><span class="p">))</span>
+    # Uncertainty
+    r_bar = returns.mean(axis=0)
+    sigma = returns.std(axis=0)
+    r = lro.UncertainParameter(n, uncertainty_set=lro.Box(center=r_bar,
+                                                            side=2 * sigma,
+                                                            rho=alpha))
 
-    <span class="n">x</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-    <span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span>
-                   <span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">]</span>
+    x = cp.Variable(n)
+    constraints = [cp.sum(x) == 1,
+                   x &gt;= 0]
 
-    <span class="n">obj</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>  <span class="c1"># Hack to add the objective</span>
-    <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">r</span> <span class="o">*</span> <span class="n">x</span> <span class="o">&gt;=</span> <span class="n">obj</span><span class="p">]</span>
+    obj = cp.Variable()  # Hack to add the objective
+    constraints += [r * x &gt;= obj]
 
-    <span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Maximize</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
-    <span class="n">problem</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">problem</span><span class="p">)</span>
-    <span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+    objective = cp.Maximize(obj)
+    problem = lro.RobustProblem(objective, constraints)
+    print(problem)
+    problem.solve()
 
-    <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span>
+    return x.value
 </pre></div>
 </div>
 </div>
@@ -755,10 +755,10 @@ Portfolio:  [0.13 0.13 0.12 0.12 0.09 0.09 0.09 0.08 0.07 0.07]
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train_returns</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10000</span><span class="p">)</span>
-<span class="n">x_portfolio_box</span> <span class="o">=</span> <span class="n">solve_portfolio_box</span><span class="p">(</span><span class="n">train_returns</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Portfolio: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">x_portfolio_box</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
-<span class="n">evaluate_portfolio</span><span class="p">(</span><span class="n">train_returns</span><span class="p">,</span> <span class="n">x_portfolio_box</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train_returns = generate_data(10, 10000)
+x_portfolio_box = solve_portfolio_box(train_returns, 0.001)
+print(&quot;Portfolio: &quot;, np.round(x_portfolio_box, decimals=2))
+evaluate_portfolio(train_returns, x_portfolio_box)
 </pre></div>
 </div>
 </div>

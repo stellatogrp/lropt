@@ -471,29 +471,29 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">scipy</span> <span class="k">as</span> <span class="nn">sc</span>
-<span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">datasets</span>
-<span class="kn">from</span> <span class="nn">matplotlib.style</span> <span class="kn">import</span> <span class="n">available</span>
-<span class="kn">from</span> <span class="nn">sklearn.cluster</span> <span class="kn">import</span> <span class="n">KMeans</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">time</span>
-<span class="kn">from</span> <span class="nn">cvxpylayers.torch</span> <span class="kn">import</span> <span class="n">CvxpyLayer</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span>
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">import</span> <span class="nn">mosek</span>
-<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
-    <span class="s2">&quot;text.usetex&quot;</span><span class="p">:</span><span class="kc">True</span><span class="p">,</span>
-    <span class="s2">&quot;font.size&quot;</span><span class="p">:</span><span class="mi">18</span><span class="p">,</span>
-    <span class="s2">&quot;font.family&quot;</span><span class="p">:</span> <span class="s2">&quot;serif&quot;</span>
-<span class="p">})</span>
-<span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:green&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span>
-          <span class="s2">&quot;tab:red&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:purple&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:brown&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:pink&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:grey&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:olive&quot;</span><span class="p">,</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:green&quot;</span><span class="p">,</span>
-          <span class="s2">&quot;tab:red&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:purple&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:brown&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:pink&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:grey&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:olive&quot;</span><span class="p">]</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import scipy as sc
+from sklearn import datasets
+from matplotlib.style import available
+from sklearn.cluster import KMeans
+import numpy as np
+import cvxpy as cp
+import torch
+import time
+from cvxpylayers.torch import CvxpyLayer
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+import pandas as pd
+import warnings
+import mosek
+warnings.filterwarnings(&#39;ignore&#39;)
+plt.rcParams.update({
+    &quot;text.usetex&quot;:True,
+    &quot;font.size&quot;:18,
+    &quot;font.family&quot;: &quot;serif&quot;
+})
+colors = [&quot;tab:blue&quot;, &quot;tab:green&quot;, &quot;tab:orange&quot;,
+          &quot;tab:red&quot;, &quot;tab:purple&quot;, &quot;tab:brown&quot;, &quot;tab:pink&quot;, &quot;tab:grey&quot;, &quot;tab:olive&quot;,&quot;tab:blue&quot;, &quot;tab:orange&quot;, &quot;tab:green&quot;,
+          &quot;tab:red&quot;, &quot;tab:purple&quot;, &quot;tab:brown&quot;, &quot;tab:pink&quot;, &quot;tab:grey&quot;, &quot;tab:olive&quot;]
 </pre></div>
 </div>
 </div>
@@ -501,43 +501,43 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">createproblem_port</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
-    <span class="c1"># PARAMETERS #</span>
-    <span class="n">A</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Parameter</span><span class="p">((</span><span class="n">n</span><span class="p">,</span><span class="n">n</span><span class="p">))</span>
-    <span class="n">b</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-    <span class="c1"># VARIABLES #</span>
-    <span class="c1"># weights, s_i, lambda, tau</span>
-    <span class="n">x</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-    <span class="n">t</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
-    <span class="n">tau</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
-    <span class="n">gam</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-    <span class="c1"># OBJECTIVE #</span>
-    <span class="n">objective</span> <span class="o">=</span> <span class="n">t</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def createproblem_port(n):
+    # PARAMETERS #
+    A = cp.Parameter((n,n))
+    b = cp.Parameter(n)
+    # VARIABLES #
+    # weights, s_i, lambda, tau
+    x = cp.Variable(n)
+    t = cp.Variable()
+    tau = cp.Variable()
+    gam = cp.Variable(n)
+    # OBJECTIVE #
+    objective = t
 
-    <span class="c1"># CONSTRAINTS #</span>
-    <span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="o">*</span><span class="n">tau</span> <span class="o">+</span> <span class="mi">5</span><span class="o">*</span><span class="n">b</span><span class="nd">@x</span> <span class="o">+</span> <span class="n">cp</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">gam</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">t</span><span class="p">]</span>
-    <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="nd">@gam</span> <span class="o">==</span> <span class="mi">5</span><span class="o">*</span><span class="n">x</span><span class="p">]</span>
-    <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">t</span> <span class="o">&gt;=</span> <span class="n">tau</span><span class="p">]</span>
-    <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span>
-    <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">]</span>
-    <span class="c1"># PROBLEM #</span>
-    <span class="n">problem</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">objective</span><span class="p">),</span> <span class="n">constraints</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">problem</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span>
+    # CONSTRAINTS #
+    constraints = [-4*tau + 5*b@x + cp.norm(gam,2) &lt;= t]
+    constraints += [A.T@gam == 5*x]
+    constraints += [t &gt;= tau]
+    constraints += [cp.sum(x) == 1]
+    constraints += [x &gt;= 0, x &lt;= 1]
+    # PROBLEM #
+    problem = cp.Problem(cp.Minimize(objective), constraints)
+    return problem, x, t, tau, A, b
 
-<span class="k">def</span> <span class="nf">normal_returns</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
-    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
-        <span class="n">i</span><span class="o">*</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="mf">0.02</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="mf">0.025</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)),</span> <span class="n">N</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="o">+</span><span class="mi">1</span><span class="p">)])</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">R</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span>
-<span class="k">def</span> <span class="nf">normal_returns1</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
-    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
-        <span class="n">i</span><span class="o">*</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="mf">0.01</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="mf">0.035</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)),</span> <span class="n">N</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="o">+</span><span class="mi">1</span><span class="p">)])</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">R</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span>
-<span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">t</span><span class="p">,</span><span class="n">tau</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span><span class="n">l</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">t</span> <span class="o">+</span> <span class="n">l</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="o">*</span><span class="n">data</span><span class="nd">@x</span> <span class="o">-</span> <span class="mi">4</span><span class="o">*</span><span class="n">tau</span><span class="p">,</span> <span class="n">tau</span><span class="p">)</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))),</span> <span class="n">t</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="o">*</span><span class="n">data</span><span class="nd">@x</span> <span class="o">-</span> <span class="mi">4</span><span class="o">*</span><span class="n">tau</span><span class="p">,</span> <span class="n">tau</span><span class="p">)</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)))</span>
+def normal_returns(m, N):
+    R = np.vstack([np.random.normal(
+        i*0.03, np.sqrt((0.02**2+(i*0.025)**2)), N) for i in range(1, m+1)])
+    return (R.transpose())
+def normal_returns1(m, N):
+    R = np.vstack([np.random.normal(
+        i*0.05, np.sqrt((0.01**2+(i*0.035)**2)), N) for i in range(1, m+1)])
+    return (R.transpose())
+def loss(x,t,tau, data,l = 1):
+    return t + l*torch.mean(torch.maximum(
+        torch.maximum(-5*data@x - 4*tau, tau) - t,
+        torch.tensor(0.,requires_grad = True))), t, torch.mean(torch.maximum(
+        torch.maximum(-5*data@x - 4*tau, tau) - t,
+        torch.tensor(0.,requires_grad = True)))
 </pre></div>
 </div>
 </div>
@@ -545,7 +545,7 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">loss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">m</span><span class="p">)),</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="n">val_dset</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>loss(torch.tensor(5*np.ones(m)),torch.tensor(1),torch.tensor(1),val_dset)
 </pre></div>
 </div>
 </div>
@@ -564,11 +564,11 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">m</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="n">N</span> <span class="o">=</span> <span class="mi">500</span>
-<span class="n">d1</span> <span class="o">=</span> <span class="n">normal_returns</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">N</span><span class="p">)</span>
-<span class="n">d2</span> <span class="o">=</span> <span class="n">normal_returns1</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">N</span><span class="p">)</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">d1</span><span class="p">,</span><span class="n">d2</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>m = 100
+N = 500
+d1 = normal_returns(m,N)
+d2 = normal_returns1(m,N)
+data = np.concatenate((d1,d2))
 </pre></div>
 </div>
 </div>
@@ -576,95 +576,95 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">w</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="n">problem</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">createproblem_port</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
-<span class="n">df1</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="s2">&quot;Opt_val&quot;</span><span class="p">,</span> <span class="s2">&quot;Violations1&quot;</span><span class="p">,</span> <span class="s2">&quot;Violations2&quot;</span><span class="p">,</span><span class="s2">&quot;Eval_val&quot;</span><span class="p">,</span> <span class="s2">&quot;Loss_val&quot;</span><span class="p">,</span> <span class="s2">&quot;A_norm&quot;</span><span class="p">])</span>
-<span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">5</span><span class="p">),</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">119</span><span class="p">)</span>
-<span class="n">val_dset</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">eval_set</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="c1"># create cvxpylayer</span>
-<span class="n">cvxpylayer</span> <span class="o">=</span> <span class="n">CvxpyLayer</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">],</span> <span class="n">variables</span><span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">])</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>w = 1
+problem, x, t, tau, A, b = createproblem_port(m)
+df1 = pd.DataFrame(columns=[&quot;step&quot;, &quot;Opt_val&quot;, &quot;Violations1&quot;, &quot;Violations2&quot;,&quot;Eval_val&quot;, &quot;Loss_val&quot;, &quot;A_norm&quot;])
+train, test = train_test_split(data, test_size=int(data.shape[0]/5), random_state=119)
+val_dset = torch.tensor(train, requires_grad=True)
+eval_set = torch.tensor(test, requires_grad=True)
+# create cvxpylayer
+cvxpylayer = CvxpyLayer(problem, parameters=[A, b], variables= [x, t, tau])
 
-<span class="n">init</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">T</span><span class="p">)))</span>
-<span class="n">paramb_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="o">-</span><span class="n">init</span><span class="nd">@np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">paramT_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">variables</span> <span class="o">=</span> <span class="p">[</span><span class="n">paramT_tch</span><span class="p">,</span> <span class="n">paramb_tch</span><span class="p">]</span>
-<span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
-<span class="n">step</span> <span class="o">=</span> <span class="mi">50</span>
-<span class="k">for</span> <span class="n">steps</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-    <span class="n">var_values</span> <span class="o">=</span> <span class="n">cvxpylayer</span><span class="p">(</span><span class="n">paramT_tch</span><span class="p">,</span> <span class="n">paramb_tch</span><span class="p">,</span> <span class="n">solver_args</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;solve_method&#39;</span><span class="p">:</span> <span class="s1">&#39;ECOS&#39;</span><span class="p">})</span>
-    <span class="n">totloss</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">v1</span> <span class="o">=</span> <span class="n">loss</span><span class="p">(</span><span class="o">*</span><span class="n">var_values</span><span class="p">,</span> <span class="n">val_dset</span><span class="p">,</span> <span class="n">l</span><span class="o">=</span> <span class="n">w</span><span class="p">)</span>
-    <span class="n">evalloss</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">v2</span> <span class="o">=</span> <span class="n">loss</span><span class="p">(</span><span class="o">*</span><span class="n">var_values</span><span class="p">,</span> <span class="n">eval_set</span><span class="p">,</span> <span class="n">l</span> <span class="o">=</span> <span class="n">w</span><span class="p">)</span>
-    <span class="n">totloss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-    <span class="n">newrow</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span>
-        <span class="p">{</span><span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="n">steps</span><span class="p">,</span>
-         <span class="s2">&quot;Loss_val&quot;</span><span class="p">:</span> <span class="n">totloss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-         <span class="s2">&quot;Eval_val&quot;</span><span class="p">:</span> <span class="n">evalloss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-         <span class="s2">&quot;Opt_val&quot;</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-         <span class="s2">&quot;Violations1&quot;</span><span class="p">:</span> <span class="n">v1</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-         <span class="s2">&quot;Violations2&quot;</span><span class="p">:</span> <span class="n">v2</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-         <span class="s2">&quot;A_norm&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">paramT_tch</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
-         <span class="p">})</span>
-    <span class="n">df1</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">df1</span><span class="p">,</span> <span class="n">newrow</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">steps</span> <span class="o">&lt;</span> <span class="n">step</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-        <span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
+paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True)
+paramT_tch = torch.tensor(init, requires_grad=True)
+variables = [paramT_tch, paramb_tch]
+opt = torch.optim.SGD(variables, lr=0.4, momentum=0.8)
+step = 50
+for steps in range(step):
+    var_values = cvxpylayer(paramT_tch, paramb_tch, solver_args={&#39;solve_method&#39;: &#39;ECOS&#39;})
+    totloss, obj, v1 = loss(*var_values, val_dset, l= w)
+    evalloss, _, v2 = loss(*var_values, eval_set, l = w)
+    totloss.backward()
+    newrow = pd.Series(
+        {&quot;step&quot;: steps,
+         &quot;Loss_val&quot;: totloss.item(),
+         &quot;Eval_val&quot;: evalloss.item(),
+         &quot;Opt_val&quot;: obj.item(),
+         &quot;Violations1&quot;: v1.item(),
+         &quot;Violations2&quot;: v2.item(),
+         &quot;A_norm&quot;: np.linalg.norm(paramT_tch.detach().numpy().copy())
+         })
+    df1 = pd.concat([df1, newrow.to_frame().T], ignore_index=True)
+    if steps &lt; step - 1:
+        opt.step()
+        opt.zero_grad()
 
-<span class="n">problem</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">createproblem_port</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
-<span class="n">cvxpylayer</span> <span class="o">=</span> <span class="n">CvxpyLayer</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">],</span> <span class="n">variables</span><span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">])</span>
-<span class="n">df2</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="s2">&quot;Opt_val&quot;</span><span class="p">,</span> <span class="s2">&quot;Violations1&quot;</span><span class="p">,</span> <span class="s2">&quot;Violations2&quot;</span><span class="p">,</span><span class="s2">&quot;Eval_val&quot;</span><span class="p">,</span> <span class="s2">&quot;Loss_val&quot;</span><span class="p">,</span> <span class="s2">&quot;A_norm&quot;</span><span class="p">])</span>
-<span class="n">init</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
-<span class="n">paramb_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="o">-</span><span class="n">init</span><span class="nd">@np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">paramT_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">variables</span> <span class="o">=</span> <span class="p">[</span><span class="n">paramT_tch</span><span class="p">,</span> <span class="n">paramb_tch</span><span class="p">]</span>
-<span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
-<span class="k">for</span> <span class="n">steps</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-    <span class="n">var_values</span> <span class="o">=</span> <span class="n">cvxpylayer</span><span class="p">(</span><span class="n">paramT_tch</span><span class="p">,</span> <span class="n">paramb_tch</span><span class="p">,</span> <span class="n">solver_args</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;solve_method&#39;</span><span class="p">:</span> <span class="s1">&#39;ECOS&#39;</span><span class="p">})</span>
-    <span class="n">totloss</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">v1</span> <span class="o">=</span> <span class="n">loss</span><span class="p">(</span><span class="o">*</span><span class="n">var_values</span><span class="p">,</span> <span class="n">val_dset</span><span class="p">,</span> <span class="n">l</span><span class="o">=</span><span class="n">w</span><span class="p">)</span>
-    <span class="n">evalloss</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">v2</span> <span class="o">=</span> <span class="n">loss</span><span class="p">(</span><span class="o">*</span><span class="n">var_values</span><span class="p">,</span> <span class="n">eval_set</span><span class="p">,</span> <span class="n">l</span><span class="o">=</span><span class="n">w</span><span class="p">)</span>
-    <span class="n">totloss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-    <span class="n">newrow</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span>
-        <span class="p">{</span><span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="n">steps</span><span class="p">,</span>
-         <span class="s2">&quot;Loss_val&quot;</span><span class="p">:</span> <span class="n">totloss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-         <span class="s2">&quot;Eval_val&quot;</span><span class="p">:</span> <span class="n">evalloss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-         <span class="s2">&quot;Opt_val&quot;</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-         <span class="s2">&quot;Violations1&quot;</span><span class="p">:</span> <span class="n">v1</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-         <span class="s2">&quot;Violations2&quot;</span><span class="p">:</span> <span class="n">v2</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-         <span class="s2">&quot;A_norm&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">paramT_tch</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
-         <span class="p">})</span>
-    <span class="n">df2</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">df2</span><span class="p">,</span> <span class="n">newrow</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">steps</span> <span class="o">&lt;</span> <span class="n">step</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-        <span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+problem, x, t, tau, A, b = createproblem_port(m)
+cvxpylayer = CvxpyLayer(problem, parameters=[A, b], variables= [x, t, tau])
+df2 = pd.DataFrame(columns=[&quot;step&quot;, &quot;Opt_val&quot;, &quot;Violations1&quot;, &quot;Violations2&quot;,&quot;Eval_val&quot;, &quot;Loss_val&quot;, &quot;A_norm&quot;])
+init = np.eye(m)
+paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True)
+paramT_tch = torch.tensor(init, requires_grad=True)
+variables = [paramT_tch, paramb_tch]
+opt = torch.optim.SGD(variables, lr=0.4, momentum=0.8)
+for steps in range(step):
+    var_values = cvxpylayer(paramT_tch, paramb_tch, solver_args={&#39;solve_method&#39;: &#39;ECOS&#39;})
+    totloss, obj, v1 = loss(*var_values, val_dset, l=w)
+    evalloss, _, v2 = loss(*var_values, eval_set, l=w)
+    totloss.backward()
+    newrow = pd.Series(
+        {&quot;step&quot;: steps,
+         &quot;Loss_val&quot;: totloss.item(),
+         &quot;Eval_val&quot;: evalloss.item(),
+         &quot;Opt_val&quot;: obj.item(),
+         &quot;Violations1&quot;: v1.item(),
+         &quot;Violations2&quot;: v2.item(),
+         &quot;A_norm&quot;: np.linalg.norm(paramT_tch.detach().numpy().copy())
+         })
+    df2 = pd.concat([df2, newrow.to_frame().T], ignore_index=True)
+    if steps &lt; step - 1:
+        opt.step()
+        opt.zero_grad()
 
-<span class="n">problem</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">createproblem_port</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
-<span class="n">cvxpylayer</span> <span class="o">=</span> <span class="n">CvxpyLayer</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">],</span> <span class="n">variables</span><span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">])</span>
-<span class="n">df_eps</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="s2">&quot;Opt_val&quot;</span><span class="p">,</span> <span class="s2">&quot;Violations1&quot;</span><span class="p">,</span> <span class="s2">&quot;Violations2&quot;</span><span class="p">,</span><span class="s2">&quot;Eval_val&quot;</span><span class="p">,</span> <span class="s2">&quot;Loss_val&quot;</span><span class="p">,</span> <span class="s2">&quot;A_norm&quot;</span><span class="p">])</span>
-<span class="n">eps_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">1</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">paramb_tch</span> <span class="o">=</span> <span class="n">eps_tch</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">paramT_tch</span> <span class="o">=</span> <span class="n">eps_tch</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">variables</span> <span class="o">=</span> <span class="p">[</span><span class="n">eps_tch</span><span class="p">]</span>
-<span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
-<span class="k">for</span> <span class="n">steps</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-    <span class="n">paramb_tch</span> <span class="o">=</span> <span class="n">eps_tch</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">paramT_tch</span> <span class="o">=</span> <span class="n">eps_tch</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">var_values</span> <span class="o">=</span> <span class="n">cvxpylayer</span><span class="p">(</span><span class="n">paramT_tch</span><span class="p">,</span> <span class="n">paramb_tch</span><span class="p">,</span> <span class="n">solver_args</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;solve_method&#39;</span><span class="p">:</span> <span class="s1">&#39;ECOS&#39;</span><span class="p">})</span>
-    <span class="n">totloss</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">v1</span> <span class="o">=</span> <span class="n">loss</span><span class="p">(</span><span class="o">*</span><span class="n">var_values</span><span class="p">,</span> <span class="n">val_dset</span><span class="p">,</span> <span class="n">l</span><span class="o">=</span><span class="n">w</span><span class="p">)</span>
-    <span class="n">evalloss</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">v2</span> <span class="o">=</span> <span class="n">loss</span><span class="p">(</span><span class="o">*</span><span class="n">var_values</span><span class="p">,</span> <span class="n">eval_set</span><span class="p">,</span> <span class="n">l</span><span class="o">=</span><span class="n">w</span><span class="p">)</span>
-    <span class="n">totloss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-    <span class="n">newrow</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span>
-        <span class="p">{</span><span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="n">steps</span><span class="p">,</span>
-         <span class="s2">&quot;Loss_val&quot;</span><span class="p">:</span> <span class="n">totloss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-         <span class="s2">&quot;Eval_val&quot;</span><span class="p">:</span> <span class="n">evalloss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-         <span class="s2">&quot;Opt_val&quot;</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-         <span class="s2">&quot;Violations1&quot;</span><span class="p">:</span> <span class="n">v1</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-         <span class="s2">&quot;Violations2&quot;</span><span class="p">:</span> <span class="n">v2</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-         <span class="s2">&quot;A_norm&quot;</span><span class="p">:</span> <span class="n">eps_tch</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="p">})</span>
-    <span class="n">df_eps</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">df_eps</span><span class="p">,</span> <span class="n">newrow</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">steps</span> <span class="o">&lt;</span> <span class="n">step</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-        <span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+problem, x, t, tau, A, b = createproblem_port(m)
+cvxpylayer = CvxpyLayer(problem, parameters=[A, b], variables= [x, t, tau])
+df_eps = pd.DataFrame(columns=[&quot;step&quot;, &quot;Opt_val&quot;, &quot;Violations1&quot;, &quot;Violations2&quot;,&quot;Eval_val&quot;, &quot;Loss_val&quot;, &quot;A_norm&quot;])
+eps_tch = torch.tensor(1/1, requires_grad=True)
+paramb_tch = eps_tch*torch.tensor(-np.mean(train, axis=0), requires_grad=True)
+paramT_tch = eps_tch*torch.tensor(np.eye(train.shape[1]), requires_grad=True)
+variables = [eps_tch]
+opt = torch.optim.SGD(variables, lr=0.01, momentum=0.8)
+for steps in range(step):
+    paramb_tch = eps_tch*torch.tensor(-np.mean(train, axis=0), requires_grad=True)
+    paramT_tch = eps_tch*torch.tensor(np.eye(train.shape[1]), requires_grad=True)
+    var_values = cvxpylayer(paramT_tch, paramb_tch, solver_args={&#39;solve_method&#39;: &#39;ECOS&#39;})
+    totloss, obj, v1 = loss(*var_values, val_dset, l=w)
+    evalloss, _, v2 = loss(*var_values, eval_set, l=w)
+    totloss.backward()
+    newrow = pd.Series(
+        {&quot;step&quot;: steps,
+         &quot;Loss_val&quot;: totloss.item(),
+         &quot;Eval_val&quot;: evalloss.item(),
+         &quot;Opt_val&quot;: obj.item(),
+         &quot;Violations1&quot;: v1.item(),
+         &quot;Violations2&quot;: v2.item(),
+         &quot;A_norm&quot;: eps_tch.detach().numpy().copy()
+        })
+    df_eps = pd.concat([df_eps, newrow.to_frame().T], ignore_index=True)
+    if steps &lt; step - 1:
+        opt.step()
+        opt.zero_grad()
 </pre></div>
 </div>
 </div>
@@ -672,17 +672,17 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[46]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df_eps</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">],</span> <span class="n">df_eps</span><span class="p">[</span><span class="s1">&#39;Loss_val&#39;</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;$\epsilon$ training&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df_eps</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">],</span> <span class="n">df_eps</span><span class="p">[</span><span class="s1">&#39;Eval_val&#39;</span><span class="p">],</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;$\epsilon$ testing&quot;</span><span class="p">)</span>
-<span class="c1"># plt.plot(df1[&#39;step&#39;], df1[&#39;Loss_val&#39;], color=&quot;tab:orange&quot;, label=&quot;Reshape training init $\Sigma^{-1/2}$&quot;)</span>
-<span class="c1"># plt.plot(df1[&#39;step&#39;], df1[&#39;Eval_val&#39;], linestyle=&#39;--&#39;, color=&quot;tab:orange&quot;, label=&quot;Reshape testing init $\Sigma^{-1/2}$&quot;)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df2</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">],</span> <span class="n">df2</span><span class="p">[</span><span class="s1">&#39;Loss_val&#39;</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:green&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Reshape training init $I$&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df2</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">],</span> <span class="n">df2</span><span class="p">[</span><span class="s1">&#39;Eval_val&#39;</span><span class="p">],</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:green&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Reshape testing init $I$&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;lower right&quot;</span><span class="p">,</span> <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">1.6</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">))</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Iterations&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Training and Testing Loss&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;plot.pdf&quot;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>plt.figure(figsize=(9, 5))
+plt.plot(df_eps[&#39;step&#39;], df_eps[&#39;Loss_val&#39;], color=&quot;tab:blue&quot;, label=r&quot;$\epsilon$ training&quot;)
+plt.plot(df_eps[&#39;step&#39;], df_eps[&#39;Eval_val&#39;], linestyle=&#39;--&#39;, color=&quot;tab:blue&quot;, label=r&quot;$\epsilon$ testing&quot;)
+# plt.plot(df1[&#39;step&#39;], df1[&#39;Loss_val&#39;], color=&quot;tab:orange&quot;, label=&quot;Reshape training init $\Sigma^{-1/2}$&quot;)
+# plt.plot(df1[&#39;step&#39;], df1[&#39;Eval_val&#39;], linestyle=&#39;--&#39;, color=&quot;tab:orange&quot;, label=&quot;Reshape testing init $\Sigma^{-1/2}$&quot;)
+plt.plot(df2[&#39;step&#39;], df2[&#39;Loss_val&#39;], color=&quot;tab:green&quot;, label=&quot;Reshape training init $I$&quot;)
+plt.plot(df2[&#39;step&#39;], df2[&#39;Eval_val&#39;], linestyle=&#39;--&#39;, color=&quot;tab:green&quot;, label=&quot;Reshape testing init $I$&quot;)
+plt.legend(loc=&quot;lower right&quot;, bbox_to_anchor=(1.6, 0.2))
+plt.xlabel(&quot;Iterations&quot;)
+plt.ylabel(&quot;Training and Testing Loss&quot;)
+plt.savefig(&quot;plot.pdf&quot;)
 <br/></pre></div>
 </div>
 </div>
