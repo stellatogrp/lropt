@@ -180,7 +180,7 @@ class Norm(UncertaintySet):
                     constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
                     constr += [self.paramT.T@newvar == var[0]]
                     constr += [lmbda >= 0]
-                    return self.rho * lmbda - var[0]*self.paramb, constr, lmbda
+                    return self.rho * lmbda - newvar*self.paramb, constr, lmbda
                 else:
                     constr = []
                     lmbda = Variable(shape)
@@ -190,7 +190,7 @@ class Norm(UncertaintySet):
                         constr += [norm(newvar[ind], p=self.dual_norm()) <= lmbda[ind]]
                         constr += [self.paramT.T@newvar[ind] == var[ind]]
 
-                    return self.rho * lmbda - var@self.paramb, constr, lmbda
+                    return self.rho * lmbda - newvar@self.paramb, constr, lmbda
             else:
                 if shape == 1:
                     lmbda = Variable()

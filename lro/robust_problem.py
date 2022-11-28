@@ -115,7 +115,7 @@ class RobustProblem(Problem):
 
     def train(
         self, eps=False, step=45, lr=0.01, momentum=0.8,
-        optimizer="SGD", initeps=None, seed=1, solver: Optional[str] = None
+        optimizer="SGD", initeps=None, initA=None, initb=None, seed=1, solver: Optional[str] = None
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. loss metric
@@ -202,17 +202,23 @@ class RobustProblem(Problem):
                 if not eps:
                     # initialize parameters to train
                     if len(np.shape(np.cov(train.T))) >= 1:
-                        if initeps:
+                        if initA:
+                            init = np.array(initA)
+                        elif initeps:
                             init = (1/initeps)*np.eye(train.shape[1])
                         else:
                             init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
                         paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True)
                     else:
-                        if initeps:
+                        if initA:
+                            init = np.array(initA)
+                        elif initeps:
                             init = (1/initeps)*np.eye(1)
                         else:
                             init = np.array([[np.cov(train.T)]])
                         paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True)
+                    if initb:
+                        paramb_tch = np.array(initb)
 
                     paramT_tch = torch.tensor(init, requires_grad=True)
                     variables = [paramT_tch, paramb_tch]
@@ -318,7 +324,7 @@ class RobustProblem(Problem):
                     unc_set.paramb.value = (
                         eps_tch[0]*torch.tensor(np.mean(train, axis=0))).detach().numpy().copy()
                 self.new_prob = prob
-        return df, prob
+        return df, prob, unc_set.paramT.value, unc_set.paramb.value
 
     def grid(self, epslst=None, seed=1, solver: Optional[str] = None):
         r"""
