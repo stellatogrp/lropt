@@ -592,7 +592,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>where <span class="math notranslate nohighlight">\(c\)</span>, <span class="math notranslate nohighlight">\(P\)</span>, and <span class="math notranslate nohighlight">\(a\)</span> are constants, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from the ellipsoidal set above.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#restate the ellipsoidal set</span>
@@ -629,8 +629,8 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -1.158467103015561
-LRO x:  [-0.24384259 -0.94875762 -0.90656552 -1.03743563]
+LRO objective value:  -2.6175888833396743
+LRO x:  [-0.43943943 -1.07358616 -0.97194084 -0.75180349]
 </pre></div></div>
 </div>
 <p>We compare the above with its explicit reformulation and solution</p>
@@ -642,7 +642,7 @@ LRO x:  [-0.24384259 -0.94875762 -0.90656552 -1.03743563]
 \end{array}\end{split}\]</div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate cvxpy variable</span>
@@ -672,8 +672,8 @@ LRO x:  [-0.24384259 -0.94875762 -0.90656552 -1.03743563]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -1.1584671034087004
-Cvxpy x:  [-0.24387186 -0.94874817 -0.90658389 -1.03742203]
+Cvxpy objective value:  -2.6175888758790555
+Cvxpy x:  [-0.43941645 -1.07359548 -0.97195829 -0.75178005]
 </pre></div></div>
 </div>
 <p>We see that they provide the same solution.</p>
@@ -692,7 +692,7 @@ Cvxpy x:  [-0.24387186 -0.94874817 -0.90658389 -1.03742203]
 <p>where again <span class="math notranslate nohighlight">\(c\)</span>, <span class="math notranslate nohighlight">\(P\)</span>, and <span class="math notranslate nohighlight">\(a\)</span> are constants, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from a box uncertainty set. We note that the uncertain parameter can appear more than once in the uncertain constraint.</p>
 <p>Note that using the box uncertainty set is equivalent to using the ellipsoidal uncertainty set with <span class="math notranslate nohighlight">\(p = \infty\)</span></p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#formulate using the box set</span>
@@ -728,7 +728,7 @@ Cvxpy x:  [-0.24387186 -0.94874817 -0.90658389 -1.03742203]
 <span class="c1">#formulate using the ellipsoidal set</span>
 <span class="n">ellip_u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">m</span><span class="p">,</span>
                                 <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span>
-                                                                  <span class="n">rho</span><span class="o">=</span><span class="mf">2.</span><span class="p">))</span>
+                                                                  <span class="n">rho</span><span class="o">=</span><span class="mf">2.</span><span class="p">,</span> <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">m</span><span class="p">)))</span>
 <span class="n">n</span> <span class="o">=</span> <span class="mi">5</span>
 
 <span class="c1"># formulate cvxpy variable</span>
@@ -758,12 +758,12 @@ Cvxpy x:  [-0.24387186 -0.94874817 -0.90658389 -1.03742203]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Box objective value:  -1.7811554152050642
-Box x:  [1.00000000e+00 1.00000000e+00 7.00510516e-10 5.23099509e-01
- 4.40267324e-11]
-Ellipsoidal objective value:  -1.7811554152050642
-Ellipsoidal x:  [1.00000000e+00 1.00000000e+00 7.00510516e-10 5.23099509e-01
- 4.40267324e-11]
+Box objective value:  -2.599927471383898
+Box x:  [1.00000000e+00 4.84150861e-01 5.91818448e-11 1.00000000e+00
+ 1.00000000e+00]
+Ellipsoidal objective value:  -2.5999274713839036
+Ellipsoidal x:  [1.00000000e+00 4.84150861e-01 5.91827194e-11 1.00000000e+00
+ 1.00000000e+00]
 </pre></div></div>
 </div>
 <p>We compare the above with its explicit reformulation and solution</p>
@@ -775,7 +775,7 @@ Ellipsoidal x:  [1.00000000e+00 1.00000000e+00 7.00510516e-10 5.23099509e-01
 \end{array}\end{split}\]</div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate using cvxpy</span>
@@ -804,9 +804,9 @@ Ellipsoidal x:  [1.00000000e+00 1.00000000e+00 7.00510516e-10 5.23099509e-01
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -1.7811554152439186
-Cvxpy x:  [1.00000000e+00 1.00000000e+00 1.50589518e-10 5.23099510e-01
- 1.35420928e-11]
+Cvxpy objective value:  -2.5999274713382885
+Cvxpy x:  [1.00000000e+00 4.84150861e-01 5.66873309e-11 1.00000000e+00
+ 1.00000000e+00]
 </pre></div></div>
 </div>
 </section>
@@ -824,7 +824,7 @@ Cvxpy x:  [1.00000000e+00 1.00000000e+00 1.50589518e-10 5.23099510e-01
 </div>
 <p>where <span class="math notranslate nohighlight">\(c\)</span>, <span class="math notranslate nohighlight">\(P_1\)</span>, <span class="math notranslate nohighlight">\(P_2\)</span>, and <span class="math notranslate nohighlight">\(a\)</span> are constants, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from a polyhedral uncertainty set</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#restate the ellipsoidal set</span>
@@ -867,8 +867,8 @@ Cvxpy x:  [1.00000000e+00 1.00000000e+00 1.50589518e-10 5.23099510e-01
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -8.205693129508091
-LRO x:  [  5.           5.           4.24189032 -16.76091997]
+LRO objective value:  -6.988743027173772
+LRO x:  [ 5.         -5.92921323 -2.03948418  5.        ]
 </pre></div></div>
 </div>
 <p>We compare it with its direct reformulation, where each uncertain constraint is treated independently,</p>
@@ -886,7 +886,7 @@ LRO x:  [  5.           5.           4.24189032 -16.76091997]
 </div>
 <p>where <span class="math notranslate nohighlight">\(w_1\)</span>, <span class="math notranslate nohighlight">\(w_2\)</span> are new variables introduced.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate using cvxpy</span>
@@ -919,8 +919,8 @@ LRO x:  [  5.           5.           4.24189032 -16.76091997]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -8.205693129519124
-Cvxpy x:  [  5.           5.           4.24189032 -16.76091997]
+Cvxpy objective value:  -6.988743027171797
+Cvxpy x:  [ 5.         -5.92921323 -2.03948418  5.        ]
 </pre></div></div>
 </div>
 </section>
@@ -937,7 +937,7 @@ Cvxpy x:  [  5.           5.           4.24189032 -16.76091997]
 </div>
 <p>where <span class="math notranslate nohighlight">\(c\)</span>, <span class="math notranslate nohighlight">\(P\)</span>,and <span class="math notranslate nohighlight">\(a\)</span> are constants, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from a budet uncertainty set. We can include constraints that relates directly the values of <span class="math notranslate nohighlight">\(x\)</span> and <span class="math notranslate nohighlight">\(u\)</span>, as in the second constraint.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#restate the ellipsoidal set</span>
@@ -975,8 +975,8 @@ Cvxpy x:  [  5.           5.           4.24189032 -16.76091997]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  5.9025048550504655
-LRO x:  [2.95129634 2.61893308 2.80418139 2.82269582]
+LRO objective value:  8.144762806995981
+LRO x:  [2.78028645 2.86413965 2.4001465  2.53043571]
 </pre></div></div>
 </div>
 <p>We compare this with its direct reformulation,</p>
@@ -990,7 +990,7 @@ LRO x:  [2.95129634 2.61893308 2.80418139 2.82269582]
 </div>
 <p>where <span class="math notranslate nohighlight">\((P_1^T)_i\)</span> is the <span class="math notranslate nohighlight">\(i\)</span>’th row of <span class="math notranslate nohighlight">\(P_1\)</span>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate cvxpy variables</span>
@@ -1023,8 +1023,8 @@ LRO x:  [2.95129634 2.61893308 2.80418139 2.82269582]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  5.902504854554975
-Cvxpy x:  [2.95129634 2.61893308 2.80418139 2.82269581]
+Cvxpy objective value:  8.144762808776157
+Cvxpy x:  [2.78028645 2.86413966 2.4001465  2.53043571]
 </pre></div></div>
 </div>
 </section>
@@ -1042,7 +1042,7 @@ Cvxpy x:  [2.95129634 2.61893308 2.80418139 2.82269581]
 </div>
 <p>where each <span class="math notranslate nohighlight">\(P_i\in \mathbf{R}^{n\times n}\)</span> is a symmetric positive definite matrix, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from an ellipsoidal uncertainty set.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate uncertainty set</span>
@@ -1103,7 +1103,7 @@ LRO x:  [0.79877228 0.80135493 0.80078944 0.79878038 0.80030297]
 </div></blockquote>
 <p>end{equation}` where we have <span class="math notranslate nohighlight">\(\gamma \in \mathbf{R}^m, z \in \mathbf{R}^n, z_i \in \mathbf{R}^n\)</span>, <span class="math notranslate nohighlight">\(i = 1,\dots,n\)</span>, as auxiliary variables.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate using cvxpy</span>
@@ -1154,7 +1154,7 @@ Cvxpy x:  [0.79880041 0.80132141 0.80077192 0.79880835 0.80029791]
 </div>
 <p>where <span class="math notranslate nohighlight">\(a\)</span> and <span class="math notranslate nohighlight">\(d\)</span> are constants, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from an ellipsoidal uncertainty set.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate uncertainty set</span>
@@ -1192,13 +1192,13 @@ Cvxpy x:  [0.79880041 0.80132141 0.80077192 0.79880835 0.80029791]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -19.854671618524435
-LRO x:  [3.43133489e-09 5.77490507e-09 5.04526768e-09 2.19335235e+01
- 3.90264379e-09]
+LRO objective value:  -23.728710976733918
+LRO x:  [2.07562509e+01 8.70476807e-09 9.60384691e-09 1.84098503e-08
+ 3.27669307e-08]
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate using cvxpy</span>
@@ -1228,9 +1228,9 @@ LRO x:  [3.43133489e-09 5.77490507e-09 5.04526768e-09 2.19335235e+01
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -19.85467161856472
-Cvxpy x:  [ 6.32813757e-10  7.01836559e-11 -9.33471892e-10  2.19335236e+01
-  2.39519659e-09]
+Cvxpy objective value:  -23.72871104707253
+Cvxpy x:  [2.07562510e+01 9.71476136e-11 1.04240324e-10 3.58267283e-10
+ 9.73388870e-09]
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
