@@ -984,7 +984,7 @@ plt.show()
 </div>
 <p>where <span class="math notranslate nohighlight">\(\theta\)</span> encodes the training parameters <span class="math notranslate nohighlight">\((A,b)\)</span>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[258]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[377]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Formulate constants
@@ -1019,7 +1019,7 @@ data = gen_demand(n,N)
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[259]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[378]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Formulate uncertainty set
@@ -1062,7 +1062,7 @@ dfgrid, newprob = prob.grid(epslst = np.linspace(0.01, 3, 40), initA = init, ini
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[284]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[379]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span>fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 4))
@@ -1090,7 +1090,7 @@ plt.savefig(&quot;ex1_curves.pdf&quot;, bbox_extra_artists=(lgd,), bbox_inches=&
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[263]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[380]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span># Plot results
@@ -1125,7 +1125,7 @@ plt.show()
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[264]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[381]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>newdat = data@A_fin + b_fin
@@ -1149,14 +1149,14 @@ plt.show()
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[287]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[386]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>plt.figure(figsize=(5, 5))
 n = 100
-M = -3
-M1 = 10
-M2 = 5
+M = -10
+M1 = 25
+M2 = 20
 X = np.linspace(M,M1,n)
 Y = np.linspace(M,M2,n)
 x,y = np.meshgrid(X,Y)
@@ -1171,14 +1171,14 @@ for i in range(n):
 print(Z_1.shape)
 plt.title(&quot;Original and reshaped sets&quot;)
 # Set x axis label for the contour plot
-plt.xlabel(&quot;X&quot;)
+plt.xlabel(r&quot;$u_1$&quot;)
 # Set y axis label for the contour plot
 
-plt.ylabel(&quot;Y&quot;)
+plt.ylabel(r&quot;$u_2$&quot;)
 # plt.ylim(-20,40)
 # plt.xlim(-20,40)
-plt.contour(x,y,Z_1, [2.5], colors = [&quot;tab:orange&quot;])
-plt.contour(x,y,Z_2, [3], colors = [&quot;tab:blue&quot;])
+plt.contour(x,y,Z_1, [2], colors = [&quot;tab:orange&quot;])
+plt.contour(x,y,Z_2, [2], colors = [&quot;tab:blue&quot;])
 plt.scatter(data[:,0],data[:,1])
 plt.savefig(&quot;Reshaped1.pdf&quot;, bbox_inches=&#39;tight&#39;)
 plt.show()
@@ -1221,7 +1221,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </dl>
 <p>end{equation*}`</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[174]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[303]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def loss(L,y,Y,s,data,l=5):
@@ -1234,7 +1234,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[175]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[304]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span>n = 10
@@ -1296,7 +1296,7 @@ dfgrid, newprob = prob.grid(epslst = np.linspace(0.01, 3, 40), initA = init, ini
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[176]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[305]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span># Plot results
@@ -1329,7 +1329,7 @@ plt.show()
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[177]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[306]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>newdat = data@A_fin + b_fin
@@ -1353,7 +1353,7 @@ plt.show()
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[178]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[308]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>plt.rcParams.update({
@@ -1363,8 +1363,8 @@ plt.show()
     &quot;font.family&quot;: &quot;serif&quot;
 })
 plt.figure(figsize=(10,5))
-plt.plot(df_r2[&#39;Violations&#39;], df_r2[&#39;Opt_val&#39;], color=&quot;tab:blue&quot;, label=r&quot;Training $\epsilon$&quot;)
-plt.plot(df_r1[&#39;Violations&#39;], df_r1[&#39;Opt_val&#39;], color=&quot;tab:orange&quot;, label=r&quot;Training $(A,b)$&quot;)
+plt.plot(df_r2[&#39;Violations&#39;], df_r2[&#39;Opt_val&#39;], color=&quot;tab:blue&quot;, label=r&quot;Learning $\epsilon$&quot;)
+plt.plot(df_r1[&#39;Violations&#39;], df_r1[&#39;Opt_val&#39;], color=&quot;tab:orange&quot;, label=r&quot;Learning $(A,b)$&quot;)
 plt.ylabel(&quot;Objective valye&quot;)
 # ax2.set_xlim([-1,20])
 plt.xlabel(&quot;Value of constraint violation&quot;)
@@ -1407,7 +1407,7 @@ plt.savefig(&quot;Inventory_train.pdf&quot;,bbox_inches=&#39;tight&#39;)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span>n = 10
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span>T = 10
 m = 4
 data = np.random.normal(0,3,(400,m))
 # data = data_modes(N,m,[10,20,30])
@@ -1417,26 +1417,29 @@ u = lro.UncertainParameter(m,
                                                                   rho=1., data =data, loss =loss))
 
 # formulate cvxpy variable
-L = cp.Variable()
-s = cp.Variable(n)
-y = cp.Variable(n)
+tau = cp.Variable()
+x0 = cp.Variable(T)
+x = {}
+for t in range(T):
+    x[t] = cp.Variable(t)
+
 Y = cp.Variable((n,m))
 
 # formulate problem constants
-C = 2000
-c = np.random.uniform(300,500,n)
-Q = np.random.uniform(-2,2,(n,m))
-d = np.random.uniform(100,200,n)
-t = np.random.uniform(1,3,n)
-h = np.random.uniform(1,3,n)
-r = np.random.uniform(20,40,n)
+P = {}
+for t in range(T):
+    P[t] = np.eye(T)[0:t,:]
+l0 = 1
+lhigh = 1
+llow = 1
+c = np.zeros(T)
 
 
 # formulate objective
-objective = cp.Minimize(L)
+objective = cp.Minimize(tau)
 
 # formulate constraints
-constraints = [-r@y - r@Y@u + (t+h)@s &lt;= L]
+constraints = [cp.sum([c[t]*x0[t] + c[t]*x[t]@P[t]@u for t in range(T)]) &lt;= tau]
 for i in range(n):
     constraints += [y[i]+Y[i]@u &lt;= s[i]]
     constraints += [y[i]&lt;= d[i]+ (Q[i] - Y[i])@u]
