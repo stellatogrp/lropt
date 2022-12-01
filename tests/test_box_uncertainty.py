@@ -191,7 +191,8 @@ class TestBoxUncertainty(unittest.TestCase):
 
         def loss_f(x, data_eval):
             return torch.tensor(-10)*x + 20*torch.mean(
-                torch.maximum(torch.tensor(data_eval)*x - torch.tensor(2), torch.tensor(0))), -10*x
+                torch.maximum(torch.tensor(data_eval)*x - torch.tensor(2), torch.tensor(0))), -10*x, torch.mean(
+                torch.maximum(torch.tensor(data_eval)*x - torch.tensor(2), torch.tensor(0)))
 
         data = np.array([[1.], [1.], [2.], [1.], [2.]])
         u = UncertainParameter(
@@ -217,7 +218,8 @@ class TestBoxUncertainty(unittest.TestCase):
         def loss_f(x, data_eval):
             return torch.tensor(-10)*x \
                 + 20*torch.mean(torch.maximum(
-                    torch.tensor(data_eval)*x - torch.tensor(2), torch.tensor(0))), -10*x
+                    torch.tensor(data_eval)*x - torch.tensor(2), torch.tensor(0))), -10*x, torch.mean(torch.maximum(
+                        torch.tensor(data_eval)*x - torch.tensor(2), torch.tensor(0)))
 
         data = np.array([[1.], [1.], [2.], [1.], [2.]])
         u = UncertainParameter(

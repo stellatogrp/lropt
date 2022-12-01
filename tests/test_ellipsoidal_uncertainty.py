@@ -128,7 +128,9 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
             return c_tch @ x_soln + lmbda * torch.mean(
                 torch.maximum(torch.tensor(data, requires_grad=True) @
                               x_soln - b, torch.tensor(0., requires_grad=True))), \
-                c_tch @ x_soln
+                c_tch @ x_soln, torch.mean(
+                torch.maximum(torch.tensor(data, requires_grad=True) @
+                              x_soln - b, torch.tensor(0., requires_grad=True)))
 
         unc_set = Ellipsoidal(data=X, loss=violation_loss)
         u = UncertainParameter(data_dim, uncertainty_set=unc_set)
@@ -137,12 +139,12 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         constraints = [u @ x <= b, x >= 0, x <= 5]
 
         prob_robust = RobustProblem(objective, constraints)
-        df, newprob = prob_robust.train(eps=True, lr=0.005, step=46)
+        df, newprob, _, _ = prob_robust.train(eps=True, lr=0.005, step=46)
         print(df)
         newprob.solve(solver=SOLVER)
         print(x.value)
 
-        df1, newprob = prob_robust.train(lr=0.002, step=46)
+        df1, newprob, _, _ = prob_robust.train(lr=0.002, step=46)
         print(df1)
         newprob.solve(solver=SOLVER)
         print(x.value)
@@ -183,7 +185,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
             # print(x_soln.shape)
             npt.assert_equal(x_soln.shape[0], data.shape[1])
             return t_soln + lmbda * torch.mean(
-                torch.maximum(-data @ x_soln - t_soln, torch.tensor(0., requires_grad=True))), t_soln
+                torch.maximum(-data @ x_soln - t_soln, torch.tensor(0., requires_grad=True))), t_soln, torch.mean(
+                torch.maximum(-data @ x_soln - t_soln, torch.tensor(0., requires_grad=True)))
 
         unc_set = Ellipsoidal(data=sp_rets, loss=violation_loss)
         u = UncertainParameter(num_stocks, uncertainty_set=unc_set)
@@ -198,9 +201,9 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # import ipdb
         # ipdb.set_trace()
         prob_robust = RobustProblem(objective, cons)
-        df, newprob = prob_robust.train(eps=True, lr=0.05, step=100, momentum=0.8, optimizer="SGD", initeps=5)
+        df, newprob, _, _ = prob_robust.train(eps=True, lr=0.05, step=100, momentum=0.8, optimizer="SGD", initeps=5)
         newprob.solve(solver=SOLVER)
-        df1, newprob = prob_robust.train(lr=0.05, step=100, momentum=0.8, optimizer="SGD")
+        df1, newprob, _, _ = prob_robust.train(lr=0.05, step=100, momentum=0.8, optimizer="SGD")
         newprob.solve(solver=SOLVER)
         dfgrid, newprob = prob_robust.grid(epslst=np.linspace(0.1, 5, 20))
         print(df, df1, dfgrid)
