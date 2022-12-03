@@ -273,7 +273,7 @@ class RobustProblem(Problem):
                     if initeps:
                         eps_tch = torch.tensor([[1/initeps]], requires_grad=True)
                     else:
-                        eps_tch = torch.tensor([[1/np.mean(np.cov(train.T))]], requires_grad=True)
+                        eps_tch = torch.tensor([[1.]], requires_grad=True)
                     if initA is not None:
                         init = torch.tensor(initA, requires_grad=True)
                     else:
@@ -319,7 +319,7 @@ class RobustProblem(Problem):
                              "Eval_val": evalloss.item(),
                              "Opt_val": objv.item()/splits,
                              "Violations": violations2.item(),
-                             "A_norm": eps_tch[0][0].detach().numpy().copy()
+                             "A_norm": 1/eps_tch[0][0].detach().numpy().copy()
                              })
                         df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
                         if steps < step - 1:
@@ -445,7 +445,7 @@ class RobustProblem(Problem):
                             "Eval_val": evalloss.item(),
                             "Opt_val": obj.item(),
                             "Violations": violations.item(),
-                            "Eps": eps_tch1[0][0].detach().numpy().copy()
+                            "Eps": 1/eps_tch1[0][0].detach().numpy().copy()
                          })
                     df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
 

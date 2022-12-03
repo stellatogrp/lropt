@@ -85,3 +85,49 @@ class TestQuad(unittest.TestCase):
 
         new_prob = prob_robust.dualize_constraints()
         new_prob.solve()
+
+    def test_hydro(self):
+        import math
+        T = 5
+        # data = data_modes(N,m,[10,20,30])
+        # restate the ellipsoidal set
+        u = UncertainParameter(T,
+                               uncertainty_set=Ellipsoidal(p=2,
+                                                           rho=0.00001))
+
+        # formulate cvxpy variable
+        tau = cp.Variable()
+        # lam = cp.Variable(T)
+        x0 = cp.Variable(T)
+        x = {}
+        for t in range(T):
+            x[t] = cp.Variable(t+1)
+
+        # formulate problem constants
+        P = {}
+        for t in range(T):
+            P[t] = np.eye(T)[0:t+1, :]
+        l0 = 1
+        lhigh = 5
+        llow = 1
+        c = np.zeros(T)
+        for i in range(T):
+            c[i] = 10 + 5*math.sin(math.pi*(1-(i+1))/3)
+
+        # formulate objective
+        objective = cp.Minimize(tau)
+
+        # formulate constraints
+        constraints = [-cp.sum([c[t]*x0[t] + c[t]*x[t]@P[t]@u for t in range(T)]) <= tau]
+        for t in range(T):
+            constraints += [l0 - lhigh + np.ones(t+1)@P[t]@u - cp.sum([x0[i] + x[i]@P[i]@u for i in range(t+1)]) <= 0]
+            constraints += [llow - l0 - np.ones(t+1)@P[t]@u + cp.sum([x0[i] + x[i]@P[i]@u for i in range(t+1)]) <= 0]
+            constraints += [-x0[t] - x[t]@P[t]@u <= 0]
+
+        # formulate Robust Problem
+        prob = RobustProblem(objective, constraints)
+
+        # solve
+        # Train only epsilon
+        # newprob = prob.dualize_constraints()
+        prob.solve()

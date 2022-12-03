@@ -174,7 +174,7 @@ class Uncertain_Canonicalization(Reduction):
             new_vars = {}
             aux_expr = 0
             aux_constraint = []
-            j = 0
+            has_isolated = 0
             for ind in range(num_unc_fns):
 
                 # if len(unc_lst[ind].variables()) (check if has variable)
@@ -183,9 +183,7 @@ class Uncertain_Canonicalization(Reduction):
                 # uvar = mul_canon_transform(uvar, cons)
                 new_expr, new_constraint = self.canonicalize_tree(u_expr, z[ind], constant)
                 if self.has_unc_param(new_expr):
-                    if j == 0:
-                        uvar = mul_canon_transform(uvar, constant)
-                    # assert (num_constr == shape)
+                    uvar = mul_canon_transform(uvar, constant)
                     new_vars[ind] = Variable((num_constr, u_shape))
                     for idx in range(num_constr):
                         # import ipdb
@@ -193,11 +191,11 @@ class Uncertain_Canonicalization(Reduction):
                         new_expr, new_constraint = uvar.isolated_unc(idx, new_vars[ind][idx], num_constr)
                         aux_expr = aux_expr + new_expr
                         aux_constraint += new_constraint
-                        if j == 1:
+                        if has_isolated == 1:
                             z_new_cons[idx] += new_vars[ind][idx]
                         else:
                             z_new_cons[idx] = new_vars[ind][idx]
-                    j = 1
+                    has_isolated = 1
                 else:
                     # import ipdb
                     # ipdb.set_trace()
@@ -205,9 +203,9 @@ class Uncertain_Canonicalization(Reduction):
                     aux_constraint += new_constraint
                     z_cons += z[ind]
             z_unc = Variable((num_constr, u_shape))
-            if j == 1:
-                for ind in range(num_constr):
-                    aux_constraint += [z_cons + z_new_cons[ind] == -z_unc[ind]]
+            if has_isolated == 1:
+                for idx in range(num_constr):
+                    aux_constraint += [z_cons + z_new_cons[idx] == -z_unc[idx]]
             else:
                 aux_constraint += [z_cons == -z_unc[0]]
             new_expr, new_constraint, lmbda = uvar.conjugate(z_unc, num_constr)
