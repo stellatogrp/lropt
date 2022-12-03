@@ -175,8 +175,8 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "LRO objective value:  -2.6175888833396743 \n",
-      "LRO x:  [-0.43943943 -1.07358616 -0.97194084 -0.75180349]\n"
+      "LRO objective value:  -1.7345555518950948 \n",
+      "LRO x:  [-0.6993507  -0.7075566  -1.35844448 -0.1010697 ]\n"
      ]
     }
    ],
@@ -231,8 +231,8 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "Cvxpy objective value:  -2.6175888758790555 \n",
-      "Cvxpy x:  [-0.43941645 -1.07359548 -0.97195829 -0.75178005]\n"
+      "Cvxpy objective value:  -1.734555554135118 \n",
+      "Cvxpy x:  [-0.69935869 -0.70752091 -1.35846037 -0.10104358]\n"
      ]
     }
    ],
@@ -292,11 +292,11 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "Box objective value:  -2.599927471383898 \n",
-      "Box x:  [1.00000000e+00 4.84150861e-01 5.91818448e-11 1.00000000e+00\n",
+      "Box objective value:  -2.4655733326948237 \n",
+      "Box x:  [5.31421876e-13 1.00000000e+00 1.00000000e+00 4.04341415e-01\n",
       " 1.00000000e+00]\n",
-      "Ellipsoidal objective value:  -2.5999274713839036 \n",
-      "Ellipsoidal x:  [1.00000000e+00 4.84150861e-01 5.91827194e-11 1.00000000e+00\n",
+      "Ellipsoidal objective value:  -2.4655733326948237 \n",
+      "Ellipsoidal x:  [5.31436173e-13 1.00000000e+00 1.00000000e+00 4.04341415e-01\n",
       " 1.00000000e+00]\n"
      ]
     }
@@ -381,8 +381,8 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "Cvxpy objective value:  -2.5999274713382885 \n",
-      "Cvxpy x:  [1.00000000e+00 4.84150861e-01 5.66873309e-11 1.00000000e+00\n",
+      "Cvxpy objective value:  -2.465573332354278 \n",
+      "Cvxpy x:  [5.62026091e-11 1.00000000e+00 1.00000000e+00 4.04341414e-01\n",
       " 1.00000000e+00]\n"
      ]
     }
@@ -434,8 +434,8 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "LRO objective value:  -6.988743027173772 \n",
-      "LRO x:  [ 5.         -5.92921323 -2.03948418  5.        ]\n"
+      "LRO objective value:  -7.271429896129337 \n",
+      "LRO x:  [ 5.         -7.67949106  5.          5.        ]\n"
      ]
     }
    ],
@@ -502,8 +502,8 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "Cvxpy objective value:  -6.988743027171797 \n",
-      "Cvxpy x:  [ 5.         -5.92921323 -2.03948418  5.        ]\n"
+      "Cvxpy objective value:  -7.271429896128714 \n",
+      "Cvxpy x:  [ 5.         -7.67949106  5.          5.        ]\n"
      ]
     }
    ],
@@ -558,8 +558,8 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "LRO objective value:  8.144762806995981 \n",
-      "LRO x:  [2.78028645 2.86413965 2.4001465  2.53043571]\n"
+      "LRO objective value:  5.864097841986497 \n",
+      "LRO x:  [2.73697936 2.94006884 2.73607293 2.2831769 ]\n"
      ]
     }
    ],
@@ -617,8 +617,8 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "Cvxpy objective value:  8.144762808776157 \n",
-      "Cvxpy x:  [2.78028645 2.86413966 2.4001465  2.53043571]\n"
+      "Cvxpy objective value:  5.864097842892082 \n",
+      "Cvxpy x:  [2.73697936 2.94006885 2.73607293 2.2831769 ]\n"
      ]
     }
    ],
@@ -792,9 +792,9 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "LRO objective value:  -23.728710976733918 \n",
-      "LRO x:  [2.07562509e+01 8.70476807e-09 9.60384691e-09 1.84098503e-08\n",
-      " 3.27669307e-08]\n"
+      "LRO objective value:  -19.17433420540661 \n",
+      "LRO x:  [2.58691413e-09 9.64956258e-10 2.82486408e-09 7.78821868e-09\n",
+      " 1.37319079e+01]\n"
      ]
     }
    ],
@@ -837,9 +837,9 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "Cvxpy objective value:  -23.72871104707253 \n",
-      "Cvxpy x:  [2.07562510e+01 9.71476136e-11 1.04240324e-10 3.58267283e-10\n",
-      " 9.73388870e-09]\n"
+      "Cvxpy objective value:  -19.174334218000755 \n",
+      "Cvxpy x:  [7.13911669e-10 1.16520022e-09 6.03576271e-10 9.08297385e-10\n",
+      " 1.37319079e+01]\n"
      ]
     }
    ],

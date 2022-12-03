@@ -629,8 +629,8 @@ print(&quot;LRO objective value: &quot;, prob_robust.objective.value, &quot;\nLR
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -2.6175888833396743
-LRO x:  [-0.43943943 -1.07358616 -0.97194084 -0.75180349]
+LRO objective value:  -1.7345555518950948
+LRO x:  [-0.6993507  -0.7075566  -1.35844448 -0.1010697 ]
 </pre></div></div>
 </div>
 <p>We compare the above with its explicit reformulation and solution</p>
@@ -672,8 +672,8 @@ npt.assert_allclose(x_r.value, x.value, rtol=RTOL, atol=ATOL)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -2.6175888758790555
-Cvxpy x:  [-0.43941645 -1.07359548 -0.97195829 -0.75178005]
+Cvxpy objective value:  -1.734555554135118
+Cvxpy x:  [-0.69935869 -0.70752091 -1.35846037 -0.10104358]
 </pre></div></div>
 </div>
 <p>We see that they provide the same solution.</p>
@@ -758,11 +758,11 @@ npt.assert_allclose(x_box.value, x_el.value, rtol=RTOL, atol=ATOL)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Box objective value:  -2.599927471383898
-Box x:  [1.00000000e+00 4.84150861e-01 5.91818448e-11 1.00000000e+00
+Box objective value:  -2.4655733326948237
+Box x:  [5.31421876e-13 1.00000000e+00 1.00000000e+00 4.04341415e-01
  1.00000000e+00]
-Ellipsoidal objective value:  -2.5999274713839036
-Ellipsoidal x:  [1.00000000e+00 4.84150861e-01 5.91827194e-11 1.00000000e+00
+Ellipsoidal objective value:  -2.4655733326948237
+Ellipsoidal x:  [5.31436173e-13 1.00000000e+00 1.00000000e+00 4.04341415e-01
  1.00000000e+00]
 </pre></div></div>
 </div>
@@ -804,8 +804,8 @@ npt.assert_allclose(x_box.value, x_cvxpy.value, rtol=RTOL, atol=ATOL)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -2.5999274713382885
-Cvxpy x:  [1.00000000e+00 4.84150861e-01 5.66873309e-11 1.00000000e+00
+Cvxpy objective value:  -2.465573332354278
+Cvxpy x:  [5.62026091e-11 1.00000000e+00 1.00000000e+00 4.04341414e-01
  1.00000000e+00]
 </pre></div></div>
 </div>
@@ -867,8 +867,8 @@ print(&quot;LRO objective value: &quot;, prob_robust.objective.value, &quot;\nLR
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -6.988743027173772
-LRO x:  [ 5.         -5.92921323 -2.03948418  5.        ]
+LRO objective value:  -7.271429896129337
+LRO x:  [ 5.         -7.67949106  5.          5.        ]
 </pre></div></div>
 </div>
 <p>We compare it with its direct reformulation, where each uncertain constraint is treated independently,</p>
@@ -919,8 +919,8 @@ npt.assert_allclose(x_r.value, x_cvxpy.value, rtol=RTOL, atol=ATOL)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -6.988743027171797
-Cvxpy x:  [ 5.         -5.92921323 -2.03948418  5.        ]
+Cvxpy objective value:  -7.271429896128714
+Cvxpy x:  [ 5.         -7.67949106  5.          5.        ]
 </pre></div></div>
 </div>
 </section>
@@ -975,8 +975,8 @@ print(&quot;LRO objective value: &quot;, prob_robust.objective.value, &quot;\nLR
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  8.144762806995981
-LRO x:  [2.78028645 2.86413965 2.4001465  2.53043571]
+LRO objective value:  5.864097841986497
+LRO x:  [2.73697936 2.94006884 2.73607293 2.2831769 ]
 </pre></div></div>
 </div>
 <p>We compare this with its direct reformulation,</p>
@@ -1023,8 +1023,8 @@ npt.assert_allclose(x_r.value, x_cvxpy.value, rtol=RTOL, atol=ATOL)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  8.144762808776157
-Cvxpy x:  [2.78028645 2.86413966 2.4001465  2.53043571]
+Cvxpy objective value:  5.864097842892082
+Cvxpy x:  [2.73697936 2.94006885 2.73607293 2.2831769 ]
 </pre></div></div>
 </div>
 </section>
@@ -1192,9 +1192,9 @@ print(&quot;LRO objective value: &quot;, prob_robust.objective.value, &quot;\nLR
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -23.728710976733918
-LRO x:  [2.07562509e+01 8.70476807e-09 9.60384691e-09 1.84098503e-08
- 3.27669307e-08]
+LRO objective value:  -19.17433420540661
+LRO x:  [2.58691413e-09 9.64956258e-10 2.82486408e-09 7.78821868e-09
+ 1.37319079e+01]
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
@@ -1228,9 +1228,9 @@ npt.assert_allclose(x_r.value, x_cvxpy.value, rtol=RTOL, atol=ATOL)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -23.72871104707253
-Cvxpy x:  [2.07562510e+01 9.71476136e-11 1.04240324e-10 3.58267283e-10
- 9.73388870e-09]
+Cvxpy objective value:  -19.174334218000755
+Cvxpy x:  [7.13911669e-10 1.16520022e-09 6.03576271e-10 9.08297385e-10
+ 1.37319079e+01]
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
