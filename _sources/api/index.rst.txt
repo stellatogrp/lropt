@@ -7,3 +7,4 @@ API
 
    robust_problem/index
    uncertainty_sets/index
+   accepted_functions/index

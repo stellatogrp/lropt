@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
-<link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Budget Uncertainty" href="budget.html" /><link rel="prev" title="Box Uncertainty" href="box.html" />
+<link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="prev" title="Budget Uncertainty" href="../uncertainty_sets/budget.html" />
 
     <meta name="generator" content="sphinx-5.3.0, furo 2022.09.29"/>
-        <title>Polyhedral Uncertainty - LRO documentation documentation</title>
+        <title>Accepted Functions - LRO documentation documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?digest=d81277517bee4d6b0349d71bb2661d4890b5617c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
@@ -134,7 +134,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -164,15 +164,15 @@
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">API</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../robust_problem/index.html">Robust Problem</a></li>
-<li class="toctree-l2 current has-children"><a class="reference internal" href="index.html">Uncertainty Sets</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="norm.html">Norm Uncertainty</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ellipsoidal.html">Ellipsoidal Uncertainty</a></li>
-<li class="toctree-l3"><a class="reference internal" href="box.html">Box Uncertainty</a></li>
-<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">Polyhedral Uncertainty</a></li>
-<li class="toctree-l3"><a class="reference internal" href="budget.html">Budget Uncertainty</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../uncertainty_sets/index.html">Uncertainty Sets</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../uncertainty_sets/norm.html">Norm Uncertainty</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../uncertainty_sets/ellipsoidal.html">Ellipsoidal Uncertainty</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../uncertainty_sets/box.html">Box Uncertainty</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../uncertainty_sets/polyhedral.html">Polyhedral Uncertainty</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../uncertainty_sets/budget.html">Budget Uncertainty</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../accepted_functions/index.html">Accepted Functions</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Accepted Functions</a></li>
 </ul>
 </li>
 </ul>
@@ -203,40 +203,14 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
         <article role="main">
-          <section id="polyhedral-uncertainty">
-<h1>Polyhedral Uncertainty<a class="headerlink" href="#polyhedral-uncertainty" title="Permalink to this heading">#</a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="lro.Polyhedral">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lro.</span></span><span class="sig-name descname"><span class="pre">Polyhedral</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">affine_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lro.Polyhedral" title="Permalink to this definition">#</a></dt>
-<dd><p>Polyhedral uncertainty set, defined as</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\mathcal{U}_{\text{poly}} = \{D u \leq d\}\]</div>
-</div>
-<section id="parameters">
-<h2>Parameters<a class="headerlink" href="#parameters" title="Permalink to this heading">#</a></h2>
-<dl class="simple">
-<dt>D<span class="classifier">2 dimentional np.array</span></dt><dd><p><span class="math notranslate nohighlight">\(D\)</span> matrix</p>
-</dd>
-<dt>d<span class="classifier">np.array</span></dt><dd><p><span class="math notranslate nohighlight">\(d\)</span> vector</p>
-</dd>
-</dl>
-</section>
-<section id="returns">
-<h2>Returns<a class="headerlink" href="#returns" title="Permalink to this heading">#</a></h2>
-<dl class="simple">
-<dt>Polyhedral</dt><dd><p>Polyhedral uncertainty set.</p>
-</dd>
-</dl>
-</section>
-</dd></dl>
-
+          <section id="accepted-functions">
+<h1>Accepted Functions<a class="headerlink" href="#accepted-functions" title="Permalink to this heading">#</a></h1>
 </section>
 
         </article>
@@ -244,23 +218,15 @@
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="budget.html">
-              <div class="page-info">
-                <div class="context">
-                  <span>Next</span>
-                </div>
-                <div class="title">Budget Uncertainty</div>
-              </div>
-              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
-            </a>
-          <a class="prev-page" href="box.html">
+          
+          <a class="prev-page" href="../uncertainty_sets/budget.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Box Uncertainty</div>
+                <div class="title">Budget Uncertainty</div>
                 
               </div>
             </a>
@@ -284,27 +250,8 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer">
+    <aside class="toc-drawer no-toc">
       
-      
-      <div class="toc-sticky toc-scroll">
-        <div class="toc-title-container">
-          <span class="toc-title">
-            On this page
-          </span>
-        </div>
-        <div class="toc-tree-container">
-          <div class="toc-tree">
-            <ul>
-<li><a class="reference internal" href="#">Polyhedral Uncertainty</a><ul>
-<li><a class="reference internal" href="#lro.Polyhedral"><code class="docutils literal notranslate"><span class="pre">Polyhedral</span></code></a></li>
-</ul>
-</li>
-</ul>
-
-          </div>
-        </div>
-      </div>
       
       
     </aside>
@@ -317,7 +264,5 @@
     <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/scripts/furo.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>
