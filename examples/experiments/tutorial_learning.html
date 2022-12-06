@@ -964,7 +964,7 @@ plt.show()
 </div>
 <p>where <span class="math notranslate nohighlight">\(\theta\)</span> encodes the training parameters <span class="math notranslate nohighlight">\((A,b)\)</span>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[105]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Formulate constants
@@ -999,7 +999,7 @@ data = gen_demand(n,N)
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[66]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[106]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Formulate uncertainty set
@@ -1028,7 +1028,7 @@ df_eps, newprob, A_fin, b_fin = prob.train(eps = True, lr = 0.001, step=50, mome
 # dfgrid, newprob = prob.grid(epslst = np.linspace(0.8, 2, 40), seed = s)
 
 # Train A and b
-df1, newprob1, A_fin, b_fin = prob.train(lr = 0.0001, step=50, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s, initeps = 1)
+df1, newprob1, A_fin, b_fin = prob.train(lr = 0.001, step=50, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s, initeps = 1)
 
 df_r1, newprob2, A_new1, b_new1 = prob.train(eps = True, lr = 0.001, step=50, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s, initA = A_fin, initb = b_fin)
 
@@ -1105,7 +1105,7 @@ plt.show()
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[107]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># newdat = data@A_fin + b_fin
@@ -1129,7 +1129,7 @@ plt.show()
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[67]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[108]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>newprob1.solve()
@@ -1141,7 +1141,7 @@ dfgrid, newprob = prob.grid(epslst = np.linspace(0.01, 3, 40), initA = init, ini
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[68]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[109]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>n = 2
@@ -1165,24 +1165,7 @@ t_base = t.value
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[72]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[72]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-3
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[76]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[110]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>plt.figure(figsize=(5, 5))
@@ -1205,8 +1188,8 @@ for i in range(n):
         u_vec = [x[i,j], y[i,j]]
         fin_set[i,j] = np.linalg.norm(A_fin@ u_vec  + b_fin)
         init_set[i,j] = np.linalg.norm(init@ u_vec + init_b)
-        g_level_learned[i,j] = np.maximum(k @ x_opt_learned - p @ x_opt_learned, k @ x_opt_learned - p @ u_vec - t_learned)
-        g_level_base[i,j] = np.maximum(k @ x_opt_base - p @ x_opt_base, k @ x_opt_base - p @ u_vec - t_base)
+        g_level_learned[i,j] = np.maximum(k @ x_opt_learned - p @ x_opt_learned, k @ x_opt_learned - p @ u_vec)
+        g_level_base[i,j] = np.maximum(k @ x_opt_base - p @ x_opt_base, k @ x_opt_base - p @ u_vec)
 
 
 
@@ -1220,8 +1203,8 @@ plt.ylabel(r&quot;$u_2$&quot;)
 # plt.xlim(-20,40)
 plt.contour(x,y,fin_set, [1], colors = [&quot;tab:orange&quot;])
 plt.contour(x,y,init_set, [1], colors = [&quot;tab:blue&quot;])
-plt.contour(x,y,g_level_learned, [0], colors = [&quot;tab:orange&quot;])
-plt.contour(x,y,g_level_base, [0], colors = [&quot;tab:blue&quot;])
+plt.contour(x,y,g_level_learned, [t_learned], colors = [&quot;tab:orange&quot;])
+plt.contour(x,y,g_level_base, [t_base], colors = [&quot;tab:blue&quot;])
 plt.scatter(data[:,0],data[:,1])
 plt.savefig(&quot;Reshaped1.pdf&quot;, bbox_inches=&#39;tight&#39;)
 plt.show()
@@ -1232,7 +1215,7 @@ plt.show()
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_28_0.png" src="../../_images/examples_experiments_tutorial_learning_28_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_27_0.png" src="../../_images/examples_experiments_tutorial_learning_27_0.png" />
 </div>
 </div>
 </section>
@@ -1362,7 +1345,7 @@ plt.show()
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_32_0.png" src="../../_images/examples_experiments_tutorial_learning_32_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_31_0.png" src="../../_images/examples_experiments_tutorial_learning_31_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -1386,7 +1369,7 @@ plt.show()
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_33_0.png" src="../../_images/examples_experiments_tutorial_learning_33_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_32_0.png" src="../../_images/examples_experiments_tutorial_learning_32_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -1427,14 +1410,14 @@ plt.savefig(&quot;Inventory_train.pdf&quot;,bbox_inches=&#39;tight&#39;)
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_34_0.png" src="../../_images/examples_experiments_tutorial_learning_34_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_33_0.png" src="../../_images/examples_experiments_tutorial_learning_33_0.png" />
 </div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_34_1.png" src="../../_images/examples_experiments_tutorial_learning_34_1.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_33_1.png" src="../../_images/examples_experiments_tutorial_learning_33_1.png" />
 </div>
 </div>
 </section>
@@ -1564,7 +1547,7 @@ plt.show()
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_38_0.png" src="../../_images/examples_experiments_tutorial_learning_38_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_37_0.png" src="../../_images/examples_experiments_tutorial_learning_37_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -1587,7 +1570,7 @@ plt.show()
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_39_0.png" src="../../_images/examples_experiments_tutorial_learning_39_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_38_0.png" src="../../_images/examples_experiments_tutorial_learning_38_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
