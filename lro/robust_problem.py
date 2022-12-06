@@ -1,3 +1,4 @@
+from abc import ABC
 from typing import Optional
 
 import numpy as np
@@ -246,13 +247,13 @@ class RobustProblem(Problem):
                             evalloss, obj2, violations2 = unc_set.loss(*var_values, eval_set)
                             objv += obj
                             totloss += temploss
-                        totloss = totloss/splits
+                        totloss = totloss
                         totloss.backward()
                         newrow = pd.Series(
                             {"step": steps,
                              "Loss_val": totloss.item(),
                              "Eval_val": evalloss.item(),
-                             "Opt_val": objv.item()/splits,
+                             "Opt_val": objv.item(),
                              "Violations": violations2.item(),
                              "A_norm": np.linalg.norm(paramT_tch.detach().numpy().copy())
                              })
@@ -311,13 +312,13 @@ class RobustProblem(Problem):
                             evalloss, obj2, violations2 = unc_set.loss(*var_values, eval_set)
                             objv += obj
                             totloss += temploss
-                        totloss = totloss/splits
+                        totloss = totloss
                         totloss.backward()
                         newrow = pd.Series(
                             {"step": steps,
                              "Loss_val": totloss.item(),
                              "Eval_val": evalloss.item(),
-                             "Opt_val": objv.item()/splits,
+                             "Opt_val": objv.item(),
                              "Violations": violations2.item(),
                              "A_norm": 1/eps_tch[0][0].detach().numpy().copy()
                              })
@@ -334,7 +335,11 @@ class RobustProblem(Problem):
                     unc_set.paramb.value = (
                         eps_tch[0]*init_b).detach().numpy().copy()
                 self.new_prob = prob
-        return df, prob, unc_set.paramT.value, unc_set.paramb.value
+        if eps:
+            return_eps = eps_tch[0][0].detach().numpy().copy()
+        else:
+            return_eps = 1
+        return Result(self, prob, df, unc_set.paramT.value, unc_set.paramb.value, return_eps, objv.item(), var_values)
 
     def grid(self, epslst=None, seed=1, initA=None, initb=None, solver: Optional[str] = None):
         r"""
@@ -419,6 +424,7 @@ class RobustProblem(Problem):
                 newlst.append(paramT_tch)
                 newlst.append(paramb_tch)
                 minval = 9999999
+                var_vals = 0
 
                 if initA is not None:
                     init = torch.tensor(initA, requires_grad=True)
@@ -440,6 +446,7 @@ class RobustProblem(Problem):
                     if totloss <= minval:
                         minval = totloss
                         mineps = eps_tch1.clone()
+                        var_vals = var_values
                     newrow = pd.Series(
                         {"Loss_val": totloss.item(),
                             "Eval_val": evalloss.item(),
@@ -457,7 +464,8 @@ class RobustProblem(Problem):
                 unc_set.paramb.value = (
                     mineps[0]*init_b).detach().numpy().copy()
                 self.new_prob = prob
-        return df, prob
+        return Result(self, prob, df, unc_set.paramT.value,
+                      unc_set.paramb.value, mineps[0][0].detach().numpy().copy(), minval, var_vals)
 
     def dualize_constraints(self):
         # import ipdb
@@ -478,7 +486,7 @@ class RobustProblem(Problem):
             return self.new_prob.solve(solver=solver)
         elif self.uncertain_parameters():
             if self.uncertain_parameters()[0].uncertainty_set.data is not None:
-                _, _, _, _ = self.train()
+                _ = self.train()
                 return self.new_prob.solve(solver=solver)
             unc_reductions = []
             if type(self.objective) == Maximize:
@@ -487,3 +495,47 @@ class RobustProblem(Problem):
             newchain = UncertainChain(self, reductions=unc_reductions)
             prob, _ = newchain.apply(self)
             return prob.solve(solver=solver)
+
+
+class Result(ABC):
+    def __init__(self, prob, probnew, df, T, b, eps, obj, x):
+        self._reform_problem = probnew
+        self._problem = prob
+        self._df = df
+        self._A = T
+        self._b = b
+        self._obj = obj
+        self._x = x
+        self._eps = eps
+
+    @property
+    def problem(self):
+        return self._problem
+
+    @property
+    def df(self):
+        return self._df
+
+    @property
+    def reform_problem(self):
+        return self._reform_problem
+
+    @property
+    def A(self):
+        return self._A
+
+    @property
+    def b(self):
+        return self._b
+
+    @property
+    def eps(self):
+        return self._eps
+
+    @property
+    def obj(self):
+        return self._obj
+
+    @property
+    def var_values(self):
+        return self._x
