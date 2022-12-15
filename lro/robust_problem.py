@@ -115,7 +115,7 @@ class RobustProblem(Problem):
         return SolvingChain(reductions=new_reductions)
 
     def train(
-        self, eps=False, step=45, lr=0.01, momentum=0.8,
+        self, eps=False, fixb=True, step=45, lr=0.01, momentum=0.8,
         optimizer="SGD", initeps=None, initA=None, initb=None, seed=1, solver: Optional[str] = None
     ):
         r"""
@@ -203,10 +203,10 @@ class RobustProblem(Problem):
                 if not eps:
                     # initialize parameters to train
                     if len(np.shape(np.cov(train.T))) >= 1:
-                        if initA is not None:
-                            init = np.array(initA)
-                        elif initeps:
+                        if initeps:
                             init = (1/initeps)*np.eye(train.shape[1])
+                        elif initA is not None:
+                            init = np.array(initA)
                         else:
                             init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
                         paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True)
@@ -222,7 +222,12 @@ class RobustProblem(Problem):
                         paramb_tch = torch.tensor(np.array(initb), requires_grad=True)
 
                     paramT_tch = torch.tensor(init, requires_grad=True)
-                    variables = [paramT_tch, paramb_tch]
+                    # paramb_tch = paramT_tch@torch.tensor(-np.mean(train, axis=0), requires_grad=True)
+                    if fixb:
+                        variables = [paramT_tch]
+                    else:
+                        variables = [paramT_tch, paramb_tch]
+
                     opt = OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
 
                     paramlst = prob.parameters()
@@ -247,7 +252,6 @@ class RobustProblem(Problem):
                             evalloss, obj2, violations2 = unc_set.loss(*var_values, eval_set)
                             objv += obj
                             totloss += temploss
-                        totloss = totloss
                         totloss.backward()
                         newrow = pd.Series(
                             {"step": steps,
@@ -261,6 +265,7 @@ class RobustProblem(Problem):
                         if steps < step - 1:
                             opt.step()
                             opt.zero_grad()
+
                     self._values = {'T': paramT_tch.detach().numpy().copy(), 'b': paramb_tch.detach().numpy().copy()}
                     self._trained = True
                     unc_set._trained = True
