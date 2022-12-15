@@ -469,7 +469,7 @@ div.rendered_html tbody tr:hover {
 <section id="Learning-Uncertainty-Sets">
 <h1>Learning Uncertainty Sets<a class="headerlink" href="#Learning-Uncertainty-Sets" title="Permalink to this heading">#</a></h1>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import cvxpy as cp
@@ -491,6 +491,30 @@ plt.rcParams.update({
 })
 colors = [&quot;tab:blue&quot;, &quot;tab:green&quot;, &quot;tab:orange&quot;,
           &quot;tab:red&quot;, &quot;tab:purple&quot;, &quot;tab:brown&quot;, &quot;tab:pink&quot;, &quot;tab:grey&quot;, &quot;tab:olive&quot;]
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def pareto_frontier(Xs, Ys, maxX = False, maxY = False):
+# Sort the list in either ascending or descending order of X
+    myList = sorted([[Xs[i], Ys[i]] for i in range(len(Xs))], reverse=maxX)
+# Start the Pareto frontier with the first value in the sorted list
+    p_front = [myList[0]]
+# Loop through the sorted list
+    for pair in myList[1:]:
+        if maxY:
+            if pair[1] &gt;= p_front[-1][1]: # Look for higher values of Y…
+                p_front.append(pair) # … and add them to the Pareto frontier
+        else:
+            if pair[1] &lt;= p_front[-1][1]: # Look for lower values of Y…
+                p_front.append(pair) # … and add them to the Pareto frontier
+# Turn resulting pairs back into a list of Xs and Ys
+    p_frontX = [pair[0] for pair in p_front]
+    p_frontY = [pair[1] for pair in p_front]
+    return p_frontX, p_frontY
 </pre></div>
 </div>
 </div>
@@ -594,7 +618,7 @@ colors = [&quot;tab:blue&quot;, &quot;tab:green&quot;, &quot;tab:orange&quot;,
 <p>where <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter.</p>
 <p>We train an ellipsoidal uncertainty set with <span class="math notranslate nohighlight">\(p = 2\)</span>, and consider the violation loss <span class="math notranslate nohighlight">\(\tau + \lambda(-u^Tx - \tau)_+\)</span>, where <span class="math notranslate nohighlight">\(\lambda = 1\)</span> is the scaling for the sum of violations.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[171]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># The violation loss function, in torch tensors
@@ -626,7 +650,7 @@ data = data_modes(N,num_stocks,[1,2,3])
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[180]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span># Formulate the uncertainty set and uncertain parameter
@@ -650,7 +674,7 @@ df = result.df
 
 
 # Train A and b
-result1 = prob_robust.train(lr=0.1, step=50, momentum = 0.8, optimizer = &quot;SGD&quot;, initeps = 1, seed = s)
+result1 = prob_robust.train(lr=0.1, step=50, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s)
 df1 = result1.df
 A_fin = result1.A
 b_fin = result1.b
@@ -684,35 +708,11 @@ plt.show()
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_10_0.png" src="../../_images/examples_experiments_tutorial_learning_10_0.png" />
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>newdat = data@A_fin + b_fin
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 4.5))
-ax1.scatter(data[:,0],data[:,1],color=&quot;tab:blue&quot;, label=r&quot;Original set&quot;)
-ax1.set_ylabel(&quot;$u_2$&quot;)
-ax1.set_xlabel(&quot;$u_1$&quot;)
-ax2.scatter(newdat[:,0],newdat[:,1],color=&quot;tab:orange&quot;, label=&quot;Reshaped set&quot;)
-ax2.set_ylabel(&quot;$(Au + b)_2$&quot;)
-ax2.set_xlabel(&quot;$(Au + b)_1$&quot;)
-lgd = fig.legend(loc = &quot;lower right&quot;, bbox_to_anchor=(1.08, 0.3))
-plt.show()
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
 <img alt="../../_images/examples_experiments_tutorial_learning_11_0.png" src="../../_images/examples_experiments_tutorial_learning_11_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[182]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>n = 100
@@ -735,8 +735,8 @@ plt.xlabel(&quot;X&quot;)
 
 plt.ylabel(&quot;Y&quot;)
 
-plt.contour(x,y,Z_1, [1])
-plt.contour(x,y,Z_2, [1])
+plt.contour(x,y,Z_2, [1], colors = [&quot;tab:blue&quot;])
+plt.contour(x,y,Z_1, [1], colors = [&quot;tab:orange&quot;])
 plt.scatter(data[:,0],data[:,1])
 
 translate_num = 1.5
@@ -786,7 +786,7 @@ plt.show()
 </div>
 <p>where <span class="math notranslate nohighlight">\(\theta\)</span> encodes the training parameters <span class="math notranslate nohighlight">\((A,b)\)</span>. We again consider the violation loss.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[183]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Define the loss function
@@ -811,7 +811,7 @@ data = data_modes(N,n,[1,2,3])
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[184]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Formulate the uncertainty set and uncertain parameter
@@ -838,7 +838,7 @@ result = prob.train(eps = True, lr = 0.1, step=50, momentum = 0.8, optimizer = &
 df_eps = result.df
 
 # Train A and b
-result1 = prob.train(lr = 0.1, step=50, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s, initeps =0.4)
+result1 = prob.train(lr = 0.1, step=50, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s)
 df1 = result1.df
 A_fin = result1.A
 b_fin = result1.b
@@ -855,7 +855,7 @@ dfgrid = result3.df
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[185]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span># Plot results
@@ -888,31 +888,7 @@ plt.show()
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>newdat = data@A_fin + b_fin
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 4.5))
-ax1.scatter(data[:,0],data[:,1],color=&quot;tab:blue&quot;, label=r&quot;Original set&quot;)
-ax1.set_ylabel(&quot;$u_2$&quot;)
-ax1.set_xlabel(&quot;$u_1$&quot;)
-ax2.scatter(newdat[:,0],newdat[:,1],color=&quot;tab:orange&quot;, label=&quot;Reshaped set&quot;)
-ax2.set_ylabel(&quot;$(Au + b)_2$&quot;)
-ax2.set_xlabel(&quot;$(Au + b)_1$&quot;)
-lgd = fig.legend(loc = &quot;lower right&quot;, bbox_to_anchor=(1.08, 0.3))
-plt.show()
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_17_0.png" src="../../_images/examples_experiments_tutorial_learning_17_0.png" />
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[188]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>n = 100
@@ -936,8 +912,8 @@ plt.xlabel(&quot;X&quot;)
 plt.ylabel(&quot;Y&quot;)
 # plt.ylim(-20,40)
 # plt.xlim(-20,40)
-plt.contour(x,y,Z_1, [10])
-plt.contour(x,y,Z_2, [10])
+plt.contour(x,y,Z_1, [1],  colors = [&quot;tab:orange&quot;])
+plt.contour(x,y,Z_2, [1], colors = [&quot;tab:blue&quot;])
 plt.scatter(data[:,0],data[:,1])
 plt.show()
 </pre></div>
@@ -955,7 +931,7 @@ plt.show()
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_18_1.png" src="../../_images/examples_experiments_tutorial_learning_18_1.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_17_1.png" src="../../_images/examples_experiments_tutorial_learning_17_1.png" />
 </div>
 </div>
 </section>
@@ -977,7 +953,7 @@ plt.show()
 </div>
 <p>where <span class="math notranslate nohighlight">\(\theta\)</span> encodes the training parameters <span class="math notranslate nohighlight">\((A,b)\)</span>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[40]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[259]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Formulate constants
@@ -986,12 +962,12 @@ N = 50
 # k = npr.uniform(1,4,n)
 # p = k + npr.uniform(2,5,n)
 k = np.array([2.,3.])
-p = np.array([3.,4.])
+p = np.array([3,4.5])
 k_tch = torch.tensor(k, requires_grad = True)
 p_tch = torch.tensor(p, requires_grad = True)
 
 # Formulate loss function
-def loss(t,x, data,l = 2):
+def loss(t,x, data,l = 5):
     return t + l*torch.mean(torch.maximum(
         torch.maximum(k_tch@x -data@p_tch, k_tch@x - p_tch@x) - t,
         torch.tensor(0.,requires_grad = True))), t, torch.mean(torch.maximum(
@@ -1012,7 +988,7 @@ data = gen_demand(n,N)
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[260]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Formulate uncertainty set
@@ -1039,9 +1015,10 @@ df_eps = result.df
 
 # # Grid search epsilon
 # dfgrid, newprob = prob.grid(epslst = np.linspace(0.8, 2, 40), seed = s)
-
+init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))
+init_b = -init@np.mean(data, axis=0)
 # Train A and b
-result1 = prob.train(lr = 0.001, step=50, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s, initeps = 1)
+result1 = prob.train(lr = 0.001, step=50, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s, initA = init, initb = init_b, fixb = False)
 df1 = result1.df
 A_fin = result1.A
 b_fin = result1.b
@@ -1049,8 +1026,7 @@ b_fin = result1.b
 result2 = prob.train(eps = True, lr = 0.001, step=50, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s, initA = A_fin, initb = b_fin)
 df_r1 = result2.df
 
-init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))
-init_b = -init@np.mean(data, axis=0)
+
 result3 = prob.train(eps = True, lr = 0.001, step=50, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s, initA = init, initb = init_b )
 df_r2 = result3.df
 
@@ -1061,7 +1037,7 @@ dfgrid = result4.df
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[42]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[261]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span>fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 4))
@@ -1085,11 +1061,11 @@ plt.savefig(&quot;ex1_curves.pdf&quot;, bbox_extra_artists=(lgd,), bbox_inches=&
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_22_0.png" src="../../_images/examples_experiments_tutorial_learning_22_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_21_0.png" src="../../_images/examples_experiments_tutorial_learning_21_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[43]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[262]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span># Plot results
@@ -1120,48 +1096,11 @@ plt.show()
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_23_0.png" src="../../_images/examples_experiments_tutorial_learning_23_0.png" />
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[44]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># newdat = data@A_fin + b_fin
-# fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 4.5))
-plt.scatter(data[:,0],data[:,1],color=&quot;tab:blue&quot;, label=r&quot;Original set&quot;)
-plt.ylabel(&quot;$u_2$&quot;)
-plt.xlabel(&quot;$u_1$&quot;)
-# ax2.scatter(newdat[:,0],newdat[:,1],color=&quot;tab:orange&quot;, label=&quot;Reshaped set&quot;)
-# ax2.set_ylabel(&quot;$(Au + b)_2$&quot;)
-# ax2.set_xlabel(&quot;$(Au + b)_1$&quot;)
-# lgd = fig.legend(loc = &quot;lower right&quot;, bbox_to_anchor=(1.08, 0.3))
-plt.show()
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_24_0.png" src="../../_images/examples_experiments_tutorial_learning_24_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_22_0.png" src="../../_images/examples_experiments_tutorial_learning_22_0.png" />
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[45]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>result2.reform_problem.solve()
-x_opt_learned = x_r.value
-t_learned = t.value
-# Grid search epsilon
-result_new = prob.grid(epslst = np.linspace(0.01, 3, 40), initA = init, initb = init_b, seed = s)
-dfgrid = result_new.df
-</pre></div>
-</div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[46]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[263]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>n = 2
@@ -1179,17 +1118,96 @@ constraints += [x_r &gt;= 0]
 
 prob = lro.RobustProblem(objective, constraints)
 prob.solve()
+# result3.reform_problem.solve()
 x_opt_base = x_r.value
 t_base = t.value
+
+n = 2
+u = lro.UncertainParameter(n,
+                        uncertainty_set=lro.Ellipsoidal(p=2,
+                                                    A = A_fin, b = b_fin))
+# Formulate the Robust Problem
+x_r = cp.Variable(n)
+t = cp.Variable()
+
+objective = cp.Minimize(t)
+
+constraints = [cp.maximum(k@x_r - p@x_r, k@x_r - p@u) &lt;= t]
+constraints += [x_r &gt;= 0]
+
+prob = lro.RobustProblem(objective, constraints)
+prob.solve()
+# result3.reform_problem.solve()
+x_opt_learned = x_r.value
+t_learned = t.value
 </pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[47]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[264]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>x_opt_learned,x_opt_base,t_learned, t_base
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[264]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(array([3.31824229, 3.16543854]),
+ array([6.69989923, 4.92138554]),
+ array(-3.85984093),
+ array(3.81585096))
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[265]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>np.mean(data, axis=0)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[265]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([4.77453877, 6.20495919])
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[266]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>A_fin, init, b_fin, init_b
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[266]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(array([[ 2.40001081, -0.07075356],
+        [-0.78786588,  1.34795178]]),
+ array([[ 2.55730027, -0.42810705],
+        [-0.42810705,  0.35875157]]),
+ array([-9.62583655, -0.35278159]),
+ array([-9.5535425 , -0.18202513]))
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[267]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>plt.figure(figsize=(5, 5))
-n = 100
+n = 25
 offset = 2
 x_min, x_max = np.min(data[:,0]) - offset, np.max(data[:,0]) + offset
 y_min, y_max = np.min(data[:,1]) - offset, np.max(data[:,1]) + offset
@@ -1217,12 +1235,14 @@ plt.title(&quot;Original and reshaped sets&quot;)
 # Set x axis label for the contour plot
 plt.xlabel(r&quot;$u_1$&quot;)
 # Set y axis label for the contour plot
-
+import seaborn as sns
 plt.ylabel(r&quot;$u_2$&quot;)
 # plt.ylim(-20,40)
 # plt.xlim(-20,40)
 plt.contour(x,y,fin_set, [1], colors = [&quot;tab:orange&quot;])
 plt.contour(x,y,init_set, [1], colors = [&quot;tab:blue&quot;])
+# plt.pcolormesh(g_level_learned, alpha = 0.5)
+# plt.pcolormesh(g_level_base, alpha = 0.5)
 plt.contour(x,y,g_level_learned, [t_learned], colors = [&quot;tab:orange&quot;])
 plt.contour(x,y,g_level_base, [t_base], colors = [&quot;tab:blue&quot;])
 plt.scatter(data[:,0],data[:,1])
@@ -1236,6 +1256,75 @@ plt.show()
 </div>
 <div class="output_area docutils container">
 <img alt="../../_images/examples_experiments_tutorial_learning_27_0.png" src="../../_images/examples_experiments_tutorial_learning_27_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[268]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+n = 20
+offset = 2
+x_min, x_max = np.min(data[:,0]) - offset, np.max(data[:,0]) + offset
+y_min, y_max = np.min(data[:,1]) - offset, np.max(data[:,1]) + offset
+X = np.linspace(x_min,x_max,n)
+Y = np.linspace(y_min,y_max,n)
+x,y = np.meshgrid(X,Y)
+# Z values as a matrix
+fin_set = np.zeros((n,n))
+init_set = np.zeros((n,n))
+g_level_learned = np.zeros((n,n))
+g_level_base = np.zeros((n,n))
+
+# Populate Z Values (a 7x7 matrix) - For a circle x^2+y^2=z
+for i in range(n):
+    for j in range(n):
+        u_vec = [x[i,j], y[i,j]]
+        fin_set[i,j] = np.linalg.norm(A_fin@ u_vec  + b_fin)
+        init_set[i,j] = np.linalg.norm(init@ u_vec + init_b)
+        g_level_learned[i,j] = np.maximum(k @ x_opt_learned - p @ x_opt_learned, k @ x_opt_learned - p @ u_vec) - t_learned
+        g_level_base[i,j] = np.maximum(k @ x_opt_base - p @ x_opt_base, k @ x_opt_base - p @ u_vec) - t_base
+
+
+
+ax1.set_title(&quot;Heatmap for original set&quot;)
+# Set x axis label for the contour plot
+ax1.set_xlabel(r&quot;$u_1$&quot;)
+# Set y axis label for the contour plot
+ax1.set_ylabel(r&quot;$u_2$&quot;)
+# plt.ylim(-20,40)
+# plt.xlim(-20,40)
+ax1.contour(x,y,fin_set, [1], colors = [&quot;tab:orange&quot;])
+ax1.contour(x,y,init_set, [1], colors = [&quot;tab:blue&quot;])
+ax1.pcolormesh(x,y, g_level_base, alpha = 1)
+ax1.contour(x,y,g_level_learned, [0], colors = [&quot;tab:orange&quot;])
+ax1.contour(x,y,g_level_base, [0], colors = [&quot;tab:blue&quot;])
+ax1.scatter(data[:,0],data[:,1])
+
+ax2.set_title(&quot;Heatmap for reshaped set&quot;)
+# Set x axis label for the contour plot
+ax2.set_xlabel(r&quot;$u_1$&quot;)
+# Set y axis label for the contour plot
+ax2.set_ylabel(r&quot;$u_2$&quot;)
+# plt.ylim(-20,40)
+# plt.xlim(-20,40)
+ax2.contour(x,y,fin_set, [1], colors = [&quot;tab:orange&quot;])
+ax2.contour(x,y,init_set, [1], colors = [&quot;tab:blue&quot;])
+ax2.pcolormesh(x, y,g_level_learned, alpha = 1)
+ax2.contour(x,y,g_level_learned, [0], colors = [&quot;tab:orange&quot;])
+ax2.contour(x,y,g_level_base, [0], colors = [&quot;tab:blue&quot;])
+ax2.scatter(data[:,0],data[:,1])
+
+plt.savefig(&quot;Reshaped2.pdf&quot;, bbox_inches=&#39;tight&#39;)
+plt.show()
+<br/><br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_experiments_tutorial_learning_28_0.png" src="../../_images/examples_experiments_tutorial_learning_28_0.png" />
 </div>
 </div>
 </section>
@@ -1259,7 +1348,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </dl>
 <p>end{equation*}`</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[55]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[293]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def loss(L,y,Y,s,data,l=10):
@@ -1274,7 +1363,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[56]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[294]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span>n = 10
@@ -1322,7 +1411,7 @@ s = 1
 result = prob.train(eps = True, lr = 0.001, step=30, momentum = 0.8, optimizer = &quot;SGD&quot;, initeps = 2, seed = s)
 df_eps = result.df
 # Train A and b
-result1 = prob.train(lr = 0.0001, step=30, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s)
+result1 = prob.train(lr = 0.0001, step=30, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s, fixb = False)
 df1 = result1.df
 A_fin = result1.A
 b_fin = result1.b
@@ -1343,7 +1432,7 @@ dfgrid = result4.df
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[60]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[296]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span># Plot results
@@ -1373,35 +1462,11 @@ plt.show()
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_31_0.png" src="../../_images/examples_experiments_tutorial_learning_31_0.png" />
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[61]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>newdat = data@A_fin + b_fin
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 4.5))
-ax1.scatter(data[:,0],data[:,1],color=&quot;tab:blue&quot;, label=r&quot;Original set&quot;)
-ax1.set_ylabel(&quot;$u_2$&quot;)
-ax1.set_xlabel(&quot;$u_1$&quot;)
-ax2.scatter(newdat[:,0],newdat[:,1],color=&quot;tab:orange&quot;, label=&quot;Reshaped set&quot;)
-ax2.set_ylabel(&quot;$(Au + b)_2$&quot;)
-ax2.set_xlabel(&quot;$(Au + b)_1$&quot;)
-lgd = fig.legend(loc = &quot;lower right&quot;, bbox_to_anchor=(1.08, 0.3))
-plt.show()
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
 <img alt="../../_images/examples_experiments_tutorial_learning_32_0.png" src="../../_images/examples_experiments_tutorial_learning_32_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[62]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[297]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>plt.rcParams.update({
@@ -1410,14 +1475,16 @@ plt.show()
     &quot;font.size&quot;:22,
     &quot;font.family&quot;: &quot;serif&quot;
 })
+new = pareto_frontier(df1[&#39;Violations&#39;],df1[&#39;Opt_val&#39;])
 plt.figure(figsize=(10,5))
 plt.plot(df_r2[&#39;Violations&#39;], df_r2[&#39;Opt_val&#39;], color=&quot;tab:blue&quot;, label=r&quot;Learning $\epsilon$&quot;)
-plt.plot(df_r1[&#39;Violations&#39;], df_r1[&#39;Opt_val&#39;], color=&quot;tab:orange&quot;, label=r&quot;Learning $(A,b)$&quot;)
+# plt.plot(df_r1[&#39;Violations&#39;], df_r1[&#39;Opt_val&#39;], color=&quot;tab:orange&quot; )
+plt.plot(new[0], new[1], color=&quot;tab:orange&quot;, label=r&quot;Learning $(A,b)$&quot;)
 plt.ylabel(&quot;Objective value&quot;)
 # ax2.set_xlim([-1,20])
 plt.xlabel(&quot;Value of constraint violation&quot;)
 plt.legend(loc = &quot;upper right&quot;)
-# plt.savefig(&quot;Inventory.pdf&quot;,bbox_inches=&#39;tight&#39;)
+plt.savefig(&quot;Inventory.pdf&quot;,bbox_inches=&#39;tight&#39;)
 plt.show()
 plt.figure(figsize=(10, 5))
 
@@ -1430,7 +1497,7 @@ plt.xscale(&quot;log&quot;)
 plt.xlabel(&quot;$\epsilon$&quot;)
 plt.ylabel(&quot;Testing loss&quot;)
 plt.legend()
-# plt.savefig(&quot;Inventory_train.pdf&quot;,bbox_inches=&#39;tight&#39;)
+plt.savefig(&quot;Inventory_train.pdf&quot;,bbox_inches=&#39;tight&#39;)
 <br/></pre></div>
 </div>
 </div>
@@ -1441,27 +1508,18 @@ plt.legend()
 <img alt="../../_images/examples_experiments_tutorial_learning_33_0.png" src="../../_images/examples_experiments_tutorial_learning_33_0.png" />
 </div>
 </div>
-<div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[62]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-&lt;matplotlib.legend.Legend at 0x1cfb61790&gt;
-</pre></div></div>
-</div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_33_2.png" src="../../_images/examples_experiments_tutorial_learning_33_2.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_33_1.png" src="../../_images/examples_experiments_tutorial_learning_33_1.png" />
 </div>
 </div>
 </section>
 <section id="Example-4:-Affine-Adjustable-Robust-Optimization:-Hydro-power-plant">
 <h2>Example 4: Affine Adjustable Robust Optimization: Hydro power plant<a class="headerlink" href="#Example-4:-Affine-Adjustable-Robust-Optimization:-Hydro-power-plant" title="Permalink to this heading">#</a></h2>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[68]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[310]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def loss(tau, x0, x1, x2, x3, x4, x5, data,l=5):
@@ -1473,8 +1531,8 @@ plt.legend()
     x[3] = x4
     x[4] = x5
     Nsample = data.shape[0]
-    for t in range(T):
-        for ind in range(Nsample):
+    for ind in range(Nsample):
+        for t in range(T):
             sums += torch.maximum(-x0[t] - x[t]@torch.tensor(P[t])@data[ind], torch.tensor(0.,requires_grad = True))
             sums += torch.maximum(torch.tensor(l0) - torch.tensor(lhigh) + torch.tensor(np.ones(t+1)@P[t])@data[i] - torch.sum(torch.stack([x0[i] + x[i]@torch.tensor(P[i])@data[ind] for i in range(t+1)])), torch.tensor(0.,requires_grad = True))
             sums += torch.maximum(torch.tensor(llow) - torch.tensor(l0) - torch.tensor(np.ones(t+1)@P[t])@data[ind] + torch.sum(torch.stack([x0[i] + x[i]@torch.tensor(P[i])@data[ind] for i in range(t+1)])), torch.tensor(0.,requires_grad = True))
@@ -1483,7 +1541,7 @@ plt.legend()
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[75]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[311]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span>import math
@@ -1519,10 +1577,9 @@ objective = cp.Minimize(tau)
 
 # formulate constraints
 constraints = [-cp.sum([c[t]*x0[t] + c[t]*x[t]@P[t]@u for t in range(T)]) &lt;= tau]
+constraints += [cp.maximum(*[l0 - lhigh + np.ones(t+1)@P[t]@u - cp.sum([x0[i] + x[i]@P[i]@u for i in range(t+1)]) for t in range(T)], *[llow - l0 - np.ones(t+1)@P[t]@u  + cp.sum([x0[i] + x[i]@P[i]@u for i in range(t+1)]) for t in range(T)]) &lt;= 0]
 for t in range(T):
-    constraints += [l0 - lhigh + np.ones(t+1)@P[t]@u - cp.sum([x0[i] + x[i]@P[i]@u for i in range(t+1)]) &lt;= 0]
-    constraints += [llow - l0 - np.ones(t+1)@P[t]@u  + cp.sum([x0[i] + x[i]@P[i]@u for i in range(t+1)]) &lt;= 0]
-    constraints += [x0[t] + x[t]@P[t]@u &gt;= 0]
+    constraints += [-x0[t] - x[t]@P[t]@u &lt;= 0]
 
 # formulate Robust Problem
 prob = lro.RobustProblem(objective, constraints)
@@ -1532,18 +1589,18 @@ s = 1
 init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))
 init_b = -init@np.mean(data, axis=0)
 # Train only epsilon
-result = prob.train(eps = True, lr = 0.001, step=30, momentum = 0.8, optimizer = &quot;SGD&quot;, initeps = 0.001, seed = s)
-df_eps  = result.df
+# result = prob.train(eps = True, lr = 0.001, step=30, momentum = 0.8, optimizer = &quot;SGD&quot;, initeps = 0.001, seed = s)
+# df_eps  = result.df
 # Train A and b
-result1 = prob.train(lr = 0.001, step=30, momentum = 0.8, optimizer = &quot;SGD&quot;, initA = init, initb = init_b, seed = s)
+result1 = prob.train(lr = 0.001, step=40, momentum = 0.8, optimizer = &quot;SGD&quot;, initA = init, initb = init_b, seed = s, fixb = False)
 df1 = result1.df
 A_fin = result1.A
 b_fin = result1.b
 
-result2 = prob.train(eps = True, lr = 0.001, step=30, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s, initA = A_fin, initb = b_fin)
+result2 = prob.train(eps = True, lr = 0.001, step=40, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s, initA = A_fin, initb = b_fin)
 df_r1 = result2.df
 
-result3 = prob.train(eps = True, lr = 0.001, step=30, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s, initA = init, initb = init_b, initeps = 0.001)
+result3 = prob.train(eps = True, lr = 0.001, step=40, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s, initA = init, initb = init_b, initeps = 0.001)
 df_r2 = result3.df
 # Grid search epsilon
 result4 = prob.grid(epslst = np.linspace(0.0001, 0.01, 40), initA = init, initb = init_b, seed = s)
@@ -1554,7 +1611,7 @@ dfgrid2 = result5.df
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[76]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[312]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span># Plot results
@@ -1565,8 +1622,8 @@ plt.rcParams.update({
     &quot;font.family&quot;: &quot;serif&quot;
 })
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 4.5))
-ax1.plot(df_eps[&#39;step&#39;], df_eps[&#39;Loss_val&#39;], color=&quot;tab:blue&quot;, label=r&quot;$\epsilon$ training&quot;)
-ax1.plot(df_eps[&#39;step&#39;], df_eps[&#39;Eval_val&#39;], linestyle=&#39;--&#39;, color=&quot;tab:blue&quot;, label=r&quot;$\epsilon$ testing&quot;)
+ax1.plot(df_r2[&#39;step&#39;], df_r2[&#39;Loss_val&#39;], color=&quot;tab:blue&quot;, label=r&quot;$\epsilon$ training&quot;)
+ax1.plot(df_r2[&#39;step&#39;], df_r2[&#39;Eval_val&#39;], linestyle=&#39;--&#39;, color=&quot;tab:blue&quot;, label=r&quot;$\epsilon$ testing&quot;)
 ax1.plot(df1[&#39;step&#39;], df1[&#39;Loss_val&#39;], color=&quot;tab:orange&quot;, label=&quot;Reshape training&quot;)
 ax1.plot(df1[&#39;step&#39;], df1[&#39;Eval_val&#39;], linestyle=&#39;--&#39;, color=&quot;tab:orange&quot;, label=&quot;Reshape testing&quot;)
 ax1.legend()
@@ -1594,129 +1651,61 @@ plt.show()
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[78]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[313]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>plt.figure(figsize=(10,5))
-plt.scatter(dfgrid[&#39;Violations&#39;], dfgrid[&#39;Opt_val&#39;], color=&quot;tab:blue&quot;, label=r&quot;Learning $\epsilon$&quot;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>plt.rcParams.update({
+    &quot;text.usetex&quot;:True,
+
+    &quot;font.size&quot;:22,
+    &quot;font.family&quot;: &quot;serif&quot;
+})
+plt.figure(figsize=(10,5))
+plt.scatter(df_r2[&#39;Violations&#39;], df_r2[&#39;Opt_val&#39;], color=&quot;tab:blue&quot;, label=r&quot;Learning $\epsilon$&quot;)
 plt.plot(df1[&#39;Violations&#39;], df1[&#39;Opt_val&#39;], color=&quot;tab:orange&quot;, label=r&quot;Learning $(A,b)$&quot;)
 plt.ylabel(&quot;Objective value&quot;)
 # ax2.set_xlim([-1,20])
 plt.xlabel(&quot;Value of constraint violation&quot;)
-plt.legend()
-# plt.savefig(&quot;Inventory.pdf&quot;,bbox_inches=&#39;tight&#39;)
+plt.legend(loc = &quot;upper right&quot;)
+# plt.savefig(&quot;Hydro.pdf&quot;,bbox_inches=&#39;tight&#39;)
 plt.show()
-</pre></div>
+plt.figure(figsize=(10, 5))
+
+styles = [&quot;s&quot;,&#39;o&#39;,&quot;^&quot;,&quot;v&quot;,&quot;&lt;&quot;,&quot;&gt;&quot;,&quot;o&quot;,&#39;s&#39;,&quot;^&quot;,&quot;v&quot;,&quot;&lt;&quot;,&quot;&gt;&quot;]
+j=0
+plt.plot(dfgrid[&quot;Eps&quot;], dfgrid[&quot;Eval_val&quot;], color = colors[j], linestyle=&#39;--&#39;,label=&quot;$\epsilon$ grid&quot;)
+plt.plot(df_r2[&quot;A_norm&quot;],df_r2[&quot;Eval_val&quot;], linestyle=&#39;-&#39;, marker=&quot;&lt;&quot;, color = &quot;blue&quot;, label=&quot;$\epsilon$ SGD&quot;,alpha = 0.7)
+plt.hlines( xmin = np.min(dfgrid[&quot;Eps&quot;]), xmax = np.max(dfgrid[&quot;Eps&quot;]), y = np.min(df1[&quot;Eval_val&quot;]), label = &quot;$(A,b)$ best&quot;, color= &quot;red&quot;)
+plt.xscale(&quot;log&quot;)
+plt.xlabel(&quot;$\epsilon$&quot;)
+plt.ylabel(&quot;Testing loss&quot;)
+plt.legend()
+# plt.savefig(&quot;Hydro_train.pdf&quot;,bbox_inches=&#39;tight&#39;)
+<br/></pre></div>
 </div>
 </div>
-<div class="nboutput nblast docutils container">
+<div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
 <img alt="../../_images/examples_experiments_tutorial_learning_38_0.png" src="../../_images/examples_experiments_tutorial_learning_38_0.png" />
 </div>
 </div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span>import math
-T = 5
-data = np.random.normal(1,0.1,(100,T))
-# data = data_modes(N,m,[10,20,30])
-#restate the ellipsoidal set
-u = lro.UncertainParameter(T,
-                                uncertainty_set = lro.Ellipsoidal(p=2,
-                                                                  rho=0.00001))
-
-# formulate cvxpy variable
-tau = cp.Variable()
-# lam = cp.Variable(T)
-x0 = cp.Variable(T)
-x = {}
-for t in range(T):
-    x[t] = cp.Variable(t+1)
-
-# formulate problem constants
-P = {}
-for t in range(T):
-    P[t] = np.eye(T)[0:t+1,:]
-l0 = 1
-lhigh = 5
-llow = 1
-c = np.zeros(T)
-for i in range(T):
-    c[i] = 10 + 5*math.sin(math.pi*(1-(i+1))/3)
-
-
-# formulate objective
-objective = cp.Minimize(tau)
-
-# formulate constraints
-constraints = [-cp.sum([c[t]*x0[t] + c[t]*x[t]@P[t]@u for t in range(T)]) &lt;= tau]
-for t in range(T):
-    constraints += [l0 - lhigh + np.ones(t+1)@P[t]@u - cp.sum([x0[i] + x[i]@P[i]@u for i in range(t+1)]) &lt;= 0]
-    constraints += [llow - l0 - np.ones(t+1)@P[t]@u  + cp.sum([x0[i] + x[i]@P[i]@u for i in range(t+1)]) &lt;= 0]
-    constraints += [x0[t] + x[t]@P[t]@u &gt;= 0]
-
-# formulate Robust Problem
-prob = lro.RobustProblem(objective, constraints)
-
-# solve
-s = 1
-# Train only epsilon
-newprob = prob.dualize_constraints()
-newprob.solve()
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[313]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-5.590813163332898
+&lt;matplotlib.legend.Legend at 0x1cc688550&gt;
 </pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[113]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>newprob.solve()
-print(x0.value)
-</pre></div>
-</div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<div class="highlight"><pre>
-[-4.05221279e-01 -1.22808392e-07 -3.15295245e-07 -3.59477893e+00
-  5.31234908e+00]
-</pre></div></div>
+<img alt="../../_images/examples_experiments_tutorial_learning_38_2.png" src="../../_images/examples_experiments_tutorial_learning_38_2.png" />
 </div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[114]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>for t in range(T):
-  print(x[t].value)
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-[0.58324814]
-[4.37475353e-08 6.81955175e-08]
-[7.58256563e-08 7.64259628e-08 1.31840095e-07]
-[0.41675187 0.99999996 1.00000001 1.0000002 ]
-[-0.21659035 -0.21658872 -0.21659381 -0.21660396  0.68957859]
-</pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
