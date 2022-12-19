@@ -49,15 +49,20 @@ class Budget(UncertaintySet):
 
         if data is not None:
             dat_shape = data.shape[1]
-            paramT = Parameter((dat_shape, dat_shape))
-            paramb = Parameter(dat_shape)
-
+            paramA = Parameter((dat_shape, dat_shape))
+            # paramT = Parameter((dat_shape, dat_shape))
+            # paramb = Parameter(dat_shape)
+            self.affine_transform = {'A': paramA, 'b': np.mean(data, axis=0)}
         else:
-            paramT = None
-            paramb = None
+            self.affine_transform = None
+            paramA = None
 
-        self.affine_transform_temp = None
-        self.affine_transform = None
+        if self.affine_transform:
+            self.affine_transform_temp = self.affine_transform.copy()
+        else:
+            self.affine_transform_temp = None
+        paramT = None
+        paramb = None
         self._A1 = A1
         self._A2 = A2
         self._b1 = b1

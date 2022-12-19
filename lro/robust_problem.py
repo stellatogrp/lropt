@@ -191,8 +191,9 @@ class RobustProblem(Problem):
 
             newchain = UncertainChain(self, reductions=unc_reductions)
             prob, inverse_data = newchain.apply(self)
-            if unc_set.paramT is not None:
-                df = pd.DataFrame(columns=["step", "Opt_val", "Eval_val", "Loss_val", "Violations", "A_norm"])
+            if unc_set.paramA is not None:
+                df = pd.DataFrame(columns=["step", "Opt_val", "Test_val",
+                                  "Eval_val", "Loss_val", "Violations", "A_norm"])
 
                 # setup train and test data
                 train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]/5), random_state=seed)
@@ -208,8 +209,8 @@ class RobustProblem(Problem):
                         elif initA is not None:
                             init = np.array(initA)
                         else:
-                            init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
-                        paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True)
+                            init = sc.linalg.sqrtm(np.cov(train.T))
+                        # paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True)
                     else:
                         if initA is not None:
                             init = np.array(initA)
@@ -217,25 +218,28 @@ class RobustProblem(Problem):
                             init = (1/initeps)*np.eye(1)
                         else:
                             init = np.array([[np.cov(train.T)]])
-                        paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True)
-                    if initb is not None:
-                        paramb_tch = torch.tensor(np.array(initb), requires_grad=True)
+                        # paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True)
+                    # if initb is not None:
+                    #     paramb_tch = torch.tensor(np.array(initb), requires_grad=True)
 
                     paramT_tch = torch.tensor(init, requires_grad=True)
                     # paramb_tch = paramT_tch@torch.tensor(-np.mean(train, axis=0), requires_grad=True)
-                    if fixb:
-                        variables = [paramT_tch]
-                    else:
-                        variables = [paramT_tch, paramb_tch]
+                    # if fixb:
+                    #     init_b = torch.tensor(np.mean(-train, axis=0),requires_grad=True)
+                    #     paramb_tch = paramT_tch@init_b
+                    #     variables = [paramT_tch]
+                    # else:
+                    #     variables = [paramT_tch, paramb_tch]
+                    variables = [paramT_tch]
 
                     opt = OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
 
                     paramlst = prob.parameters()
                     newlst = []
-                    for i in paramlst[:-2]:
+                    for i in paramlst[:-1]:
                         newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
                     newlst.append(paramT_tch)
-                    newlst.append(paramb_tch)
+                    # newlst.append(paramb_tch)
 
                     # train
                     for steps in range(step):
@@ -245,8 +249,10 @@ class RobustProblem(Problem):
                         objv = 0
                         splits = 1
                         for sets in range(splits):
-                            newlst[-1] = paramb_tch
-                            newlst[-2] = paramT_tch
+                            # if fixb:
+                            #     paramb_tch = paramT_tch@init_b
+                            # newlst[-1] = paramb_tch
+                            newlst[-1] = paramT_tch
                             var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
                             temploss, obj, violations = unc_set.loss(*var_values, val_dset)
                             evalloss, obj2, violations2 = unc_set.loss(*var_values, eval_set)
@@ -258,6 +264,7 @@ class RobustProblem(Problem):
                              "Loss_val": totloss.item(),
                              "Eval_val": evalloss.item(),
                              "Opt_val": objv.item(),
+                             "Test_val": obj2.item(),
                              "Violations": violations2.item(),
                              "A_norm": np.linalg.norm(paramT_tch.detach().numpy().copy())
                              })
@@ -266,29 +273,30 @@ class RobustProblem(Problem):
                             opt.step()
                             opt.zero_grad()
 
-                    self._values = {'T': paramT_tch.detach().numpy().copy(), 'b': paramb_tch.detach().numpy().copy()}
+                    # self._values = {'T': paramT_tch.detach().numpy().copy(), 'b': paramb_tch.detach().numpy().copy()}
                     self._trained = True
                     unc_set._trained = True
-                    unc_set.paramT.value = paramT_tch.detach().numpy().copy()
-                    unc_set.paramb.value = paramb_tch.detach().numpy().copy()
+                    # unc_set.paramT.value = paramT_tch.detach().numpy().copy()
+                    # unc_set.paramb.value = paramb_tch.detach().numpy().copy()
+                    unc_set.paramA.value = paramT_tch.detach().numpy().copy()
 
                 else:
                     # import ipdb
                     # ipdb.set_trace()
                     #
                     if initeps:
-                        eps_tch = torch.tensor([[1/initeps]], requires_grad=True)
+                        eps_tch = torch.tensor([[initeps/1]], requires_grad=True)
                     else:
                         eps_tch = torch.tensor([[1.]], requires_grad=True)
                     if initA is not None:
                         init = torch.tensor(initA, requires_grad=True)
                     else:
                         init = torch.tensor(np.eye(train.shape[1]), requires_grad=True)
-                    if initb is not None:
-                        init_b = torch.tensor(initb, requires_grad=True)
-                    else:
-                        init_b = torch.tensor(-np.mean(train, axis=0), requires_grad=True)
-                    paramb_tch = eps_tch[0][0]*init_b
+                    # if initb is not None:
+                    #     init_b = torch.tensor(initb, requires_grad=True)
+                    # else:
+                    #     init_b = torch.tensor(-np.mean(train, axis=0), requires_grad=True)
+                    # paramb_tch = eps_tch[0][0]*init_b
                     paramT_tch = eps_tch[0][0]*init
                     variables = [eps_tch]
                     opt = OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
@@ -297,10 +305,10 @@ class RobustProblem(Problem):
                     # assign parameter values
                     paramlst = prob.parameters()
                     newlst = []
-                    for i in paramlst[:-2]:
+                    for i in paramlst[:-1]:
                         newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
                     newlst.append(paramT_tch)
-                    newlst.append(paramb_tch)
+                    # newlst.append(paramb_tch)
 
                     # train
                     for steps in range(step):
@@ -310,8 +318,8 @@ class RobustProblem(Problem):
                         objv = 0
                         splits = 1
                         for sets in range(splits):
-                            newlst[-1] = eps_tch[0][0]*init_b
-                            newlst[-2] = eps_tch[0][0]*init
+                            # newlst[-1] = eps_tch[0][0]*init_b
+                            newlst[-1] = eps_tch[0][0]*init
                             var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
                             temploss, obj, violations = unc_set.loss(*var_values, val_dset)
                             evalloss, obj2, violations2 = unc_set.loss(*var_values, eval_set)
@@ -324,27 +332,29 @@ class RobustProblem(Problem):
                              "Loss_val": totloss.item(),
                              "Eval_val": evalloss.item(),
                              "Opt_val": objv.item(),
+                             "Test_val": obj2.item(),
                              "Violations": violations2.item(),
-                             "A_norm": 1/eps_tch[0][0].detach().numpy().copy()
+                             "A_norm": eps_tch[0][0].detach().numpy().copy()
                              })
                         df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
                         if steps < step - 1:
                             opt.step()
                             opt.zero_grad()
 
-                    self._values = {'T': (eps_tch*init).detach().numpy().copy(), 'b': (
-                        eps_tch[0]*init_b).detach().numpy().copy()}
+                    # self._values = {'T': (eps_tch*init).detach().numpy().copy(), 'b': (
+                    #     eps_tch[0]*init_b).detach().numpy().copy()}
                     self._trained = True
                     unc_set._trained = True
-                    unc_set.paramT.value = (eps_tch*init).detach().numpy().copy()
-                    unc_set.paramb.value = (
-                        eps_tch[0]*init_b).detach().numpy().copy()
+                    # unc_set.paramT.value = (eps_tch*init).detach().numpy().copy()
+                    # unc_set.paramb.value = (
+                    #     eps_tch[0]*init_b).detach().numpy().copy()
+                    unc_set.paramA.value = (eps_tch*init).detach().numpy().copy()
                 self.new_prob = prob
         if eps:
             return_eps = eps_tch[0][0].detach().numpy().copy()
         else:
             return_eps = 1
-        return Result(self, prob, df, unc_set.paramT.value, unc_set.paramb.value, return_eps, objv.item(), var_values)
+        return Result(self, prob, df, unc_set.paramA.value, 0, return_eps, objv.item(), var_values)
 
     def grid(self, epslst=None, seed=1, initA=None, initb=None, solver: Optional[str] = None):
         r"""
@@ -409,8 +419,8 @@ class RobustProblem(Problem):
             unc_reductions += [RemoveUncertainParameters()]
             newchain = UncertainChain(self, reductions=unc_reductions)
             prob, inverse_data = newchain.apply(self)
-            if unc_set.paramT is not None:
-                df = pd.DataFrame(columns=["Opt_val", "Eval_val", "Loss_val", "Eps"])
+            if unc_set.paramA is not None:
+                df = pd.DataFrame(columns=["Opt_val", "Test_val", "Eval_val", "Loss_val", "Eps"])
 
                 # setup train and test data
                 train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]/5), random_state=seed)
@@ -419,15 +429,15 @@ class RobustProblem(Problem):
                 # create cvxpylayer
                 cvxpylayer = CvxpyLayer(prob, parameters=prob.parameters(), variables=self.variables())
                 eps_tch = torch.tensor([[epslst[0]]], requires_grad=True)
-                paramb_tch = eps_tch[0][0]*torch.tensor(-np.mean(train, axis=0), requires_grad=True)
+                # paramb_tch = eps_tch[0][0]*torch.tensor(-np.mean(train, axis=0), requires_grad=True)
                 paramT_tch = eps_tch[0][0]*torch.tensor(np.eye(train.shape[1]), requires_grad=True)
                 # assign parameter values
                 paramlst = prob.parameters()
                 newlst = []
-                for i in paramlst[:-2]:
+                for i in paramlst[:-1]:
                     newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
                 newlst.append(paramT_tch)
-                newlst.append(paramb_tch)
+                # newlst.append(paramb_tch)
                 minval = 9999999
                 var_vals = 0
 
@@ -435,16 +445,16 @@ class RobustProblem(Problem):
                     init = torch.tensor(initA, requires_grad=True)
                 else:
                     init = torch.tensor(np.eye(train.shape[1]), requires_grad=True)
-                if initb is not None:
-                    init_b = torch.tensor(initb, requires_grad=True)
-                else:
-                    init_b = torch.tensor(-np.mean(train, axis=0), requires_grad=True)
+                # if initb is not None:
+                #     init_b = torch.tensor(initb, requires_grad=True)
+                # else:
+                #     init_b = torch.tensor(-np.mean(train, axis=0), requires_grad=True)
                 for epss in epslst:
                     # import ipdb
-                    eps_tch1 = torch.tensor([[1/epss]], requires_grad=True)
+                    eps_tch1 = torch.tensor([[epss]], requires_grad=True)
                     # ipdb.set_trace()
-                    newlst[-1] = eps_tch1[0][0]*init_b
-                    newlst[-2] = eps_tch1[0][0]*init
+                    # newlst[-1] = eps_tch1[0][0]*init_b
+                    newlst[-1] = eps_tch1[0][0]*init
                     var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
                     totloss, obj, violations = unc_set.loss(*var_values, val_dset)
                     evalloss, obj2, violations2 = unc_set.loss(*var_values, eval_set)
@@ -456,21 +466,23 @@ class RobustProblem(Problem):
                         {"Loss_val": totloss.item(),
                             "Eval_val": evalloss.item(),
                             "Opt_val": obj.item(),
-                            "Violations": violations.item(),
-                            "Eps": 1/eps_tch1[0][0].detach().numpy().copy()
+                            "Test_val": obj2.item(),
+                            "Violations": violations2.item(),
+                            "Eps": eps_tch1[0][0].detach().numpy().copy()
                          })
                     df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
 
-                self._values = {'T': (mineps*init).detach().numpy().copy(), 'b': (
-                    mineps[0]*init_b).detach().numpy().copy()}
+                # self._values = {'T': (mineps*init).detach().numpy().copy(), 'b': (
+                #     mineps[0]*init_b).detach().numpy().copy()}
                 self._trained = True
                 unc_set._trained = True
-                unc_set.paramT.value = (mineps*init).detach().numpy().copy()
-                unc_set.paramb.value = (
-                    mineps[0]*init_b).detach().numpy().copy()
+                # unc_set.paramT.value = (mineps*init).detach().numpy().copy()
+                # unc_set.paramb.value = (
+                #     mineps[0]*init_b).detach().numpy().copy()
+                unc_set.paramA.value = (mineps*init).detach().numpy().copy()
                 self.new_prob = prob
-        return Result(self, prob, df, unc_set.paramT.value,
-                      unc_set.paramb.value, mineps[0][0].detach().numpy().copy(), minval, var_vals)
+        return Result(self, prob, df, unc_set.paramA.value,
+                      0, mineps[0][0].detach().numpy().copy(), minval, var_vals)
 
     def dualize_constraints(self):
         # import ipdb

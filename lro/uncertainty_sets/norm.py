@@ -49,25 +49,41 @@ class Norm(UncertaintySet):
 
         if data is not None:
             dat_shape = data.shape[1]
-            paramT = Parameter((dat_shape, dat_shape))
-            paramb = Parameter(dat_shape)
+            paramA = Parameter((dat_shape, dat_shape))
+            # paramT = Parameter((dat_shape, dat_shape))
+            # paramb = Parameter(dat_shape)
+            parama = None
+            self.affine_transform = {'A': paramA, 'b': np.mean(data, axis=0)}
 
         else:
-            if A is not None:
-                paramT = A
+            self.affine_transform = None
+            if A is not None and b is not None:
+                paramA = np.array(A)
+                parama = np.array(b)
+                self.affine_transform = {'A': paramA, 'b': parama}
+            elif A is not None:
+                paramA = np.array(A)
+                self.affine_transform = {'A': paramA, 'b': np.zeros(paramA.shape[1])}
+            elif b is not None:
+                paramb = np.array(b)
+                self.affine_transform = {'A': np.eye(paramb.shape[0]), 'b': parama}
             else:
-                paramT = None
-            if b is not None:
-                paramb = b
-            else:
-                paramb = None
+                parama = None
+                paramA = None
+                self.affine_transform = None
 
-        self.affine_transform_temp = None
-        self.affine_transform = None
+        paramT = None
+        paramb = None
+        if self.affine_transform:
+            self.affine_transform_temp = self.affine_transform.copy()
+        else:
+            self.affine_transform_temp = None
 
         self._p = p
         self._rho = rho
         self._data = data
+        self._paramA = paramA
+        self._parama = parama
         self._paramT = paramT
         self._paramb = paramb
         self._trained = False
@@ -88,6 +104,10 @@ class Norm(UncertaintySet):
     @property
     def paramb(self):
         return self._paramb
+
+    @property
+    def paramA(self):
+        return self._paramA
 
     @property
     def data(self):
@@ -141,18 +161,21 @@ class Norm(UncertaintySet):
             if trans:
                 new_expr += trans['b']
         e = np.eye(num_constr)[i]
-        if len(trans['A'].shape) == 1:
-            newA = np.reshape(trans['A'].value, (1, trans['A'].shape[0]))
-        else:
-            newA = trans['A']
+        # if len(trans['A'].shape) == 1:
+        #     newA = np.reshape(trans['A'].value, (1, trans['A'].shape[0]))
+        # else:
+        #     newA = trans['A']
         if var.is_scalar():
             if trans:
-                new_constraints = [var == -newA * e]
+                new_constraints = [var == -trans['A'] * e]
             else:
                 new_constraints = [var == - e]
         else:
             if trans:
-                new_constraints = [var == -newA.T @ e]
+                if len(trans['A'].shape) == 1:
+                    new_constraints = [var == -trans['A']]
+                else:
+                    new_constraints = [var == -trans['A'].T @ e]
             else:
                 new_constraints = [var == - e]
         if i == (num_constr - 1):
@@ -173,7 +196,7 @@ class Norm(UncertaintySet):
             ushape = var.shape[1]  # shape of uncertainty
             if self.paramb is None:
                 self._paramb = np.zeros(ushape)
-            if self.data is not None or self.paramT is not None:
+            if self.data is not None and self.paramT is not None:
                 if shape == 1:
                     newvar = Variable(ushape)  # gamma aux variable
                     lmbda = Variable()

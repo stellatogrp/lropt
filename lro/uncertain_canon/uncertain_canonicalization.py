@@ -102,9 +102,9 @@ class Uncertain_Canonicalization(Reduction):
                 # ipdb.set_trace()
                 # if unc_params[0].uncertainty_set.data is not None and not unc_params[0].uncertainty_set.trained:
                 #     raise ValueError("You must first train the uncertainty with problem.train()")
-                if unc_params[0].uncertainty_set.trained:
-                    unc_params[0].uncertainty_set.paramT.value = problem.param_values['T']
-                    unc_params[0].uncertainty_set.paramb.value = problem.param_values['b']
+                # if unc_params[0].uncertainty_set.trained:
+                #     unc_params[0].uncertainty_set.paramT.value = problem.param_values['T']
+                #     unc_params[0].uncertainty_set.paramb.value = problem.param_values['b']
             else:
                 # canon_constr, aux_constr = self.canonicalize_tree(
                 #     constraint, 0)
