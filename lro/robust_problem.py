@@ -101,10 +101,11 @@ class RobustProblem(Problem):
                                                 solver_opts=solver_opts
                                                 )
         #
+        new_reductions = solving_chain.reductions
         if self.uncertain_parameters():
             # import ipdb
             # ipdb.set_trace()
-            new_reductions = solving_chain.reductions
+            # new_reductions = solving_chain.reductions
             # Find position of Dcp2Cone or Qp2SymbolicQp
             for idx in range(len(new_reductions)):
                 if type(new_reductions[idx]) in [Dcp2Cone, Qp2SymbolicQp]:
@@ -483,6 +484,8 @@ class RobustProblem(Problem):
             newchain = UncertainChain(self, reductions=unc_reductions)
             prob, _ = newchain.apply(self)
             return prob
+        else:
+            return super(RobustProblem, self)
 
     def solve(self, solver: Optional[str] = None):
         # import ipdb
@@ -493,13 +496,16 @@ class RobustProblem(Problem):
             if self.uncertain_parameters()[0].uncertainty_set.data is not None:
                 _ = self.train()
                 return self.new_prob.solve(solver=solver)
-            unc_reductions = []
-            if type(self.objective) == Maximize:
-                unc_reductions += [FlipObjective()]
-            unc_reductions += [RemoveUncertainParameters()]
-            newchain = UncertainChain(self, reductions=unc_reductions)
-            prob, _ = newchain.apply(self)
+            prob = self.dualize_constraints()
+            # unc_reductions = []
+            # if type(self.objective) == Maximize:
+            #     unc_reductions += [FlipObjective()]
+            # unc_reductions += [RemoveUncertainParameters()]
+            # newchain = UncertainChain(self, reductions=unc_reductions)
+            # prob, _ = newchain.apply(self)
             return prob.solve(solver=solver)
+        else:
+            return super(RobustProblem, self).solve()
 
 
 class Result(ABC):
