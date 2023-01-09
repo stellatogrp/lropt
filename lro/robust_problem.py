@@ -484,8 +484,7 @@ class RobustProblem(Problem):
             newchain = UncertainChain(self, reductions=unc_reductions)
             prob, _ = newchain.apply(self)
             return prob
-        else:
-            return super(RobustProblem, self)
+        return super(RobustProblem, self)
 
     def solve(self, solver: Optional[str] = None):
         # import ipdb
@@ -504,8 +503,7 @@ class RobustProblem(Problem):
             # newchain = UncertainChain(self, reductions=unc_reductions)
             # prob, _ = newchain.apply(self)
             return prob.solve(solver=solver)
-        else:
-            return super(RobustProblem, self).solve()
+        return super(RobustProblem, self).solve()
 
 
 class Result(ABC):
