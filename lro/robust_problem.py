@@ -19,6 +19,7 @@ from lro.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lro.settings import EPS_LST_DEFAULT, OPTIMIZERS
 from lro.uncertain import UncertainParameter
 from lro.uncertain_canon.uncertain_chain import UncertainChain
+from lro.uncertainty_sets.mro import MRO
 from lro.utils import unique_list
 
 
@@ -193,6 +194,13 @@ class RobustProblem(Problem):
             newchain = UncertainChain(self, reductions=unc_reductions)
             prob, inverse_data = newchain.apply(self)
             if unc_set.paramT is not None:
+                # import ipdb
+                # ipdb.set_trace()
+                if type(unc_set) == MRO:
+                    mro_set = True
+                else:
+                    mro_set = False
+
                 df = pd.DataFrame(columns=["step", "Opt_val", "Eval_val", "Loss_val", "Violations", "A_norm"])
 
                 # setup train and test data
@@ -204,18 +212,22 @@ class RobustProblem(Problem):
                 if not eps:
                     # initialize parameters to train
                     if len(np.shape(np.cov(train.T))) >= 1:
-                        if initeps:
+                        if initeps and initA is None:
                             init = (1/initeps)*np.eye(train.shape[1])
                         elif initA is not None:
                             init = np.array(initA)
+                            if initeps:
+                                init = (1/initeps)*init
                         else:
                             init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
                         paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True)
                     else:
-                        if initA is not None:
-                            init = np.array(initA)
-                        elif initeps:
+                        if initeps and initA is None:
                             init = (1/initeps)*np.eye(1)
+                        elif initA is not None:
+                            init = np.array(initA)
+                            if initeps:
+                                init = (1/initeps)*init
                         else:
                             init = np.array([[np.cov(train.T)]])
                         paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True)
@@ -224,7 +236,14 @@ class RobustProblem(Problem):
 
                     paramT_tch = torch.tensor(init, requires_grad=True)
                     # paramb_tch = paramT_tch@torch.tensor(-np.mean(train, axis=0), requires_grad=True)
-                    if fixb:
+                    if fixb or mro_set:
+                        if mro_set and unc_set._uniqueA:
+                            if initA is None:
+                                paramT_tch = paramT_tch.repeat(unc_set._K, 1)
+                            elif initA is not None and initA.shape[0] != (unc_set._K*unc_set._m):
+                                paramT_tch = paramT_tch.repeat(unc_set._K, 1)
+                        paramT = paramT_tch.detach().numpy()
+                        paramT_tch = torch.tensor(paramT, requires_grad=True)
                         variables = [paramT_tch]
                     else:
                         variables = [paramT_tch, paramb_tch]
@@ -233,10 +252,15 @@ class RobustProblem(Problem):
 
                     paramlst = prob.parameters()
                     newlst = []
-                    for i in paramlst[:-2]:
-                        newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
-                    newlst.append(paramT_tch)
-                    newlst.append(paramb_tch)
+                    if not mro_set:
+                        for i in paramlst[:-2]:
+                            newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
+                        newlst.append(paramT_tch)
+                        newlst.append(paramb_tch)
+                    else:
+                        for i in paramlst[:-1]:
+                            newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
+                        newlst.append(paramT_tch)
 
                     # train
                     for steps in range(step):
@@ -246,8 +270,11 @@ class RobustProblem(Problem):
                         objv = 0
                         splits = 1
                         for sets in range(splits):
-                            newlst[-1] = paramb_tch
-                            newlst[-2] = paramT_tch
+                            if not mro_set:
+                                newlst[-1] = paramb_tch
+                                newlst[-2] = paramT_tch
+                            else:
+                                newlst[-1] = paramT_tch
                             var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
                             temploss, obj, violations = unc_set.loss(*var_values, val_dset)
                             evalloss, obj2, violations2 = unc_set.loss(*var_values, eval_set)
@@ -259,6 +286,7 @@ class RobustProblem(Problem):
                              "Loss_val": totloss.item(),
                              "Eval_val": evalloss.item(),
                              "Opt_val": objv.item(),
+                             "Test_val": obj2.item(),
                              "Violations": violations2.item(),
                              "A_norm": np.linalg.norm(paramT_tch.detach().numpy().copy())
                              })
@@ -267,20 +295,29 @@ class RobustProblem(Problem):
                             opt.step()
                             opt.zero_grad()
 
-                    self._values = {'T': paramT_tch.detach().numpy().copy(), 'b': paramb_tch.detach().numpy().copy()}
                     self._trained = True
                     unc_set._trained = True
                     unc_set.paramT.value = paramT_tch.detach().numpy().copy()
-                    unc_set.paramb.value = paramb_tch.detach().numpy().copy()
+                    if not mro_set:
+                        unc_set.paramb.value = paramb_tch.detach().numpy().copy()
 
                 else:
                     # import ipdb
                     # ipdb.set_trace()
                     #
                     if initeps:
-                        eps_tch = torch.tensor([[1/initeps]], requires_grad=True)
+                        eps_tch = torch.tensor(1/np.array(initeps), requires_grad=True)
+                        if mro_set:
+                            if unc_set._uniqueA and eps_tch.shape == torch.Size([]):
+                                eps_tch = eps_tch.repeat(unc_set._K)
+                                eps_tch = eps_tch.detach().numpy()
+                                eps_tch = torch.tensor(eps_tch, requires_grad=True)
                     else:
-                        eps_tch = torch.tensor([[1.]], requires_grad=True)
+                        eps_tch = torch.tensor(1., requires_grad=True)
+                        if mro_set and unc_set._uniqueA:
+                            eps_tch = eps_tch.repeat(unc_set._K)
+                            eps_tch = eps_tch.detach().numpy()
+                            eps_tch = torch.tensor(eps_tch, requires_grad=True)
                     if initA is not None:
                         init = torch.tensor(initA, requires_grad=True)
                     else:
@@ -289,8 +326,25 @@ class RobustProblem(Problem):
                         init_b = torch.tensor(initb, requires_grad=True)
                     else:
                         init_b = torch.tensor(-np.mean(train, axis=0), requires_grad=True)
-                    paramb_tch = eps_tch[0][0]*init_b
-                    paramT_tch = eps_tch[0][0]*init
+                    if not mro_set:
+                        paramb_tch = eps_tch*init_b
+                        paramT_tch = eps_tch*init
+                    elif unc_set._uniqueA:
+                        if initA is None or (initA is not None and initA.shape[0] != (unc_set._K*unc_set._m)):
+                            paramT_tch = eps_tch[0]*init
+                            for k_ind in range(1, unc_set._K):
+                                paramT_tch = torch.vstack((paramT_tch, eps_tch[k_ind]*init))
+                            case = 0
+                        else:
+                            paramT_tch = eps_tch[0]*torch.tensor(initA[0:unc_set._m, 0:unc_set._m])
+                            for k_ind in range(1, unc_set._K):
+                                paramT_tch = torch.vstack(
+                                    (paramT_tch, eps_tch[k_ind] *
+                                        torch.tensor(initA[(k_ind*unc_set._m):(k_ind+1)*unc_set._m, 0:unc_set._m])))
+                            case = 1
+                    else:
+                        paramT_tch = eps_tch*init
+                        case = 2
                     variables = [eps_tch]
                     opt = OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
                     # opt = torch.optim.SGD(variables, lr=lr, momentum=.8)
@@ -298,10 +352,15 @@ class RobustProblem(Problem):
                     # assign parameter values
                     paramlst = prob.parameters()
                     newlst = []
-                    for i in paramlst[:-2]:
-                        newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
-                    newlst.append(paramT_tch)
-                    newlst.append(paramb_tch)
+                    if not mro_set:
+                        for i in paramlst[:-2]:
+                            newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
+                        newlst.append(paramT_tch)
+                        newlst.append(paramb_tch)
+                    else:
+                        for i in paramlst[:-1]:
+                            newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
+                        newlst.append(paramT_tch)
 
                     # train
                     for steps in range(step):
@@ -311,8 +370,24 @@ class RobustProblem(Problem):
                         objv = 0
                         splits = 1
                         for sets in range(splits):
-                            newlst[-1] = eps_tch[0][0]*init_b
-                            newlst[-2] = eps_tch[0][0]*init
+                            if not mro_set:
+                                newlst[-1] = eps_tch*init_b
+                                newlst[-2] = eps_tch*init
+                            else:
+                                if case == 0:
+                                    paramT_tch = eps_tch[0]*init
+                                    for k_ind in range(1, unc_set._K):
+                                        paramT_tch = torch.vstack((paramT_tch, eps_tch[k_ind]*init))
+                                elif case == 1:
+                                    paramT_tch = eps_tch[0]*torch.tensor(initA[0:unc_set._m, 0:unc_set._m])
+                                    for k_ind in range(1, unc_set._K):
+                                        paramT_tch = torch.vstack(
+                                            (paramT_tch, eps_tch[k_ind] *
+                                                torch.tensor(initA[(k_ind*unc_set._m):(k_ind+1)
+                                                                   * unc_set._m, 0:unc_set._m])))
+                                else:
+                                    paramT_tch = eps_tch*init
+                                newlst[-1] = paramT_tch
                             var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
                             temploss, obj, violations = unc_set.loss(*var_values, val_dset)
                             evalloss, obj2, violations2 = unc_set.loss(*var_values, eval_set)
@@ -326,26 +401,33 @@ class RobustProblem(Problem):
                              "Eval_val": evalloss.item(),
                              "Opt_val": objv.item(),
                              "Violations": violations2.item(),
-                             "A_norm": 1/eps_tch[0][0].detach().numpy().copy()
+                             "Test_val": obj2.item(),
+                             "A_norm": np.mean(1/eps_tch.detach().numpy().copy()),
+                             "Eps_vals": 1/eps_tch.detach().numpy().copy()
                              })
                         df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
                         if steps < step - 1:
                             opt.step()
                             opt.zero_grad()
-
-                    self._values = {'T': (eps_tch*init).detach().numpy().copy(), 'b': (
-                        eps_tch[0]*init_b).detach().numpy().copy()}
                     self._trained = True
                     unc_set._trained = True
-                    unc_set.paramT.value = (eps_tch*init).detach().numpy().copy()
-                    unc_set.paramb.value = (
-                        eps_tch[0]*init_b).detach().numpy().copy()
+
+                    if not mro_set:
+                        unc_set.paramT.value = (eps_tch*init).detach().numpy().copy()
+                        unc_set.paramb.value = (
+                            eps_tch*init_b).detach().numpy().copy()
+                    else:
+                        unc_set.paramT.value = paramT_tch.detach().numpy().copy()
                 self.new_prob = prob
         if eps:
-            return_eps = eps_tch[0][0].detach().numpy().copy()
+            return_eps = eps_tch.detach().numpy().copy()
         else:
             return_eps = 1
-        return Result(self, prob, df, unc_set.paramT.value, unc_set.paramb.value, return_eps, objv.item(), var_values)
+        if not mro_set:
+            return Result(self, prob, df, unc_set.paramT.value,
+                          unc_set.paramb.value, return_eps, objv.item(), var_values)
+        else:
+            return Result(self, prob, df, unc_set.paramT.value, None, return_eps, objv.item(), var_values)
 
     def grid(self, epslst=None, seed=1, initA=None, initb=None, solver: Optional[str] = None):
         r"""
@@ -412,7 +494,10 @@ class RobustProblem(Problem):
             prob, inverse_data = newchain.apply(self)
             if unc_set.paramT is not None:
                 df = pd.DataFrame(columns=["Opt_val", "Eval_val", "Loss_val", "Eps"])
-
+                if type(unc_set) == MRO:
+                    mro_set = True
+                else:
+                    mro_set = False
                 # setup train and test data
                 train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]/5), random_state=seed)
                 val_dset = torch.tensor(train, requires_grad=True)
@@ -425,10 +510,15 @@ class RobustProblem(Problem):
                 # assign parameter values
                 paramlst = prob.parameters()
                 newlst = []
-                for i in paramlst[:-2]:
-                    newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
-                newlst.append(paramT_tch)
-                newlst.append(paramb_tch)
+                if not mro_set:
+                    for i in paramlst[:-2]:
+                        newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
+                    newlst.append(paramT_tch)
+                    newlst.append(paramb_tch)
+                else:
+                    for i in paramlst[:-1]:
+                        newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
+                    newlst.append(paramT_tch)
                 minval = 9999999
                 var_vals = 0
 
@@ -440,38 +530,58 @@ class RobustProblem(Problem):
                     init_b = torch.tensor(initb, requires_grad=True)
                 else:
                     init_b = torch.tensor(-np.mean(train, axis=0), requires_grad=True)
+
                 for epss in epslst:
                     # import ipdb
                     eps_tch1 = torch.tensor([[1/epss]], requires_grad=True)
                     # ipdb.set_trace()
-                    newlst[-1] = eps_tch1[0][0]*init_b
-                    newlst[-2] = eps_tch1[0][0]*init
+                    if not mro_set:
+                        newlst[-1] = eps_tch1[0][0]*init_b
+                        newlst[-2] = eps_tch1[0][0]*init
+                    else:
+                        if unc_set._uniqueA:
+                            if initA is None or (initA is not None and initA.shape[0] != (unc_set._K*unc_set._m)):
+                                paramT_tch = eps_tch1[0][0]*init
+                                paramT_tch = paramT_tch.repeat(unc_set._K, 1)
+                            else:
+                                paramT_tch = eps_tch1[0][0]*init
+                        else:
+                            paramT_tch = eps_tch1[0][0]*init
+                        newlst[-1] = paramT_tch
                     var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
                     totloss, obj, violations = unc_set.loss(*var_values, val_dset)
                     evalloss, obj2, violations2 = unc_set.loss(*var_values, eval_set)
                     if totloss <= minval:
                         minval = totloss
                         mineps = eps_tch1.clone()
+                        minT = paramT_tch.clone()
                         var_vals = var_values
                     newrow = pd.Series(
                         {"Loss_val": totloss.item(),
                             "Eval_val": evalloss.item(),
                             "Opt_val": obj.item(),
+                            "Test_val": obj2.item(),
                             "Violations": violations.item(),
                             "Eps": 1/eps_tch1[0][0].detach().numpy().copy()
                          })
                     df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
 
-                self._values = {'T': (mineps*init).detach().numpy().copy(), 'b': (
-                    mineps[0]*init_b).detach().numpy().copy()}
                 self._trained = True
                 unc_set._trained = True
-                unc_set.paramT.value = (mineps*init).detach().numpy().copy()
-                unc_set.paramb.value = (
-                    mineps[0]*init_b).detach().numpy().copy()
+
+                if not mro_set:
+                    unc_set.paramT.value = (mineps*init).detach().numpy().copy()
+                    unc_set.paramb.value = (
+                        mineps[0]*init_b).detach().numpy().copy()
+                else:
+                    unc_set.paramT.value = minT.detach().numpy().copy()
                 self.new_prob = prob
-        return Result(self, prob, df, unc_set.paramT.value,
-                      unc_set.paramb.value, mineps[0][0].detach().numpy().copy(), minval, var_vals)
+        if not mro_set:
+            return Result(self, prob, df, unc_set.paramT.value,
+                          unc_set.paramb.value, mineps[0][0].detach().numpy().copy(), minval, var_vals)
+        else:
+            return Result(self, prob, df, unc_set.paramT.value,
+                          None, mineps[0][0].detach().numpy().copy(), minval, var_vals)
 
     def dualize_constraints(self):
         # import ipdb
@@ -493,8 +603,12 @@ class RobustProblem(Problem):
             return self.new_prob.solve(solver=solver)
         elif self.uncertain_parameters():
             if self.uncertain_parameters()[0].uncertainty_set.data is not None:
-                _ = self.train()
-                return self.new_prob.solve(solver=solver)
+                if not type(self.uncertain_parameters()[0].uncertainty_set) == MRO:
+                    _ = self.train()
+                    return self.new_prob.solve(solver=solver)
+                elif self.uncertain_parameters()[0].uncertainty_set._train:
+                    _ = self.train()
+                    return self.new_prob.solve(solver=solver)
             prob = self.dualize_constraints()
             # unc_reductions = []
             # if type(self.objective) == Maximize:

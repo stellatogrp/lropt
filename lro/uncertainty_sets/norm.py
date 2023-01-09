@@ -162,7 +162,7 @@ class Norm(UncertaintySet):
                 self.affine_transform_temp = None
         return new_expr, new_constraints
 
-    def conjugate(self, var, shape):
+    def conjugate(self, var, shape, k_ind=0):
         # import ipdb
         # ipdb.set_trace()
         if not isinstance(var, Variable):
