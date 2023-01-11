@@ -169,6 +169,9 @@ class RobustProblem(Problem):
         #                                         solver_opts=None
         #                                         )
         #
+
+        T_iter = []
+        b_iter = []
         if self.uncertain_parameters():
             # import ipdb
             # ipdb.set_trace()
@@ -291,6 +294,10 @@ class RobustProblem(Problem):
                              "A_norm": np.linalg.norm(paramT_tch.detach().numpy().copy())
                              })
                         df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
+
+                        T_iter.append(paramT_tch.detach().numpy().copy())
+                        b_iter.append(paramb_tch.detach().numpy().copy())
+
                         if steps < step - 1:
                             opt.step()
                             opt.zero_grad()
@@ -406,6 +413,10 @@ class RobustProblem(Problem):
                              "Eps_vals": 1/eps_tch.detach().numpy().copy()
                              })
                         df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
+
+                        T_iter.append(paramT_tch.detach().numpy().copy())
+                        b_iter.append(paramb_tch.detach().numpy().copy())
+
                         if steps < step - 1:
                             opt.step()
                             opt.zero_grad()
@@ -425,9 +436,10 @@ class RobustProblem(Problem):
             return_eps = 1
         if not mro_set:
             return Result(self, prob, df, unc_set.paramT.value,
-                          unc_set.paramb.value, return_eps, objv.item(), var_values)
+                          unc_set.paramb.value, return_eps, objv.item(), var_values, T_iter=T_iter, b_iter=b_iter)
         else:
-            return Result(self, prob, df, unc_set.paramT.value, None, return_eps, objv.item(), var_values)
+            return Result(self, prob, df, unc_set.paramT.value, None, return_eps, objv.item(), var_values,
+                          T_iter=T_iter, b_iter=b_iter)
 
     def grid(self, epslst=None, seed=1, initA=None, initb=None, solver: Optional[str] = None):
         r"""
@@ -621,7 +633,7 @@ class RobustProblem(Problem):
 
 
 class Result(ABC):
-    def __init__(self, prob, probnew, df, T, b, eps, obj, x):
+    def __init__(self, prob, probnew, df, T, b, eps, obj, x, T_iter=None, b_iter=None):
         self._reform_problem = probnew
         self._problem = prob
         self._df = df
@@ -630,6 +642,8 @@ class Result(ABC):
         self._obj = obj
         self._x = x
         self._eps = eps
+        self._T_iter = T_iter
+        self._b_iter = b_iter
 
     @property
     def problem(self):
@@ -662,3 +676,7 @@ class Result(ABC):
     @property
     def var_values(self):
         return self._x
+
+    @property
+    def uncset_iters(self):
+        return self._T_iter, self._b_iter
