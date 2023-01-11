@@ -666,8 +666,8 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -1.9314274800409743
-LRO x:  [-1.20302446 -0.10108354 -0.06361743 -1.10843972]
+LRO objective value:  -2.1457486234953023
+LRO x:  [-0.11586756 -0.8942907  -0.83603474 -1.11975264]
 </pre></div></div>
 </div>
 <p>We note that this is equivalent to using the MRO uncertainty set with <span class="math notranslate nohighlight">\(K = 1\)</span> and power = 1.</p>
@@ -703,8 +703,8 @@ LRO x:  [-1.20302446 -0.10108354 -0.06361743 -1.10843972]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-MRO objective value:  -1.9314274789300474
-MRO x:  [-1.20302477 -0.10108391 -0.06361745 -1.10843927]
+MRO objective value:  -2.145748622757675
+MRO x:  [-0.11586238 -0.89430096 -0.83602668 -1.11974885]
 </pre></div></div>
 </div>
 <p>We compare the above with its explicit reformulation and solution</p>
@@ -746,8 +746,8 @@ MRO x:  [-1.20302477 -0.10108391 -0.06361745 -1.10843927]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -1.931427477331321
-Cvxpy x:  [-1.20302229 -0.10108089 -0.0636173  -1.1084428 ]
+Cvxpy objective value:  -2.1457486236187804
+Cvxpy x:  [-0.11586288 -0.89429999 -0.83602745 -1.11974921]
 </pre></div></div>
 </div>
 <p>We see that they provide the same solution.</p>
@@ -832,12 +832,12 @@ Cvxpy x:  [-1.20302229 -0.10108089 -0.0636173  -1.1084428 ]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Box objective value:  -1.9513755467923273
-Box x:  [1.00000000e+00 2.34623524e-11 9.99999998e-01 9.73551837e-01
- 4.85657822e-09]
-Ellipsoidal objective value:  -1.9513755467923206
-Ellipsoidal x:  [1.00000000e+00 2.34635998e-11 9.99999998e-01 9.73551837e-01
- 4.85664765e-09]
+Box objective value:  -1.868772213575003
+Box x:  [1.00000000e+00 1.09537465e-10 5.39218043e-10 5.78687150e-01
+ 1.00000000e+00]
+Ellipsoidal objective value:  -1.868772213575002
+Ellipsoidal x:  [1.00000000e+00 1.09537957e-10 5.39219513e-10 5.78687150e-01
+ 1.00000000e+00]
 </pre></div></div>
 </div>
 <p>We compare the above with its explicit reformulation and solution</p>
@@ -878,9 +878,9 @@ Ellipsoidal x:  [1.00000000e+00 2.34635998e-11 9.99999998e-01 9.73551837e-01
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -1.9513755466495941
-Cvxpy x:  [1.00000000e+00 2.07901682e-11 9.99999998e-01 9.73551830e-01
- 1.01436971e-08]
+Cvxpy objective value:  -1.868772213778191
+Cvxpy x:  [1.00000000e+00 2.26486437e-11 1.22333765e-11 5.78687150e-01
+ 1.00000000e+00]
 </pre></div></div>
 </div>
 </section>
@@ -941,8 +941,8 @@ Cvxpy x:  [1.00000000e+00 2.07901682e-11 9.99999998e-01 9.73551830e-01
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -7.33399960011851
-LRO x:  [-10.20848125   5.           5.           5.        ]
+LRO objective value:  -4.438607088554558
+LRO x:  [ 5.          5.          5.         -7.21578437]
 </pre></div></div>
 </div>
 <p>We compare it with its direct reformulation, where each uncertain constraint is treated independently,</p>
@@ -993,8 +993,8 @@ LRO x:  [-10.20848125   5.           5.           5.        ]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -7.333999600133062
-Cvxpy x:  [-10.20848125   5.           5.           5.        ]
+Cvxpy objective value:  -4.438607088556255
+Cvxpy x:  [ 5.          5.          5.         -7.21578437]
 </pre></div></div>
 </div>
 </section>
@@ -1049,8 +1049,8 @@ Cvxpy x:  [-10.20848125   5.           5.           5.        ]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  4.577938583958348
-LRO x:  [2.74285597 2.96228048 2.3963841  2.93322814]
+LRO objective value:  7.502600154463243
+LRO x:  [2.73957884 2.37985963 2.80962115 2.76543541]
 </pre></div></div>
 </div>
 <p>We compare this with its direct reformulation,</p>
@@ -1097,8 +1097,8 @@ LRO x:  [2.74285597 2.96228048 2.3963841  2.93322814]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  4.577938583812213
-Cvxpy x:  [2.74285597 2.96228048 2.3963841  2.93322814]
+Cvxpy objective value:  7.502600151392322
+Cvxpy x:  [2.73957884 2.37985962 2.80962115 2.76543541]
 </pre></div></div>
 </div>
 </section>
@@ -1228,7 +1228,7 @@ Cvxpy x:  [0.79880041 0.80132141 0.80077192 0.79880835 0.80029791]
 </div>
 <p>where <span class="math notranslate nohighlight">\(a\)</span> and <span class="math notranslate nohighlight">\(d\)</span> are constants, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from an ellipsoidal uncertainty set.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate uncertainty set</span>
@@ -1266,14 +1266,14 @@ Cvxpy x:  [0.79880041 0.80132141 0.80077192 0.79880835 0.80029791]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -15.368735592093554
-LRO x:  [1.49536409e+01 8.76485656e-08 1.13176875e-08 2.81533450e-08
- 7.60128615e-09]
+LRO objective value:  -32.06671916626774
+LRO x:  [-1.97882870e-10  1.82283951e-10 -1.45896438e-10 -9.01159384e-11
+  1.87986728e+01]
 </pre></div></div>
 </div>
 <p>We again note that this is equivalent to using the MRO uncertainty set with <span class="math notranslate nohighlight">\(K= 1\)</span> and power = 1.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate uncertainty set</span>
@@ -1306,13 +1306,13 @@ LRO x:  [1.49536409e+01 8.76485656e-08 1.13176875e-08 2.81533450e-08
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-MRO objective value:  -15.36873560920793
-MRO x:  [1.49536411e+01 1.00999213e-09 1.26882588e-10 3.09790933e-10
- 8.11291592e-11]
+MRO objective value:  -32.06671916409249
+MRO x:  [-1.21123861e-10  3.74997820e-10 -1.08718057e-10  1.00825091e-10
+  1.87986728e+01]
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate using cvxpy</span>
@@ -1342,9 +1342,9 @@ MRO x:  [1.49536411e+01 1.00999213e-09 1.26882588e-10 3.09790933e-10
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -15.368735608797776
-Cvxpy x:  [1.49536411e+01 1.60286410e-09 1.67620220e-10 5.25987830e-10
- 1.30418906e-10]
+Cvxpy objective value:  -32.06671915162912
+Cvxpy x:  [4.39834399e-10 8.11862181e-10 4.45567335e-10 8.37229500e-10
+ 1.87986728e+01]
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
