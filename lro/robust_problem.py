@@ -213,13 +213,22 @@ class RobustProblem(Problem):
                     # initialize parameters to train
                     if len(np.shape(np.cov(train.T))) >= 1:
                         if initeps and initA is None:
-                            init = (1/initeps)*np.eye(train.shape[1])
+                            if mro_set:
+                                initA = (1/initeps)*unc_set._initA
+                                init = initA
+                            else:
+                                init = (1/initeps)*np.eye(train.shape[1])
                         elif initA is not None:
                             init = np.array(initA)
                             if initeps:
                                 init = (1/initeps)*init
+
                         else:
-                            init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
+                            if mro_set:
+                                initA = unc_set._initA
+                                init = initA
+                            else:
+                                init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
                         paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True)
                     else:
                         if initeps and initA is None:
@@ -240,10 +249,10 @@ class RobustProblem(Problem):
                         if mro_set and unc_set._uniqueA:
                             if initA is None:
                                 paramT_tch = paramT_tch.repeat(unc_set._K, 1)
-                            elif initA is not None and initA.shape[0] != (unc_set._K*unc_set._m):
+                            elif initA.shape[0] != (unc_set._K*unc_set._m):
                                 paramT_tch = paramT_tch.repeat(unc_set._K, 1)
-                        paramT = paramT_tch.detach().numpy()
-                        paramT_tch = torch.tensor(paramT, requires_grad=True)
+                            paramT = paramT_tch.detach().numpy()
+                            paramT_tch = torch.tensor(paramT, requires_grad=True)
                         variables = [paramT_tch]
                     else:
                         variables = [paramT_tch, paramb_tch]
@@ -330,7 +339,10 @@ class RobustProblem(Problem):
                         paramb_tch = eps_tch*init_b
                         paramT_tch = eps_tch*init
                     elif unc_set._uniqueA:
-                        if initA is None or (initA is not None and initA.shape[0] != (unc_set._K*unc_set._m)):
+                        if initA is None:
+                            initA = unc_set._initA
+                            init = torch.tensor(initA, requires_grad=True)
+                        if (initA.shape[0] != (unc_set._K*unc_set._m)):
                             paramT_tch = eps_tch[0]*init
                             for k_ind in range(1, unc_set._K):
                                 paramT_tch = torch.vstack((paramT_tch, eps_tch[k_ind]*init))
@@ -525,7 +537,11 @@ class RobustProblem(Problem):
                 if initA is not None:
                     init = torch.tensor(initA, requires_grad=True)
                 else:
-                    init = torch.tensor(np.eye(train.shape[1]), requires_grad=True)
+                    if mro_set:
+                        initA = unc_set._initA
+                        init = torch.tensor(initA, requires_grad=True)
+                    else:
+                        init = torch.tensor(np.eye(train.shape[1]), requires_grad=True)
                 if initb is not None:
                     init_b = torch.tensor(initb, requires_grad=True)
                 else:
