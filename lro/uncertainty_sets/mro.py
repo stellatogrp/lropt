@@ -1,4 +1,5 @@
 import numpy as np
+import scipy as sc
 from cvxpy import Parameter, Variable, norm
 from sklearn.cluster import KMeans
 
@@ -12,7 +13,7 @@ class MRO(UncertaintySet):
     Uncertainty set where the parameter is constrained to lie in a
     Wasserstein ball of the form
     .. math::
-        \{ \sum( w_k||u_k - d_k ||^p)\leq eps\\}
+        \{ \sum( w_k||u_k - d_k ||^\text{power}_p)\leq \rho\\}
     """
 
     def __init__(self, K=1, rho=1, data=None, power=1, p=2,
@@ -49,6 +50,18 @@ class MRO(UncertaintySet):
         if train:
             if self._uniqueA:
                 paramT = Parameter((K*self._m, self._m))
+                dat = data[kmeans.labels_ == 0]
+                if dat.shape[0] <= 2:
+                    initnew = sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))
+                else:
+                    initnew = sc.linalg.sqrtm(sc.linalg.inv(np.cov(dat.T)))
+                for k_ind in range(1, K):
+                    dat = data[kmeans.labels_ == k_ind]
+                    if dat.shape[0] <= 2:
+                        initnew = np.vstack((initnew, sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))))
+                    else:
+                        initnew = np.vstack((initnew, sc.linalg.sqrtm(sc.linalg.inv(np.cov(dat.T)))))
+                self._initA = initnew
             else:
                 paramT = Parameter((self._m, self._m))
         else:

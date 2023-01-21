@@ -117,7 +117,7 @@ class RobustProblem(Problem):
         return SolvingChain(reductions=new_reductions)
 
     def train(
-        self, eps=False, fixb=True, step=45, lr=0.01, momentum=0.8,
+        self, eps=False, fixb=True, step=45, lr=0.01, scheduler=True, momentum=0.8,
         optimizer="SGD", initeps=None, initA=None, initb=None, seed=1, solver: Optional[str] = None
     ):
         r"""
@@ -253,6 +253,8 @@ class RobustProblem(Problem):
 
                     opt = OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
                     # opt = OPTIMIZERS[optimizer](variables, lr=lr)
+                    if scheduler:
+                        scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=5)
 
                     paramlst = prob.parameters()
                     newlst = []
@@ -302,6 +304,8 @@ class RobustProblem(Problem):
                         if steps < step - 1:
                             opt.step()
                             opt.zero_grad()
+                            if scheduler:
+                                scheduler_.step(evalloss)
 
                     self._trained = True
                     unc_set._trained = True
@@ -357,7 +361,8 @@ class RobustProblem(Problem):
                     opt = OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
                     # opt = OPTIMIZERS[optimizer](variables, lr=lr)
                     # opt = torch.optim.SGD(variables, lr=lr, momentum=.8)
-
+                    if scheduler:
+                        scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=5)
                     # assign parameter values
                     paramlst = prob.parameters()
                     newlst = []
@@ -423,6 +428,9 @@ class RobustProblem(Problem):
                         if steps < step - 1:
                             opt.step()
                             opt.zero_grad()
+                            if scheduler:
+                                scheduler_.step(evalloss)
+
                     self._trained = True
                     unc_set._trained = True
 
