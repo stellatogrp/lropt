@@ -252,6 +252,7 @@ class RobustProblem(Problem):
                         variables = [paramT_tch, paramb_tch]
 
                     opt = OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
+                    # opt = OPTIMIZERS[optimizer](variables, lr=lr)
 
                     paramlst = prob.parameters()
                     newlst = []
@@ -354,6 +355,7 @@ class RobustProblem(Problem):
                         case = 2
                     variables = [eps_tch]
                     opt = OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
+                    # opt = OPTIMIZERS[optimizer](variables, lr=lr)
                     # opt = torch.optim.SGD(variables, lr=lr, momentum=.8)
 
                     # assign parameter values
@@ -415,7 +417,8 @@ class RobustProblem(Problem):
                         df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
 
                         T_iter.append(paramT_tch.detach().numpy().copy())
-                        b_iter.append(paramb_tch.detach().numpy().copy())
+                        if not mro_set:
+                            b_iter.append(paramb_tch.detach().numpy().copy())
 
                         if steps < step - 1:
                             opt.step()
@@ -439,7 +442,7 @@ class RobustProblem(Problem):
                           unc_set.paramb.value, return_eps, objv.item(), var_values, T_iter=T_iter, b_iter=b_iter)
         else:
             return Result(self, prob, df, unc_set.paramT.value, None, return_eps, objv.item(), var_values,
-                          T_iter=T_iter, b_iter=b_iter)
+                          T_iter=T_iter)
 
     def grid(self, epslst=None, seed=1, initA=None, initb=None, solver: Optional[str] = None):
         r"""
