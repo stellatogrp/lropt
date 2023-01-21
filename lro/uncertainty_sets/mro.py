@@ -51,13 +51,13 @@ class MRO(UncertaintySet):
             if self._uniqueA:
                 paramT = Parameter((K*self._m, self._m))
                 dat = data[kmeans.labels_ == 0]
-                if dat.shape[0] == 1:
+                if dat.shape[0] <= 2:
                     initnew = sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))
                 else:
                     initnew = sc.linalg.sqrtm(sc.linalg.inv(np.cov(dat.T)))
                 for k_ind in range(1, K):
                     dat = data[kmeans.labels_ == k_ind]
-                    if dat.shape[0] == 1:
+                    if dat.shape[0] <= 2:
                         initnew = np.vstack((initnew, sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))))
                     else:
                         initnew = np.vstack((initnew, sc.linalg.sqrtm(sc.linalg.inv(np.cov(dat.T)))))
