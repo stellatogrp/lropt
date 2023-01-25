@@ -305,7 +305,7 @@ class RobustProblem(Problem):
                             opt.step()
                             opt.zero_grad()
                             if scheduler:
-                                scheduler_.step(evalloss)
+                                scheduler_.step(totloss)
 
                     self._trained = True
                     unc_set._trained = True
@@ -429,7 +429,7 @@ class RobustProblem(Problem):
                             opt.step()
                             opt.zero_grad()
                             if scheduler:
-                                scheduler_.step(evalloss)
+                                scheduler_.step(totloss)
 
                     self._trained = True
                     unc_set._trained = True
