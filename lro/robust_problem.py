@@ -118,7 +118,7 @@ class RobustProblem(Problem):
 
     def train(
         self, eps=False, fixb=True, step=45, lr=0.01, scheduler=True, momentum=0.8,
-        optimizer="SGD", initeps=None, initA=None, initb=None, seed=1, solver: Optional[str] = None
+        optimizer="SGD", initeps=None, initA=None, initb=None, save_iters=False, seed=1, solver: Optional[str] = None
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. loss metric
@@ -298,8 +298,10 @@ class RobustProblem(Problem):
                              })
                         df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
 
-                        T_iter.append(paramT_tch.detach().numpy().copy())
-                        b_iter.append(paramb_tch.detach().numpy().copy())
+                        if save_iters:
+                            T_iter.append(paramT_tch.detach().numpy().copy())
+                            if not mro_set:
+                                b_iter.append(paramb_tch.detach().numpy().copy())
 
                         if steps < step - 1:
                             opt.step()
@@ -421,9 +423,10 @@ class RobustProblem(Problem):
                              })
                         df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
 
-                        T_iter.append(paramT_tch.detach().numpy().copy())
-                        if not mro_set:
-                            b_iter.append(paramb_tch.detach().numpy().copy())
+                        if save_iters:
+                            T_iter.append(paramT_tch.detach().numpy().copy())
+                            if not mro_set:
+                                b_iter.append(paramb_tch.detach().numpy().copy())
 
                         if steps < step - 1:
                             opt.step()
