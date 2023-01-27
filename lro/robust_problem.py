@@ -208,8 +208,8 @@ class RobustProblem(Problem):
 
                 # setup train and test data
                 train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]/5), random_state=seed)
-                val_dset = torch.tensor(train, requires_grad=True)
-                eval_set = torch.tensor(test, requires_grad=True)
+                val_dset = torch.tensor(train, requires_grad=True, dtype=torch.double)
+                eval_set = torch.tensor(test, requires_grad=True, dtype=torch.double)
                 # create cvxpylayer
                 cvxpylayer = CvxpyLayer(prob, parameters=prob.parameters(), variables=self.variables())
                 if not eps:
@@ -223,7 +223,7 @@ class RobustProblem(Problem):
                                 init = (1/initeps)*init
                         else:
                             init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
-                        paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True)
+                        paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True, dtype=torch.double)
                     else:
                         if initeps and initA is None:
                             init = (1/initeps)*np.eye(1)
@@ -233,11 +233,11 @@ class RobustProblem(Problem):
                                 init = (1/initeps)*init
                         else:
                             init = np.array([[np.cov(train.T)]])
-                        paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True)
+                        paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True, dtype=torch.double)
                     if initb is not None:
-                        paramb_tch = torch.tensor(np.array(initb), requires_grad=True)
+                        paramb_tch = torch.tensor(np.array(initb), requires_grad=True, dtype=torch.double)
 
-                    paramT_tch = torch.tensor(init, requires_grad=True)
+                    paramT_tch = torch.tensor(init, requires_grad=True, dtype=torch.double)
                     # paramb_tch = paramT_tch@torch.tensor(-np.mean(train, axis=0), requires_grad=True)
                     if fixb or mro_set:
                         if mro_set and unc_set._uniqueA:
@@ -246,7 +246,7 @@ class RobustProblem(Problem):
                             elif initA is not None and initA.shape[0] != (unc_set._K*unc_set._m):
                                 paramT_tch = paramT_tch.repeat(unc_set._K, 1)
                         paramT = paramT_tch.detach().numpy()
-                        paramT_tch = torch.tensor(paramT, requires_grad=True)
+                        paramT_tch = torch.tensor(paramT, requires_grad=True, dtype=torch.double)
                         variables = [paramT_tch]
                     else:
                         variables = [paramT_tch, paramb_tch]
@@ -260,12 +260,14 @@ class RobustProblem(Problem):
                     newlst = []
                     if not mro_set:
                         for i in paramlst[:-2]:
-                            newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
+                            newlst.append(torch.tensor(np.array(i.value).astype(
+                                np.float), requires_grad=True, dtype=torch.double))
                         newlst.append(paramT_tch)
                         newlst.append(paramb_tch)
                     else:
                         for i in paramlst[:-1]:
-                            newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
+                            newlst.append(torch.tensor(np.array(i.value).astype(
+                                np.float), requires_grad=True, dtype=torch.double))
                         newlst.append(paramT_tch)
 
                     # train
@@ -294,7 +296,8 @@ class RobustProblem(Problem):
                              "Opt_val": objv.item(),
                              "Test_val": obj2.item(),
                              "Violations": violations2.item(),
-                             "A_norm": np.linalg.norm(paramT_tch.detach().numpy().copy())
+                             "A_norm": np.linalg.norm(paramT_tch.detach().numpy().copy()),
+                             "dfnorm": np.linalg.norm(paramT_tch.grad)
                              })
                         df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
 
@@ -307,7 +310,7 @@ class RobustProblem(Problem):
                             opt.step()
                             opt.zero_grad()
                             if scheduler:
-                                scheduler_.step(evalloss)
+                                scheduler_.step(totloss)
 
                     self._trained = True
                     unc_set._trained = True
@@ -320,26 +323,26 @@ class RobustProblem(Problem):
                     # ipdb.set_trace()
                     #
                     if initeps:
-                        eps_tch = torch.tensor(1/np.array(initeps), requires_grad=True)
+                        eps_tch = torch.tensor(1/np.array(initeps), requires_grad=True, dtype=torch.double)
                         if mro_set:
                             if unc_set._uniqueA and eps_tch.shape == torch.Size([]):
                                 eps_tch = eps_tch.repeat(unc_set._K)
                                 eps_tch = eps_tch.detach().numpy()
-                                eps_tch = torch.tensor(eps_tch, requires_grad=True)
+                                eps_tch = torch.tensor(eps_tch, requires_grad=True, dtype=torch.double)
                     else:
-                        eps_tch = torch.tensor(1., requires_grad=True)
+                        eps_tch = torch.tensor(1., requires_grad=True, dtype=torch.double)
                         if mro_set and unc_set._uniqueA:
                             eps_tch = eps_tch.repeat(unc_set._K)
                             eps_tch = eps_tch.detach().numpy()
-                            eps_tch = torch.tensor(eps_tch, requires_grad=True)
+                            eps_tch = torch.tensor(eps_tch, requires_grad=True, dtype=torch.double)
                     if initA is not None:
-                        init = torch.tensor(initA, requires_grad=True)
+                        init = torch.tensor(initA, requires_grad=True, dtype=torch.double)
                     else:
-                        init = torch.tensor(np.eye(train.shape[1]), requires_grad=True)
+                        init = torch.tensor(np.eye(train.shape[1]), requires_grad=True, dtype=torch.double)
                     if initb is not None:
-                        init_b = torch.tensor(initb, requires_grad=True)
+                        init_b = torch.tensor(initb, requires_grad=True, dtype=torch.double)
                     else:
-                        init_b = torch.tensor(-np.mean(train, axis=0), requires_grad=True)
+                        init_b = torch.tensor(-np.mean(train, axis=0), requires_grad=True, dtype=torch.double)
                     if not mro_set:
                         paramb_tch = eps_tch*init_b
                         paramT_tch = eps_tch*init
@@ -350,11 +353,12 @@ class RobustProblem(Problem):
                                 paramT_tch = torch.vstack((paramT_tch, eps_tch[k_ind]*init))
                             case = 0
                         else:
-                            paramT_tch = eps_tch[0]*torch.tensor(initA[0:unc_set._m, 0:unc_set._m])
+                            paramT_tch = eps_tch[0]*torch.tensor(initA[0:unc_set._m, 0:unc_set._m], dtype=torch.double)
                             for k_ind in range(1, unc_set._K):
                                 paramT_tch = torch.vstack(
                                     (paramT_tch, eps_tch[k_ind] *
-                                        torch.tensor(initA[(k_ind*unc_set._m):(k_ind+1)*unc_set._m, 0:unc_set._m])))
+                                        torch.tensor(initA[(k_ind*unc_set._m):(k_ind+1)*unc_set._m, 0:unc_set._m],
+                                                     dtype=torch.double)))
                             case = 1
                     else:
                         paramT_tch = eps_tch*init
@@ -370,12 +374,14 @@ class RobustProblem(Problem):
                     newlst = []
                     if not mro_set:
                         for i in paramlst[:-2]:
-                            newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
+                            newlst.append(torch.tensor(np.array(i.value).astype(
+                                np.float), requires_grad=True, dtype=torch.double))
                         newlst.append(paramT_tch)
                         newlst.append(paramb_tch)
                     else:
                         for i in paramlst[:-1]:
-                            newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
+                            newlst.append(torch.tensor(np.array(i.value).astype(
+                                np.float), requires_grad=True, dtype=torch.double))
                         newlst.append(paramT_tch)
 
                     # train
@@ -395,12 +401,13 @@ class RobustProblem(Problem):
                                     for k_ind in range(1, unc_set._K):
                                         paramT_tch = torch.vstack((paramT_tch, eps_tch[k_ind]*init))
                                 elif case == 1:
-                                    paramT_tch = eps_tch[0]*torch.tensor(initA[0:unc_set._m, 0:unc_set._m])
+                                    paramT_tch = eps_tch[0] * \
+                                        torch.tensor(initA[0:unc_set._m, 0:unc_set._m], dtype=torch.double)
                                     for k_ind in range(1, unc_set._K):
                                         paramT_tch = torch.vstack(
                                             (paramT_tch, eps_tch[k_ind] *
                                                 torch.tensor(initA[(k_ind*unc_set._m):(k_ind+1)
-                                                                   * unc_set._m, 0:unc_set._m])))
+                                                                   * unc_set._m, 0:unc_set._m], dtype=torch.double)))
                                 else:
                                     paramT_tch = eps_tch*init
                                 newlst[-1] = paramT_tch
@@ -419,8 +426,8 @@ class RobustProblem(Problem):
                              "Violations": violations2.item(),
                              "Test_val": obj2.item(),
                              "A_norm": np.mean(1/eps_tch.detach().numpy().copy()),
-                             "Eps_vals": 1/eps_tch.detach().numpy().copy()
-                             })
+                             "Eps_vals": 1/eps_tch.detach().numpy().copy(),
+                             "dfnorm": np.linalg.norm(eps_tch.grad)})
                         df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
 
                         if save_iters:
@@ -432,7 +439,7 @@ class RobustProblem(Problem):
                             opt.step()
                             opt.zero_grad()
                             if scheduler:
-                                scheduler_.step(evalloss)
+                                scheduler_.step(totloss)
 
                     self._trained = True
                     unc_set._trained = True
@@ -526,40 +533,42 @@ class RobustProblem(Problem):
                     mro_set = False
                 # setup train and test data
                 train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]/5), random_state=seed)
-                val_dset = torch.tensor(train, requires_grad=True)
-                eval_set = torch.tensor(test, requires_grad=True)
+                val_dset = torch.tensor(train, requires_grad=True, dtype=torch.double)
+                eval_set = torch.tensor(test, requires_grad=True, dtype=torch.double)
                 # create cvxpylayer
                 cvxpylayer = CvxpyLayer(prob, parameters=prob.parameters(), variables=self.variables())
-                eps_tch = torch.tensor([[epslst[0]]], requires_grad=True)
-                paramb_tch = eps_tch[0][0]*torch.tensor(-np.mean(train, axis=0), requires_grad=True)
-                paramT_tch = eps_tch[0][0]*torch.tensor(np.eye(train.shape[1]), requires_grad=True)
+                eps_tch = torch.tensor([[epslst[0]]], requires_grad=True, dtype=torch.double)
+                paramb_tch = eps_tch[0][0]*torch.tensor(-np.mean(train, axis=0), requires_grad=True, dtype=torch.double)
+                paramT_tch = eps_tch[0][0]*torch.tensor(np.eye(train.shape[1]), requires_grad=True, dtype=torch.double)
                 # assign parameter values
                 paramlst = prob.parameters()
                 newlst = []
                 if not mro_set:
                     for i in paramlst[:-2]:
-                        newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
+                        newlst.append(torch.tensor(np.array(i.value).astype(
+                            np.float), requires_grad=True), dtype=torch.double)
                     newlst.append(paramT_tch)
                     newlst.append(paramb_tch)
                 else:
                     for i in paramlst[:-1]:
-                        newlst.append(torch.tensor(np.array(i.value).astype(np.float), requires_grad=True))
+                        newlst.append(torch.tensor(np.array(i.value).astype(
+                            np.float), requires_grad=True), dtype=torch.double)
                     newlst.append(paramT_tch)
                 minval = 9999999
                 var_vals = 0
 
                 if initA is not None:
-                    init = torch.tensor(initA, requires_grad=True)
+                    init = torch.tensor(initA, requires_grad=True, dtype=torch.double)
                 else:
-                    init = torch.tensor(np.eye(train.shape[1]), requires_grad=True)
+                    init = torch.tensor(np.eye(train.shape[1]), requires_grad=True, dtype=torch.double)
                 if initb is not None:
-                    init_b = torch.tensor(initb, requires_grad=True)
+                    init_b = torch.tensor(initb, requires_grad=True, dtype=torch.double)
                 else:
-                    init_b = torch.tensor(-np.mean(train, axis=0), requires_grad=True)
+                    init_b = torch.tensor(-np.mean(train, axis=0), requires_grad=True, dtype=torch.double)
 
                 for epss in epslst:
                     # import ipdb
-                    eps_tch1 = torch.tensor([[1/epss]], requires_grad=True)
+                    eps_tch1 = torch.tensor([[1/epss]], requires_grad=True, dtype=torch.double)
                     # ipdb.set_trace()
                     if not mro_set:
                         newlst[-1] = eps_tch1[0][0]*init_b
