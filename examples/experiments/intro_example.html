@@ -467,7 +467,7 @@ div.rendered_html tbody tr:hover {
 }
 </style>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
@@ -512,7 +512,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>where <span class="math notranslate nohighlight">\(\theta\)</span> encodes the training parameters <span class="math notranslate nohighlight">\((A,b)\)</span>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Formulate constants</span>
@@ -564,7 +564,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.collections.PathCollection at 0x7fe360f0a4a0&gt;
+&lt;matplotlib.collections.PathCollection at 0x7f9d897a2770&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -578,7 +578,7 @@ div.rendered_html tbody tr:hover {
 <section id="Train-relevant-sets">
 <h1>Train relevant sets<a class="headerlink" href="#Train-relevant-sets" title="Permalink to this heading">#</a></h1>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n</span> <span class="o">=</span> <span class="mi">2</span>
@@ -659,7 +659,7 @@ div.rendered_html tbody tr:hover {
 <section id="Solve-for-final-values">
 <h1>Solve for final values<a class="headerlink" href="#Solve-for-final-values" title="Permalink to this heading">#</a></h1>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">final_solve</span><span class="p">(</span><span class="n">A_final</span><span class="p">,</span> <span class="n">b_final</span><span class="p">):</span>
@@ -700,9 +700,170 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-base x,t = [2.86182346 2.05538129] 1.1954414361831998
-optimal x,t = [1.60370149 1.40815337] -1.4302163725917236
-after eps train optimal x,t = [1.56230937 1.43574812] -1.9821882119143184
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">ValueError</span>                                Traceback (most recent call last)
+Cell <span class="ansi-green-fg">In [19], line 25</span>
+<span class="ansi-green-intense-fg ansi-bold">     22</span>     return x_final, t_final
+<span class="ansi-green-intense-fg ansi-bold">     24</span> x_opt_learned_2, t_opt_learned_2 = final_solve(A_fin_2, b_fin_2)
+<span class="ansi-green-fg">---&gt; 25</span> x_opt_learned, t_opt_learned = final_solve(A_fin, b_fin)
+<span class="ansi-green-intense-fg ansi-bold">     26</span> x_opt_base, t_opt_base = final_solve(init_A, init_b)
+<span class="ansi-green-intense-fg ansi-bold">     28</span> print(&#34;base x,t =&#34;, x_opt_base, t_opt_base)
+
+Cell <span class="ansi-green-fg">In [19], line 17</span>, in <span class="ansi-cyan-fg">final_solve</span><span class="ansi-blue-fg">(A_final, b_final)</span>
+<span class="ansi-green-intense-fg ansi-bold">     14</span> constraints += [x_r &gt;= 0]
+<span class="ansi-green-intense-fg ansi-bold">     16</span> prob = lro.RobustProblem(objective, constraints)
+<span class="ansi-green-fg">---&gt; 17</span> prob.solve()
+<span class="ansi-green-intense-fg ansi-bold">     18</span> # result3.reform_problem.solve()
+<span class="ansi-green-intense-fg ansi-bold">     19</span> x_final = x_r.value
+
+File <span class="ansi-green-fg">~/Desktop/colbeck/Bartolomeo Research/lro/lro/robust_problem.py:638</span>, in <span class="ansi-cyan-fg">RobustProblem.solve</span><span class="ansi-blue-fg">(self, solver)</span>
+<span class="ansi-green-intense-fg ansi-bold">    636</span>         _ = self.train()
+<span class="ansi-green-intense-fg ansi-bold">    637</span>         return self.new_prob.solve(solver=solver)
+<span class="ansi-green-fg">--&gt; 638</span> prob = self.dualize_constraints()
+<span class="ansi-green-intense-fg ansi-bold">    639</span> # unc_reductions = []
+<span class="ansi-green-intense-fg ansi-bold">    640</span> # if type(self.objective) == Maximize:
+<span class="ansi-green-intense-fg ansi-bold">    641</span> #     unc_reductions += [FlipObjective()]
+<span class="ansi-green-intense-fg ansi-bold">    642</span> # unc_reductions += [RemoveUncertainParameters()]
+<span class="ansi-green-intense-fg ansi-bold">    643</span> # newchain = UncertainChain(self, reductions=unc_reductions)
+<span class="ansi-green-intense-fg ansi-bold">    644</span> # prob, _ = newchain.apply(self)
+<span class="ansi-green-intense-fg ansi-bold">    645</span> return prob.solve(solver=solver)
+
+File <span class="ansi-green-fg">~/Desktop/colbeck/Bartolomeo Research/lro/lro/robust_problem.py:621</span>, in <span class="ansi-cyan-fg">RobustProblem.dualize_constraints</span><span class="ansi-blue-fg">(self)</span>
+<span class="ansi-green-intense-fg ansi-bold">    619</span>     unc_reductions += [RemoveUncertainParameters()]
+<span class="ansi-green-intense-fg ansi-bold">    620</span>     newchain = UncertainChain(self, reductions=unc_reductions)
+<span class="ansi-green-fg">--&gt; 621</span>     prob, _ = newchain.apply(self)
+<span class="ansi-green-intense-fg ansi-bold">    622</span>     return prob
+<span class="ansi-green-intense-fg ansi-bold">    623</span> return super(RobustProblem, self)
+
+File <span class="ansi-green-fg">~/Desktop/colbeck/Bartolomeo Research/lro/lro/uncertain_canon/uncertain_chain.py:80</span>, in <span class="ansi-cyan-fg">UncertainChain.apply</span><span class="ansi-blue-fg">(self, problem, verbose)</span>
+<span class="ansi-green-intense-fg ansi-bold">     78</span>     if verbose:
+<span class="ansi-green-intense-fg ansi-bold">     79</span>         s.LOGGER.info(&#39;Applying reduction %s&#39;, type(r).__name__)
+<span class="ansi-green-fg">---&gt; 80</span>     problem, inv = r.apply(problem)
+<span class="ansi-green-intense-fg ansi-bold">     81</span>     inverse_data.append(inv)
+<span class="ansi-green-intense-fg ansi-bold">     82</span> return problem, inverse_data
+
+File <span class="ansi-green-fg">~/Desktop/colbeck/Bartolomeo Research/lro/lro/remove_uncertain/remove_uncertain.py:24</span>, in <span class="ansi-cyan-fg">RemoveUncertainParameters.apply</span><span class="ansi-blue-fg">(self, problem)</span>
+<span class="ansi-green-intense-fg ansi-bold">     22</span> if not self.accepts(problem):
+<span class="ansi-green-intense-fg ansi-bold">     23</span>     raise ValueError(&#34;Cannot canonicalize uncertain problem atoms.&#34;)
+<span class="ansi-green-fg">---&gt; 24</span> return super(RemoveUncertainParameters, self).apply(problem)
+
+File <span class="ansi-green-fg">~/Desktop/colbeck/Bartolomeo Research/lro/lro/uncertain_canon/uncertain_canonicalization.py:90</span>, in <span class="ansi-cyan-fg">Uncertain_Canonicalization.apply</span><span class="ansi-blue-fg">(self, problem)</span>
+<span class="ansi-green-intense-fg ansi-bold">     87</span> canon_constraints += aux_constr + [canon_constr]
+<span class="ansi-green-intense-fg ansi-bold">     89</span> for new_cons_idx in range(1, len(unc_lst)):
+<span class="ansi-green-fg">---&gt; 90</span>     canon_constr, aux_constr, new_lmda = self.remove_uncertainty(
+<span class="ansi-green-intense-fg ansi-bold">     91</span>         unc_lst[new_cons_idx], unc_params[0], std_lst[new_cons_idx], element_shape)
+<span class="ansi-green-intense-fg ansi-bold">     92</span>     canon_constraints += aux_constr + [canon_constr]
+<span class="ansi-green-intense-fg ansi-bold">     94</span>     if type(unc_params[0].uncertainty_set) == Budget:
+
+File <span class="ansi-green-fg">~/Desktop/colbeck/Bartolomeo Research/lro/lro/uncertain_canon/uncertain_canonicalization.py:233</span>, in <span class="ansi-cyan-fg">Uncertain_Canonicalization.remove_uncertainty</span><span class="ansi-blue-fg">(self, unc_lst, uvar, std_lst, num_constr)</span>
+<span class="ansi-green-intense-fg ansi-bold">    231</span> else:
+<span class="ansi-green-intense-fg ansi-bold">    232</span>     aux_constraint += [z_cons == -z_unc[0]]
+<span class="ansi-green-fg">--&gt; 233</span> new_expr, new_constraint, lmbda = uvar.conjugate(z_unc, num_constr, k_ind=0)
+<span class="ansi-green-intense-fg ansi-bold">    234</span> aux_expr = aux_expr + new_expr
+<span class="ansi-green-intense-fg ansi-bold">    235</span> aux_constraint = aux_constraint + new_constraint
+
+File <span class="ansi-green-fg">~/Desktop/colbeck/Bartolomeo Research/lro/lro/uncertain.py:27</span>, in <span class="ansi-cyan-fg">UncertainParameter.conjugate</span><span class="ansi-blue-fg">(self, var, shape, k_ind)</span>
+<span class="ansi-green-intense-fg ansi-bold">     25</span> def conjugate(self, var, shape, k_ind):
+<span class="ansi-green-intense-fg ansi-bold">     26</span>     &#34;&#34;&#34;Reformulate uncertainty set&#34;&#34;&#34;
+<span class="ansi-green-fg">---&gt; 27</span>     return self.uncertainty_set.conjugate(var, shape, k_ind)
+
+File <span class="ansi-green-fg">~/Desktop/colbeck/Bartolomeo Research/lro/lro/uncertainty_sets/norm.py:181</span>, in <span class="ansi-cyan-fg">Norm.conjugate</span><span class="ansi-blue-fg">(self, var, shape, k_ind)</span>
+<span class="ansi-green-intense-fg ansi-bold">    179</span> lmbda = Variable()
+<span class="ansi-green-intense-fg ansi-bold">    180</span> constr = [norm(newvar, p=self.dual_norm()) &lt;= lmbda]
+<span class="ansi-green-fg">--&gt; 181</span> constr += [self.paramT.T@newvar == var[0]]
+<span class="ansi-green-intense-fg ansi-bold">    182</span> constr += [lmbda &gt;= 0]
+<span class="ansi-green-intense-fg ansi-bold">    183</span> return self.rho * lmbda - newvar*self.paramb, constr, lmbda
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/cvxpy/expressions/expression.py:731</span>, in <span class="ansi-cyan-fg">Expression.__array_ufunc__</span><span class="ansi-blue-fg">(self, ufunc, method, *args, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">    727</span>     ufunc_handler = __BINARY_EXPRESSION_UFUNCS__[ufunc]
+<span class="ansi-green-intense-fg ansi-bold">    728</span>     if kwargs == {} and \
+<span class="ansi-green-intense-fg ansi-bold">    729</span>             len(args) == 2 and \
+<span class="ansi-green-intense-fg ansi-bold">    730</span>             args[1] is self:
+<span class="ansi-green-fg">--&gt; 731</span>         return ufunc_handler(self, args[0])
+<span class="ansi-green-intense-fg ansi-bold">    732</span> except KeyError:
+<span class="ansi-green-intense-fg ansi-bold">    733</span>     pass
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/cvxpy/expressions/expression.py:75</span>, in <span class="ansi-cyan-fg">&lt;lambda&gt;</span><span class="ansi-blue-fg">(self, a)</span>
+<span class="ansi-green-intense-fg ansi-bold">     56</span> __STAR_MATMUL_WARNING__ = &#34;&#34;&#34;
+<span class="ansi-green-intense-fg ansi-bold">     57</span> This use of ``*`` has resulted in matrix multiplication.
+<span class="ansi-green-intense-fg ansi-bold">     58</span> Using ``*`` for matrix multiplication has been deprecated since CVXPY 1.1.
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">     62</span> This code path has been hit %s times so far.
+<span class="ansi-green-intense-fg ansi-bold">     63</span> &#34;&#34;&#34;
+<span class="ansi-green-intense-fg ansi-bold">     65</span> __NUMPY_UFUNC_ERROR__ = &#34;&#34;&#34;
+<span class="ansi-green-intense-fg ansi-bold">     66</span> You&#39;re calling a NumPy function on a CVXPY expression. This is prone to causing
+<span class="ansi-green-intense-fg ansi-bold">     67</span> errors or code that doesn&#39;t behave as expected. Consider using one of the
+<span class="ansi-green-intense-fg ansi-bold">     68</span> functions documented here: https://www.cvxpy.org/tutorial/functions/index.html
+<span class="ansi-green-intense-fg ansi-bold">     69</span> &#34;&#34;&#34;
+<span class="ansi-green-intense-fg ansi-bold">     70</span> __BINARY_EXPRESSION_UFUNCS__ = {
+<span class="ansi-green-intense-fg ansi-bold">     71</span>         np.add: lambda self, a: self.__radd__(a),
+<span class="ansi-green-intense-fg ansi-bold">     72</span>         np.subtract: lambda self, a: self.__rsub__(a),
+<span class="ansi-green-intense-fg ansi-bold">     73</span>         np.multiply: lambda self, a: self.__rmul__(a),
+<span class="ansi-green-intense-fg ansi-bold">     74</span>         np.divide: lambda self, a: self.__rdiv__(a),
+<span class="ansi-green-fg">---&gt; 75</span>         np.matmul: lambda self, a: self.__rmatmul__(a),
+<span class="ansi-green-intense-fg ansi-bold">     76</span>         np.power: lambda self, a: self.__rpow__(a),
+<span class="ansi-green-intense-fg ansi-bold">     77</span>         np.left_shift: lambda self, a: self.__rlshift__(a),
+<span class="ansi-green-intense-fg ansi-bold">     78</span>         np.right_shift: lambda self, a: self.__rrshift__(a),
+<span class="ansi-green-intense-fg ansi-bold">     79</span>         np.equal: lambda self, a: self.__eq__(a),
+<span class="ansi-green-intense-fg ansi-bold">     80</span>         # &lt;= and &gt;= are backwards because this is only called for code of the
+<span class="ansi-green-intense-fg ansi-bold">     81</span>         # form ndarray &lt;= Expression
+<span class="ansi-green-intense-fg ansi-bold">     82</span>         np.less_equal: lambda self, a: self.__ge__(a),
+<span class="ansi-green-intense-fg ansi-bold">     83</span>         np.greater_equal: lambda self, a: self.__le__(a),
+<span class="ansi-green-intense-fg ansi-bold">     84</span>         np.less: lambda self, a: self.__gt__(a),
+<span class="ansi-green-intense-fg ansi-bold">     85</span>         np.greater: lambda self, a: self.__lt__(a),
+<span class="ansi-green-intense-fg ansi-bold">     86</span> }
+<span class="ansi-green-intense-fg ansi-bold">     89</span> class Expression(u.Canonical):
+<span class="ansi-green-intense-fg ansi-bold">     90</span>     &#34;&#34;&#34;A mathematical expression in a convex optimization problem.
+<span class="ansi-green-intense-fg ansi-bold">     91</span>
+<span class="ansi-green-intense-fg ansi-bold">     92</span>     Overloads many operators to allow for convenient creation of compound
+<span class="ansi-green-intense-fg ansi-bold">     93</span>     expressions (e.g., the sum of two expressions) and constraints.
+<span class="ansi-green-intense-fg ansi-bold">     94</span>     &#34;&#34;&#34;
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/cvxpy/expressions/expression.py:50</span>, in <span class="ansi-cyan-fg">_cast_other.&lt;locals&gt;.cast_op</span><span class="ansi-blue-fg">(self, other)</span>
+<span class="ansi-green-intense-fg ansi-bold">     47</span> &#34;&#34;&#34;A wrapped binary operator that can handle non-Expression arguments.
+<span class="ansi-green-intense-fg ansi-bold">     48</span> &#34;&#34;&#34;
+<span class="ansi-green-intense-fg ansi-bold">     49</span> other = self.cast_to_const(other)
+<span class="ansi-green-fg">---&gt; 50</span> return binary_op(self, other)
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/cvxpy/expressions/expression.py:661</span>, in <span class="ansi-cyan-fg">Expression.__rmatmul__</span><span class="ansi-blue-fg">(self, other)</span>
+<span class="ansi-green-intense-fg ansi-bold">    659</span> if self.shape == () or other.shape == ():
+<span class="ansi-green-intense-fg ansi-bold">    660</span>     raise ValueError(&#34;Scalar operands are not allowed, use &#39;*&#39; instead&#34;)
+<span class="ansi-green-fg">--&gt; 661</span> return cvxtypes.matmul_expr()(other, self)
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/cvxpy/atoms/affine/binary_operators.py:50</span>, in <span class="ansi-cyan-fg">BinaryOperator.__init__</span><span class="ansi-blue-fg">(self, lh_exp, rh_exp)</span>
+<span class="ansi-green-intense-fg ansi-bold">     49</span> def __init__(self, lh_exp, rh_exp) -&gt; None:
+<span class="ansi-green-fg">---&gt; 50</span>     super(BinaryOperator, self).__init__(lh_exp, rh_exp)
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/cvxpy/atoms/atom.py:51</span>, in <span class="ansi-cyan-fg">Atom.__init__</span><span class="ansi-blue-fg">(self, *args)</span>
+<span class="ansi-green-intense-fg ansi-bold">     49</span> self.args = [Atom.cast_to_const(arg) for arg in args]
+<span class="ansi-green-intense-fg ansi-bold">     50</span> self.validate_arguments()
+<span class="ansi-green-fg">---&gt; 51</span> self._shape = self.shape_from_args()
+<span class="ansi-green-intense-fg ansi-bold">     52</span> if len(self._shape) &gt; 2:
+<span class="ansi-green-intense-fg ansi-bold">     53</span>     raise ValueError(&#34;Atoms must be at most 2D.&#34;)
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/cvxpy/atoms/affine/binary_operators.py:120</span>, in <span class="ansi-cyan-fg">MulExpression.shape_from_args</span><span class="ansi-blue-fg">(self)</span>
+<span class="ansi-green-intense-fg ansi-bold">    117</span> def shape_from_args(self) -&gt; Tuple[int, ...]:
+<span class="ansi-green-intense-fg ansi-bold">    118</span>     &#34;&#34;&#34;Returns the (row, col) shape of the expression.
+<span class="ansi-green-intense-fg ansi-bold">    119</span>     &#34;&#34;&#34;
+<span class="ansi-green-fg">--&gt; 120</span>     return u.shape.mul_shapes(self.args[0].shape, self.args[1].shape)
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/cvxpy/utilities/shape.py:144</span>, in <span class="ansi-cyan-fg">mul_shapes</span><span class="ansi-blue-fg">(lh_shape, rh_shape)</span>
+<span class="ansi-green-intense-fg ansi-bold">    142</span> lh_old = lh_shape
+<span class="ansi-green-intense-fg ansi-bold">    143</span> rh_old = rh_shape
+<span class="ansi-green-fg">--&gt; 144</span> lh_shape, rh_shape, shape = mul_shapes_promote(lh_shape, rh_shape)
+<span class="ansi-green-intense-fg ansi-bold">    145</span> if lh_shape != lh_old:
+<span class="ansi-green-intense-fg ansi-bold">    146</span>     shape = shape[1:]
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/cvxpy/utilities/shape.py:110</span>, in <span class="ansi-cyan-fg">mul_shapes_promote</span><span class="ansi-blue-fg">(lh_shape, rh_shape)</span>
+<span class="ansi-green-intense-fg ansi-bold">    108</span> rh_mat_shape = rh_shape[-2:]
+<span class="ansi-green-intense-fg ansi-bold">    109</span> if lh_mat_shape[1] != rh_mat_shape[0]:
+<span class="ansi-green-fg">--&gt; 110</span>     raise ValueError(&#34;Incompatible dimensions %s %s&#34; % (
+<span class="ansi-green-intense-fg ansi-bold">    111</span>         lh_shape, rh_shape))
+<span class="ansi-green-intense-fg ansi-bold">    112</span> if lh_shape[:-2] != rh_shape[:-2]:
+<span class="ansi-green-intense-fg ansi-bold">    113</span>     raise ValueError(&#34;Incompatible dimensions %s %s&#34; % (
+<span class="ansi-green-intense-fg ansi-bold">    114</span>         lh_shape, rh_shape))
+
+<span class="ansi-red-fg">ValueError</span>: Incompatible dimensions (2, 8) (2, 1)
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
@@ -756,8 +917,8 @@ after eps train optimal x,t = [1.56230937 1.43574812] -1.9821882119143184
 <span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x_mesh</span><span class="p">,</span><span class="n">y_mesh</span><span class="p">,</span><span class="n">unc_level_learned_2</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">],</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;final train&quot;</span><span class="p">)</span>
 
 <span class="c1"># plt.pcolormesh(x_mesh, y_mesh,g_level_learned)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x_mesh</span><span class="p">,</span><span class="n">y_mesh</span><span class="p">,</span><span class="n">g_level_learned</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x_mesh</span><span class="p">,</span><span class="n">y_mesh</span><span class="p">,</span><span class="n">g_level_base</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:green&quot;</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x_mesh</span><span class="p">,</span><span class="n">y_mesh</span><span class="p">,</span><span class="n">g_level_learned</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:green&quot;</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x_mesh</span><span class="p">,</span><span class="n">y_mesh</span><span class="p">,</span><span class="n">g_level_base</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">])</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
 <span class="c1"># plt.savefig(&quot;Reshaped_ctrs.pdf&quot;, bbox_inches=&#39;tight&#39;)</span>
 <span class="c1"># plt.legend(loc = &quot;upper center&quot;)</span>
@@ -772,8 +933,8 @@ after eps train optimal x,t = [1.56230937 1.43574812] -1.9821882119143184
 <img alt="../../_images/examples_experiments_intro_example_11_0.png" src="../../_images/examples_experiments_intro_example_11_0.png" />
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[51]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
@@ -806,17 +967,184 @@ after eps train optimal x,t = [1.56230937 1.43574812] -1.9821882119143184
 </pre></div>
 </div>
 </div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">KeyboardInterrupt</span>                         Traceback (most recent call last)
+Cell <span class="ansi-green-fg">In [10], line 21</span>
+<span class="ansi-green-intense-fg ansi-bold">     18</span>     filenames.append(filename)
+<span class="ansi-green-intense-fg ansi-bold">     20</span>     plt.scatter(data[:,0],data[:,1])
+<span class="ansi-green-fg">---&gt; 21</span>     plt.savefig(filename)
+<span class="ansi-green-intense-fg ansi-bold">     22</span>     plt.close()
+<span class="ansi-green-intense-fg ansi-bold">     24</span> with imageio.get_writer(&#39;mygif4.gif&#39;, mode=&#39;I&#39;) as writer:
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/matplotlib/pyplot.py:955</span>, in <span class="ansi-cyan-fg">savefig</span><span class="ansi-blue-fg">(*args, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">    953</span> fig = gcf()
+<span class="ansi-green-intense-fg ansi-bold">    954</span> res = fig.savefig(*args, **kwargs)
+<span class="ansi-green-fg">--&gt; 955</span> fig.canvas.draw_idle()  # Need this if &#39;transparent=True&#39;, to reset colors.
+<span class="ansi-green-intense-fg ansi-bold">    956</span> return res
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/matplotlib/backend_bases.py:2054</span>, in <span class="ansi-cyan-fg">FigureCanvasBase.draw_idle</span><span class="ansi-blue-fg">(self, *args, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   2052</span> if not self._is_idle_drawing:
+<span class="ansi-green-intense-fg ansi-bold">   2053</span>     with self._idle_draw_cntx():
+<span class="ansi-green-fg">-&gt; 2054</span>         self.draw(*args, **kwargs)
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/matplotlib/backends/backend_agg.py:405</span>, in <span class="ansi-cyan-fg">FigureCanvasAgg.draw</span><span class="ansi-blue-fg">(self)</span>
+<span class="ansi-green-intense-fg ansi-bold">    401</span> # Acquire a lock on the shared font cache.
+<span class="ansi-green-intense-fg ansi-bold">    402</span> with RendererAgg.lock, \
+<span class="ansi-green-intense-fg ansi-bold">    403</span>      (self.toolbar._wait_cursor_for_draw_cm() if self.toolbar
+<span class="ansi-green-intense-fg ansi-bold">    404</span>       else nullcontext()):
+<span class="ansi-green-fg">--&gt; 405</span>     self.figure.draw(self.renderer)
+<span class="ansi-green-intense-fg ansi-bold">    406</span>     # A GUI class may be need to update a window using this draw, so
+<span class="ansi-green-intense-fg ansi-bold">    407</span>     # don&#39;t forget to call the superclass.
+<span class="ansi-green-intense-fg ansi-bold">    408</span>     super().draw()
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/matplotlib/artist.py:74</span>, in <span class="ansi-cyan-fg">_finalize_rasterization.&lt;locals&gt;.draw_wrapper</span><span class="ansi-blue-fg">(artist, renderer, *args, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">     72</span> @wraps(draw)
+<span class="ansi-green-intense-fg ansi-bold">     73</span> def draw_wrapper(artist, renderer, *args, **kwargs):
+<span class="ansi-green-fg">---&gt; 74</span>     result = draw(artist, renderer, *args, **kwargs)
+<span class="ansi-green-intense-fg ansi-bold">     75</span>     if renderer._rasterizing:
+<span class="ansi-green-intense-fg ansi-bold">     76</span>         renderer.stop_rasterizing()
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/matplotlib/artist.py:51</span>, in <span class="ansi-cyan-fg">allow_rasterization.&lt;locals&gt;.draw_wrapper</span><span class="ansi-blue-fg">(artist, renderer)</span>
+<span class="ansi-green-intense-fg ansi-bold">     48</span>     if artist.get_agg_filter() is not None:
+<span class="ansi-green-intense-fg ansi-bold">     49</span>         renderer.start_filter()
+<span class="ansi-green-fg">---&gt; 51</span>     return draw(artist, renderer)
+<span class="ansi-green-intense-fg ansi-bold">     52</span> finally:
+<span class="ansi-green-intense-fg ansi-bold">     53</span>     if artist.get_agg_filter() is not None:
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/matplotlib/figure.py:3071</span>, in <span class="ansi-cyan-fg">Figure.draw</span><span class="ansi-blue-fg">(self, renderer)</span>
+<span class="ansi-green-intense-fg ansi-bold">   3068</span>         # ValueError can occur when resizing a window.
+<span class="ansi-green-intense-fg ansi-bold">   3070</span> self.patch.draw(renderer)
+<span class="ansi-green-fg">-&gt; 3071</span> mimage._draw_list_compositing_images(
+<span class="ansi-green-intense-fg ansi-bold">   3072</span>     renderer, self, artists, self.suppressComposite)
+<span class="ansi-green-intense-fg ansi-bold">   3074</span> for sfig in self.subfigs:
+<span class="ansi-green-intense-fg ansi-bold">   3075</span>     sfig.draw(renderer)
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/matplotlib/image.py:131</span>, in <span class="ansi-cyan-fg">_draw_list_compositing_images</span><span class="ansi-blue-fg">(renderer, parent, artists, suppress_composite)</span>
+<span class="ansi-green-intense-fg ansi-bold">    129</span> if not_composite or not has_images:
+<span class="ansi-green-intense-fg ansi-bold">    130</span>     for a in artists:
+<span class="ansi-green-fg">--&gt; 131</span>         a.draw(renderer)
+<span class="ansi-green-intense-fg ansi-bold">    132</span> else:
+<span class="ansi-green-intense-fg ansi-bold">    133</span>     # Composite any adjacent images together
+<span class="ansi-green-intense-fg ansi-bold">    134</span>     image_group = []
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/matplotlib/artist.py:51</span>, in <span class="ansi-cyan-fg">allow_rasterization.&lt;locals&gt;.draw_wrapper</span><span class="ansi-blue-fg">(artist, renderer)</span>
+<span class="ansi-green-intense-fg ansi-bold">     48</span>     if artist.get_agg_filter() is not None:
+<span class="ansi-green-intense-fg ansi-bold">     49</span>         renderer.start_filter()
+<span class="ansi-green-fg">---&gt; 51</span>     return draw(artist, renderer)
+<span class="ansi-green-intense-fg ansi-bold">     52</span> finally:
+<span class="ansi-green-intense-fg ansi-bold">     53</span>     if artist.get_agg_filter() is not None:
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/matplotlib/axes/_base.py:3107</span>, in <span class="ansi-cyan-fg">_AxesBase.draw</span><span class="ansi-blue-fg">(self, renderer)</span>
+<span class="ansi-green-intense-fg ansi-bold">   3104</span>         a.draw(renderer)
+<span class="ansi-green-intense-fg ansi-bold">   3105</span>     renderer.stop_rasterizing()
+<span class="ansi-green-fg">-&gt; 3107</span> mimage._draw_list_compositing_images(
+<span class="ansi-green-intense-fg ansi-bold">   3108</span>     renderer, self, artists, self.figure.suppressComposite)
+<span class="ansi-green-intense-fg ansi-bold">   3110</span> renderer.close_group(&#39;axes&#39;)
+<span class="ansi-green-intense-fg ansi-bold">   3111</span> self.stale = False
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/matplotlib/image.py:131</span>, in <span class="ansi-cyan-fg">_draw_list_compositing_images</span><span class="ansi-blue-fg">(renderer, parent, artists, suppress_composite)</span>
+<span class="ansi-green-intense-fg ansi-bold">    129</span> if not_composite or not has_images:
+<span class="ansi-green-intense-fg ansi-bold">    130</span>     for a in artists:
+<span class="ansi-green-fg">--&gt; 131</span>         a.draw(renderer)
+<span class="ansi-green-intense-fg ansi-bold">    132</span> else:
+<span class="ansi-green-intense-fg ansi-bold">    133</span>     # Composite any adjacent images together
+<span class="ansi-green-intense-fg ansi-bold">    134</span>     image_group = []
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/matplotlib/artist.py:51</span>, in <span class="ansi-cyan-fg">allow_rasterization.&lt;locals&gt;.draw_wrapper</span><span class="ansi-blue-fg">(artist, renderer)</span>
+<span class="ansi-green-intense-fg ansi-bold">     48</span>     if artist.get_agg_filter() is not None:
+<span class="ansi-green-intense-fg ansi-bold">     49</span>         renderer.start_filter()
+<span class="ansi-green-fg">---&gt; 51</span>     return draw(artist, renderer)
+<span class="ansi-green-intense-fg ansi-bold">     52</span> finally:
+<span class="ansi-green-intense-fg ansi-bold">     53</span>     if artist.get_agg_filter() is not None:
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/matplotlib/spines.py:287</span>, in <span class="ansi-cyan-fg">Spine.draw</span><span class="ansi-blue-fg">(self, renderer)</span>
+<span class="ansi-green-intense-fg ansi-bold">    284</span> @allow_rasterization
+<span class="ansi-green-intense-fg ansi-bold">    285</span> def draw(self, renderer):
+<span class="ansi-green-intense-fg ansi-bold">    286</span>     self._adjust_location()
+<span class="ansi-green-fg">--&gt; 287</span>     ret = super().draw(renderer)
+<span class="ansi-green-intense-fg ansi-bold">    288</span>     self.stale = False
+<span class="ansi-green-intense-fg ansi-bold">    289</span>     return ret
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/matplotlib/artist.py:51</span>, in <span class="ansi-cyan-fg">allow_rasterization.&lt;locals&gt;.draw_wrapper</span><span class="ansi-blue-fg">(artist, renderer)</span>
+<span class="ansi-green-intense-fg ansi-bold">     48</span>     if artist.get_agg_filter() is not None:
+<span class="ansi-green-intense-fg ansi-bold">     49</span>         renderer.start_filter()
+<span class="ansi-green-fg">---&gt; 51</span>     return draw(artist, renderer)
+<span class="ansi-green-intense-fg ansi-bold">     52</span> finally:
+<span class="ansi-green-intense-fg ansi-bold">     53</span>     if artist.get_agg_filter() is not None:
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/matplotlib/patches.py:589</span>, in <span class="ansi-cyan-fg">Patch.draw</span><span class="ansi-blue-fg">(self, renderer)</span>
+<span class="ansi-green-intense-fg ansi-bold">    587</span> tpath = transform.transform_path_non_affine(path)
+<span class="ansi-green-intense-fg ansi-bold">    588</span> affine = transform.get_affine()
+<span class="ansi-green-fg">--&gt; 589</span> self._draw_paths_with_artist_properties(
+<span class="ansi-green-intense-fg ansi-bold">    590</span>     renderer,
+<span class="ansi-green-intense-fg ansi-bold">    591</span>     [(tpath, affine,
+<span class="ansi-green-intense-fg ansi-bold">    592</span>       # Work around a bug in the PDF and SVG renderers, which
+<span class="ansi-green-intense-fg ansi-bold">    593</span>       # do not draw the hatches if the facecolor is fully
+<span class="ansi-green-intense-fg ansi-bold">    594</span>       # transparent, but do if it is None.
+<span class="ansi-green-intense-fg ansi-bold">    595</span>       self._facecolor if self._facecolor[3] else None)])
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/matplotlib/patches.py:574</span>, in <span class="ansi-cyan-fg">Patch._draw_paths_with_artist_properties</span><span class="ansi-blue-fg">(self, renderer, draw_path_args_list)</span>
+<span class="ansi-green-intense-fg ansi-bold">    571</span>     renderer = PathEffectRenderer(self.get_path_effects(), renderer)
+<span class="ansi-green-intense-fg ansi-bold">    573</span> for draw_path_args in draw_path_args_list:
+<span class="ansi-green-fg">--&gt; 574</span>     renderer.draw_path(gc, *draw_path_args)
+<span class="ansi-green-intense-fg ansi-bold">    576</span> gc.restore()
+<span class="ansi-green-intense-fg ansi-bold">    577</span> renderer.close_group(&#39;patch&#39;)
+
+File <span class="ansi-green-fg">~/miniconda3/envs/lro/lib/python3.10/site-packages/matplotlib/backends/backend_agg.py:146</span>, in <span class="ansi-cyan-fg">RendererAgg.draw_path</span><span class="ansi-blue-fg">(self, gc, path, transform, rgbFace)</span>
+<span class="ansi-green-intense-fg ansi-bold">    144</span> else:
+<span class="ansi-green-intense-fg ansi-bold">    145</span>     try:
+<span class="ansi-green-fg">--&gt; 146</span>         self._renderer.draw_path(gc, path, transform, rgbFace)
+<span class="ansi-green-intense-fg ansi-bold">    147</span>     except OverflowError:
+<span class="ansi-green-intense-fg ansi-bold">    148</span>         cant_chunk = &#39;&#39;
+
+<span class="ansi-red-fg">KeyboardInterrupt</span>:
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_experiments_intro_example_12_1.png" src="../../_images/examples_experiments_intro_example_12_1.png" />
+</div>
+</div>
 <section id="MRO-set">
 <h2>MRO set<a class="headerlink" href="#MRO-set" title="Permalink to this heading">#</a></h2>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n</span> <span class="o">=</span> <span class="mi">2</span>
-<span class="c1"># Formulate uncertainty set</span>
+<span class="n">N</span> <span class="o">=</span> <span class="mi">50</span>
+<span class="c1"># k = npr.uniform(1,4,n)</span>
+<span class="c1"># p = k + npr.uniform(2,5,n)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">2.</span><span class="p">,</span><span class="mf">3.</span><span class="p">])</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span><span class="mf">4.5</span><span class="p">])</span>
+<span class="n">k_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="n">p_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+<span class="n">b</span> <span class="o">=</span> <span class="n">npr</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="Define-Problem-Structure">
+<h1>Define Problem Structure<a class="headerlink" href="#Define-Problem-Structure" title="Permalink to this heading">#</a></h1>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">K</span> <span class="o">=</span> <span class="mi">3</span>
 <span class="n">u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span>
-                        <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">lro</span><span class="o">.</span><span class="n">MRO</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-                                                    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span><span class="p">))</span>
+                        <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">lro</span><span class="o">.</span><span class="n">MRO</span><span class="p">(</span><span class="n">K</span> <span class="o">=</span> <span class="n">K</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                                    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span><span class="p">,</span> <span class="n">uniqueA</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span>
+<span class="n">Astart</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">uncertainty_set</span><span class="o">.</span><span class="n">_initA</span>
+
 <span class="c1"># Formulate the Robust Problem</span>
 <span class="n">x_r</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
 <span class="n">t</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
@@ -827,49 +1155,183 @@ after eps train optimal x,t = [1.56230937 1.43574812] -1.9821882119143184
 <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x_r</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">]</span>
 
 <span class="n">prob</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Solve-Problem">
+<h1>Solve Problem<a class="headerlink" href="#Solve-Problem" title="Permalink to this heading">#</a></h1>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="mi">13</span>
 
-<span class="n">s</span> <span class="o">=</span> <span class="mi">13</span>
-<span class="c1"># # Train only epsilon</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">initeps</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">)</span>
-<span class="n">df_eps</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">df</span>
-<span class="c1"># # Train A and b</span>
-<span class="n">init_A</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">T</span><span class="p">)))</span>
-<span class="n">init_b</span> <span class="o">=</span> <span class="o">-</span><span class="n">init_A</span><span class="nd">@np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="c1"># init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))</span>
+<span class="c1"># init_b = -init@np.mean(data, axis=0)</span>
+<span class="n">init</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">b</span> <span class="o">=</span> <span class="o">-</span><span class="n">init</span><span class="nd">@np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
 <span class="c1"># Train A and b</span>
-<span class="n">result1</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">initA</span> <span class="o">=</span> <span class="n">init_A</span><span class="p">,</span> <span class="n">initb</span> <span class="o">=</span> <span class="n">init_b</span><span class="p">)</span>
+<span class="n">result1</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">initA</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">initb</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fixb</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">save_iters</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
 <span class="n">df1</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">df</span>
 <span class="n">A_fin</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">A</span>
 <span class="n">b_fin</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">b</span>
-
 <span class="n">A1_iters</span><span class="p">,</span> <span class="n">b1_iters</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">uncset_iters</span>
+<br/><br/><br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">solve_mro</span><span class="p">(</span><span class="n">A_in</span><span class="p">,</span> <span class="n">data_in</span> <span class="o">=</span> <span class="n">data</span><span class="p">):</span>
+    <span class="n">K_in</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">)</span> <span class="p">(</span><span class="n">A_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">A_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span>
+                        <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">lro</span><span class="o">.</span><span class="n">MRO</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">K</span> <span class="o">=</span> <span class="n">K_in</span><span class="p">,</span>
+                                                    <span class="n">A</span> <span class="o">=</span> <span class="n">A_in</span><span class="p">,</span><span class="n">data</span> <span class="o">=</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">train</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">uniqueA</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span>
+    <span class="c1"># Formulate the Robust Problem</span>
+    <span class="n">x_r</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
 
-<span class="n">result2</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">initA</span> <span class="o">=</span> <span class="n">A_fin</span><span class="p">,</span> <span class="n">initb</span> <span class="o">=</span> <span class="n">b_fin</span><span class="p">)</span>
-<span class="n">df_r1</span> <span class="o">=</span> <span class="n">result2</span><span class="o">.</span><span class="n">df</span>
-<span class="n">A_fin_2</span> <span class="o">=</span> <span class="n">result2</span><span class="o">.</span><span class="n">A</span>
-<span class="n">b_fin_2</span> <span class="o">=</span> <span class="n">result2</span><span class="o">.</span><span class="n">b</span>
+    <span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
 
-<span class="n">result3</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">initA</span> <span class="o">=</span> <span class="n">init_A</span><span class="p">,</span> <span class="n">initb</span> <span class="o">=</span> <span class="n">init_b</span> <span class="p">)</span>
-<span class="n">df_r2</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">df</span>
+    <span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@x_r</span><span class="p">,</span> <span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@u</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">t</span><span class="p">]</span>
+    <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x_r</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">]</span>
 
-<span class="c1"># Grid search epsilon</span>
-<span class="n">result4</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span> <span class="n">initA</span> <span class="o">=</span> <span class="n">init_A</span><span class="p">,</span> <span class="n">initb</span> <span class="o">=</span> <span class="n">init_b</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">)</span>
-<span class="n">dfgrid</span> <span class="o">=</span> <span class="n">result4</span><span class="o">.</span><span class="n">df</span>
+    <span class="n">prob</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+    <span class="n">prob</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+    <span class="c1"># result3.reform_problem.solve()</span>
+    <span class="n">x_opt</span> <span class="o">=</span> <span class="n">x_r</span><span class="o">.</span><span class="n">value</span>
+    <span class="n">t_opt</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">value</span>
+    <span class="k">return</span> <span class="n">x_opt</span><span class="p">,</span> <span class="n">t_opt</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
-</pre></div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">x_opt_base</span><span class="p">,</span> <span class="n">t_opt_base</span> <span class="o">=</span> <span class="n">solve_mro</span><span class="p">(</span><span class="n">Astart</span><span class="p">)</span>
+<span class="n">x_opt_learned</span><span class="p">,</span> <span class="n">t_opt_learned</span> <span class="o">=</span> <span class="n">solve_mro</span><span class="p">(</span><span class="n">A_fin</span><span class="p">)</span>
+<br/></pre></div>
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">offset</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="n">offset</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="n">offset</span>
+<span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="n">offset</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="n">offset</span>
+<span class="n">n_points</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">x_min</span><span class="p">,</span><span class="n">x_max</span><span class="p">,</span><span class="n">n_points</span><span class="p">)</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">y_min</span><span class="p">,</span><span class="n">y_max</span><span class="p">,</span><span class="n">n_points</span><span class="p">)</span>
+<span class="n">x_mesh</span><span class="p">,</span><span class="n">y_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">)</span>
+<span class="c1"># Z values as a matrix</span>
+
+<span class="k">def</span> <span class="nf">mro_level_sets</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">offset</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">num_p</span> <span class="o">=</span> <span class="n">n_points</span><span class="p">,</span> <span class="n">x_mesh</span> <span class="o">=</span> <span class="n">x_mesh</span><span class="p">,</span> <span class="n">y_mesh</span> <span class="o">=</span> <span class="n">y_mesh</span><span class="p">):</span>
+
+    <span class="n">x_opt</span><span class="p">,</span> <span class="n">t_opt</span> <span class="o">=</span> <span class="n">solve_mro</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+    <span class="n">unc_set</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">)</span> <span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">for</span> <span class="n">k_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+        <span class="n">unc_set</span><span class="p">[</span><span class="n">k_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_p</span><span class="p">,</span><span class="n">num_p</span><span class="p">))</span>
+
+    <span class="c1"># init_set = np.zeros((num_p,num_p))</span>
+    <span class="n">g_level</span><span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_p</span><span class="p">,</span><span class="n">num_p</span><span class="p">))</span>
+    <span class="c1"># Populate Z Values (a 7x7 matrix) - For a circle x^2+y^2=z</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_p</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_p</span><span class="p">):</span>
+            <span class="n">u_vec</span> <span class="o">=</span> <span class="p">[</span><span class="n">x_mesh</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">],</span> <span class="n">y_mesh</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]]</span>
+            <span class="k">for</span> <span class="n">k_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+                <span class="n">unc_set</span><span class="p">[</span><span class="n">k_ind</span><span class="p">][</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">A</span><span class="p">[</span><span class="n">k_ind</span><span class="o">*</span><span class="n">n</span><span class="p">:(</span><span class="n">k_ind</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">n</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">n</span><span class="p">]</span><span class="o">@</span> <span class="n">u_vec</span>  <span class="o">-</span> <span class="n">A</span><span class="p">[</span><span class="n">k_ind</span><span class="o">*</span><span class="n">n</span><span class="p">:(</span><span class="n">k_ind</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">n</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">n</span><span class="p">]</span><span class="nd">@u</span><span class="o">.</span><span class="n">uncertainty_set</span><span class="o">.</span><span class="n">Dbar</span><span class="p">[</span><span class="n">k_ind</span><span class="p">])</span>
+
+            <span class="n">g_level</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k</span> <span class="o">@</span> <span class="n">x_opt</span> <span class="o">-</span> <span class="n">p</span> <span class="o">@</span> <span class="n">x_opt_base</span><span class="p">,</span> <span class="n">k</span> <span class="o">@</span> <span class="n">x_opt</span> <span class="o">-</span> <span class="n">p</span> <span class="o">@</span> <span class="n">u_vec</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">unc_set</span><span class="p">,</span> <span class="n">g_level</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fin_set</span><span class="p">,</span> <span class="n">g_level_learned</span> <span class="o">=</span> <span class="n">mro_level_sets</span><span class="p">(</span><span class="n">A_fin</span><span class="p">)</span>
+<span class="n">init_set</span><span class="p">,</span> <span class="n">g_level_init</span> <span class="o">=</span> <span class="n">mro_level_sets</span><span class="p">(</span><span class="n">Astart</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Original and reshaped sets&quot;</span><span class="p">)</span>
+<span class="c1"># Set x axis label for the contour plot</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_1$&quot;</span><span class="p">)</span>
+<span class="c1"># Set y axis label for the contour plot</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_2$&quot;</span><span class="p">)</span>
+<span class="c1"># plt.ylim(-20,40)</span>
+<span class="c1"># plt.xlim(-20,40)</span>
+<span class="k">for</span> <span class="n">k_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x_mesh</span><span class="p">,</span><span class="n">y_mesh</span><span class="p">,</span><span class="n">fin_set</span><span class="p">[</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">])</span>
+<span class="k">for</span> <span class="n">k_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x_mesh</span><span class="p">,</span><span class="n">y_mesh</span><span class="p">,</span><span class="n">init_set</span><span class="p">[</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">])</span>
+
+
+<span class="c1"># a = plt.contour(x_mesh,y_mesh,g_level_learned, np.arange(-10,12,5), colors = [&quot;tab:orange&quot;], alpha = 0.8)</span>
+<span class="c1"># b = plt.contour(x_mesh,y_mesh,g_level_init, np.arange(-10,12,5), colors = [&quot;tab:blue&quot;],alpha = 0.8)</span>
+
+<span class="c1"># plt.clabel(a, a.levels, inline=True, fmt=fmt, fontsize=18)</span>
+<span class="c1"># plt.clabel(b, b.levels, inline=True, fmt=fmt, fontsize=18)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">uncertainty_set</span><span class="o">.</span><span class="n">Dbar</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">uncertainty_set</span><span class="o">.</span><span class="n">Dbar</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;Reshaped1.pdf&quot;</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_experiments_intro_example_22_0.png" src="../../_images/examples_experiments_intro_example_22_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">imageio</span>
+
+<span class="n">filenames</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">A1_iters</span><span class="p">)):</span>
+    <span class="n">unc_level</span><span class="p">,</span> <span class="n">g_level</span> <span class="o">=</span> <span class="n">mro_level_sets</span><span class="p">(</span><span class="n">A1_iters</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Original and reshaped sets&quot;</span><span class="p">)</span>
+    <span class="c1"># Set axis label for the contour plot</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_1$&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_2$&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">k_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x_mesh</span><span class="p">,</span><span class="n">y_mesh</span><span class="p">,</span><span class="n">fin_set</span><span class="p">[</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">])</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x_mesh</span><span class="p">,</span><span class="n">y_mesh</span><span class="p">,</span><span class="n">init_set</span><span class="p">[</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">])</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x_mesh</span><span class="p">,</span><span class="n">y_mesh</span><span class="p">,</span><span class="n">unc_level</span><span class="p">[</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:green&quot;</span><span class="p">])</span>
+
+
+
+
+    <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;gif_images/</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">.png&#39;</span>
+    <span class="n">filenames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">uncertainty_set</span><span class="o">.</span><span class="n">Dbar</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">uncertainty_set</span><span class="o">.</span><span class="n">Dbar</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="k">with</span> <span class="n">imageio</span><span class="o">.</span><span class="n">get_writer</span><span class="p">(</span><span class="s1">&#39;mro.gif&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;I&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">writer</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">imageio</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">append_data</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -949,7 +1411,6 @@ after eps train optimal x,t = [1.56230937 1.43574812] -1.9821882119143184
 </pre></div>
 </div>
 </div>
-</section>
 </section>
 
         </article>
