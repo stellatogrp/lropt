@@ -651,6 +651,9 @@ class RobustProblem(Problem):
             # unc_reductions += [RemoveUncertainParameters()]
             # newchain = UncertainChain(self, reductions=unc_reductions)
             # prob, _ = newchain.apply(self)
+            import ipdb
+            ipdb.set_trace()
+
             return prob.solve(solver=solver)
         return super(RobustProblem, self).solve()
 

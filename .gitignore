@@ -132,3 +132,6 @@ dmypy.json
 .vscode/
 .envrc
 .direnv/
+docs/examples/**/*.pdf
+docs/examples/**/*.gif
+docs/examples/**/*.png
