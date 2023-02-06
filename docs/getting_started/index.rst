@@ -12,8 +12,8 @@ You can install :code:`lro` with
    pip install lro
 
 
-My first robust problem
------------------------
-You should create a problem as :class:`lro.RobustProblem` and ...
+.. toctree::
+   :maxdepth: 1
+   :glob:
 
-You should train it using function :meth:`lro.RobustProblem.train`
+   my_first_robust/my_first_robust_prob
