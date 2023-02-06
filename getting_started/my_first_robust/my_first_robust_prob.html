@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
-<link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+<link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Examples" href="../../examples/index.html" /><link rel="prev" title="Getting started" href="../index.html" />
 
     <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
-        <title>Portfolio Optimization - LRO documentation documentation</title>
+        <title>My First Robust Problem - LRO documentation documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
@@ -134,7 +134,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -155,14 +155,14 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../getting_started/index.html">Getting started</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../getting_started/my_first_robust/my_first_robust_prob.html">My First Robust Problem</a></li>
+<ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">Getting started</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">My First Robust Problem</a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../index.html">Examples</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorial_deterministic.html">Deterministic Uncertainty Sets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial_learning.html">Learning Uncertainty Sets</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../examples/index.html">Examples</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/experiments/tutorial_deterministic.html">Deterministic Uncertainty Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/experiments/tutorial_learning.html">Learning Uncertainty Sets</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../api/index.html">API</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -206,7 +206,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
@@ -469,168 +469,59 @@ div.rendered_html tbody tr:hover {
   background: rgba(66, 165, 245, 0.2);
 }
 </style>
-<section id="Portfolio-Optimization">
-<h1>Portfolio Optimization<a class="headerlink" href="#Portfolio-Optimization" title="Permalink to this heading">#</a></h1>
+<section id="My-First-Robust-Problem">
+<h1>My First Robust Problem<a class="headerlink" href="#My-First-Robust-Problem" title="Permalink to this heading">#</a></h1>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">numpy.random</span> <span class="k">as</span> <span class="nn">npr</span>
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">lro</span>
-</pre></div>
-</div>
-</div>
-<section id="Import-Dataset-and-choose-random-stocks">
-<h2>Import Dataset and choose random stocks<a class="headerlink" href="#Import-Dataset-and-choose-random-stocks" title="Permalink to this heading">#</a></h2>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sp500</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">&#39;stock_data/prices_sp500.csv&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
-<span class="n">sp500_synthetic_returns</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">&#39;stock_data/sp500_synthetic_returns.csv&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()[:,</span><span class="mi">1</span><span class="p">:]</span>
-
-<span class="n">num_stocks</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="n">num_rets</span> <span class="o">=</span> <span class="mi">500</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">npr</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<span class="n">stock_idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">sp500</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">num_stocks</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">P</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.</span><span class="p">,</span><span class="mf">2.</span><span class="p">],[</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">]])</span>
+<span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span><span class="mi">4</span><span class="p">])</span>
+<span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mf">0.5</span><span class="p">])</span>
 
-<span class="n">sp_prices</span> <span class="o">=</span> <span class="n">sp500</span><span class="p">[:</span><span class="n">num_rets</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">stock_idxs</span><span class="p">]</span>
-<span class="n">sp_rets</span> <span class="o">=</span> <span class="p">(</span><span class="n">sp_prices</span><span class="p">[</span><span class="mi">1</span><span class="p">:,:]</span> <span class="o">-</span> <span class="n">sp_prices</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,:])</span><span class="o">/</span><span class="n">sp_prices</span><span class="p">[</span><span class="mi">1</span><span class="p">:,:]</span>
-</pre></div>
+<span class="n">u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span>
+                            <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">lro</span><span class="o">.</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">A</span><span class="o">=</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">b</span><span class="p">))</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+<span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">c</span> <span class="o">@</span> <span class="n">x</span><span class="p">)</span>
+<span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="o">@</span> <span class="n">P</span> <span class="o">@</span> <span class="n">u</span> <span class="o">+</span> <span class="n">d</span> <span class="o">@</span> <span class="n">u</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">]</span>
+
+<span class="n">prob</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+<br/></pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sp_rets</span><span class="o">.</span><span class="n">shape</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">prob</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;optimal value = &quot;</span><span class="p">,</span> <span class="n">objective</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;optimal solution = &quot;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-(500, 100)
-</pre></div></div>
-</div>
-</section>
-<section id="Create-LRO-problem">
-<h2>Create LRO problem<a class="headerlink" href="#Create-LRO-problem" title="Permalink to this heading">#</a></h2>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">violation_loss</span><span class="p">(</span><span class="n">t_soln</span><span class="p">,</span> <span class="n">x_soln</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">lmbda</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">t_soln</span> <span class="o">+</span> <span class="n">lmbda</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="o">-</span><span class="n">data</span> <span class="o">@</span> <span class="n">x_soln</span> <span class="o">-</span> <span class="n">t_soln</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">))),</span> <span class="n">t_soln</span>
-
-<span class="n">unc_set</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">sp_rets</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="n">violation_loss</span><span class="p">)</span>
-<span class="n">u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">num_stocks</span><span class="p">,</span> <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">unc_set</span><span class="p">)</span>
-
-<span class="n">x</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">num_stocks</span><span class="p">)</span>
-<span class="n">t</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
-
-<span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
-<span class="n">cons</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="n">u</span> <span class="o">@</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="n">t</span><span class="p">]</span>
-<span class="n">cons</span> <span class="o">+=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">]</span>
-
-<span class="n">prob_robust</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">cons</span><span class="p">)</span>
-<span class="n">df</span> <span class="o">=</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
-<span class="n">prob_robust</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-/Users/irina.wang/Desktop/Princeton/Project2/cvxpy/cvxpy/expressions/expression.py:607: UserWarning:
-This use of ``*`` has resulted in matrix multiplication.
-Using ``*`` for matrix multiplication has been deprecated since CVXPY 1.1.
-    Use ``*`` for matrix-scalar and vector-scalar multiplication.
-    Use ``@`` for matrix-matrix and matrix-vector multiplication.
-    Use ``multiply`` for elementwise multiplication.
-This code path has been hit 1 times so far.
-
-  warnings.warn(msg, UserWarning)
-/Users/irina.wang/Desktop/Princeton/Project2/cvxpy/cvxpy/expressions/expression.py:607: UserWarning:
-This use of ``*`` has resulted in matrix multiplication.
-Using ``*`` for matrix multiplication has been deprecated since CVXPY 1.1.
-    Use ``*`` for matrix-scalar and vector-scalar multiplication.
-    Use ``@`` for matrix-matrix and matrix-vector multiplication.
-    Use ``multiply`` for elementwise multiplication.
-This code path has been hit 2 times so far.
-
-  warnings.warn(msg, UserWarning)
-/Users/irina.wang/Desktop/Princeton/Project2/cvxpy/cvxpy/reductions/solvers/solving_chain.py:197: UserWarning: Your problem has too many parameters for efficient DPP compilation. We suggest setting &#39;ignore_dpp = True&#39;.
-  warnings.warn(
-/Users/irina.wang/Desktop/Princeton/Project2/cvxpy/cvxpy/expressions/expression.py:607: UserWarning:
-This use of ``*`` has resulted in matrix multiplication.
-Using ``*`` for matrix multiplication has been deprecated since CVXPY 1.1.
-    Use ``*`` for matrix-scalar and vector-scalar multiplication.
-    Use ``@`` for matrix-matrix and matrix-vector multiplication.
-    Use ``multiply`` for elementwise multiplication.
-This code path has been hit 3 times so far.
-
-  warnings.warn(msg, UserWarning)
-/Users/irina.wang/Desktop/Princeton/Project2/cvxpy/cvxpy/expressions/expression.py:607: UserWarning:
-This use of ``*`` has resulted in matrix multiplication.
-Using ``*`` for matrix multiplication has been deprecated since CVXPY 1.1.
-    Use ``*`` for matrix-scalar and vector-scalar multiplication.
-    Use ``@`` for matrix-matrix and matrix-vector multiplication.
-    Use ``multiply`` for elementwise multiplication.
-This code path has been hit 4 times so far.
-
-  warnings.warn(msg, UserWarning)
-</pre></div></div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
-</pre></div>
-</div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
--0.08372198960845363
-</pre></div></div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[48]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
-</pre></div>
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[51]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[51]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-torch.Size([100, 10])
+optimal value =  -3.5000000001226663
+optimal solution =  [-0.25 -0.75]
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
@@ -642,15 +533,32 @@ torch.Size([100, 10])
 </div>
 </div>
 </section>
-</section>
 
         </article>
       </div>
       <footer>
         
         <div class="related-pages">
-          
-          
+          <a class="next-page" href="../../examples/index.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Examples</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="../index.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Getting started</div>
+                
+              </div>
+            </a>
         </div>
         <div class="bottom-of-page">
           <div class="left-details">
@@ -669,28 +577,8 @@ torch.Size([100, 10])
         
       </footer>
     </div>
-    <aside class="toc-drawer">
+    <aside class="toc-drawer no-toc">
       
-      
-      <div class="toc-sticky toc-scroll">
-        <div class="toc-title-container">
-          <span class="toc-title">
-            On this page
-          </span>
-        </div>
-        <div class="toc-tree-container">
-          <div class="toc-tree">
-            <ul>
-<li><a class="reference internal" href="#">Portfolio Optimization</a><ul>
-<li><a class="reference internal" href="#Import-Dataset-and-choose-random-stocks">Import Dataset and choose random stocks</a></li>
-<li><a class="reference internal" href="#Create-LRO-problem">Create LRO problem</a></li>
-</ul>
-</li>
-</ul>
-
-          </div>
-        </div>
-      </div>
       
       
     </aside>

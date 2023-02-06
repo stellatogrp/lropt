@@ -156,15 +156,18 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
-<li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">Examples</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../getting_started/index.html">Getting started</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting_started/my_first_robust/my_first_robust_prob.html">My First Robust Problem</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">Examples</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="tutorial_deterministic.html">Deterministic Uncertainty Sets</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Learning Uncertainty Sets</a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../api/index.html">API</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api/index.html">API</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../api/robust_problem/index.html">Robust Problem</a></li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/uncertainty_sets/index.html">Uncertainty Sets</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/uncertainty_sets/index.html">Uncertainty Sets</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../api/uncertainty_sets/norm.html">Norm Uncertainty</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/uncertainty_sets/ellipsoidal.html">Ellipsoidal Uncertainty</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/uncertainty_sets/box.html">Box Uncertainty</a></li>
@@ -521,25 +524,8 @@ div.rendered_html tbody tr:hover {
 <section id="Formulating-the-uncertainty-set">
 <h2>Formulating the uncertainty set<a class="headerlink" href="#Formulating-the-uncertainty-set" title="Permalink to this heading">#</a></h2>
 <p>We now formulate the uncertainty set slightly differently, where data and a loss function is passed as parameters instead of the uncertainty set parameters. The parameters for the uncertainty set, <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(b\)</span>, will now be trained through differentiable optimization.</p>
-<div class="line-block">
-<div class="line">Mean Robust uncertainty: <span class="math notranslate nohighlight">\(\{ u = (v_1,\dots,v_K) \mid \sum_{k=1} ^K w_k \| A_k(v_k - \bar{d}_k) \|_p^{\text{power}} \le \rho \}\)</span> - <span class="math notranslate nohighlight">\(K\)</span>: int * Number of clusters. Default 1. - <span class="math notranslate nohighlight">\(p\)</span> : integer, optional</div>
-<div class="line">* Order of the norm. Default 2. - power: integer, optional * Power of the norm. Default 1. - data : np.array</div>
-<div class="line">* An array of uncertainty realizations, where each row is one realization. - loss : function * The loss function used to train the uncertainty set.</div>
-</div>
-<p>Box uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid\| Au + b \|_\infty \leq 1 \}\)</span></p>
-<ul class="simple">
-<li><p>data : np.array</p>
-<ul>
-<li><p>An array of uncertainty realizations, where each row is one realization.</p></li>
-</ul>
-</li>
-<li><p>loss : function</p>
-<ul>
-<li><p>The loss function used to train the uncertainty set.</p></li>
-</ul>
-</li>
-</ul>
-<p>Ellipsoidal uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| Au + b \|_p \leq 1 \}\)</span></p>
+<section id="Ellipsoidal-uncertainty:-\{u-\mid-\|-Au-+-b-\|_p-\leq-1-\}">
+<h3>Ellipsoidal uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| Au + b \|_p \leq 1 \}\)</span><a class="headerlink" href="#Ellipsoidal-uncertainty:-\{u-\mid-\|-Au-+-b-\|_p-\leq-1-\}" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(p\)</span> : integer, optional</p>
 <ul>
@@ -557,7 +543,54 @@ div.rendered_html tbody tr:hover {
 </ul>
 </li>
 </ul>
-<p>Budget uncertainty:</p>
+</section>
+<section id="Mean-Robust-uncertainty:-\{-u-=-(v_1,\dots,v_K)-\mid-\sum_{k=1}-^K-w_k-\|-A_k(v_k---\bar{d}_k)-\|_p^{\text{power}}-\le-\rho-\}">
+<h3>Mean Robust uncertainty: <span class="math notranslate nohighlight">\(\{ u = (v_1,\dots,v_K) \mid \sum_{k=1} ^K w_k \| A_k(v_k - \bar{d}_k) \|_p^{\text{power}} \le \rho \}\)</span><a class="headerlink" href="#Mean-Robust-uncertainty:-\{-u-=-(v_1,\dots,v_K)-\mid-\sum_{k=1}-^K-w_k-\|-A_k(v_k---\bar{d}_k)-\|_p^{\text{power}}-\le-\rho-\}" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(K\)</span>: int</p>
+<ul>
+<li><p>Number of clusters. Default 1.</p></li>
+</ul>
+</li>
+<li><p><span class="math notranslate nohighlight">\(p\)</span> : integer, optional</p>
+<ul>
+<li><p>Order of the norm. Default 2.</p></li>
+</ul>
+</li>
+<li><p>power: integer, optional</p>
+<ul>
+<li><p>Power of the norm. Default 1.</p></li>
+</ul>
+</li>
+<li><p>data : np.array</p>
+<ul>
+<li><p>An array of uncertainty realizations, where each row is one realization.</p></li>
+</ul>
+</li>
+<li><p>loss : function</p>
+<ul>
+<li><p>The loss function used to train the uncertainty set.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="Box-uncertainty:-\{-u-\mid\|-Au-+-b-\|_\infty-\leq-1-\}">
+<h3>Box uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid\| Au + b \|_\infty \leq 1 \}\)</span><a class="headerlink" href="#Box-uncertainty:-\{-u-\mid\|-Au-+-b-\|_\infty-\leq-1-\}" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>data : np.array</p>
+<ul>
+<li><p>An array of uncertainty realizations, where each row is one realization.</p></li>
+</ul>
+</li>
+<li><p>loss : function</p>
+<ul>
+<li><p>The loss function used to train the uncertainty set.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="Budget-uncertainty:">
+<h3>Budget uncertainty:<a class="headerlink" href="#Budget-uncertainty:" title="Permalink to this heading">#</a></h3>
 <ol class="arabic simple">
 <li><p>train the box portion only: <span class="math notranslate nohighlight">\(\{u \mid \| Au + b \|_\infty \leq 1, \| u \|_1 \leq \rho_2\}\)</span></p></li>
 <li><p>train the 1-norm portion only: <span class="math notranslate nohighlight">\(\{u \mid \| u \|_\infty \leq \rho_1, \| Au + b \|_1 \leq 1\}\)</span></p></li>
@@ -591,7 +624,7 @@ div.rendered_html tbody tr:hover {
 </ul>
 </section>
 <section id="Formulating-the-loss-function">
-<h2>Formulating the loss function<a class="headerlink" href="#Formulating-the-loss-function" title="Permalink to this heading">#</a></h2>
+<h3>Formulating the loss function<a class="headerlink" href="#Formulating-the-loss-function" title="Permalink to this heading">#</a></h3>
 <div class="line-block">
 <div class="line">The loss function passed into the uncertainty set must be a function that returns torch tensors with gradient information. The function must take in as inputs all the variables defined in the Robust Problem, as well as the data used to evaluate the loss. There may also be other inputs to the function, depending on the type of loss.</div>
 <div class="line">An example of a violation loss is</div>
@@ -605,12 +638,12 @@ div.rendered_html tbody tr:hover {
 </div></blockquote>
 </section>
 <section id="Training-the-uncertainty-set">
-<h2>Training the uncertainty set<a class="headerlink" href="#Training-the-uncertainty-set" title="Permalink to this heading">#</a></h2>
+<h3>Training the uncertainty set<a class="headerlink" href="#Training-the-uncertainty-set" title="Permalink to this heading">#</a></h3>
 <p>To train the uncertainty set, after setting up the robust problem, call <code class="docutils literal notranslate"><span class="pre">problem.train()</span></code>, with optional parameters to control whether to train only <span class="math notranslate nohighlight">\(\epsilon\)</span> or both <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(b\)</span>, the total number of iterations, the learning rate of the problem, the optimizer to use, and initial values for <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(b\)</span>.</p>
 <p>The function will return a pandas DataFrame with information on the iterates, as well as the reformulated problem.</p>
 </section>
 <section id="Example-1:-Linear-Portfolio">
-<h2>Example 1: Linear Portfolio<a class="headerlink" href="#Example-1:-Linear-Portfolio" title="Permalink to this heading">#</a></h2>
+<h3>Example 1: Linear Portfolio<a class="headerlink" href="#Example-1:-Linear-Portfolio" title="Permalink to this heading">#</a></h3>
 <p>Consider the simple portfolio problem where we want to select a portfolio of stocks that maximizes returns. The Robust Problem is formulated as</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -718,7 +751,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Example-2:-Quadratic-uncertainty">
-<h2>Example 2: Quadratic uncertainty<a class="headerlink" href="#Example-2:-Quadratic-uncertainty" title="Permalink to this heading">#</a></h2>
+<h3>Example 2: Quadratic uncertainty<a class="headerlink" href="#Example-2:-Quadratic-uncertainty" title="Permalink to this heading">#</a></h3>
 <p>We consider a problem with quadratic uncertainty,</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -839,7 +872,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Example-3:-Max-of-affine-uncertainty">
-<h2>Example 3: Max of affine uncertainty<a class="headerlink" href="#Example-3:-Max-of-affine-uncertainty" title="Permalink to this heading">#</a></h2>
+<h3>Example 3: Max of affine uncertainty<a class="headerlink" href="#Example-3:-Max-of-affine-uncertainty" title="Permalink to this heading">#</a></h3>
 <p>We consider a problem with max of affine uncertainty,</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -2057,7 +2090,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Example-4:-Affine-Adjustable-Robust-Optimization:-Inventory-management">
-<h2>Example 4: Affine Adjustable Robust Optimization: Inventory management<a class="headerlink" href="#Example-4:-Affine-Adjustable-Robust-Optimization:-Inventory-management" title="Permalink to this heading">#</a></h2>
+<h3>Example 4: Affine Adjustable Robust Optimization: Inventory management<a class="headerlink" href="#Example-4:-Affine-Adjustable-Robust-Optimization:-Inventory-management" title="Permalink to this heading">#</a></h3>
 <dl>
 <dt>We solve the robust optimization problem given as :nbsphinx-math:<a href="#id1"><span class="problematic" id="id2">`</span></a>begin{equation*}</dt><dd><dl>
 <dt>begin{array}{ll}</dt><dd><p>text{minimize} &amp; L\
@@ -2523,7 +2556,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </div>
 </section>
 <section id="Example-4:-Affine-Adjustable-Robust-Optimization:-Hydro-power-plant">
-<h2>Example 4: Affine Adjustable Robust Optimization: Hydro power plant<a class="headerlink" href="#Example-4:-Affine-Adjustable-Robust-Optimization:-Hydro-power-plant" title="Permalink to this heading">#</a></h2>
+<h3>Example 4: Affine Adjustable Robust Optimization: Hydro power plant<a class="headerlink" href="#Example-4:-Affine-Adjustable-Robust-Optimization:-Hydro-power-plant" title="Permalink to this heading">#</a></h3>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[313]:
 </pre></div>
@@ -2726,6 +2759,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </div>
 </section>
 </section>
+</section>
 
         </article>
       </div>
@@ -2783,7 +2817,11 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Learning Uncertainty Sets</a><ul>
-<li><a class="reference internal" href="#Formulating-the-uncertainty-set">Formulating the uncertainty set</a></li>
+<li><a class="reference internal" href="#Formulating-the-uncertainty-set">Formulating the uncertainty set</a><ul>
+<li><a class="reference internal" href="#Ellipsoidal-uncertainty:-\{u-\mid-\|-Au-+-b-\|_p-\leq-1-\}">Ellipsoidal uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| Au + b \|_p \leq 1 \}\)</span></a></li>
+<li><a class="reference internal" href="#Mean-Robust-uncertainty:-\{-u-=-(v_1,\dots,v_K)-\mid-\sum_{k=1}-^K-w_k-\|-A_k(v_k---\bar{d}_k)-\|_p^{\text{power}}-\le-\rho-\}">Mean Robust uncertainty: <span class="math notranslate nohighlight">\(\{ u = (v_1,\dots,v_K) \mid \sum_{k=1} ^K w_k \| A_k(v_k - \bar{d}_k) \|_p^{\text{power}} \le \rho \}\)</span></a></li>
+<li><a class="reference internal" href="#Box-uncertainty:-\{-u-\mid\|-Au-+-b-\|_\infty-\leq-1-\}">Box uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid\| Au + b \|_\infty \leq 1 \}\)</span></a></li>
+<li><a class="reference internal" href="#Budget-uncertainty:">Budget uncertainty:</a></li>
 <li><a class="reference internal" href="#Formulating-the-loss-function">Formulating the loss function</a></li>
 <li><a class="reference internal" href="#Training-the-uncertainty-set">Training the uncertainty set</a></li>
 <li><a class="reference internal" href="#Example-1:-Linear-Portfolio">Example 1: Linear Portfolio</a></li>
@@ -2791,6 +2829,8 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <li><a class="reference internal" href="#Example-3:-Max-of-affine-uncertainty">Example 3: Max of affine uncertainty</a></li>
 <li><a class="reference internal" href="#Example-4:-Affine-Adjustable-Robust-Optimization:-Inventory-management">Example 4: Affine Adjustable Robust Optimization: Inventory management</a></li>
 <li><a class="reference internal" href="#Example-4:-Affine-Adjustable-Robust-Optimization:-Hydro-power-plant">Example 4: Affine Adjustable Robust Optimization: Hydro power plant</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

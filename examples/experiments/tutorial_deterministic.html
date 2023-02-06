@@ -156,15 +156,18 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
-<li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">Examples</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../getting_started/index.html">Getting started</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting_started/my_first_robust/my_first_robust_prob.html">My First Robust Problem</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">Examples</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Deterministic Uncertainty Sets</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorial_learning.html">Learning Uncertainty Sets</a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../api/index.html">API</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api/index.html">API</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../api/robust_problem/index.html">Robust Problem</a></li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/uncertainty_sets/index.html">Uncertainty Sets</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/uncertainty_sets/index.html">Uncertainty Sets</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../api/uncertainty_sets/norm.html">Norm Uncertainty</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/uncertainty_sets/ellipsoidal.html">Ellipsoidal Uncertainty</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/uncertainty_sets/box.html">Box Uncertainty</a></li>
@@ -499,11 +502,81 @@ div.rendered_html tbody tr:hover {
 <section id="Formulating-the-uncertainty-set">
 <h2>Formulating the uncertainty set<a class="headerlink" href="#Formulating-the-uncertainty-set" title="Permalink to this heading">#</a></h2>
 <p>The first step is to formulate the uncertainty set. There are multiple options, with their associated input parameters. The uncertainty set can be formulated within the uncertain parameter, which takes in the size of the uncertainty and an uncertainty set as parameters.</p>
-<div class="line-block">
-<div class="line">Mean Robust uncertainty: <span class="math notranslate nohighlight">\(\{ u = (v_1,\dots,v_K) \mid \sum_{k=1} ^K w_k \| A_k(v_k - \bar{d}_k) \|_p^{\text{power}} \le \rho \}\)</span> - <span class="math notranslate nohighlight">\(K\)</span>: int * Number of clusters. Default 1. - data : np.array * Data to be clustered. The <span class="math notranslate nohighlight">\(K\)</span> cluster centers are denoted <span class="math notranslate nohighlight">\(\bar{d}_k\)</span> for <span class="math notranslate nohighlight">\(k = 1, \dots,K\)</span>. - <span class="math notranslate nohighlight">\(\rho\)</span> : float, optional</div>
-<div class="line">* Ellipsoid scaling. Default 1.0. - <span class="math notranslate nohighlight">\(p\)</span> : integer, optional</div>
-<div class="line">* Order of the norm. Default 2. - power: integer, optional * Power of the norm. Default 1. - <span class="math notranslate nohighlight">\(A_k\)</span> : np.array, optional * Scaling matrix for u, for each <span class="math notranslate nohighlight">\(k\)</span>. Default identity matrix. - Train: boolean, optional * Whether or not <span class="math notranslate nohighlight">\(A_k\)</span> should be trained using given data. Default True.</div>
+<section id="Ellipsoidal-uncertainty:-\{u-\mid-\|-Au-+-b-\|_p-\leq-\rho-\}">
+<h3>Ellipsoidal uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| Au + b \|_p \leq \rho \}\)</span><a class="headerlink" href="#Ellipsoidal-uncertainty:-\{u-\mid-\|-Au-+-b-\|_p-\leq-\rho-\}" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\rho\)</span> : float, optional</p>
+<ul>
+<li><p>Ellipsoid scaling. Default 1.0.</p></li>
+</ul>
+</li>
+<li><p><span class="math notranslate nohighlight">\(p\)</span> : integer, optional</p>
+<ul>
+<li><p>Order of the norm. Default 2.</p></li>
+</ul>
+</li>
+<li><p><span class="math notranslate nohighlight">\(A\)</span> : np.array, optional</p>
+<ul>
+<li><p>Scaling matrix for u. Default identity matrix.</p></li>
+</ul>
+</li>
+<li><p><span class="math notranslate nohighlight">\(b\)</span> : np.array, optional</p>
+<ul>
+<li><p>Relocation vector for u. Default None.</p></li>
+</ul>
+</li>
+</ul>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
 </div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Ellipsoidal uncertainty set example</span>
+<span class="n">ellip_u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">m</span><span class="p">,</span>
+                                <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">p</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+                                                                  <span class="n">rho</span><span class="o">=</span><span class="mf">2.</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)))</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Mean-Robust-uncertainty:-\{-u-=-(v_1,\dots,v_K)-\mid-\sum_{k=1}-^K-w_k-\|-A_k(v_k---\bar{d}_k)-\|_p^{\text{power}}-\le-\rho-\}">
+<h3>Mean Robust uncertainty: <span class="math notranslate nohighlight">\(\{ u = (v_1,\dots,v_K) \mid \sum_{k=1} ^K w_k \| A_k(v_k - \bar{d}_k) \|_p^{\text{power}} \le \rho \}\)</span><a class="headerlink" href="#Mean-Robust-uncertainty:-\{-u-=-(v_1,\dots,v_K)-\mid-\sum_{k=1}-^K-w_k-\|-A_k(v_k---\bar{d}_k)-\|_p^{\text{power}}-\le-\rho-\}" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(K\)</span>: int</p>
+<ul>
+<li><p>Number of clusters. Default 1.</p></li>
+</ul>
+</li>
+<li><p>data : np.array</p>
+<ul>
+<li><p>Data to be clustered. The <span class="math notranslate nohighlight">\(K\)</span> cluster centers are denoted <span class="math notranslate nohighlight">\(\bar{d}_k\)</span> for <span class="math notranslate nohighlight">\(k = 1, \dots,K\)</span>.</p></li>
+</ul>
+</li>
+<li><p><span class="math notranslate nohighlight">\(\rho\)</span> : float, optional</p>
+<ul>
+<li><p>Ellipsoid scaling. Default 1.0.</p></li>
+</ul>
+</li>
+<li><p><span class="math notranslate nohighlight">\(p\)</span> : integer, optional</p>
+<ul>
+<li><p>Order of the norm. Default 2.</p></li>
+</ul>
+</li>
+<li><p>power: integer, optional</p>
+<ul>
+<li><p>Power of the norm. Default 1.</p></li>
+</ul>
+</li>
+<li><p><span class="math notranslate nohighlight">\(A_k\)</span> : np.array, optional</p>
+<ul>
+<li><p>Scaling matrix for u, for each <span class="math notranslate nohighlight">\(k\)</span>. Default identity matrix.</p></li>
+</ul>
+</li>
+<li><p>Train: boolean, optional</p>
+<ul>
+<li><p>Whether or not <span class="math notranslate nohighlight">\(A_k\)</span> should be trained using given data. Default True.</p></li>
+</ul>
+</li>
+</ul>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
@@ -518,7 +591,9 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<p>Box uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid\| Au + b\|_\infty \leq \rho \}\)</span></p>
+</section>
+<section id="Box-uncertainty:-\{-u-\mid\|-Au-+-b\|_\infty-\leq-\rho-\}">
+<h3>Box uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid\| Au + b\|_\infty \leq \rho \}\)</span><a class="headerlink" href="#Box-uncertainty:-\{-u-\mid\|-Au-+-b\|_\infty-\leq-\rho-\}" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(\rho\)</span> : float, optional</p>
 <ul>
@@ -536,8 +611,8 @@ div.rendered_html tbody tr:hover {
 </ul>
 </li>
 </ul>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Box uncertainty set example</span>
@@ -546,23 +621,24 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<div class="line-block">
-<div class="line">Ellipsoidal uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| Au + b \|_p \leq \rho \}\)</span> - <span class="math notranslate nohighlight">\(\rho\)</span> : float, optional</div>
-<div class="line">* Ellipsoid scaling. Default 1.0. - <span class="math notranslate nohighlight">\(p\)</span> : integer, optional</div>
-<div class="line">* Order of the norm. Default 2. - <span class="math notranslate nohighlight">\(A\)</span> : np.array, optional * Scaling matrix for u. Default identity matrix. - <span class="math notranslate nohighlight">\(b\)</span> : np.array, optional * Relocation vector for u. Default None.</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
-</pre></div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+Cell <span class="ansi-green-fg">In [1], line 2</span>
+<span class="ansi-green-intense-fg ansi-bold">      1</span> # Box uncertainty set example
+<span class="ansi-green-fg">----&gt; 2</span> box_u = lro.UncertainParameter(m,
+<span class="ansi-green-intense-fg ansi-bold">      3</span>                               uncertainty_set = lro.Box(rho=2.))
+
+<span class="ansi-red-fg">NameError</span>: name &#39;lro&#39; is not defined
+</pre></div></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Ellipsoidal uncertainty set example</span>
-<span class="n">ellip_u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">m</span><span class="p">,</span>
-                                <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">p</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
-                                                                  <span class="n">rho</span><span class="o">=</span><span class="mf">2.</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)))</span>
-</pre></div>
-</div>
-</div>
-<p>Budget uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| A_1u + b_1 \|_\infty \leq \rho_1, \| A_2u + b_2 \|_1 \leq \rho_2\}\)</span></p>
+</section>
+<section id="Budget-uncertainty:-\{u-\mid-\|-A_1u-+-b_1-\|_\infty-\leq-\rho_1,-\|-A_2u-+-b_2-\|_1-\leq-\rho_2\}">
+<h3>Budget uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| A_1u + b_1 \|_\infty \leq \rho_1, \| A_2u + b_2 \|_1 \leq \rho_2\}\)</span><a class="headerlink" href="#Budget-uncertainty:-\{u-\mid-\|-A_1u-+-b_1-\|_\infty-\leq-\rho_1,-\|-A_2u-+-b_2-\|_1-\leq-\rho_2\}" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(\rho_1\)</span> : float, optional</p>
 <ul>
@@ -596,7 +672,9 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<p>Polyhedral uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid Du \leq d\}\)</span></p>
+</section>
+<section id="Polyhedral-uncertainty:-\{-u-\mid-Du-\leq-d\}">
+<h3>Polyhedral uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid Du \leq d\}\)</span><a class="headerlink" href="#Polyhedral-uncertainty:-\{-u-\mid-Du-\leq-d\}" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(D\)</span> : np.array</p></li>
 <li><p><span class="math notranslate nohighlight">\(d\)</span> : np.array</p></li>
@@ -613,6 +691,7 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
+</section>
 </section>
 <section id="Formulating-the-Robust-Problem">
 <h2>Formulating the Robust Problem<a class="headerlink" href="#Formulating-the-Robust-Problem" title="Permalink to this heading">#</a></h2>
@@ -1415,7 +1494,14 @@ Cvxpy x:  [4.39834399e-10 8.11862181e-10 4.45567335e-10 8.37229500e-10
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Deterministic Uncertainty Sets</a><ul>
-<li><a class="reference internal" href="#Formulating-the-uncertainty-set">Formulating the uncertainty set</a></li>
+<li><a class="reference internal" href="#Formulating-the-uncertainty-set">Formulating the uncertainty set</a><ul>
+<li><a class="reference internal" href="#Ellipsoidal-uncertainty:-\{u-\mid-\|-Au-+-b-\|_p-\leq-\rho-\}">Ellipsoidal uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| Au + b \|_p \leq \rho \}\)</span></a></li>
+<li><a class="reference internal" href="#Mean-Robust-uncertainty:-\{-u-=-(v_1,\dots,v_K)-\mid-\sum_{k=1}-^K-w_k-\|-A_k(v_k---\bar{d}_k)-\|_p^{\text{power}}-\le-\rho-\}">Mean Robust uncertainty: <span class="math notranslate nohighlight">\(\{ u = (v_1,\dots,v_K) \mid \sum_{k=1} ^K w_k \| A_k(v_k - \bar{d}_k) \|_p^{\text{power}} \le \rho \}\)</span></a></li>
+<li><a class="reference internal" href="#Box-uncertainty:-\{-u-\mid\|-Au-+-b\|_\infty-\leq-\rho-\}">Box uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid\| Au + b\|_\infty \leq \rho \}\)</span></a></li>
+<li><a class="reference internal" href="#Budget-uncertainty:-\{u-\mid-\|-A_1u-+-b_1-\|_\infty-\leq-\rho_1,-\|-A_2u-+-b_2-\|_1-\leq-\rho_2\}">Budget uncertainty: <span class="math notranslate nohighlight">\(\{u \mid \| A_1u + b_1 \|_\infty \leq \rho_1, \| A_2u + b_2 \|_1 \leq \rho_2\}\)</span></a></li>
+<li><a class="reference internal" href="#Polyhedral-uncertainty:-\{-u-\mid-Du-\leq-d\}">Polyhedral uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid Du \leq d\}\)</span></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#Formulating-the-Robust-Problem">Formulating the Robust Problem</a><ul>
 <li><a class="reference internal" href="#Example-1:-Affine-transformed-LP,-ellipsoidal-uncertainty-and-mean-robust-uncertainty.">Example 1: Affine transformed LP, ellipsoidal uncertainty and mean robust uncertainty.</a></li>
 <li><a class="reference internal" href="#Example-2:-Multiple-uncertain-terms,-box-uncertainty">Example 2: Multiple uncertain terms, box uncertainty</a></li>
