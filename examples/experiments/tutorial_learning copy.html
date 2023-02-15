@@ -1385,7 +1385,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </dl>
 <p>end{equation*}`</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">L</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">s</span><span class="p">,</span><span class="n">data</span><span class="p">,</span><span class="n">l</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
@@ -1396,16 +1396,33 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
         <span class="n">sums</span> <span class="o">+=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="n">Y</span><span class="nd">@data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">Q</span><span class="p">)</span><span class="nd">@data</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)))</span>
         <span class="n">sums</span> <span class="o">+=</span> <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="nd">@y</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="nd">@Y@data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">t</span><span class="o">+</span> <span class="n">h</span><span class="p">)</span><span class="nd">@s</span> <span class="o">-</span> <span class="n">L</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">L</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="o">*</span><span class="n">sums</span><span class="o">/</span><span class="n">Nsample</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">sums</span><span class="o">/</span><span class="n">Nsample</span>
-<br/></pre></div>
+
+
+<span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">L</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">s</span><span class="p">,</span><span class="n">data</span><span class="p">,</span><span class="n">l</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+    <span class="n">sums</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">totsum</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">Nsample</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">Nsample</span><span class="p">):</span>
+        <span class="n">sums</span> <span class="o">+=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="n">Y</span><span class="nd">@data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">s</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)))</span>
+        <span class="n">sums</span> <span class="o">+=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="n">Y</span><span class="nd">@data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">Q</span><span class="p">)</span><span class="nd">@data</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)))</span>
+        <span class="n">sums</span> <span class="o">+=</span> <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="nd">@y</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="nd">@Y@data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">t</span><span class="o">+</span> <span class="n">h</span><span class="p">)</span><span class="nd">@s</span> <span class="o">-</span> <span class="n">L</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span>
+
+        <span class="n">newsums</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="n">Y</span><span class="nd">@data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">s</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.001</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">())</span><span class="o">&gt;=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="n">newsums</span> <span class="o">+=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="n">Y</span><span class="nd">@data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">Q</span><span class="p">)</span><span class="nd">@data</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.001</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">())</span><span class="o">&gt;=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="n">newsums</span> <span class="o">+=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="nd">@y</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="nd">@Y@data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">t</span><span class="o">+</span> <span class="n">h</span><span class="p">)</span><span class="nd">@s</span> <span class="o">-</span> <span class="n">L</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.01</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">newsums</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">totsum</span><span class="o">+=</span><span class="mi">1</span>
+    <span class="k">return</span> <span class="n">L</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="o">*</span><span class="n">sums</span><span class="o">/</span><span class="n">Nsample</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">totsum</span><span class="o">/</span><span class="n">Nsample</span><span class="p">)</span>
+</pre></div>
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="n">n</span> <span class="o">=</span> <span class="mi">10</span>
 <span class="n">m</span> <span class="o">=</span> <span class="mi">4</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">3</span><span class="p">,(</span><span class="mi">400</span><span class="p">,</span><span class="n">m</span><span class="p">))</span>
+<span class="c1"># data = np.random.normal(0,3,(400,m))</span>
 <span class="c1"># data = data_modes(N,m,[10,20,30])</span>
 <span class="c1">#restate the ellipsoidal set</span>
 <span class="n">u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">m</span><span class="p">,</span>
@@ -1469,7 +1486,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Plot results</span>
@@ -1503,7 +1520,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
@@ -1514,12 +1531,16 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <span class="p">})</span>
 <span class="n">new</span> <span class="o">=</span> <span class="n">pareto_frontier</span><span class="p">(</span><span class="n">df1</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">],</span><span class="n">df1</span><span class="p">[</span><span class="s1">&#39;Opt_val&#39;</span><span class="p">])</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df_r2</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">],</span> <span class="n">df_r2</span><span class="p">[</span><span class="s1">&#39;Opt_val&#39;</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $\epsilon$&quot;</span><span class="p">)</span>
+<span class="c1"># plt.plot(dfgrid[&#39;Violations&#39;], dfgrid[&#39;Test_val&#39;], color=&quot;tab:green&quot;, label=r&quot;Grid $\epsilon$&quot;)</span>
+
+<span class="n">orig</span> <span class="o">=</span> <span class="n">pareto_frontier</span><span class="p">(</span><span class="n">df_r2</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">],</span><span class="n">df_r2</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">orig</span><span class="p">[</span><span class="mi">0</span><span class="p">][:],</span> <span class="n">orig</span><span class="p">[</span><span class="mi">1</span><span class="p">][:],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $\epsilon$&quot;</span><span class="p">)</span>
+
 <span class="c1"># plt.plot(df_r1[&#39;Violations&#39;], df_r1[&#39;Opt_val&#39;], color=&quot;tab:orange&quot; )</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">new</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">new</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $(A,b)$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">new</span><span class="p">[</span><span class="mi">0</span><span class="p">][:],</span> <span class="n">new</span><span class="p">[</span><span class="mi">1</span><span class="p">][:],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $(A,b)$&quot;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Objective value&quot;</span><span class="p">)</span>
 <span class="c1"># ax2.set_xlim([-1,20])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Value of constraint violation&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Probability of constraint violation&quot;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span> <span class="o">=</span> <span class="s2">&quot;upper right&quot;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;Inventory.pdf&quot;</span><span class="p">,</span><span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
@@ -1556,7 +1577,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <section id="Example-4:-Affine-Adjustable-Robust-Optimization:-Hydro-power-plant">
 <h2>Example 4: Affine Adjustable Robust Optimization: Hydro power plant<a class="headerlink" href="#Example-4:-Affine-Adjustable-Robust-Optimization:-Hydro-power-plant" title="Permalink to this heading">#</a></h2>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">tau</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">x3</span><span class="p">,</span> <span class="n">x4</span><span class="p">,</span> <span class="n">x5</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span><span class="n">l</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
@@ -1577,8 +1598,8 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <br/></pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="kn">import</span> <span class="nn">math</span>
@@ -1647,8 +1668,84 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <br/></pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">KeyboardInterrupt</span>                         Traceback (most recent call last)
+Cell <span class="ansi-green-fg">In [4], line 54</span>
+<span class="ansi-green-intense-fg ansi-bold">     51</span> A_fin = result1.A
+<span class="ansi-green-intense-fg ansi-bold">     52</span> b_fin = result1.b
+<span class="ansi-green-fg">---&gt; 54</span> result2 = prob.train(eps = True, lr = 0.001, step=40, momentum = 0.8, optimizer = &#34;SGD&#34;, seed = s, initA = A_fin, initb = b_fin)
+<span class="ansi-green-intense-fg ansi-bold">     55</span> df_r1 = result2.df
+<span class="ansi-green-intense-fg ansi-bold">     57</span> result3 = prob.train(eps = True, lr = 0.001, step=40, momentum = 0.8, optimizer = &#34;SGD&#34;, seed = s, initA = init, initb = init_b, initeps = 0.001)
+
+File <span class="ansi-green-fg">~/Desktop/Princeton/Project2/lro/lro/robust_problem.py:421</span>, in <span class="ansi-cyan-fg">RobustProblem.train</span><span class="ansi-blue-fg">(self, eps, fixb, step, lr, scheduler, momentum, optimizer, initeps, initA, initb, save_iters, seed, solver)</span>
+<span class="ansi-green-intense-fg ansi-bold">    419</span>     totloss += temploss
+<span class="ansi-green-intense-fg ansi-bold">    420</span> totloss = totloss
+<span class="ansi-green-fg">--&gt; 421</span> totloss.backward()
+<span class="ansi-green-intense-fg ansi-bold">    422</span> newrow = pd.Series(
+<span class="ansi-green-intense-fg ansi-bold">    423</span>     {&#34;step&#34;: steps,
+<span class="ansi-green-intense-fg ansi-bold">    424</span>      &#34;Loss_val&#34;: totloss.item(),
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">    431</span>      &#34;dfnorm&#34;: np.linalg.norm(eps_tch.grad),
+<span class="ansi-green-intense-fg ansi-bold">    432</span>      &#34;gradnorm&#34;: eps_tch.grad})
+<span class="ansi-green-intense-fg ansi-bold">    433</span> df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
+
+File <span class="ansi-green-fg">~/anaconda3/envs/lro/lib/python3.9/site-packages/torch/_tensor.py:396</span>, in <span class="ansi-cyan-fg">Tensor.backward</span><span class="ansi-blue-fg">(self, gradient, retain_graph, create_graph, inputs)</span>
+<span class="ansi-green-intense-fg ansi-bold">    387</span> if has_torch_function_unary(self):
+<span class="ansi-green-intense-fg ansi-bold">    388</span>     return handle_torch_function(
+<span class="ansi-green-intense-fg ansi-bold">    389</span>         Tensor.backward,
+<span class="ansi-green-intense-fg ansi-bold">    390</span>         (self,),
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">    394</span>         create_graph=create_graph,
+<span class="ansi-green-intense-fg ansi-bold">    395</span>         inputs=inputs)
+<span class="ansi-green-fg">--&gt; 396</span> torch.autograd.backward(self, gradient, retain_graph, create_graph, inputs=inputs)
+
+File <span class="ansi-green-fg">~/anaconda3/envs/lro/lib/python3.9/site-packages/torch/autograd/__init__.py:173</span>, in <span class="ansi-cyan-fg">backward</span><span class="ansi-blue-fg">(tensors, grad_tensors, retain_graph, create_graph, grad_variables, inputs)</span>
+<span class="ansi-green-intense-fg ansi-bold">    168</span>     retain_graph = create_graph
+<span class="ansi-green-intense-fg ansi-bold">    170</span> # The reason we repeat same the comment below is that
+<span class="ansi-green-intense-fg ansi-bold">    171</span> # some Python versions print out the first line of a multi-line function
+<span class="ansi-green-intense-fg ansi-bold">    172</span> # calls in the traceback and some print out the last line
+<span class="ansi-green-fg">--&gt; 173</span> Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+<span class="ansi-green-intense-fg ansi-bold">    174</span>     tensors, grad_tensors_, retain_graph, create_graph, inputs,
+<span class="ansi-green-intense-fg ansi-bold">    175</span>     allow_unreachable=True, accumulate_grad=True)
+
+File <span class="ansi-green-fg">~/anaconda3/envs/lro/lib/python3.9/site-packages/torch/autograd/function.py:253</span>, in <span class="ansi-cyan-fg">BackwardCFunction.apply</span><span class="ansi-blue-fg">(self, *args)</span>
+<span class="ansi-green-intense-fg ansi-bold">    249</span>     raise RuntimeError(&#34;Implementing both &#39;backward&#39; and &#39;vjp&#39; for a custom &#34;
+<span class="ansi-green-intense-fg ansi-bold">    250</span>                        &#34;Function is not allowed. You should only implement one &#34;
+<span class="ansi-green-intense-fg ansi-bold">    251</span>                        &#34;of them.&#34;)
+<span class="ansi-green-intense-fg ansi-bold">    252</span> user_fn = vjp_fn if vjp_fn is not Function.vjp else backward_fn
+<span class="ansi-green-fg">--&gt; 253</span> return user_fn(self, *args)
+
+File <span class="ansi-green-fg">~/anaconda3/envs/lro/lib/python3.9/site-packages/cvxpylayers/torch/cvxpylayer.py:338</span>, in <span class="ansi-cyan-fg">_CvxpyLayerFn.&lt;locals&gt;._CvxpyLayerFnFn.backward</span><span class="ansi-blue-fg">(ctx, *dvars)</span>
+<span class="ansi-green-intense-fg ansi-bold">    335</span>     dys.append(np.zeros(ctx.shapes[i][0]))
+<span class="ansi-green-intense-fg ansi-bold">    336</span>     dss.append(np.zeros(ctx.shapes[i][0]))
+<span class="ansi-green-fg">--&gt; 338</span> dAs, dbs, dcs = ctx.DT_batch(dxs, dys, dss)
+<span class="ansi-green-intense-fg ansi-bold">    340</span> # differentiate from cone problem data to cvxpy parameters
+<span class="ansi-green-intense-fg ansi-bold">    341</span> start = time.time()
+
+File <span class="ansi-green-fg">~/anaconda3/envs/lro/lib/python3.9/site-packages/diffcp/cone_program.py:114</span>, in <span class="ansi-cyan-fg">solve_and_derivative_batch.&lt;locals&gt;.DT_batch</span><span class="ansi-blue-fg">(dxs, dys, dss, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">    112</span> dAs, dbs, dcs = [], [], []
+<span class="ansi-green-intense-fg ansi-bold">    113</span> for i in range(batch_size):
+<span class="ansi-green-fg">--&gt; 114</span>     dA, db, dc = DTs[i](dxs[i], dys[i], dss[i], **kwargs)
+<span class="ansi-green-intense-fg ansi-bold">    115</span>     dAs += [dA]
+<span class="ansi-green-intense-fg ansi-bold">    116</span>     dbs += [db]
+
+File <span class="ansi-green-fg">~/anaconda3/envs/lro/lib/python3.9/site-packages/diffcp/cone_program.py:455</span>, in <span class="ansi-cyan-fg">solve_and_derivative_internal.&lt;locals&gt;.adjoint_derivative</span><span class="ansi-blue-fg">(dx, dy, ds, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">    453</span>     r = _diffcp._solve_adjoint_derivative_dense(M, MT, dz)
+<span class="ansi-green-intense-fg ansi-bold">    454</span> else:
+<span class="ansi-green-fg">--&gt; 455</span>     r = _diffcp.lsqr(MT, dz).solution
+<span class="ansi-green-intense-fg ansi-bold">    457</span> values = pi_z[cols] * r[rows + n] - pi_z[n + rows] * r[cols]
+<span class="ansi-green-intense-fg ansi-bold">    458</span> dA = sparse.csc_matrix((values, (rows, cols)), shape=A.shape)
+
+<span class="ansi-red-fg">KeyboardInterrupt</span>:
+</pre></div></div>
+</div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Plot results</span>
@@ -1688,7 +1785,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
@@ -1729,12 +1826,12 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.legend.Legend at 0x1d141fa60&gt;
+&lt;matplotlib.legend.Legend at 0x1cade4430&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
