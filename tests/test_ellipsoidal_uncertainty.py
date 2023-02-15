@@ -91,7 +91,28 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         prob_robust = RobustProblem(objective, constraints)
         prob_robust.solve(solver=SOLVER)
 
+    def test_simple_ellipsoidal_2u(self):
+        b, x, n, objective, rho, _ = \
+            self.b, self.x, self.n, self.objective, self.rho, self.p
+        # Robust set
+        P = np.eye(n)
+        a = np.zeros(n)
+        # Formulate robust constraints with lro
+        unc_set = Ellipsoidal(rho=rho)
+        u_1 = UncertainParameter(n,
+                                 uncertainty_set=unc_set)
+
+        u_2 = UncertainParameter(n,
+                                 uncertainty_set=unc_set)
+        constraints = [(P @ u_1 + a) @ x @ u_2 <= b]
+
+        prob_robust = RobustProblem(objective, constraints)
+        prob_robust.solve(solver=SOLVER)
+        import ipdb
+        ipdb.set_trace()
+
     # @unittest.skip('need to combine with new code')
+
     def test_ellipsoidal_learning(self):
         # import ipdb
         # ipdb.set_trace()

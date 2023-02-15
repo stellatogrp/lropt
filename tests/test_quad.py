@@ -60,6 +60,25 @@ class TestQuad(unittest.TestCase):
         newprob.solve(solver=SOLVER)
         print(x.value)
 
+    # def test_quad_simple_2(self):
+    #     m = 5
+    #     n = 5
+    #     x = cp.Variable(n)
+    #     t = cp.Variable()
+    #     u = UncertainParameter(m,
+    #                            uncertainty_set=Ellipsoidal(p=2,
+    #                                                        rho=2.))
+    #     X = cp.variable((n,n))
+
+    #     objective = cp.Minimize(t)
+    #     constraints = [-quad_form(u,X) <= t]
+    #     # import ipdb
+    #     # ipdb.set_trace()
+    #     prob = RobustProblem(objective, constraints)
+    #     newprob = prob.dualize_constraints()
+    #     newprob.solve(solver=SOLVER)
+    #     print(x.value)
+
     def test_max(self):
         n = 2
         u = UncertainParameter(n,
