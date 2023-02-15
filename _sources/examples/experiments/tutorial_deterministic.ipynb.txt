@@ -65,9 +65,21 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 2,
    "metadata": {},
-   "outputs": [],
+   "outputs": [
+    {
+     "ename": "NameError",
+     "evalue": "name 'm' is not defined",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mNameError\u001b[0m                                 Traceback (most recent call last)",
+      "Cell \u001b[0;32mIn [2], line 2\u001b[0m\n\u001b[1;32m      1\u001b[0m \u001b[39m# Ellipsoidal uncertainty set example\u001b[39;00m\n\u001b[0;32m----> 2\u001b[0m ellip_u \u001b[39m=\u001b[39m lro\u001b[39m.\u001b[39mUncertainParameter(m,\n\u001b[1;32m      3\u001b[0m                                 uncertainty_set \u001b[39m=\u001b[39m lro\u001b[39m.\u001b[39mEllipsoidal(p \u001b[39m=\u001b[39m \u001b[39m2\u001b[39m, \n\u001b[1;32m      4\u001b[0m                                                                   rho\u001b[39m=\u001b[39m\u001b[39m2.\u001b[39m, b \u001b[39m=\u001b[39m np\u001b[39m.\u001b[39mmean(data, axis \u001b[39m=\u001b[39m \u001b[39m0\u001b[39m)))\n",
+      "\u001b[0;31mNameError\u001b[0m: name 'm' is not defined"
+     ]
+    }
+   ],
    "source": [
     "# Ellipsoidal uncertainty set example\n",
     "ellip_u = lro.UncertainParameter(m,\n",
