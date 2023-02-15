@@ -322,7 +322,7 @@ class Uncertain_Canonicalization(Reduction):
 
     def has_unc_param(self, expr):
         if not isinstance(expr, int) and not isinstance(expr, float):
-            return self.count_unq_uncertain_param(expr) == 1
+            return self.count_unq_uncertain_param(expr) >= 1
         else:
             return 0
 
@@ -362,8 +362,8 @@ class Uncertain_Canonicalization(Reduction):
         # Check Initial Conditions
         if self.count_unq_uncertain_param(expr) == 0:
             return [], [expr], 0
-        elif self.count_unq_uncertain_param(expr) > 1:
-            raise ValueError("DRP error: Cannot have multiple uncertain params in the same expr")
+        # elif self.count_unq_uncertain_param(expr) > 1:
+        #     raise ValueError("DRP error: Cannot have multiple uncertain params in the same expr")
         elif len(expr.args) == 0:
             assert (self.has_unc_param(expr))
             return [expr], [], 0
