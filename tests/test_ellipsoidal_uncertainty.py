@@ -99,12 +99,11 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         a = np.zeros(n)
         # Formulate robust constraints with lro
         unc_set = Ellipsoidal(rho=rho)
+
         u_1 = UncertainParameter(n,
                                  uncertainty_set=unc_set)
 
-        u_2 = UncertainParameter(n,
-                                 uncertainty_set=unc_set)
-        constraints = [(P @ u_1 + a) @ x @ u_2 <= b]
+        constraints = [(P @ u_1 + a) @ x <= b]
 
         prob_robust = RobustProblem(objective, constraints)
         prob_robust.solve(solver=SOLVER)
