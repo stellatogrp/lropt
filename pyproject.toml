@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lro"
+readme = "README.rst"
 description="A package for decision-making under uncertainty, using data."
 license = {text = "Apache 2.0"}
 version = "0.0.1"
