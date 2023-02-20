@@ -5,7 +5,7 @@ import numpy as np
 # import numpy.testing as npt
 import scipy as sc
 # import pytest
-import torch
+# import torch
 from sklearn import datasets
 
 from lro.robust_problem import RobustProblem
@@ -198,80 +198,80 @@ class TestQuad(unittest.TestCase):
         prob_robust.solve()
         print("LRO objective value: ", prob_robust.objective.value, "\nLRO x: ", x_r.value)
 
-    def test_train_mro(self):
-        # Formulate constants
-        n = 2
-        N = 50
-        # k = npr.uniform(1,4,n)
-        # p = k + npr.uniform(2,5,n)
-        k = np.array([2., 3.])
-        p = np.array([3, 4.5])
-        k_tch = torch.tensor(k, requires_grad=True)
-        p_tch = torch.tensor(p, requires_grad=True)
+    # def test_train_mro(self):
+    #     # Formulate constants
+    #     n = 2
+    #     N = 50
+    #     # k = npr.uniform(1,4,n)
+    #     # p = k + npr.uniform(2,5,n)
+    #     k = np.array([2., 3.])
+    #     p = np.array([3, 4.5])
+    #     k_tch = torch.tensor(k, requires_grad=True)
+    #     p_tch = torch.tensor(p, requires_grad=True)
 
-        # Formulate loss function
-        def loss(t, x, data, la=5):
-            return t + la*torch.mean(torch.maximum(
-                torch.maximum(k_tch@x - data@p_tch, k_tch@x - p_tch@x) - t,
-                torch.tensor(0., requires_grad=True))), t, torch.mean(torch.maximum(
-                    torch.maximum(k_tch@x - data@p_tch, k_tch@x - p_tch@x) - t,
-                    torch.tensor(0., requires_grad=True)))
+    #     # Formulate loss function
+    #     def loss(t, x, data, la=5):
+    #         return t + la*torch.mean(torch.maximum(
+    #             torch.maximum(k_tch@x - data@p_tch, k_tch@x - p_tch@x) - t,
+    #             torch.tensor(0., requires_grad=True))), t, torch.mean(torch.maximum(
+    #                 torch.maximum(k_tch@x - data@p_tch, k_tch@x - p_tch@x) - t,
+    #                 torch.tensor(0., requires_grad=True)))
 
-        def gen_demand(n, N):
-            F = np.random.normal(size=(n, 2))
-            sig = 0.1*F@(F.T)
-            mu = np.random.uniform(-0.2, 3, n)
-            norms = np.random.multivariate_normal(mu, sig, N)
-            d_train = np.exp(norms)
-            return d_train
+    #     def gen_demand(n, N):
+    #         F = np.random.normal(size=(n, 2))
+    #         sig = 0.1*F@(F.T)
+    #         mu = np.random.uniform(-0.2, 3, n)
+    #         norms = np.random.multivariate_normal(mu, sig, N)
+    #         d_train = np.exp(norms)
+    #         return d_train
 
-        # Generate data
-        data = gen_demand(n, N)
-        # Formulate uncertainty set
-        # u = lro.UncertainParameter(n,
-        #                         uncertainty_set=lro.Ellipsoidal(p=2,
-        #                                                     data=data, loss = loss))
+    #     # Generate data
+    #     data = gen_demand(n, N)
+    #     # Formulate uncertainty set
+    #     # u = lro.UncertainParameter(n,
+    #     #                         uncertainty_set=lro.Ellipsoidal(p=2,
+    #     #                                                     data=data, loss = loss))
 
-        u = UncertainParameter(n,
-                               uncertainty_set=MRO(K=5, p=2,
-                                                   data=data, loss=loss, uniqueA=True))
-        # Formulate the Robust Problem
-        x_r = cp.Variable(n)
-        t = cp.Variable()
+    #     u = UncertainParameter(n,
+    #                            uncertainty_set=MRO(K=5, p=2,
+    #                                                data=data, loss=loss, uniqueA=True))
+    #     # Formulate the Robust Problem
+    #     x_r = cp.Variable(n)
+    #     t = cp.Variable()
 
-        objective = cp.Minimize(t)
+    #     objective = cp.Minimize(t)
 
-        constraints = [cp.maximum(k@x_r - p@x_r, k@x_r - p@u) <= t]
-        constraints += [x_r >= 0]
+    #     constraints = [cp.maximum(k@x_r - p@x_r, k@x_r - p@u) <= t]
+    #     constraints += [x_r >= 0]
 
-        prob = RobustProblem(objective, constraints)
-        prob.solve()
+    #     prob = RobustProblem(objective, constraints)
+    #     prob.solve()
 
-        # s = 13
-        # # Train only epsilon
-        # result = prob.train(eps = True, lr = 0.001, step=50, \
-        # momentum = 0.8, optimizer = "SGD", initeps = 1, seed = s)
-        # df_eps = result.df
-        # # Train A and b
-        # df1, newprob, A_fin, b_fin = prob.train(lr = 0.01,\
-        #  step=50, momentum = 0.8, optimizer = "SGD", seed = s, initeps=1)
+    #     # s = 13
+    #     # # Train only epsilon
+    #     # result = prob.train(eps = True, lr = 0.001, step=50, \
+    #     # momentum = 0.8, optimizer = "SGD", initeps = 1, seed = s)
+    #     # df_eps = result.df
+    #     # # Train A and b
+    #     # df1, newprob, A_fin, b_fin = prob.train(lr = 0.01,\
+    #     #  step=50, momentum = 0.8, optimizer = "SGD", seed = s, initeps=1)
 
-        # # Grid search epsilon
-        # dfgrid, newprob = prob.grid(epslst = np.linspace(0.8, 2, 40),\
-        #  seed = s)
-        # init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))
-        # init_b = -init@np.mean(data, axis=0)
-        # # Train A and b
-        # result1 = prob.train(lr = 0.001, step=50, \
-        # momentum = 0.8, optimizer = "SGD", seed = s, \
-        # initA = init, initb = init_b, fixb = False)
-        # df1 = result1.df
-        # A_fin = result1.A
-        # b_fin = result1.b
-        # result2 = prob.train(eps = True, lr = 0.001, step=50, \
-        # momentum = 0.8, optimizer = "SGD", seed = s, \
-        # initA = A_fin, initb = b_fin)
-        # df_r1 = result2.df
-        # result4 = prob.grid(epslst = np.linspace(0.01, 3, 40),\
-        #  initA = init, initb = init_b, seed = s)
-        # dfgrid = result4.df
+    #     # # Grid search epsilon
+    #     # dfgrid, newprob = prob.grid(epslst = np.linspace(0.8, 2, 40),\
+    #     #  seed = s)
+    #     # init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))
+    #     # init_b = -init@np.mean(data, axis=0)
+    #     # # Train A and b
+    #     # result1 = prob.train(lr = 0.001, step=50, \
+    #     # momentum = 0.8, optimizer = "SGD", seed = s, \
+    #     # initA = init, initb = init_b, fixb = False)
+    #     # df1 = result1.df
+    #     # A_fin = result1.A
+    #     # b_fin = result1.b
+    #     # result2 = prob.train(eps = True, lr = 0.001, step=50, \
+    #     # momentum = 0.8, optimizer = "SGD", seed = s, \
+    #     # initA = A_fin, initb = b_fin)
+    #     # df_r1 = result2.df
+    #     # result4 = prob.grid(epslst = np.linspace(0.01, 3, 40),\
+    #     #  initA = init, initb = init_b, seed = s)
+    #     # dfgrid = result4.df

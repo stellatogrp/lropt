@@ -120,7 +120,7 @@ class RobustProblem(Problem):
         self, eps=False, fixb=True, step=45, lr=0.01, scheduler=True, momentum=0.8,
         optimizer="SGD", init_eps=None, init_A=None, init_b=None, save_iters=False, seed=1, init_lam=10, init_mu=10,
         mu_multiplier=1.02, init_alpha=-0.01,
-        target_cvar=1, solver: Optional[str] = None
+        target_cvar=0., solver: Optional[str] = None
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. loss metric
@@ -334,7 +334,7 @@ class RobustProblem(Problem):
                     #
                     if init_eps:
                         eps_tch = torch.tensor(1/np.array(init_eps), requires_grad=True, dtype=torch.double)
-                        eps_tch.grad = torch.tensor(0., dtype=torch.double)
+                        # eps_tch.grad = torch.tensor(0., dtype=torch.double)
                         if mro_set:
                             if unc_set._uniqueA and eps_tch.shape == torch.Size([]):
                                 eps_tch = eps_tch.repeat(unc_set._K)
@@ -353,7 +353,7 @@ class RobustProblem(Problem):
                     if init_b is not None:
                         init_bval = torch.tensor(init_b, requires_grad=True, dtype=torch.double)
                     else:
-                        init_bval = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True, dtype=torch.double)
+                        init_bval = -init@torch.tensor(np.mean(train, axis=0), dtype=torch.double)
                     if not mro_set:
                         paramb_tch = eps_tch*init_bval
                         paramT_tch = eps_tch*init
@@ -444,8 +444,8 @@ class RobustProblem(Problem):
                              "lam": lam,
                              "alpha": alpha.item(),
                              "alphagrad": alpha.grad,
-                             "dfnorm": np.linalg.norm(eps_tch.grad) if eps_tch.grad else 0,
-                             "gradnorm": eps_tch.grad if eps_tch.grad else 0})
+                             "dfnorm": np.linalg.norm(eps_tch.grad),
+                             "gradnorm": eps_tch.grad})
                         df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
 
                         if save_iters:
