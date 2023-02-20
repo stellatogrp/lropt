@@ -12,12 +12,8 @@ on: [push, pull_request]
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-20.04, windows-2019, macos-11]
-
+    name: Build wheels
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
@@ -33,9 +29,10 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          path: ./dist/*.whl
+          path: ./dist/*
 
   upload_pypi:
+    name: Upload to PyPI
     needs: [build_wheels]
     runs-on: ubuntu-latest
     # upload to PyPI on every tag starting with 'v'
