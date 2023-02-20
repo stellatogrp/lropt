@@ -5,8 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lro"
 description="A package for decision-making under uncertainty, using data."
-long_description = file: README.md
-long_description_content_type = text/markdown
+long_description = "file: README.md"
+long_description_content_type = "text/markdown"
 license = {text = "Apache 2.0"}
 version = "0.0.1"
 authors = [
