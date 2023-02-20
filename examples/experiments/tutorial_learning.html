@@ -2123,7 +2123,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </dl>
 <p>end{equation*}`</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">L</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">s</span><span class="p">,</span><span class="n">data</span><span class="p">,</span><span class="n">l</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
@@ -2156,7 +2156,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
         <span class="n">totsum</span> <span class="o">+=</span> <span class="n">newsums</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="mi">10</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">L</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">totsum</span><span class="o">/</span><span class="n">Nsample</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.05</span><span class="p">))</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">mu</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">totsum</span><span class="o">/</span><span class="n">Nsample</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.05</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">totsum</span><span class="o">/</span><span class="n">Nsample</span><span class="p">,</span> <span class="n">sums</span><span class="o">/</span><span class="n">Nsample</span>
 
-<span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">L</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">s</span><span class="p">,</span><span class="n">alpha</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span><span class="n">mu</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">l</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span><span class="n">quantile</span> <span class="o">=</span> <span class="mf">0.95</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">L</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">s</span><span class="p">,</span><span class="n">alpha</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span><span class="n">mu</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">l</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span><span class="n">quantile</span> <span class="o">=</span> <span class="mf">0.95</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">):</span>
     <span class="n">sums</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">totsum</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">Nsample</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -2170,29 +2170,31 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
         <span class="n">newsums</span> <span class="o">+=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="nd">@y</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="nd">@Y@data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">t</span><span class="o">+</span> <span class="n">h</span><span class="p">)</span><span class="nd">@s</span> <span class="o">-</span> <span class="n">L</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">1.</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">))</span>
         <span class="n">totsum</span> <span class="o">+=</span> <span class="n">newsums</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="mi">10</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">sums</span> <span class="o">=</span> <span class="p">(</span><span class="n">sums</span><span class="o">/</span><span class="p">((</span><span class="mi">1</span><span class="o">-</span><span class="n">quantile</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="mi">10</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">Nsample</span><span class="p">))</span> <span class="o">+</span> <span class="n">alpha</span>
-    <span class="k">return</span> <span class="n">L</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">sums</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">5.</span><span class="p">))</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">mu</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">sums</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">5.</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">totsum</span><span class="o">/</span><span class="n">Nsample</span><span class="p">,</span> <span class="n">sums</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">L</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">sums</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">target</span><span class="p">))</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">mu</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">sums</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">target</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">totsum</span><span class="o">/</span><span class="n">Nsample</span><span class="p">,</span> <span class="n">sums</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 
 <span class="c1">#torch.tensor(totsum/Nsample)</span>
 <span class="n">n</span> <span class="o">=</span> <span class="mi">10</span>
 <span class="n">m</span> <span class="o">=</span> <span class="mi">4</span>
 <span class="c1"># data = np.random.normal(0,3,(400,m))</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;invdat1.npy&quot;</span><span class="p">)</span>
+<span class="c1"># data = np.load(&quot;invdat1.npy&quot;)</span>
 <br/></pre></div>
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[62]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># np.save(&quot;invdat1&quot;,data)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># np.save(&quot;invdat5&quot;,data)</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[179]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n</span> <span class="o">=</span> <span class="mi">10</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;invdat5.npy&quot;</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:</span><span class="mi">250</span><span class="p">]</span>
+<span class="n">n</span> <span class="o">=</span> <span class="mi">10</span>
 <span class="n">m</span> <span class="o">=</span> <span class="mi">4</span>
 <span class="c1"># data = np.random.normal(0,3,(400,m))</span>
 <span class="c1"># data = data_modes(N,m,[10,20,30])</span>
@@ -2212,13 +2214,13 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <span class="n">Y</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">((</span><span class="n">n</span><span class="p">,</span><span class="n">m</span><span class="p">))</span>
 
 <span class="c1"># formulate problem constants</span>
-<span class="n">C</span> <span class="o">=</span> <span class="mi">2000</span>
-<span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">300</span><span class="p">,</span><span class="mi">500</span><span class="p">,</span><span class="n">n</span><span class="p">)</span>
-<span class="n">Q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,(</span><span class="n">n</span><span class="p">,</span><span class="n">m</span><span class="p">))</span>
-<span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="n">n</span><span class="p">)</span>
-<span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">n</span><span class="p">)</span>
-<span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">n</span><span class="p">)</span>
-<span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span><span class="mi">40</span><span class="p">,</span><span class="n">n</span><span class="p">)</span>
+<span class="c1"># C = 2000</span>
+<span class="c1"># c = np.random.uniform(300,500,n)</span>
+<span class="c1"># Q = np.random.uniform(-2,2,(n,m))</span>
+<span class="c1"># d = np.random.uniform(100,200,n)</span>
+<span class="c1"># t = np.random.uniform(1,3,n)</span>
+<span class="c1"># h = np.random.uniform(1,3,n)</span>
+<span class="c1"># r = np.random.uniform(20,40,n)</span>
 
 
 <span class="c1"># formulate objective</span>
@@ -2234,35 +2236,36 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 
 <span class="c1"># formulate Robust Problem</span>
 <span class="n">prob</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
-
+<span class="n">target</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.05</span>
 <span class="c1"># solve</span>
 <span class="n">s</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="c1"># Train only epsilon</span>
 <span class="c1"># result = prob.train(eps = True, lr = 0.001, step=30, momentum = 0.8, optimizer = &quot;SGD&quot;, init_eps = 2, seed = s)</span>
 <span class="c1"># df_eps = result.df</span>
 <span class="c1"># Train A and b</span>
-<span class="n">result1</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span> <span class="o">=</span> <span class="mf">0.00001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">fixb</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="mf">5.</span><span class="p">)</span>
+<span class="n">result1</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span> <span class="o">=</span> <span class="mf">0.00001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">fixb</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.01</span><span class="p">)</span>
 <span class="n">df1</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">df</span>
 <span class="n">A_fin</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">A</span>
 <span class="n">b_fin</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">b</span>
 
-<span class="n">result2</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.00001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">A_fin</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">b_fin</span><span class="p">,</span>  <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="mf">5.</span><span class="p">)</span>
-<span class="n">df_r1</span> <span class="o">=</span> <span class="n">result2</span><span class="o">.</span><span class="n">df</span>
+<span class="c1"># result2 = prob.train(eps = True, lr = 0.00001, step=100, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s, init_A = A_fin, init_b = b_fin,  init_lam = 100, target_cvar = target, init_alpha = -0.01)</span>
+<span class="c1"># df_r1 = result2.df</span>
 
 <span class="n">init</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">T</span><span class="p">)))</span>
 <span class="n">init_bval</span> <span class="o">=</span> <span class="o">-</span><span class="n">init</span><span class="nd">@np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-<span class="n">result3</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.00001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span>  <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="mf">5.</span><span class="p">)</span>
+<span class="n">result3</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.00001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span>  <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.01</span><span class="p">)</span>
 <span class="n">df_r2</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">df</span>
 
 <span class="c1"># Grid search epsilon</span>
-<span class="n">result4</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">)</span>
-
+<span class="n">result4</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.01</span><span class="p">)</span>
 <span class="n">dfgrid</span> <span class="o">=</span> <span class="n">result4</span><span class="o">.</span><span class="n">df</span>
-</pre></div>
+<span class="n">result5</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">A_fin</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">b_fin</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.01</span><span class="p">)</span>
+<span class="n">dfgrid2</span> <span class="o">=</span> <span class="n">result5</span><span class="o">.</span><span class="n">df</span>
+<br/></pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[180]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Plot results</span>
@@ -2296,7 +2299,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[229]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
@@ -2306,25 +2309,25 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
     <span class="s2">&quot;font.family&quot;</span><span class="p">:</span> <span class="s2">&quot;serif&quot;</span>
 <span class="p">})</span>
 
-<span class="n">new</span> <span class="o">=</span> <span class="n">pareto_frontier</span><span class="p">(</span><span class="n">df_r1</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">],</span><span class="n">df_r1</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">])</span>
-<span class="n">new1</span> <span class="o">=</span> <span class="n">pareto_frontier</span><span class="p">(</span><span class="n">df1</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">][</span><span class="mi">20</span><span class="p">:],</span><span class="n">df1</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][</span><span class="mi">20</span><span class="p">:])</span>
+<span class="c1"># new = pareto_frontier(df_r1[&#39;Violations&#39;],df_r1[&#39;Test_val&#39;])</span>
+<span class="n">new1</span> <span class="o">=</span> <span class="n">pareto_frontier</span><span class="p">(</span><span class="n">df1</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">][:],</span><span class="n">df1</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][:])</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
 <span class="c1"># plt.plot(dfgrid[&#39;Violations&#39;], dfgrid[&#39;Test_val&#39;], color=&quot;tab:green&quot;, label=r&quot;Grid $\epsilon$&quot;)</span>
-<span class="n">orig</span> <span class="o">=</span> <span class="n">pareto_frontier</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">],</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df_r2</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">],</span> <span class="n">df_r2</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $\epsilon$&quot;</span><span class="p">)</span>
+<span class="n">orig</span> <span class="o">=</span> <span class="n">pareto_frontier</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">][:],</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][:])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">][</span><span class="mi">5</span><span class="p">:</span><span class="o">-</span><span class="mi">5</span><span class="p">],</span> <span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][</span><span class="mi">5</span><span class="p">:</span><span class="o">-</span><span class="mi">5</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $\epsilon$&quot;</span><span class="p">)</span>
 
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">orig</span><span class="p">[</span><span class="mi">0</span><span class="p">][:],</span> <span class="n">orig</span><span class="p">[</span><span class="mi">1</span><span class="p">][:],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:green&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Grid $\epsilon$&quot;</span><span class="p">)</span>
+<span class="c1"># plt.plot(orig[0][:], orig[1][:], color=&quot;tab:green&quot;, label=r&quot;Grid $\epsilon$&quot;)</span>
 
-<span class="c1"># plt.plot(df_r1[&#39;Violations&#39;], df_r1[&#39;Opt_val&#39;], color=&quot;tab:orange&quot; )</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">20</span><span class="p">],</span> <span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">20</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $(A,b)$&quot;</span><span class="p">)</span>
 <span class="c1"># plt.plot(new[0], new[1], color=&quot;tab:orange&quot;, label=r&quot;Learning $(A,b)$&quot;)</span>
 <span class="c1"># plt.plot(new[0][:], new[1][:], color=&quot;tab:orange&quot;)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">new1</span><span class="p">[</span><span class="mi">0</span><span class="p">][:],</span> <span class="n">new1</span><span class="p">[</span><span class="mi">1</span><span class="p">][:],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $(A,b)$&quot;</span><span class="p">)</span>
+<span class="c1"># plt.plot(new1[0][:], new1[1][:], color=&quot;tab:orange&quot;, label=r&quot;Learning $(A,b)$&quot;)</span>
 
 <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Objective value&quot;</span><span class="p">)</span>
 <span class="c1"># ax2.set_xlim([-1,20])</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Probability of constraint violation&quot;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span> <span class="o">=</span> <span class="s2">&quot;upper right&quot;</span><span class="p">)</span>
-<span class="c1"># plt.savefig(&quot;Inventory_val.pdf&quot;,bbox_inches=&#39;tight&#39;)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;Inventory_val.pdf&quot;</span><span class="p">,</span><span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -2337,79 +2340,279 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[276]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
-    <span class="s2">&quot;text.usetex&quot;</span><span class="p">:</span><span class="kc">True</span><span class="p">,</span>
-
-    <span class="s2">&quot;font.size&quot;</span><span class="p">:</span><span class="mi">22</span><span class="p">,</span>
-    <span class="s2">&quot;font.family&quot;</span><span class="p">:</span> <span class="s2">&quot;serif&quot;</span>
-<span class="p">})</span>
-
-<span class="n">new</span> <span class="o">=</span> <span class="n">pareto_frontier</span><span class="p">(</span><span class="n">df_r1</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">],</span><span class="n">df_r1</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">])</span>
-<span class="n">new1</span> <span class="o">=</span> <span class="n">pareto_frontier</span><span class="p">(</span><span class="n">df1</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">][</span><span class="mi">20</span><span class="p">:],</span><span class="n">df1</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][</span><span class="mi">20</span><span class="p">:])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
-<span class="c1"># plt.plot(dfgrid[&#39;Violations&#39;], dfgrid[&#39;Test_val&#39;], color=&quot;tab:green&quot;, label=r&quot;Grid $\epsilon$&quot;)</span>
-<span class="n">orig</span> <span class="o">=</span> <span class="n">pareto_frontier</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">],</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df_r2</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">],</span> <span class="n">df_r2</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $\epsilon$&quot;</span><span class="p">)</span>
-
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">orig</span><span class="p">[</span><span class="mi">0</span><span class="p">][:],</span> <span class="n">orig</span><span class="p">[</span><span class="mi">1</span><span class="p">][:],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:green&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Grid $\epsilon$&quot;</span><span class="p">)</span>
-
-<span class="c1">#plt.plot(df1[&#39;Violation_val&#39;][-80:], df1[&#39;Test_val&#39;][-80:], color=&quot;tab:orange&quot;)</span>
-
-<span class="c1"># plt.plot(new[0], new[1], color=&quot;tab:orange&quot;, label=r&quot;Learning $(A,b)$&quot;)</span>
-<span class="c1"># plt.plot(new[0][:], new[1][:], color=&quot;tab:orange&quot;)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">new1</span><span class="p">[</span><span class="mi">0</span><span class="p">][:],</span> <span class="n">new1</span><span class="p">[</span><span class="mi">1</span><span class="p">][:],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $(A,b)$&quot;</span><span class="p">)</span>
-
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Objective value&quot;</span><span class="p">)</span>
-<span class="c1"># ax2.set_xlim([-1,20])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Empirical CVaR&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span> <span class="o">=</span> <span class="s2">&quot;upper right&quot;</span><span class="p">)</span>
-<span class="c1"># plt.savefig(&quot;Inventory_val.pdf&quot;,bbox_inches=&#39;tight&#39;)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df_r2</span>
 </pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[276]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_41_0.png" src="../../_images/examples_experiments_tutorial_learning_41_0.png" />
-</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>step</th>
+      <th>Opt_val</th>
+      <th>Eval_val</th>
+      <th>Loss_val</th>
+      <th>Violations</th>
+      <th>A_norm</th>
+      <th>Violation_val</th>
+      <th>Test_val</th>
+      <th>Eps_vals</th>
+      <th>mu</th>
+      <th>lam</th>
+      <th>alpha</th>
+      <th>alphagrad</th>
+      <th>dfnorm</th>
+      <th>gradnorm</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>-38059.515383</td>
+      <td>-37260.697107</td>
+      <td>-37279.913531</td>
+      <td>0.085253</td>
+      <td>1.0</td>
+      <td>6.067185</td>
+      <td>-38059.515383</td>
+      <td>1.0</td>
+      <td>10.2</td>
+      <td>159.975114</td>
+      <td>-0.01</td>
+      <td>tensor(1279.3224)</td>
+      <td>1248.38444</td>
+      <td>tensor(4590.0237, dtype=torch.float64)</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>-38052.23566</td>
+      <td>-36929.375083</td>
+      <td>-36956.786629</td>
+      <td>0.084485</td>
+      <td>1.012642</td>
+      <td>5.856705</td>
+      <td>-38052.23566</td>
+      <td>1.012642</td>
+      <td>10.404</td>
+      <td>218.950217</td>
+      <td>0.00195</td>
+      <td>tensor(1279.3224)</td>
+      <td>1891.776182</td>
+      <td>tensor(4590.0237, dtype=torch.float64)</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2</td>
+      <td>-38034.652185</td>
+      <td>-36651.110812</td>
+      <td>-36686.763784</td>
+      <td>0.082181</td>
+      <td>1.043176</td>
+      <td>5.529378</td>
+      <td>-38034.652185</td>
+      <td>1.043176</td>
+      <td>10.61208</td>
+      <td>275.655689</td>
+      <td>0.013159</td>
+      <td>tensor(1279.3224)</td>
+      <td>2520.307871</td>
+      <td>tensor(4590.0237, dtype=torch.float64)</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>3</td>
+      <td>-38002.760091</td>
+      <td>-36478.411609</td>
+      <td>-36530.958622</td>
+      <td>0.075269</td>
+      <td>1.098558</td>
+      <td>4.990796</td>
+      <td>-38002.760091</td>
+      <td>1.098558</td>
+      <td>10.824322</td>
+      <td>327.450468</td>
+      <td>0.023977</td>
+      <td>tensor(1279.3224)</td>
+      <td>3248.288423</td>
+      <td>tensor(4590.0237, dtype=torch.float64)</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>4</td>
+      <td>-37949.125974</td>
+      <td>-36483.285129</td>
+      <td>-36545.105771</td>
+      <td>0.069124</td>
+      <td>1.191696</td>
+      <td>4.1368</td>
+      <td>-37949.125974</td>
+      <td>1.191696</td>
+      <td>11.040808</td>
+      <td>370.97027</td>
+      <td>0.034583</td>
+      <td>tensor(1279.3224)</td>
+      <td>3748.833743</td>
+      <td>tensor(4590.0237, dtype=torch.float64)</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>95</th>
+      <td>95</td>
+      <td>-37410.089843</td>
+      <td>-36721.626284</td>
+      <td>-36919.774972</td>
+      <td>0.009217</td>
+      <td>2.127757</td>
+      <td>0.432946</td>
+      <td>-37410.089843</td>
+      <td>2.127757</td>
+      <td>66.929332</td>
+      <td>1432.346794</td>
+      <td>0.050853</td>
+      <td>tensor(1279.3224)</td>
+      <td>4155.702032</td>
+      <td>tensor(4590.0237, dtype=torch.float64)</td>
+    </tr>
+    <tr>
+      <th>96</th>
+      <td>96</td>
+      <td>-37409.590435</td>
+      <td>-36711.63932</td>
+      <td>-36912.803737</td>
+      <td>0.009217</td>
+      <td>2.128625</td>
+      <td>0.431853</td>
+      <td>-37409.590435</td>
+      <td>2.128625</td>
+      <td>68.267918</td>
+      <td>1455.375052</td>
+      <td>0.050796</td>
+      <td>tensor(1279.3224)</td>
+      <td>4266.045332</td>
+      <td>tensor(4590.0237, dtype=torch.float64)</td>
+    </tr>
+    <tr>
+      <th>97</th>
+      <td>97</td>
+      <td>-37409.079221</td>
+      <td>-36701.539895</td>
+      <td>-36905.764707</td>
+      <td>0.009217</td>
+      <td>2.129512</td>
+      <td>0.430736</td>
+      <td>-37409.079221</td>
+      <td>2.129512</td>
+      <td>69.633277</td>
+      <td>1478.795797</td>
+      <td>0.050739</td>
+      <td>tensor(1279.3224)</td>
+      <td>4378.363942</td>
+      <td>tensor(4590.0237, dtype=torch.float64)</td>
+    </tr>
+    <tr>
+      <th>98</th>
+      <td>98</td>
+      <td>-37408.555519</td>
+      <td>-36691.330227</td>
+      <td>-36898.660182</td>
+      <td>0.009217</td>
+      <td>2.130422</td>
+      <td>0.429591</td>
+      <td>-37408.555519</td>
+      <td>2.130422</td>
+      <td>71.025942</td>
+      <td>1502.613848</td>
+      <td>0.050681</td>
+      <td>tensor(1279.3224)</td>
+      <td>4482.701258</td>
+      <td>tensor(4590.0237, dtype=torch.float64)</td>
+    </tr>
+    <tr>
+      <th>99</th>
+      <td>99</td>
+      <td>-37408.018983</td>
+      <td>-36681.012065</td>
+      <td>-36891.492083</td>
+      <td>0.009217</td>
+      <td>2.131353</td>
+      <td>0.428419</td>
+      <td>-37408.018983</td>
+      <td>2.131353</td>
+      <td>72.446461</td>
+      <td>1526.833978</td>
+      <td>0.050622</td>
+      <td>tensor(1279.3224)</td>
+      <td>4590.023705</td>
+      <td>tensor(4590.0237, dtype=torch.float64)</td>
+    </tr>
+  </tbody>
+</table>
+<p>100 rows × 15 columns</p>
+</div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[273]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
-    <span class="s2">&quot;text.usetex&quot;</span><span class="p">:</span><span class="kc">True</span><span class="p">,</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Plot results</span>
+<span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">][</span><span class="mi">14</span><span class="p">:</span><span class="o">-</span><span class="mi">5</span><span class="p">],</span> <span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][</span><span class="mi">14</span><span class="p">:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $\epsilon$&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">][</span><span class="mi">5</span><span class="p">:</span><span class="o">-</span><span class="mi">20</span><span class="p">],</span> <span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][</span><span class="mi">5</span><span class="p">:</span><span class="o">-</span><span class="mi">20</span><span class="p">]</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $(A,b)$&quot;</span><span class="p">)</span>
+<span class="c1"># ax2.legend()</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Probability of constraint violation&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Objective value (k)&quot;</span><span class="p">)</span>
 
-    <span class="s2">&quot;font.size&quot;</span><span class="p">:</span><span class="mi">22</span><span class="p">,</span>
-    <span class="s2">&quot;font.family&quot;</span><span class="p">:</span> <span class="s2">&quot;serif&quot;</span>
-<span class="p">})</span>
 
-<span class="n">new</span> <span class="o">=</span> <span class="n">pareto_frontier</span><span class="p">(</span><span class="n">df_r1</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">],</span><span class="n">df_r1</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">])</span>
-<span class="n">new1</span> <span class="o">=</span> <span class="n">pareto_frontier</span><span class="p">(</span><span class="n">df1</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">][</span><span class="mi">20</span><span class="p">:],</span><span class="n">df1</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">][</span><span class="mi">20</span><span class="p">:])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
-<span class="c1"># plt.plot(dfgrid[&#39;Violations&#39;], dfgrid[&#39;Test_val&#39;], color=&quot;tab:green&quot;, label=r&quot;Grid $\epsilon$&quot;)</span>
-<span class="n">orig</span> <span class="o">=</span> <span class="n">pareto_frontier</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">],</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df_r2</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">],</span> <span class="n">df_r2</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $\epsilon$&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">][</span><span class="mi">12</span><span class="p">:</span><span class="o">-</span><span class="mi">9</span><span class="p">],</span> <span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][</span><span class="mi">12</span><span class="p">:</span><span class="o">-</span><span class="mi">9</span><span class="p">]</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $\epsilon$&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">][</span><span class="mi">5</span><span class="p">:</span><span class="o">-</span><span class="mi">20</span><span class="p">],</span><span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][</span><span class="mi">5</span><span class="p">:</span><span class="o">-</span><span class="mi">20</span><span class="p">]</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $(A,b)$&quot;</span><span class="p">)</span>
 
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">],</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:green&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Grid $\epsilon$&quot;</span><span class="p">)</span>
-
-<span class="c1"># plt.plot(df_r1[&#39;Violations&#39;], df_r1[&#39;Opt_val&#39;], color=&quot;tab:orange&quot; )</span>
-<span class="c1"># plt.plot(new[0], new[1], color=&quot;tab:orange&quot;, label=r&quot;Learning $(A,b)$&quot;)</span>
-<span class="c1"># plt.plot(new[0][:], new[1][:], color=&quot;tab:orange&quot;)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df1</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">],</span><span class="n">df1</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $(A,b)$&quot;</span><span class="p">)</span>
-
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Empirical CVaR&quot;</span><span class="p">)</span>
-<span class="c1"># ax2.set_xlim([-1,20])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Probability of constraint violation&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span> <span class="o">=</span> <span class="s2">&quot;upper right&quot;</span><span class="p">)</span>
-<span class="c1"># plt.savefig(&quot;Inventory_val.pdf&quot;,bbox_inches=&#39;tight&#39;)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Empirical $\mathbf</span><span class="si">{CVaR}</span><span class="s2">$&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Objective value (k)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;Inventory_val_2.pdf&quot;</span><span class="p">,</span><span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-</pre></div>
+<br/></pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -2417,6 +2620,82 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </div>
 <div class="output_area docutils container">
 <img alt="../../_images/examples_experiments_tutorial_learning_42_0.png" src="../../_images/examples_experiments_tutorial_learning_42_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[268]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+    <span class="s2">&quot;text.usetex&quot;</span><span class="p">:</span><span class="kc">True</span><span class="p">,</span>
+
+    <span class="s2">&quot;font.size&quot;</span><span class="p">:</span><span class="mi">22</span><span class="p">,</span>
+    <span class="s2">&quot;font.family&quot;</span><span class="p">:</span> <span class="s2">&quot;serif&quot;</span>
+<span class="p">})</span>
+
+<span class="c1"># new = pareto_frontier(df_r1[&#39;Violation_val&#39;],df_r1[&#39;Test_val&#39;])</span>
+<span class="n">new1</span> <span class="o">=</span> <span class="n">pareto_frontier</span><span class="p">(</span><span class="n">df1</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">][:],</span><span class="n">df1</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][:])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">][</span><span class="mi">12</span><span class="p">:</span><span class="o">-</span><span class="mi">9</span><span class="p">],</span> <span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][</span><span class="mi">12</span><span class="p">:</span><span class="o">-</span><span class="mi">9</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $\epsilon$&quot;</span><span class="p">)</span>
+<span class="c1"># orig = pareto_frontier(df_r2[&#39;Violation_val&#39;],df_r2[&#39;Test_val&#39;])</span>
+<span class="c1"># plt.plot(df_r2[&#39;Violation_val&#39;], df_r2[&#39;Test_val&#39;], color=&quot;tab:blue&quot;, label=r&quot;Learning $\epsilon$&quot;)</span>
+
+<span class="c1"># plt.plot(orig[0][:], orig[1][:], color=&quot;tab:blue&quot;, label=r&quot;Learning $\epsilon$&quot;)</span>
+
+<span class="c1">#plt.plot(df1[&#39;Violation_val&#39;][-80:], df1[&#39;Test_val&#39;][-80:], color=&quot;tab:orange&quot;)</span>
+
+<span class="c1"># plt.plot(new[0], new[1], color=&quot;tab:orange&quot;, label=r&quot;Learning $(A,b)$&quot;)</span>
+<span class="c1"># plt.plot(new[0][:], new[1][:], color=&quot;tab:orange&quot;)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">][</span><span class="mi">5</span><span class="p">:</span><span class="o">-</span><span class="mi">20</span><span class="p">],</span><span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][</span><span class="mi">5</span><span class="p">:</span><span class="o">-</span><span class="mi">20</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Learning $(A,b)$&quot;</span><span class="p">)</span>
+
+<span class="c1"># plt.plot(new1[0][:-2], new1[1][:-2], color=&quot;tab:orange&quot;, label=r&quot;Learning $(A,b)$&quot;)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Objective value&quot;</span><span class="p">)</span>
+<span class="c1"># plt.xlim([0,6])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Empirical $\mathbf</span><span class="si">{CVaR}</span><span class="s2">$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span> <span class="o">=</span> <span class="s2">&quot;upper right&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;Inventory_val.pdf&quot;</span><span class="p">,</span><span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_experiments_tutorial_learning_43_0.png" src="../../_images/examples_experiments_tutorial_learning_43_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[274]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df1</span><span class="p">[</span><span class="s2">&quot;Violation_val&quot;</span><span class="p">])</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Empirical CVaR&quot;</span><span class="p">,</span>
+              <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">)</span>
+
+<span class="n">ax2</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df1</span><span class="p">[</span><span class="s2">&quot;Test_val&quot;</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;orange&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Objective Value&quot;</span><span class="p">,</span>
+              <span class="n">color</span><span class="o">=</span><span class="s2">&quot;orange&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[274]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0, 0.5, &#39;Objective Value&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_experiments_tutorial_learning_44_1.png" src="../../_images/examples_experiments_tutorial_learning_44_1.png" />
 </div>
 </div>
 <div class="nbinput nblast docutils container">
@@ -2435,7 +2714,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <span class="n">u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">m</span><span class="p">,</span>
                                 <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">MRO</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">K</span> <span class="o">=</span> <span class="n">K</span><span class="p">,</span>
                                                                   <span class="n">rho</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">loss</span> <span class="o">=</span><span class="n">loss</span><span class="p">,</span> <span class="n">uniqueA</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span>
-<span class="n">Astart</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">uncertainty_set</span><span class="o">.</span><span class="n">_init_A</span>
+<span class="n">Astart</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">uncertainty_set</span><span class="o">.</span><span class="n">_initA</span>
 <span class="c1"># formulate cvxpy variable</span>
 <span class="n">L</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
 <span class="n">s</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
@@ -2537,7 +2816,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_44_0.png" src="../../_images/examples_experiments_tutorial_learning_44_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_46_0.png" src="../../_images/examples_experiments_tutorial_learning_46_0.png" />
 </div>
 </div>
 <div class="nboutput docutils container">
@@ -2553,14 +2832,14 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_44_2.png" src="../../_images/examples_experiments_tutorial_learning_44_2.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_46_2.png" src="../../_images/examples_experiments_tutorial_learning_46_2.png" />
 </div>
 </div>
 </section>
 <section id="Example-4:-Affine-Adjustable-Robust-Optimization:-Hydro-power-plant">
 <h3>Example 4: Affine Adjustable Robust Optimization: Hydro power plant<a class="headerlink" href="#Example-4:-Affine-Adjustable-Robust-Optimization:-Hydro-power-plant" title="Permalink to this heading">#</a></h3>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">tau</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">x3</span><span class="p">,</span> <span class="n">x4</span><span class="p">,</span> <span class="n">x5</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span><span class="n">l</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
@@ -2611,7 +2890,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
         <span class="n">totsum</span> <span class="o">+=</span> <span class="n">newsums</span><span class="o">/</span><span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">T</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tau</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">totsum</span><span class="o">/</span><span class="n">Nsample</span> <span class="o">-</span> <span class="mf">0.05</span><span class="p">)</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">mu</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">totsum</span><span class="o">/</span><span class="n">Nsample</span> <span class="o">-</span> <span class="mf">0.05</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">totsum</span><span class="o">/</span><span class="n">Nsample</span><span class="p">),</span> <span class="n">sums</span><span class="o">/</span><span class="n">Nsample</span>
 
-<span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">tau</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">x3</span><span class="p">,</span> <span class="n">x4</span><span class="p">,</span> <span class="n">x5</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span><span class="n">mu</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">l</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">quantile</span> <span class="o">=</span> <span class="mf">0.95</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">tau</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">x3</span><span class="p">,</span> <span class="n">x4</span><span class="p">,</span> <span class="n">x5</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span><span class="n">mu</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">l</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">quantile</span> <span class="o">=</span> <span class="mf">0.95</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">):</span>
     <span class="n">sums</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">totsum</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">x</span> <span class="o">=</span> <span class="p">{}</span>
@@ -2634,13 +2913,13 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
             <span class="n">newsums</span> <span class="o">+=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">llow</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">l0</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">t</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="nd">@P</span><span class="p">[</span><span class="n">t</span><span class="p">])</span><span class="nd">@data</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x0</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="nd">@torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">P</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="nd">@data</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">t</span><span class="o">+</span><span class="mi">1</span><span class="p">)])),</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.01</span><span class="p">,</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">1.</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">))</span>
         <span class="n">totsum</span> <span class="o">+=</span> <span class="n">newsums</span><span class="o">/</span><span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="mi">5</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">sums</span> <span class="o">=</span> <span class="n">sums</span><span class="o">/</span><span class="p">((</span><span class="mi">3</span><span class="o">*</span><span class="mi">5</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">Nsample</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">quantile</span><span class="p">))</span> <span class="o">+</span> <span class="n">alpha</span>
-    <span class="k">return</span> <span class="n">tau</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">sums</span> <span class="o">-</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">mu</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">sums</span> <span class="o">-</span> <span class="mf">0.1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">totsum</span><span class="o">/</span><span class="n">Nsample</span><span class="p">,</span> <span class="n">sums</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">tau</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">sums</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">mu</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">sums</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">totsum</span><span class="o">/</span><span class="n">Nsample</span><span class="p">,</span> <span class="n">sums</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 <span class="n">sig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">0.025</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],[</span><span class="mf">0.025</span><span class="p">,</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">0.025</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.025</span><span class="p">,</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">0.025</span><span class="p">,</span><span class="mi">0</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.025</span><span class="p">,</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">0.025</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.025</span><span class="p">,</span><span class="mf">0.1</span><span class="p">]])</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[44]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># np.save(&quot;hydro.py&quot;,data)</span>
@@ -2648,7 +2927,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[38]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="kn">import</span> <span class="nn">math</span>
@@ -2696,6 +2975,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <span class="c1"># formulate Robust Problem</span>
 <span class="n">prob</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
 
+<span class="n">target</span> <span class="o">=</span> <span class="mf">0.</span>
 <span class="c1"># solve</span>
 <span class="n">s</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="n">init</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">T</span><span class="p">)))</span>
@@ -2704,15 +2984,15 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <span class="c1"># result = prob.train(eps = True, lr = 0.001, step=30, momentum = 0.8, optimizer = &quot;SGD&quot;, init_eps = 0.001, seed = s)</span>
 <span class="c1"># df_eps  = result.df</span>
 <span class="c1"># Train A and b</span>
-<span class="n">result1</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">fixb</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">)</span>
+<span class="n">result1</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">fixb</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">)</span>
 <span class="n">df1</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">df</span>
 <span class="n">A_fin</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">A</span>
 <span class="n">b_fin</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">b</span>
 
-<span class="n">result2</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">A_fin</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">b_fin</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span><span class="n">target_cvar</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">)</span>
+<span class="n">result2</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">A_fin</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">b_fin</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span><span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">)</span>
 <span class="n">df_r1</span> <span class="o">=</span> <span class="n">result2</span><span class="o">.</span><span class="n">df</span>
 
-<span class="n">result3</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">init_eps</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">)</span>
+<span class="n">result3</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">init_eps</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">)</span>
 <span class="n">df_r2</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">df</span>
 <span class="c1"># Grid search epsilon</span>
 <span class="n">result4</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">)</span>
@@ -2723,7 +3003,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[39]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Plot results</span>
@@ -2759,11 +3039,11 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_49_0.png" src="../../_images/examples_experiments_tutorial_learning_49_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_51_0.png" src="../../_images/examples_experiments_tutorial_learning_51_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[40]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
@@ -2816,26 +3096,26 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_50_0.png" src="../../_images/examples_experiments_tutorial_learning_50_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_52_0.png" src="../../_images/examples_experiments_tutorial_learning_52_0.png" />
 </div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_50_1.png" src="../../_images/examples_experiments_tutorial_learning_50_1.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_52_1.png" src="../../_images/examples_experiments_tutorial_learning_52_1.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df_r2</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df1</span>
 </pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -2863,9 +3143,8 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
       <th>Loss_val</th>
       <th>Violations</th>
       <th>A_norm</th>
-      <th>Violation_val</th>
       <th>Test_val</th>
-      <th>Eps_vals</th>
+      <th>Violation_val</th>
       <th>mu</th>
       <th>lam</th>
       <th>alpha</th>
@@ -2878,722 +3157,682 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
     <tr>
       <th>0</th>
       <td>0</td>
-      <td>-66.955453</td>
-      <td>-61.181815</td>
-      <td>-19.994312</td>
-      <td>0.1075</td>
-      <td>0.1</td>
-      <td>0.567899</td>
-      <td>-66.955453</td>
-      <td>[0.1, 0.1, 0.1, 0.1, 0.1]</td>
+      <td>-57.47737</td>
+      <td>-38.253033</td>
+      <td>-51.349754</td>
+      <td>0.13</td>
+      <td>17.639773</td>
+      <td>-57.47737</td>
+      <td>1.201106</td>
       <td>10.2</td>
-      <td>32.236979</td>
+      <td>14.918188</td>
       <td>-0.01</td>
-      <td>tensor(243.6650)</td>
-      <td>0.722357</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>tensor(32.2067)</td>
+      <td>0.778571</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>1</th>
       <td>1</td>
-      <td>-66.955309</td>
-      <td>-53.60185</td>
-      <td>12.03868</td>
-      <td>0.1075</td>
-      <td>0.100003</td>
-      <td>0.490147</td>
-      <td>-66.955309</td>
-      <td>[0.10000294080375007, 0.10000423070692875, 0.1...</td>
+      <td>-57.476268</td>
+      <td>-32.896356</td>
+      <td>-49.12198</td>
+      <td>0.13</td>
+      <td>17.639509</td>
+      <td>-57.476268</td>
+      <td>1.175366</td>
       <td>10.404</td>
-      <td>51.484951</td>
-      <td>0.136678</td>
-      <td>tensor(243.6650)</td>
-      <td>1.17627</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>19.823718</td>
+      <td>0.003178</td>
+      <td>tensor(32.2067)</td>
+      <td>2.926216</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>2</th>
       <td>2</td>
-      <td>-66.954836</td>
-      <td>-42.893858</td>
-      <td>32.461032</td>
-      <td>0.1075</td>
-      <td>0.10001</td>
-      <td>0.547139</td>
-      <td>-66.954836</td>
-      <td>[0.10000828786350038, 0.10001778384423836, 0.1...</td>
+      <td>-57.465359</td>
+      <td>-28.211974</td>
+      <td>-47.096958</td>
+      <td>0.13</td>
+      <td>17.638765</td>
+      <td>-57.465359</td>
+      <td>1.136647</td>
       <td>10.61208</td>
-      <td>68.697493</td>
-      <td>0.332107</td>
-      <td>tensor(243.6650)</td>
-      <td>3.236368</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>24.672363</td>
+      <td>0.028257</td>
+      <td>tensor(32.2067)</td>
+      <td>3.730064</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>3</th>
       <td>3</td>
-      <td>-66.953339</td>
-      <td>-26.057105</td>
-      <td>47.746397</td>
-      <td>0.1075</td>
-      <td>0.100021</td>
-      <td>0.670197</td>
-      <td>-66.953339</td>
-      <td>[0.10001075158591186, 0.10006083168431487, 0.1...</td>
+      <td>-57.445016</td>
+      <td>-23.874085</td>
+      <td>-45.0344</td>
+      <td>0.13</td>
+      <td>17.637444</td>
+      <td>-57.445016</td>
+      <td>1.100303</td>
       <td>10.824322</td>
-      <td>84.579851</td>
-      <td>0.552567</td>
-      <td>tensor(243.6650)</td>
-      <td>3.430307</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>29.531854</td>
+      <td>0.057367</td>
+      <td>tensor(32.2067)</td>
+      <td>4.821974</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>4</th>
       <td>4</td>
-      <td>-66.950946</td>
-      <td>-0.757884</td>
-      <td>65.618456</td>
-      <td>0.1075</td>
-      <td>0.100036</td>
-      <td>0.846912</td>
-      <td>-66.950946</td>
-      <td>[0.10001272970545098, 0.10012967692852233, 0.1...</td>
+      <td>-57.412813</td>
+      <td>-19.476675</td>
+      <td>-42.876483</td>
+      <td>0.13</td>
+      <td>17.63547</td>
+      <td>-57.412813</td>
+      <td>1.07342</td>
       <td>11.040808</td>
-      <td>100.118424</td>
-      <td>0.775454</td>
-      <td>tensor(243.6650)</td>
-      <td>2.763344</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>34.450286</td>
+      <td>0.083609</td>
+      <td>tensor(32.2067)</td>
+      <td>5.595181</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>5</th>
       <td>5</td>
-      <td>-66.948065</td>
-      <td>27.78271</td>
-      <td>89.578175</td>
-      <td>0.1075</td>
-      <td>0.100054</td>
-      <td>1.001387</td>
-      <td>-66.948065</td>
-      <td>[0.10001425918820332, 0.10021256454541698, 0.1...</td>
+      <td>-57.368587</td>
+      <td>-14.9785</td>
+      <td>-40.612056</td>
+      <td>0.13</td>
+      <td>17.632839</td>
+      <td>-57.368587</td>
+      <td>1.052845</td>
       <td>11.261624</td>
-      <td>116.103623</td>
-      <td>0.957101</td>
-      <td>tensor(243.6650)</td>
-      <td>2.745163</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>39.456729</td>
+      <td>0.104028</td>
+      <td>tensor(32.2067)</td>
+      <td>5.989801</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>6</th>
       <td>6</td>
-      <td>-66.944798</td>
-      <td>56.206515</td>
-      <td>116.642343</td>
-      <td>0.1075</td>
-      <td>0.100074</td>
-      <td>1.111119</td>
-      <td>-66.944798</td>
-      <td>[0.10001542420745456, 0.10030658587972126, 0.1...</td>
+      <td>-57.313559</td>
+      <td>-10.194026</td>
+      <td>-38.360815</td>
+      <td>0.13</td>
+      <td>17.629637</td>
+      <td>-57.313559</td>
+      <td>1.039888</td>
       <td>11.486857</td>
-      <td>132.721626</td>
-      <td>1.085003</td>
-      <td>tensor(243.6650)</td>
-      <td>2.784884</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>44.538869</td>
+      <td>0.113787</td>
+      <td>tensor(32.2067)</td>
+      <td>7.194465</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>7</th>
       <td>7</td>
-      <td>-66.941203</td>
-      <td>81.853067</td>
-      <td>144.135622</td>
-      <td>0.1075</td>
-      <td>0.100095</td>
-      <td>1.171424</td>
-      <td>-66.941203</td>
-      <td>[0.10001629315013388, 0.1004099996106759, 0.10...</td>
+      <td>-57.2448</td>
+      <td>-5.256722</td>
+      <td>-36.223045</td>
+      <td>0.1275</td>
+      <td>17.62576</td>
+      <td>-57.2448</td>
+      <td>1.030352</td>
       <td>11.716594</td>
-      <td>149.880781</td>
-      <td>1.151932</td>
-      <td>tensor(243.6650)</td>
-      <td>3.067774</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>49.665467</td>
+      <td>0.113428</td>
+      <td>tensor(32.2067)</td>
+      <td>8.346401</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>8</th>
       <td>8</td>
-      <td>-66.940808</td>
-      <td>100.496706</td>
-      <td>170.065961</td>
-      <td>0.1075</td>
-      <td>0.100097</td>
-      <td>1.172203</td>
-      <td>-66.940808</td>
-      <td>[0.1000163561788726, 0.10042137548119522, 0.10...</td>
+      <td>-57.236367</td>
+      <td>0.111379</td>
+      <td>-33.947245</td>
+      <td>0.1275</td>
+      <td>17.625297</td>
+      <td>-57.236367</td>
+      <td>1.029631</td>
       <td>11.950926</td>
-      <td>167.385999</td>
-      <td>1.15279</td>
-      <td>tensor(243.6650)</td>
-      <td>3.468477</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>54.885307</td>
+      <td>0.112406</td>
+      <td>tensor(32.2067)</td>
+      <td>9.783919</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>9</th>
       <td>9</td>
-      <td>-66.94037</td>
-      <td>118.699492</td>
-      <td>196.238373</td>
-      <td>0.1075</td>
-      <td>0.1001</td>
-      <td>1.16831</td>
-      <td>-66.94037</td>
-      <td>[0.10001639928780803, 0.100433976530288, 0.100...</td>
+      <td>-57.226183</td>
+      <td>5.580169</td>
+      <td>-31.651867</td>
+      <td>0.1275</td>
+      <td>17.624745</td>
+      <td>-57.226183</td>
+      <td>1.029034</td>
       <td>12.189944</td>
-      <td>185.225624</td>
-      <td>1.148455</td>
-      <td>tensor(243.6650)</td>
-      <td>3.882567</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>60.196931</td>
+      <td>0.110583</td>
+      <td>tensor(32.2067)</td>
+      <td>11.102014</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>10</th>
       <td>10</td>
-      <td>-66.939883</td>
-      <td>136.286589</td>
-      <td>222.603462</td>
-      <td>0.1075</td>
-      <td>0.100103</td>
-      <td>1.160197</td>
-      <td>-66.939883</td>
-      <td>[0.10001642605346693, 0.10044797689584208, 0.1...</td>
+      <td>-57.214085</td>
+      <td>11.154633</td>
+      <td>-29.342112</td>
+      <td>0.1275</td>
+      <td>17.624097</td>
+      <td>-57.214085</td>
+      <td>1.028622</td>
       <td>12.433743</td>
-      <td>203.390182</td>
-      <td>1.13943</td>
-      <td>tensor(243.6650)</td>
-      <td>4.38873</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>65.598674</td>
+      <td>0.10802</td>
+      <td>tensor(32.2067)</td>
+      <td>12.435551</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>11</th>
       <td>11</td>
-      <td>-66.93934</td>
-      <td>153.1547</td>
-      <td>249.139608</td>
-      <td>0.1075</td>
-      <td>0.100106</td>
-      <td>1.148523</td>
-      <td>-66.93934</td>
-      <td>[0.10001643940126216, 0.10046360929172912, 0.1...</td>
+      <td>-57.199933</td>
+      <td>16.827112</td>
+      <td>-27.023219</td>
+      <td>0.1275</td>
+      <td>17.623349</td>
+      <td>-57.199933</td>
+      <td>1.028277</td>
       <td>12.682418</td>
-      <td>221.873061</td>
-      <td>1.126447</td>
-      <td>tensor(243.6650)</td>
-      <td>4.928125</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>71.088713</td>
+      <td>0.104767</td>
+      <td>tensor(32.2067)</td>
+      <td>13.820192</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>12</th>
       <td>12</td>
-      <td>-66.938732</td>
-      <td>169.225254</td>
-      <td>275.838862</td>
-      <td>0.1075</td>
-      <td>0.100109</td>
-      <td>1.133862</td>
-      <td>-66.938732</td>
-      <td>[0.10001644161593073, 0.10048109409426713, 0.1...</td>
+      <td>-57.183588</td>
+      <td>22.602892</td>
+      <td>-24.699003</td>
+      <td>0.1275</td>
+      <td>17.622494</td>
+      <td>-57.183588</td>
+      <td>1.028071</td>
       <td>12.936066</td>
-      <td>240.670215</td>
-      <td>1.110145</td>
-      <td>tensor(243.6650)</td>
-      <td>5.37586</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>76.66532</td>
+      <td>0.100862</td>
+      <td>tensor(32.2067)</td>
+      <td>15.318356</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>13</th>
       <td>13</td>
-      <td>-66.938057</td>
-      <td>184.351043</td>
-      <td>302.624388</td>
-      <td>0.1075</td>
-      <td>0.100113</td>
-      <td>1.11636</td>
-      <td>-66.938057</td>
-      <td>[0.10001643389406424, 0.10050051580322485, 0.1...</td>
+      <td>-57.164885</td>
+      <td>28.471472</td>
+      <td>-22.366529</td>
+      <td>0.125</td>
+      <td>17.621526</td>
+      <td>-57.164885</td>
+      <td>1.027879</td>
       <td>13.194788</td>
-      <td>259.775905</td>
-      <td>1.090685</td>
-      <td>tensor(243.6650)</td>
-      <td>5.830362</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>82.327875</td>
+      <td>0.09646</td>
+      <td>tensor(32.2067)</td>
+      <td>16.777551</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>14</th>
       <td>14</td>
-      <td>-66.937983</td>
-      <td>203.350325</td>
-      <td>330.956259</td>
-      <td>0.1075</td>
-      <td>0.100114</td>
-      <td>1.114337</td>
-      <td>-66.937983</td>
-      <td>[0.1000164322150821, 0.10050265876949786, 0.10...</td>
+      <td>-57.16277</td>
+      <td>34.427605</td>
+      <td>-19.880101</td>
+      <td>0.125</td>
+      <td>17.621418</td>
+      <td>-57.16277</td>
+      <td>1.027847</td>
       <td>13.458683</td>
-      <td>279.255763</td>
-      <td>1.088435</td>
-      <td>tensor(243.6650)</td>
-      <td>6.301469</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>88.10081</td>
+      <td>0.095984</td>
+      <td>tensor(32.2067)</td>
+      <td>18.218894</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>15</th>
       <td>15</td>
-      <td>-66.937901</td>
-      <td>222.575086</td>
-      <td>359.798898</td>
-      <td>0.1075</td>
-      <td>0.100114</td>
-      <td>1.112049</td>
-      <td>-66.937901</td>
-      <td>[0.10001642979164652, 0.10050500972836712, 0.1...</td>
+      <td>-57.160407</td>
+      <td>40.498513</td>
+      <td>-17.349248</td>
+      <td>0.125</td>
+      <td>17.621297</td>
+      <td>-57.160407</td>
+      <td>1.027802</td>
       <td>13.727857</td>
-      <td>299.116051</td>
-      <td>1.085891</td>
-      <td>tensor(243.6650)</td>
-      <td>6.770473</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>93.98598</td>
+      <td>0.095471</td>
+      <td>tensor(32.2067)</td>
+      <td>19.688237</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>16</th>
       <td>16</td>
-      <td>-66.937812</td>
-      <td>242.015069</td>
-      <td>389.156675</td>
-      <td>0.1075</td>
-      <td>0.100115</td>
-      <td>1.109501</td>
-      <td>-66.937812</td>
-      <td>[0.1000164267066792, 0.10050757450400641, 0.10...</td>
+      <td>-57.157789</td>
+      <td>46.685909</td>
+      <td>-14.773679</td>
+      <td>0.125</td>
+      <td>17.621163</td>
+      <td>-57.157789</td>
+      <td>1.027745</td>
       <td>14.002414</td>
-      <td>319.363135</td>
-      <td>1.083058</td>
-      <td>tensor(243.6650)</td>
-      <td>7.253853</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>99.985251</td>
+      <td>0.09492</td>
+      <td>tensor(32.2067)</td>
+      <td>21.189255</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>17</th>
       <td>17</td>
-      <td>-66.937715</td>
-      <td>261.659273</td>
-      <td>419.033856</td>
-      <td>0.1075</td>
-      <td>0.100115</td>
-      <td>1.106696</td>
-      <td>-66.937715</td>
-      <td>[0.10001642293672655, 0.10051035921726145, 0.1...</td>
+      <td>-57.15491</td>
+      <td>52.991498</td>
+      <td>-12.153128</td>
+      <td>0.125</td>
+      <td>17.621017</td>
+      <td>-57.15491</td>
+      <td>1.027675</td>
       <td>14.282462</td>
-      <td>340.003474</td>
-      <td>1.079939</td>
-      <td>tensor(243.6650)</td>
-      <td>7.737713</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>106.100507</td>
+      <td>0.094329</td>
+      <td>tensor(32.2067)</td>
+      <td>22.73148</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>18</th>
       <td>18</td>
-      <td>-66.937611</td>
-      <td>281.495833</td>
-      <td>449.434558</td>
-      <td>0.1075</td>
-      <td>0.100116</td>
-      <td>1.103637</td>
-      <td>-66.937611</td>
-      <td>[0.10001641847354337, 0.10051336882410518, 0.1...</td>
+      <td>-57.151762</td>
+      <td>59.419794</td>
+      <td>-9.486756</td>
+      <td>0.125</td>
+      <td>17.620857</td>
+      <td>-57.151762</td>
+      <td>1.027615</td>
       <td>14.568112</td>
-      <td>361.043619</td>
-      <td>1.076538</td>
-      <td>tensor(243.6650)</td>
-      <td>8.258131</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>112.333721</td>
+      <td>0.093697</td>
+      <td>tensor(32.2067)</td>
+      <td>24.307439</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>19</th>
       <td>19</td>
-      <td>-66.937498</td>
-      <td>301.511924</td>
-      <td>480.362713</td>
-      <td>0.1075</td>
-      <td>0.100116</td>
-      <td>1.100324</td>
-      <td>-66.937498</td>
-      <td>[0.1000164135572423, 0.10051661099614027, 0.10...</td>
+      <td>-57.148337</td>
+      <td>65.972483</td>
+      <td>-6.773831</td>
+      <td>0.125</td>
+      <td>17.620684</td>
+      <td>-57.148337</td>
+      <td>1.027561</td>
       <td>14.859474</td>
-      <td>382.490204</td>
-      <td>1.072855</td>
-      <td>tensor(243.6650)</td>
-      <td>8.71264</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>118.686931</td>
+      <td>0.093042</td>
+      <td>tensor(32.2067)</td>
+      <td>25.914681</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>20</th>
       <td>20</td>
-      <td>-66.937486</td>
-      <td>322.969463</td>
-      <td>512.208314</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.099967</td>
-      <td>-66.937486</td>
-      <td>[0.10001641300025944, 0.10051695840780023, 0.1...</td>
+      <td>-57.147966</td>
+      <td>72.654061</td>
+      <td>-3.979384</td>
+      <td>0.125</td>
+      <td>17.620665</td>
+      <td>-57.147966</td>
+      <td>1.027554</td>
       <td>15.156663</td>
-      <td>404.364142</td>
-      <td>1.072458</td>
-      <td>tensor(243.6650)</td>
-      <td>9.2186</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>125.166697</td>
+      <td>0.092974</td>
+      <td>tensor(32.2067)</td>
+      <td>27.528151</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>21</th>
       <td>21</td>
-      <td>-66.937473</td>
-      <td>344.830839</td>
-      <td>544.681372</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.099585</td>
-      <td>-66.937473</td>
-      <td>[0.1000164123729635, 0.10051732948034026, 0.10...</td>
+      <td>-57.147567</td>
+      <td>79.468432</td>
+      <td>-1.129918</td>
+      <td>0.125</td>
+      <td>17.620645</td>
+      <td>-57.147567</td>
+      <td>1.027545</td>
       <td>15.459797</td>
-      <td>426.673835</td>
-      <td>1.072033</td>
-      <td>tensor(243.6650)</td>
-      <td>9.766033</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>131.775504</td>
+      <td>0.092903</td>
+      <td>tensor(32.2067)</td>
+      <td>29.182671</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>22</th>
       <td>22</td>
-      <td>-66.937459</td>
-      <td>367.102209</td>
-      <td>577.793689</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.099177</td>
-      <td>-66.937459</td>
-      <td>[0.10001641169395342, 0.10051772501382775, 0.1...</td>
+      <td>-57.147139</td>
+      <td>86.418185</td>
+      <td>1.77559</td>
+      <td>0.125</td>
+      <td>17.620624</td>
+      <td>-57.147139</td>
+      <td>1.027535</td>
       <td>15.768993</td>
-      <td>449.427844</td>
-      <td>1.071579</td>
-      <td>tensor(243.6650)</td>
-      <td>10.313624</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>138.515884</td>
+      <td>0.092828</td>
+      <td>tensor(32.2067)</td>
+      <td>30.862424</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>23</th>
       <td>23</td>
-      <td>-66.937445</td>
-      <td>389.789739</td>
-      <td>611.557262</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.098742</td>
-      <td>-66.937445</td>
-      <td>[0.10001641096435389, 0.10051814564991512, 0.1...</td>
+      <td>-57.146681</td>
+      <td>93.505958</td>
+      <td>4.738184</td>
+      <td>0.125</td>
+      <td>17.620601</td>
+      <td>-57.146681</td>
+      <td>1.027522</td>
       <td>16.084372</td>
-      <td>472.634894</td>
-      <td>1.071096</td>
-      <td>tensor(243.6650)</td>
-      <td>10.870823</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>145.39042</td>
+      <td>0.09275</td>
+      <td>tensor(32.2067)</td>
+      <td>32.586798</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>24</th>
       <td>24</td>
-      <td>-66.937429</td>
-      <td>412.899648</td>
-      <td>645.984298</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.098281</td>
-      <td>-66.937429</td>
-      <td>[0.10001641019497515, 0.10051859199923878, 0.1...</td>
+      <td>-57.146192</td>
+      <td>100.734434</td>
+      <td>7.758923</td>
+      <td>0.125</td>
+      <td>17.620576</td>
+      <td>-57.146192</td>
+      <td>1.027509</td>
       <td>16.40606</td>
-      <td>496.303879</td>
-      <td>1.070583</td>
-      <td>tensor(243.6650)</td>
-      <td>11.436982</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>152.401739</td>
+      <td>0.092668</td>
+      <td>tensor(32.2067)</td>
+      <td>34.351988</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>25</th>
       <td>25</td>
-      <td>-66.937413</td>
-      <td>436.438203</td>
-      <td>681.087218</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.097793</td>
-      <td>-66.937413</td>
-      <td>[0.10001640938518672, 0.1005190646409911, 0.10...</td>
+      <td>-57.145672</td>
+      <td>108.106343</td>
+      <td>10.838935</td>
+      <td>0.125</td>
+      <td>17.62055</td>
+      <td>-57.145672</td>
+      <td>1.027493</td>
       <td>16.734181</td>
-      <td>520.443862</td>
-      <td>1.070041</td>
-      <td>tensor(243.6650)</td>
-      <td>11.999801</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>159.552528</td>
+      <td>0.092582</td>
+      <td>tensor(32.2067)</td>
+      <td>36.607048</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>26</th>
       <td>26</td>
-      <td>-66.937411</td>
-      <td>460.660615</td>
-      <td>716.953799</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.097742</td>
-      <td>-66.937411</td>
-      <td>[0.10001640929935882, 0.10051911457716091, 0.1...</td>
+      <td>-57.145617</td>
+      <td>115.626654</td>
+      <td>13.98612</td>
+      <td>0.125</td>
+      <td>17.620547</td>
+      <td>-57.145617</td>
+      <td>1.027491</td>
       <td>17.068865</td>
-      <td>545.066389</td>
-      <td>1.069984</td>
-      <td>tensor(243.6650)</td>
-      <td>12.595442</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>166.846253</td>
+      <td>0.092573</td>
+      <td>tensor(32.2067)</td>
+      <td>38.455368</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>27</th>
       <td>27</td>
-      <td>-66.937409</td>
-      <td>485.363637</td>
-      <td>753.536261</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.097688</td>
-      <td>-66.937409</td>
-      <td>[0.10001640920963134, 0.10051916725262677, 0.1...</td>
+      <td>-57.145558</td>
+      <td>123.29721</td>
+      <td>17.196118</td>
+      <td>0.125</td>
+      <td>17.620545</td>
+      <td>-57.145558</td>
+      <td>1.027489</td>
       <td>17.410242</td>
-      <td>570.181092</td>
-      <td>1.069923</td>
-      <td>tensor(243.6650)</td>
-      <td>13.205489</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>174.285766</td>
+      <td>0.092564</td>
+      <td>tensor(32.2067)</td>
+      <td>40.339423</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>28</th>
       <td>28</td>
-      <td>-66.937407</td>
-      <td>510.556592</td>
-      <td>790.848809</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.097631</td>
-      <td>-66.937407</td>
-      <td>[0.10001640911613394, 0.10051922273594555, 0.1...</td>
+      <td>-57.145496</td>
+      <td>131.121005</td>
+      <td>20.470175</td>
+      <td>0.125</td>
+      <td>17.620541</td>
+      <td>-57.145496</td>
+      <td>1.027486</td>
       <td>17.758447</td>
-      <td>595.797792</td>
-      <td>1.06986</td>
-      <td>tensor(243.6650)</td>
-      <td>13.817086</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>181.873977</td>
+      <td>0.092555</td>
+      <td>tensor(32.2067)</td>
+      <td>42.269128</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>29</th>
       <td>29</td>
-      <td>-66.937405</td>
-      <td>536.249104</td>
-      <td>828.905972</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.097571</td>
-      <td>-66.937405</td>
-      <td>[0.10001640901895299, 0.1005192810835282, 0.10...</td>
+      <td>-57.145431</td>
+      <td>139.101097</td>
+      <td>23.809562</td>
+      <td>0.125</td>
+      <td>17.620538</td>
+      <td>-57.145431</td>
+      <td>1.027484</td>
       <td>18.113616</td>
-      <td>621.926509</td>
-      <td>1.069793</td>
-      <td>tensor(243.6650)</td>
-      <td>14.461726</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>189.613853</td>
+      <td>0.092546</td>
+      <td>tensor(32.2067)</td>
+      <td>44.234033</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>30</th>
       <td>30</td>
-      <td>-66.937403</td>
-      <td>562.450789</td>
-      <td>867.722501</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.097508</td>
-      <td>-66.937403</td>
-      <td>[0.10001640891842235, 0.10051934237390206, 0.1...</td>
+      <td>-57.145361</td>
+      <td>147.2406</td>
+      <td>27.215574</td>
+      <td>0.125</td>
+      <td>17.620535</td>
+      <td>-57.145361</td>
+      <td>1.027481</td>
       <td>18.475888</td>
-      <td>648.577461</td>
-      <td>1.069723</td>
-      <td>tensor(243.6650)</td>
-      <td>15.095315</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>197.508421</td>
+      <td>0.092536</td>
+      <td>tensor(32.2067)</td>
+      <td>46.22573</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>31</th>
       <td>31</td>
-      <td>-66.937401</td>
-      <td>589.171645</td>
-      <td>907.313506</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.097442</td>
-      <td>-66.937401</td>
-      <td>[0.10001640881315677, 0.10051940665871233, 0.1...</td>
+      <td>-57.145289</td>
+      <td>155.542695</td>
+      <td>30.689535</td>
+      <td>0.125</td>
+      <td>17.620531</td>
+      <td>-57.145289</td>
+      <td>1.027477</td>
       <td>18.845406</td>
-      <td>675.761071</td>
-      <td>1.06965</td>
-      <td>tensor(243.6650)</td>
-      <td>15.748607</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>205.560767</td>
+      <td>0.092526</td>
+      <td>tensor(32.2067)</td>
+      <td>48.256311</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>32</th>
       <td>32</td>
-      <td>-66.937401</td>
-      <td>616.464764</td>
-      <td>947.70732</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.097435</td>
-      <td>-66.937401</td>
-      <td>[0.10001640880234168, 0.10051941339275706, 0.1...</td>
+      <td>-57.145281</td>
+      <td>164.011276</td>
+      <td>34.233954</td>
+      <td>0.125</td>
+      <td>17.620531</td>
+      <td>-57.145281</td>
+      <td>1.027477</td>
       <td>19.222314</td>
-      <td>703.488314</td>
-      <td>1.069642</td>
-      <td>tensor(243.6650)</td>
-      <td>16.400383</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>213.774149</td>
+      <td>0.092525</td>
+      <td>tensor(32.2067)</td>
+      <td>50.352866</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>33</th>
       <td>33</td>
-      <td>-66.9374</td>
-      <td>644.303185</td>
-      <td>988.908797</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.097428</td>
-      <td>-66.9374</td>
-      <td>[0.10001640879109391, 0.10051942043710568, 0.1...</td>
+      <td>-57.145273</td>
+      <td>172.649207</td>
+      <td>37.849243</td>
+      <td>0.125</td>
+      <td>17.62053</td>
+      <td>-57.145273</td>
+      <td>1.027476</td>
       <td>19.60676</td>
-      <td>731.770061</td>
-      <td>1.069634</td>
-      <td>tensor(243.6650)</td>
-      <td>17.082193</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>222.151785</td>
+      <td>0.092524</td>
+      <td>tensor(32.2067)</td>
+      <td>52.459406</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>34</th>
       <td>34</td>
-      <td>-66.9374</td>
-      <td>672.697782</td>
-      <td>1030.934077</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.09742</td>
-      <td>-66.9374</td>
-      <td>[0.10001640877954125, 0.10051942779858922, 0.1...</td>
+      <td>-57.145265</td>
+      <td>181.459872</td>
+      <td>41.536816</td>
+      <td>0.125</td>
+      <td>17.62053</td>
+      <td>-57.145265</td>
+      <td>1.027476</td>
       <td>19.998896</td>
-      <td>760.6174</td>
-      <td>1.069626</td>
-      <td>tensor(243.6650)</td>
-      <td>17.805504</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>230.69696</td>
+      <td>0.092523</td>
+      <td>tensor(32.2067)</td>
+      <td>54.616787</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>35</th>
       <td>35</td>
-      <td>-66.9374</td>
-      <td>701.659651</td>
-      <td>1073.799626</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.097412</td>
-      <td>-66.9374</td>
-      <td>[0.10001640876773717, 0.10051943548686608, 0.1...</td>
+      <td>-57.145256</td>
+      <td>190.446726</td>
+      <td>45.298118</td>
+      <td>0.125</td>
+      <td>17.620529</td>
+      <td>-57.145256</td>
+      <td>1.027476</td>
       <td>20.398873</td>
-      <td>790.041638</td>
-      <td>1.069617</td>
-      <td>tensor(243.6650)</td>
-      <td>18.46985</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>239.413024</td>
+      <td>0.092521</td>
+      <td>tensor(32.2067)</td>
+      <td>56.818692</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>36</th>
       <td>36</td>
-      <td>-66.9374</td>
-      <td>731.200106</td>
-      <td>1117.522236</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.097404</td>
-      <td>-66.9374</td>
-      <td>[0.10001640875524949, 0.10051944350370197, 0.1...</td>
+      <td>-57.145247</td>
+      <td>199.61329</td>
+      <td>49.134623</td>
+      <td>0.125</td>
+      <td>17.620529</td>
+      <td>-57.145247</td>
+      <td>1.027475</td>
       <td>20.806851</td>
-      <td>820.054312</td>
-      <td>1.069608</td>
-      <td>tensor(243.6650)</td>
-      <td>19.155151</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>248.303393</td>
+      <td>0.09252</td>
+      <td>tensor(32.2067)</td>
+      <td>59.084261</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>37</th>
       <td>37</td>
-      <td>-66.937399</td>
-      <td>761.330686</td>
-      <td>1162.119033</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.097396</td>
-      <td>-66.937399</td>
-      <td>[0.10001640874218515, 0.10051945185262873, 0.1...</td>
+      <td>-57.145237</td>
+      <td>208.963157</td>
+      <td>53.047834</td>
+      <td>0.125</td>
+      <td>17.620529</td>
+      <td>-57.145237</td>
+      <td>1.027475</td>
       <td>21.222988</td>
-      <td>850.667186</td>
-      <td>1.069599</td>
-      <td>tensor(243.6650)</td>
-      <td>19.927312</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>257.371554</td>
+      <td>0.092519</td>
+      <td>tensor(32.2067)</td>
+      <td>61.391093</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>38</th>
       <td>38</td>
-      <td>-66.937399</td>
-      <td>792.063162</td>
-      <td>1207.607493</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.097387</td>
-      <td>-66.937399</td>
-      <td>[0.1000164087287594, 0.10051946054525049, 0.10...</td>
+      <td>-57.145227</td>
+      <td>218.499991</td>
+      <td>57.039282</td>
+      <td>0.125</td>
+      <td>17.620528</td>
+      <td>-57.145227</td>
+      <td>1.027474</td>
       <td>21.647448</td>
-      <td>881.892263</td>
-      <td>1.069589</td>
-      <td>tensor(243.6650)</td>
-      <td>20.650463</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>266.62106</td>
+      <td>0.092518</td>
+      <td>tensor(32.2067)</td>
+      <td>63.722338</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
     <tr>
       <th>39</th>
       <td>39</td>
-      <td>-66.937399</td>
-      <td>823.409441</td>
-      <td>1254.005402</td>
-      <td>0.1075</td>
-      <td>0.100117</td>
-      <td>1.097378</td>
-      <td>-66.937399</td>
-      <td>[0.1000164087147031, 0.10051946958589564, 0.10...</td>
+      <td>-57.145217</td>
+      <td>228.227531</td>
+      <td>61.110531</td>
+      <td>0.125</td>
+      <td>17.620528</td>
+      <td>-57.145217</td>
+      <td>1.027474</td>
       <td>22.080397</td>
-      <td>913.741782</td>
-      <td>1.069579</td>
-      <td>tensor(243.6650)</td>
-      <td>21.44932</td>
-      <td>[tensor(-0.0323, dtype=torch.float64), tensor(...</td>
+      <td>276.055538</td>
+      <td>0.092516</td>
+      <td>tensor(32.2067)</td>
+      <td>66.105372</td>
+      <td>[[tensor(0.0003, dtype=torch.float64), tensor(...</td>
     </tr>
   </tbody>
 </table>
@@ -3621,7 +3860,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_52_1.png" src="../../_images/examples_experiments_tutorial_learning_52_1.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_54_1.png" src="../../_images/examples_experiments_tutorial_learning_54_1.png" />
 </div>
 </div>
 <div class="nbinput nblast docutils container">

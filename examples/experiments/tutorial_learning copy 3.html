@@ -539,7 +539,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>where <span class="math notranslate nohighlight">\(\theta\)</span> encodes the training parameters <span class="math notranslate nohighlight">\((A,b)\)</span>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Formulate constants</span>
@@ -614,7 +614,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># data = gen_demand(n,N)</span>
@@ -636,7 +636,7 @@ div.rendered_html tbody tr:hover {
 <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x_r</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">]</span>
 
 <span class="n">prob</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
-<span class="n">target</span> <span class="o">=</span> <span class="mf">0.5</span>
+<span class="n">target</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.2</span>
 <span class="n">s</span> <span class="o">=</span> <span class="mi">13</span>
 <span class="c1"># # Train only epsilon</span>
 <span class="c1"># result = prob.train(eps = True, lr = 0.001, step=50, momentum = 0.8, optimizer = &quot;SGD&quot;, init_eps = 1, seed = s)</span>
@@ -649,28 +649,28 @@ div.rendered_html tbody tr:hover {
 <span class="n">init</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">T</span><span class="p">)))</span>
 <span class="n">init_bval</span> <span class="o">=</span> <span class="o">-</span><span class="n">init</span><span class="nd">@np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 <span class="c1"># Train A and b</span>
-<span class="n">result1</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">fixb</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">init_mu</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">)</span>
+<span class="n">result1</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">fixb</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">init_mu</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">)</span>
 <span class="n">df1</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">df</span>
 <span class="n">A_fin</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">A</span>
 <span class="n">b_fin</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">b</span>
 
-<span class="n">result2</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">A_fin</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">b_fin</span><span class="p">,</span> <span class="n">init_mu</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">)</span>
+<span class="n">result2</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">A_fin</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">b_fin</span><span class="p">,</span> <span class="n">init_mu</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">)</span>
 <span class="n">df_r1</span> <span class="o">=</span> <span class="n">result2</span><span class="o">.</span><span class="n">df</span>
 
-<span class="n">result3</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">init_mu</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>  <span class="n">target_cvar</span> <span class="o">=</span> <span class="mf">3.</span><span class="p">)</span>
+<span class="n">result3</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">init_mu</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>  <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">init_alpha</span>  <span class="o">=-</span><span class="mf">0.1</span><span class="p">)</span>
 <span class="n">df_r2</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">df</span>
 
 <span class="c1"># Grid search epsilon</span>
-<span class="n">result4</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">)</span>
+<span class="n">result4</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">)</span>
 <span class="n">dfgrid</span> <span class="o">=</span> <span class="n">result4</span><span class="o">.</span><span class="n">df</span>
 
-<span class="n">result5</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">A_fin</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">b_fin</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">)</span>
+<span class="n">result5</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">A_fin</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">b_fin</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">)</span>
 <span class="n">dfgrid2</span> <span class="o">=</span> <span class="n">result5</span><span class="o">.</span><span class="n">df</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">A_fin</span><span class="p">,</span> <span class="n">b_fin</span>
@@ -678,18 +678,18 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-(array([[ 1.16602016, -0.18601008],
-        [ 0.59970358,  1.49918525]]),
- array([-1.74810146, -4.66567791]))
+(array([[ 1.07063027, -0.12409226],
+        [ 0.42854979,  1.59071613]]),
+ array([-1.56686479, -4.33028127]))
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">eps_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
@@ -737,31 +737,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dfgrid2</span><span class="p">[</span><span class="s2">&quot;Violation_val&quot;</span><span class="p">])</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-[&lt;matplotlib.lines.Line2D at 0x1cd3361c0&gt;]
-</pre></div></div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_8_1.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_8_1.png" />
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">eps_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
@@ -784,7 +760,7 @@ div.rendered_html tbody tr:hover {
                   <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:green&quot;</span><span class="p">,</span><span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
 
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">],</span><span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Reshaped set&quot;</span><span class="p">,</span> <span class="n">marker</span> <span class="o">=</span> <span class="s2">&quot;^&quot;</span><span class="p">,</span><span class="n">zorder</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-<span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">]:</span>
+<span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">]:</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">][</span><span class="n">inds</span><span class="p">[</span><span class="n">ind</span><span class="p">]],</span><span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][</span><span class="n">inds</span><span class="p">[</span><span class="n">ind</span><span class="p">]],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">marker</span> <span class="o">=</span> <span class="s2">&quot;^&quot;</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\epsilon$ = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">eps_list</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="n">ind</span><span class="p">]],</span><span class="mi">2</span><span class="p">)),</span> <span class="c1"># this is the text</span>
                   <span class="p">(</span><span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">][</span><span class="n">inds</span><span class="p">[</span><span class="n">ind</span><span class="p">]],</span><span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][</span><span class="n">inds</span><span class="p">[</span><span class="n">ind</span><span class="p">]]),</span> <span class="c1"># these are the coordinates to position the label</span>
@@ -793,7 +769,7 @@ div.rendered_html tbody tr:hover {
                   <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">fontsize</span> <span class="o">=</span> <span class="mi">15</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Objective valye&quot;</span><span class="p">)</span>
 <span class="c1"># ax2.set_xlim([-1,20])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Empirical CVaR&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Empirical $\mathbf</span><span class="si">{CVaR}</span><span class="s2">$&quot;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
 <span class="c1"># lgd = plt.legend(loc = &quot;lower right&quot;, bbox_to_anchor=(1.5, 0.3))</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;ex1_cvar.pdf&quot;</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
@@ -805,11 +781,11 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_9_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_9_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_8_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_8_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Plot results</span>
@@ -840,11 +816,11 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_10_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_10_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_9_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_9_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">x_opt_base</span> <span class="o">=</span> <span class="p">{}</span>
@@ -908,31 +884,51 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-({0: array([3.35179294e-11, 5.87202390e+00]),
-  1: array([2.95741807e-10, 3.83013222e+00]),
-  2: array([1.69142127e-10, 2.95503579e+00]),
-  3: array([1.38820841e-09, 2.07993935e+00])},
- {0: array([1.39880213e-09, 8.07597689e+00]),
-  1: array([8.34256329e-10, 5.26769983e+00]),
-  2: array([3.67045649e-10, 4.06415252e+00]),
-  3: array([3.77313344e-10, 2.86060521e+00])},
- {0: array(-1.14084085),
-  1: array(-0.74413377),
-  2: array(-0.57411646),
-  3: array(-0.40409914)},
- {0: array(8.5979079),
-  1: array(5.60813863),
-  2: array(4.32680894),
-  3: array(3.04547926)})
+({0: array([6.14179444e-11, 5.53206650e+00]),
+  1: array([3.21249482e-10, 3.60838895e+00]),
+  2: array([1.70741754e-10, 2.78395571e+00]),
+  3: array([1.90796160e-09, 1.95952247e+00])},
+ {0: array([1.40162056e-09, 8.07597689e+00]),
+  1: array([8.32933972e-10, 5.26769983e+00]),
+  2: array([3.71697362e-10, 4.06415252e+00]),
+  3: array([3.74900857e-10, 2.86060521e+00])},
+ {0: array(-0.23649591),
+  1: array(-0.15425867),
+  2: array(-0.11901414),
+  3: array(-0.08376961)},
+ {0: array(8.67607338),
+  1: array(5.65912346),
+  2: array(4.36614492),
+  3: array(3.07316638)})
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">A_fin</span><span class="p">,</span> <span class="n">b_fin</span>
+<span class="n">result3</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">result3</span><span class="o">.</span><span class="n">b</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(array([[0.34802978, 0.22183809],
+        [0.22183809, 2.28620322]]),
+ array([-1.89004551, -5.64576754]))
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">fmt</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
@@ -1010,7 +1006,7 @@ div.rendered_html tbody tr:hover {
 <span class="n">a1</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_base</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">)</span>
 <span class="c1"># ax1.contourf(x,y,g_level_base1,alpha = 0.5)</span>
 
-<span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span> <span class="p">,</span><span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
 <span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
 <span class="n">aa</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a1</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">ax1</span><span class="p">)</span>
 
@@ -1029,7 +1025,7 @@ div.rendered_html tbody tr:hover {
 <span class="n">a2</span> <span class="o">=</span> <span class="n">ax2</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_base</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">)</span>
 <span class="c1"># ax2.contourf(x,y,g_level_learned1,alpha = 0.5)</span>
 
-<span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
 <span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a2</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">ax2</span><span class="p">,</span> <span class="n">boundaries</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
 
@@ -1049,7 +1045,7 @@ div.rendered_html tbody tr:hover {
 <span class="n">a3</span> <span class="o">=</span> <span class="n">ax3</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_base</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">)</span>
 <span class="c1"># ax2.contourf(x,y,g_level_learned1,alpha = 0.5)</span>
 
-<span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span><span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
 <span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a3</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">ax3</span><span class="p">,</span> <span class="n">boundaries</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
 
@@ -1068,7 +1064,7 @@ div.rendered_html tbody tr:hover {
 <span class="n">a4</span> <span class="o">=</span> <span class="n">ax4</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_base</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">)</span>
 <span class="c1"># ax2.contourf(x,y,g_level_learned1,alpha = 0.5)</span>
 
-<span class="n">ax4</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span><span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
 <span class="n">ax4</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a4</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">ax4</span><span class="p">,</span> <span class="n">boundaries</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Standard set&quot;</span><span class="p">)</span>
@@ -1093,7 +1089,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">,</span> <span class="n">ax3</span><span class="p">,</span> <span class="n">ax4</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">),</span> <span class="n">constrained_layout</span><span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
@@ -1114,7 +1110,7 @@ div.rendered_html tbody tr:hover {
 <span class="n">a1</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_learned</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">)</span>
 <span class="c1"># ax1.contourf(x,y,g_level_base1,alpha = 0.5)</span>
 
-<span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span><span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
 <span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
 <span class="n">aa</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a1</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">ax1</span><span class="p">)</span>
 
@@ -1133,7 +1129,7 @@ div.rendered_html tbody tr:hover {
 <span class="n">a2</span> <span class="o">=</span> <span class="n">ax2</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_learned</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">)</span>
 <span class="c1"># ax2.contourf(x,y,g_level_learned1,alpha = 0.5)</span>
 
-<span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span><span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
 <span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a2</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">ax2</span><span class="p">,</span> <span class="n">boundaries</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
 
@@ -1153,7 +1149,7 @@ div.rendered_html tbody tr:hover {
 <span class="n">a3</span> <span class="o">=</span> <span class="n">ax3</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_learned</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">)</span>
 <span class="c1"># ax2.contourf(x,y,g_level_learned1,alpha = 0.5)</span>
 
-<span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span><span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
 <span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a3</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">ax3</span><span class="p">,</span> <span class="n">boundaries</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
 
@@ -1172,7 +1168,7 @@ div.rendered_html tbody tr:hover {
 <span class="n">a4</span> <span class="o">=</span> <span class="n">ax4</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_learned</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">)</span>
 <span class="c1"># ax2.contourf(x,y,g_level_learned1,alpha = 0.5)</span>
 
-<span class="n">ax4</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span><span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
 <span class="n">ax4</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a4</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">ax4</span><span class="p">,</span> <span class="n">boundaries</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Reshaped set&quot;</span><span class="p">)</span>
