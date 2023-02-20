@@ -3,10 +3,15 @@ import unittest
 import cvxpy as cp
 # import matplotlib.pyplot as plt
 import numpy as np
+import numpy.random as npr
+import numpy.testing as npt
 
 from lro.robust_problem import RobustProblem
 from lro.uncertain import UncertainParameter
+from lro.uncertainty_sets.box import Box
 from lro.uncertainty_sets.ellipsoidal import Ellipsoidal
+from tests.settings import TESTS_ATOL as ATOL
+from tests.settings import TESTS_RTOL as RTOL
 
 
 class TestMultipleUncertainty(unittest.TestCase):
@@ -24,21 +29,46 @@ class TestMultipleUncertainty(unittest.TestCase):
         self.p = 2
 
     def test_simple_ellipsoidal_2u(self):
-        b, x, n, objective, rho, _ = \
-            self.b, self.x, self.n, self.objective, self.rho, self.p
-        # Robust set
-        P = np.eye(n)
+
+        # SETUP
+        n = 5
+        x_lro = cp.Variable(n)
+        c = npr.rand(n)
+        b = 10.
+        P = npr.randint(-1, 5, size=(n, n))
         a = np.zeros(n)
+        rho_1 = 0.2
+        rho_2 = 0.5
+
+        objective_1 = cp.Minimize(c @ x_lro)
         # Formulate robust constraints with lro
-        unc_set = Ellipsoidal(rho=rho)
+        unc_set_1 = Ellipsoidal(rho=rho_1)
+        unc_set_2 = Box(rho=rho_2)
         u_1 = UncertainParameter(n,
-                                 uncertainty_set=unc_set)
+                                 uncertainty_set=unc_set_1)
 
         u_2 = UncertainParameter(n,
-                                 uncertainty_set=unc_set)
-        constraints = [(P @ u_1 + a) @ x + x @ u_2 <= b]
+                                 uncertainty_set=unc_set_2)
+        constraints_1 = [cp.maximum(u_1 @ P @ x_lro, a @ x_lro) + u_2 @ x_lro <= b]
 
-        prob_robust = RobustProblem(objective, constraints)
+        prob_robust = RobustProblem(objective_1, constraints_1)
         prob_robust.solve()
+
+        # CVXPY problem
+
+        x_cvx = cp.Variable(n)
+        objective_2 = cp.Minimize(x_cvx @ c)
+        tau_1 = cp.Variable()
+        tau_2 = cp.Variable()
+
+        constraints_2 = [tau_1 + tau_2 - b <= 0]
+        constraints_2 += [cp.maximum(u_1 @ P @ x_cvx, a @ x_cvx) <= tau_1]
+        constraints_2 += [u_2 @ x_cvx <= tau_2]
+
+        prob_cvx = RobustProblem(objective_2, constraints_2)
+        prob_cvx.solve()
+
         # import ipdb
         # ipdb.set_trace()
+
+        npt.assert_allclose(x_lro.value, x_cvx.value, rtol=RTOL, atol=ATOL)

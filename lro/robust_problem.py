@@ -18,6 +18,8 @@ from sklearn.model_selection import train_test_split
 from lro.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lro.settings import EPS_LST_DEFAULT, OPTIMIZERS
 from lro.uncertain import UncertainParameter
+from lro.uncertain_canon.separate_uncertain_params import \
+    Separate_Uncertain_Params
 from lro.uncertain_canon.uncertain_chain import UncertainChain
 from lro.uncertainty_sets.mro import MRO
 from lro.utils import unique_list
@@ -645,6 +647,8 @@ class RobustProblem(Problem):
             unc_reductions = []
             if type(self.objective) == Maximize:
                 unc_reductions += [FlipObjective()]
+            # Add separate uncertainty
+            unc_reductions += [Separate_Uncertain_Params()]
             unc_reductions += [RemoveUncertainParameters()]
             newchain = UncertainChain(self, reductions=unc_reductions)
             prob, _ = newchain.apply(self)
