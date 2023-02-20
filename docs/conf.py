@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'LRO documentation'
-copyright = '2022, Irina Wang, Cole Becker, Bart Van Parys, Bartolomeo Stellato'
+copyright = '2023, Irina Wang, Cole Becker, Bart Van Parys, Bartolomeo Stellato'
 author = 'Irina Wang, Cole Becker, Bart Van Parys, Bartolomeo Stellato'
 
 # -- General configuration ---------------------------------------------------
