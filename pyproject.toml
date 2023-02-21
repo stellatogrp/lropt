@@ -15,7 +15,7 @@ authors = [
 {name = "Bartolomeo Stellato", email="bstellato@princeton.edu"}
 ]
 dependencies = [
-    "cvxpy @ git+https://git@github.com/cvxpy/cvxpy@master",
+    "cvxpy>=1.3.0",
     "torch",
     "scikit-learn",
     "cvxpylayers"
