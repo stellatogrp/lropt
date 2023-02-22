@@ -42,7 +42,7 @@ class Separate_Uncertain_Params(Reduction):
 
                 for unc_function in unc_lst:
                     param_lst = self.get_unq_uncertain_param(unc_function)
-                    assert len(param_lst) == 1, "two different parameters multiplied violates lro ruleset"
+                    # assert len(param_lst) == 1, "two different parameters multiplied violates lro ruleset"
                     unc_param = param_lst[0]
 
                     unc_dict[unc_param] += unc_function

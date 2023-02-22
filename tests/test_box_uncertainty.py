@@ -280,9 +280,6 @@ class TestBoxUncertainty(unittest.TestCase):
         # solve
         prob_cvxpy.solve()
 
-        import ipdb
-        ipdb.set_trace()
-
         npt.assert_allclose(x.value, x_cvx.value, rtol=RTOL, atol=ATOL)
 
     def test_budget(self):
