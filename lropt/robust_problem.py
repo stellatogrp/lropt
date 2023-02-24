@@ -133,7 +133,7 @@ class RobustProblem(Problem):
         Trains the uncertainty set parameters to find optimal set w.r.t. loss metric
 
         Parameters
-        ---------
+        -----------
         eps : bool, optional
            If True, train only epsilon, where :math:`A = \epsilon I, \
            b = \epsilon \bar{d}`, where :math:`\bar{d}` is the centroid of the
@@ -495,7 +495,7 @@ class RobustProblem(Problem):
         performs gridsearch to find optimal :math:`\epsilon`-ball around data with respect to user-defined loss
 
         Parameters
-        ---------
+        -----------
         epslst : np.array, optional
             The list of :math:`\epsilon` to iterate over. "Default np.logspace(-3, 1, 20)
         seed: int
