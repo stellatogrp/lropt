@@ -265,7 +265,7 @@ class RobustProblem(Problem):
                     opt = OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
                     # opt = OPTIMIZERS[optimizer](variables, lr=lr)
                     if scheduler:
-                        scheduler_ = torch.optim.lr_scheduler.ReduceLRonPlateau(opt, patience=5)
+                        scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=5)
 
                     paramlst = prob.parameters()
                     newlst = []
@@ -388,7 +388,7 @@ class RobustProblem(Problem):
                     # opt = OPTIMIZERS[optimizer](variables, lr=lr)
                     # opt = torch.optim.SGD(variables, lr=lr, momentum=.8)
                     if scheduler:
-                        scheduler_ = torch.optim.lr_scheduler.ReduceLRonPlateau(opt, patience=5)
+                        scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=5)
                     # assign parameter values
                     paramlst = prob.parameters()
                     newlst = []
