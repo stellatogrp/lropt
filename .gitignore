@@ -139,7 +139,7 @@ dmypy.json
 docs/examples/**/*.pdf
 docs/examples/**/*.gif
 docs/examples/**/*.png
-
+docs/examples/misc/
 
 # SCM version
 lropt/_version.py
