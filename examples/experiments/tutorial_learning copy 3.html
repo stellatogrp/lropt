@@ -472,7 +472,7 @@ div.rendered_html tbody tr:hover {
 <section id="Learning-Uncertainty-Sets">
 <h1>Learning Uncertainty Sets<a class="headerlink" href="#Learning-Uncertainty-Sets" title="Permalink to this heading">#</a></h1>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[74]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[59]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
@@ -498,7 +498,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[75]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[60]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">pareto_frontier</span><span class="p">(</span><span class="n">Xs</span><span class="p">,</span> <span class="n">Ys</span><span class="p">,</span> <span class="n">maxX</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">maxY</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
@@ -541,7 +541,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>where <span class="math notranslate nohighlight">\(\theta\)</span> encodes the training parameters <span class="math notranslate nohighlight">\((A,b)\)</span>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[76]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[61]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Formulate constants</span>
@@ -579,7 +579,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[77]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[96]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># data = gen_demand(n,N)</span>
@@ -614,10 +614,11 @@ div.rendered_html tbody tr:hover {
 <span class="n">init</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">T</span><span class="p">)))</span>
 <span class="n">init_bval</span> <span class="o">=</span> <span class="o">-</span><span class="n">init</span><span class="nd">@np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 <span class="c1"># Train A and b</span>
-<span class="n">result1</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">fixb</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">init_mu</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="n">result1</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">fixb</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">init_mu</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">save_iters</span><span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
 <span class="n">df1</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">df</span>
 <span class="n">A_fin</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">A</span>
 <span class="n">b_fin</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">b</span>
+<span class="n">A1_iters</span><span class="p">,</span> <span class="n">b1_iters</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">uncset_iters</span>
 
 <span class="n">result2</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">A_fin</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">b_fin</span><span class="p">,</span> <span class="n">init_mu</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">)</span>
 <span class="n">df_r1</span> <span class="o">=</span> <span class="n">result2</span><span class="o">.</span><span class="n">df</span>
@@ -634,8 +635,143 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
+</section>
+<section id="GIF">
+<h2>GIF<a class="headerlink" href="#GIF" title="Permalink to this heading">#</a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[78]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[97]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">final_solve</span><span class="p">(</span><span class="n">A_final</span><span class="p">,</span> <span class="n">b_final</span><span class="p">):</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span>
+                            <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">lro</span><span class="o">.</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                                        <span class="n">A</span> <span class="o">=</span> <span class="n">A_final</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">b_final</span><span class="p">))</span>
+    <span class="c1"># Formulate the Robust Problem</span>
+    <span class="n">x_r</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
+
+    <span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+
+    <span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@x_r</span><span class="p">,</span> <span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@u</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">t</span><span class="p">]</span>
+    <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x_r</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">prob</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+    <span class="n">prob</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+    <span class="c1"># result3.reform_problem.solve()</span>
+    <span class="n">x_final</span> <span class="o">=</span> <span class="n">x_r</span><span class="o">.</span><span class="n">value</span>
+    <span class="n">t_final</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">return</span> <span class="n">x_final</span><span class="p">,</span> <span class="n">t_final</span>
+
+
+<span class="n">x_opt_learned</span><span class="p">,</span> <span class="n">t_opt_learned</span> <span class="o">=</span> <span class="n">final_solve</span><span class="p">(</span><span class="n">A_fin</span><span class="p">,</span> <span class="n">b_fin</span><span class="p">)</span>
+<span class="n">x_opt_base</span><span class="p">,</span> <span class="n">t_opt_base</span> <span class="o">=</span> <span class="n">final_solve</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="n">init_bval</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;base x,t =&quot;</span><span class="p">,</span> <span class="n">x_opt_base</span><span class="p">,</span> <span class="n">t_opt_base</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;optimal x,t =&quot;</span><span class="p">,</span> <span class="n">x_opt_learned</span><span class="p">,</span> <span class="n">t_opt_learned</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+base x,t = [2.09517111e-08 5.23281439e+00] 10.104564075788652
+optimal x,t = [2.69233184e-10 3.58449233e+00] -0.15323709081404668
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[98]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Populate Z Values (a 7x7 matrix) - For a circle x^2+y^2=z</span>
+<span class="n">offset</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="n">offset</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="n">offset</span>
+<span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="n">offset</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="n">offset</span>
+<span class="n">n_points</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">x_min</span><span class="p">,</span><span class="n">x_max</span><span class="p">,</span><span class="n">n_points</span><span class="p">)</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">y_min</span><span class="p">,</span><span class="n">y_max</span><span class="p">,</span><span class="n">n_points</span><span class="p">)</span>
+<span class="n">x_mesh</span><span class="p">,</span><span class="n">y_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">level_set</span><span class="p">(</span><span class="n">A_final</span><span class="p">,</span> <span class="n">b_final</span><span class="p">,</span> <span class="n">offset</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">n_points</span><span class="p">,</span> <span class="n">x_mesh</span> <span class="o">=</span> <span class="n">x_mesh</span><span class="p">,</span> <span class="n">y_mesh</span> <span class="o">=</span> <span class="n">y_mesh</span><span class="p">):</span>
+    <span class="n">x_opt</span><span class="p">,</span> <span class="n">t_opt</span> <span class="o">=</span> <span class="n">final_solve</span><span class="p">(</span><span class="n">A_final</span><span class="p">,</span> <span class="n">b_final</span><span class="p">)</span>
+    <span class="n">unc_level_set</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span><span class="n">n</span><span class="p">))</span>
+    <span class="n">g_level_set</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span><span class="n">n</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="n">u_vec</span> <span class="o">=</span> <span class="p">[</span><span class="n">x_mesh</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">],</span> <span class="n">y_mesh</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]]</span>
+            <span class="n">unc_level_set</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">A_final</span> <span class="o">@</span> <span class="n">u_vec</span>  <span class="o">+</span> <span class="n">b_final</span><span class="p">)</span>
+            <span class="n">g_level_set</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k</span> <span class="o">@</span> <span class="n">x_opt</span> <span class="o">-</span> <span class="n">p</span> <span class="o">@</span> <span class="n">x_opt</span><span class="p">,</span> <span class="n">k</span> <span class="o">@</span> <span class="n">x_opt</span> <span class="o">-</span> <span class="n">p</span> <span class="o">@</span> <span class="n">u_vec</span><span class="p">)</span> <span class="o">-</span> <span class="n">t_opt</span>
+
+    <span class="k">return</span> <span class="n">unc_level_set</span><span class="p">,</span> <span class="n">g_level_set</span>
+
+
+<span class="n">unc_level_learned</span><span class="p">,</span> <span class="n">g_level_learned</span> <span class="o">=</span> <span class="n">level_set</span><span class="p">(</span><span class="n">A_fin</span><span class="p">,</span> <span class="n">b_fin</span><span class="p">)</span>
+<span class="n">unc_level_base</span><span class="p">,</span> <span class="n">g_level_base</span> <span class="o">=</span> <span class="n">level_set</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="n">init_bval</span><span class="p">)</span>
+
+
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Original and reshaped sets&quot;</span><span class="p">)</span>
+<span class="c1"># Set axis label for the contour plot</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_1$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_2$&quot;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x_mesh</span><span class="p">,</span><span class="n">y_mesh</span><span class="p">,</span><span class="n">unc_level_base</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">],</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Initial Set&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x_mesh</span><span class="p">,</span><span class="n">y_mesh</span><span class="p">,</span><span class="n">unc_level_learned</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:green&quot;</span><span class="p">],</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Final Set&quot;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span><span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span>
+<span class="c1"># plt.savefig(&quot;Reshaped_ctrs.pdf&quot;, bbox_inches=&#39;tight&#39;)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_8_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_8_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[99]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">imageio</span>
+
+<span class="n">filenames</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">A1_iters</span><span class="p">)):</span>
+    <span class="n">unc_level</span><span class="p">,</span> <span class="n">g_level</span> <span class="o">=</span> <span class="n">level_set</span><span class="p">(</span><span class="n">A1_iters</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">b1_iters</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Original and reshaped sets&quot;</span><span class="p">)</span>
+    <span class="c1"># Set axis label for the contour plot</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_1$&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_2$&quot;</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x_mesh</span><span class="p">,</span><span class="n">y_mesh</span><span class="p">,</span><span class="n">unc_level_base</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">],</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Initial Set&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x_mesh</span><span class="p">,</span><span class="n">y_mesh</span><span class="p">,</span><span class="n">unc_level</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:red&quot;</span><span class="p">],</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;trained Set&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x_mesh</span><span class="p">,</span><span class="n">y_mesh</span><span class="p">,</span><span class="n">unc_level_learned</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:green&quot;</span><span class="p">],</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Final Set&quot;</span><span class="p">)</span>
+
+    <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;gif_images/</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">.png&#39;</span>
+    <span class="n">filenames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span><span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="k">with</span> <span class="n">imageio</span><span class="o">.</span><span class="n">get_writer</span><span class="p">(</span><span class="s1">&#39;gifs/intro.gif&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;I&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">writer</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">imageio</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">append_data</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[63]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">eps_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
@@ -679,11 +815,11 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_6_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_6_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_10_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_10_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[79]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[64]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">eps_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
@@ -727,11 +863,11 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_7_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_7_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_11_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_11_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[80]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[65]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Plot results</span>
@@ -762,11 +898,11 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_8_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_8_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_12_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_12_0.png" />
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[81]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[66]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">x_opt_base</span> <span class="o">=</span> <span class="p">{}</span>
@@ -830,7 +966,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[86]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[67]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">fmt</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
@@ -957,11 +1093,11 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_10_1.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_10_1.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_14_1.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_14_1.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[87]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[68]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">,</span> <span class="n">ax3</span><span class="p">,</span> <span class="n">ax4</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">),</span> <span class="n">constrained_layout</span><span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
@@ -1020,7 +1156,7 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_11_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_11_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_15_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_15_0.png" />
 </div>
 </div>
 </section>
@@ -1198,14 +1334,14 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_15_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_15_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_19_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_19_0.png" />
 </div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_15_1.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_15_1.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_19_1.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_19_1.png" />
 </div>
 </div>
 <div class="nbinput nblast docutils container">
@@ -1391,7 +1527,7 @@ Cell <span class="ansi-green-fg">In [71], line 13</span>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_21_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_21_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_25_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_25_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -1438,7 +1574,7 @@ Cell <span class="ansi-green-fg">In [71], line 13</span>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_22_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_22_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_26_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_26_0.png" />
 </div>
 </div>
 <div class="nboutput docutils container">
@@ -1454,7 +1590,7 @@ Cell <span class="ansi-green-fg">In [71], line 13</span>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_22_2.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_22_2.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_26_2.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_26_2.png" />
 </div>
 </div>
 <div class="nbinput nblast docutils container">
@@ -1574,7 +1710,7 @@ Cell <span class="ansi-green-fg">In [71], line 13</span>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_24_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_24_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_28_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_28_0.png" />
 </div>
 </div>
 <div class="nboutput docutils container">
@@ -1590,7 +1726,7 @@ Cell <span class="ansi-green-fg">In [71], line 13</span>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_24_2.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_24_2.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_28_2.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_28_2.png" />
 </div>
 </div>
 <div class="nbinput nblast docutils container">
@@ -1907,6 +2043,7 @@ Cell <span class="ansi-green-fg">In [71], line 13</span>
             <ul>
 <li><a class="reference internal" href="#">Learning Uncertainty Sets</a><ul>
 <li><a class="reference internal" href="#Example-3:-Max-of-affine-uncertainty">Example 3: Max of affine uncertainty</a></li>
+<li><a class="reference internal" href="#GIF">GIF</a></li>
 <li><a class="reference internal" href="#Larger-Newsvendor">Larger Newsvendor</a></li>
 <li><a class="reference internal" href="#Example-4:-Affine-Adjustable-Robust-Optimization:-Inventory-management">Example 4: Affine Adjustable Robust Optimization: Inventory management</a></li>
 <li><a class="reference internal" href="#Example-4:-Affine-Adjustable-Robust-Optimization:-Hydro-power-plant">Example 4: Affine Adjustable Robust Optimization: Hydro power plant</a></li>
