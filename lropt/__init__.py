@@ -1,3 +1,4 @@
+from lropt._version import __version__
 from lropt.robust_problem import RobustProblem
 from lropt.settings import OPTIMIZERS
 from lropt.uncertain import UncertainParameter

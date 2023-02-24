@@ -128,10 +128,18 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Python editors
 .DS_Store
 .vscode/
 .envrc
 .direnv/
+
+# Docs files
 docs/examples/**/*.pdf
 docs/examples/**/*.gif
 docs/examples/**/*.png
+
+
+# SCM version
+lropt/_version.py
