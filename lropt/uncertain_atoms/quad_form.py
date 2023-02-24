@@ -27,8 +27,8 @@ from cvxpy.expressions.expression import Expression
 from cvxpy.interface.matrix_utilities import is_sparse
 from scipy import linalg as LA
 
-from lro.uncertain import UncertainParameter
-from lro.utils import unique_list
+from lropt.uncertain import UncertainParameter
+from lropt.utils import unique_list
 
 
 class CvxPyDomainError(Exception):

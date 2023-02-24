@@ -1,4 +1,4 @@
-from lro.uncertainty_sets.norm import Norm
+from lropt.uncertainty_sets.norm import Norm
 
 
 class Ellipsoidal(Norm):

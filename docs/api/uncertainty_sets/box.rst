@@ -1,5 +1,5 @@
 Box Uncertainty
 ===============
 
-.. autoclass:: lro.Box
+.. autoclass:: lropt.Box
    :members:

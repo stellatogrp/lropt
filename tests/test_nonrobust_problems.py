@@ -5,7 +5,7 @@ import cvxpy as cp
 import numpy as np
 import numpy.testing as npt
 
-from lro.robust_problem import RobustProblem
+from lropt.robust_problem import RobustProblem
 
 
 class TestNonrobustProblems(unittest.TestCase):
@@ -21,14 +21,14 @@ class TestNonrobustProblems(unittest.TestCase):
         # Formulate robust problem explicitly with cvxpy
         objective = cp.Minimize(c @ x)
         constraints = [-b_unc @ x + cp.norm(-A_unc.T @ x, p=2) <= b]
-        prob_lro = RobustProblem(objective, constraints)
+        prob_lropt = RobustProblem(objective, constraints)
         prob_cvxpy = cp.Problem(objective, constraints)
 
-        problem = prob_lro.dualize_constraints()
+        problem = prob_lropt.dualize_constraints()
         problem.solve()
         prob_cvxpy.solve()
 
-        npt.assert_allclose(prob_lro.value, prob_cvxpy.value)
+        npt.assert_allclose(prob_lropt.value, prob_cvxpy.value)
 
     def test_nonrobust_solve(self):
 
@@ -41,10 +41,10 @@ class TestNonrobustProblems(unittest.TestCase):
         # Formulate robust problem explicitly with cvxpy
         objective = cp.Minimize(c @ x)
         constraints = [-b_unc @ x + cp.norm(-A_unc.T @ x, p=2) <= b]
-        prob_lro = RobustProblem(objective, constraints)
+        prob_lropt = RobustProblem(objective, constraints)
         prob_cvxpy = cp.Problem(objective, constraints)
 
-        prob_lro.solve()
+        prob_lropt.solve()
         prob_cvxpy.solve()
 
-        npt.assert_allclose(prob_lro.value, prob_cvxpy.value)
+        npt.assert_allclose(prob_lropt.value, prob_cvxpy.value)

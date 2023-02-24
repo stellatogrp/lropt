@@ -1,8 +1,8 @@
 import numpy as np
 from cvxpy import Variable
 
-from lro.uncertainty_sets.uncertainty_set import UncertaintySet
-from lro.utils import check_affine_transform
+from lropt.uncertainty_sets.uncertainty_set import UncertaintySet
+from lropt.utils import check_affine_transform
 
 
 class Polyhedral(UncertaintySet):

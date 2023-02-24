@@ -8,14 +8,14 @@ import scipy as sc
 # import torch
 from sklearn import datasets
 
-from lro.robust_problem import RobustProblem
-from lro.uncertain import UncertainParameter
-from lro.uncertain_atoms.quad_form import quad_form
-# from lro.uncertainty_sets.box import Box
-# from lro.uncertainty_sets.budget import Budget
-from lro.uncertainty_sets.ellipsoidal import Ellipsoidal
-from lro.uncertainty_sets.mro import MRO
-# from lro.uncertainty_sets.polyhedral import Polyhedral
+from lropt.robust_problem import RobustProblem
+from lropt.uncertain import UncertainParameter
+from lropt.uncertain_atoms.quad_form import quad_form
+# from lropt.uncertainty_sets.box import Box
+# from lropt.uncertainty_sets.budget import Budget
+from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
+from lropt.uncertainty_sets.mro import MRO
+# from lropt.uncertainty_sets.polyhedral import Polyhedral
 from tests.settings import SOLVER
 
 # from tests.settings import TESTS_ATOL as ATOL
@@ -196,7 +196,7 @@ class TestQuad(unittest.TestCase):
 
         # solve
         prob_robust.solve()
-        print("LRO objective value: ", prob_robust.objective.value, "\nLRO x: ", x_r.value)
+        print("LROPT objective value: ", prob_robust.objective.value, "\nLROPT x: ", x_r.value)
 
     # def test_train_mro(self):
     #     # Formulate constants
@@ -228,8 +228,8 @@ class TestQuad(unittest.TestCase):
     #     # Generate data
     #     data = gen_demand(n, N)
     #     # Formulate uncertainty set
-    #     # u = lro.UncertainParameter(n,
-    #     #                         uncertainty_set=lro.Ellipsoidal(p=2,
+    #     # u = lropt.UncertainParameter(n,
+    #     #                         uncertainty_set=lropt.Ellipsoidal(p=2,
     #     #                                                     data=data, loss = loss))
 
     #     u = UncertainParameter(n,

@@ -3,9 +3,9 @@ import unittest
 import cvxpy as cp
 import numpy as np
 
-from lro.robust_problem import RobustProblem
-from lro.uncertain import UncertainParameter
-from lro.uncertainty_sets.box import Box
+from lropt.robust_problem import RobustProblem
+from lropt.uncertain import UncertainParameter
+from lropt.uncertainty_sets.box import Box
 
 
 def generate_data(n, N):

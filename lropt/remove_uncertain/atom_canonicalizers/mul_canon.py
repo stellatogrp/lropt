@@ -1,7 +1,7 @@
 import numpy as np
 from cvxpy.atoms.affine.promote import Promote
 
-from lro.uncertain import UncertainParameter
+from lropt.uncertain import UncertainParameter
 
 # from cvxpy.atoms.affine.unary_operators import NegExpression
 

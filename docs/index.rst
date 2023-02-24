@@ -1,7 +1,7 @@
-Welcome to lro's documentation!
+Welcome to LROPT's documentation!
 ===============================
 
-Learning for robust optimization (LRO) is a package to model and solve optimization problems under uncertainty of the form
+Learning for robust optimization (LROPT) is a package to model and solve optimization problems under uncertainty of the form
 
 .. math::
   \begin{array}{ll}

@@ -1,5 +1,5 @@
 Budget Uncertainty
 ==================
 
-.. autoclass:: lro.Budget
+.. autoclass:: lropt.Budget
    :members:

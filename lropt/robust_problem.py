@@ -15,14 +15,14 @@ from cvxpy.reductions.solvers.solving_chain import (SolvingChain,
 from cvxpylayers.torch import CvxpyLayer
 from sklearn.model_selection import train_test_split
 
-from lro.remove_uncertain.remove_uncertain import RemoveUncertainParameters
-from lro.settings import EPS_LST_DEFAULT, OPTIMIZERS
-from lro.uncertain import UncertainParameter
-from lro.uncertain_canon.separate_uncertain_params import \
+from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
+from lropt.settings import EPS_LST_DEFAULT, OPTIMIZERS
+from lropt.uncertain import UncertainParameter
+from lropt.uncertain_canon.separate_uncertain_params import \
     Separate_Uncertain_Params
-from lro.uncertain_canon.uncertain_chain import UncertainChain
-from lro.uncertainty_sets.mro import MRO
-from lro.utils import unique_list
+from lropt.uncertain_canon.uncertain_chain import UncertainChain
+from lropt.uncertainty_sets.mro import MRO
+from lropt.utils import unique_list
 
 
 class RobustProblem(Problem):
@@ -65,7 +65,8 @@ class RobustProblem(Problem):
     def _construct_chain(
         self, solver: Optional[str] = None, gp: bool = False,
         enforce_dpp: bool = True, ignore_dpp: bool = False,
-        solver_opts: Optional[dict] = None
+        solver_opts: Optional[dict] = None,
+        canon_backend: str | None = None,
     ) -> SolvingChain:
         """
         Construct the chains required to reformulate and solve the problem.
@@ -85,6 +86,11 @@ class RobustProblem(Problem):
         ignore_dpp : bool, optional
             When True, DPP problems will be treated as non-DPP,
             which may speed up compilation. Defaults to False.
+        canon_backend : str, optional
+            'CPP' (default) | 'SCIPY'
+            Specifies which backend to use for canonicalization, which can affect
+            compilation time. Defaults to None, i.e., selecting the default
+            backend.
         solver_opts: dict, optional
             Additional arguments to pass to the solver.
         Returns
@@ -99,8 +105,7 @@ class RobustProblem(Problem):
         solving_chain = construct_solving_chain(self, candidate_solvers, gp=gp,
                                                 enforce_dpp=enforce_dpp,
                                                 ignore_dpp=ignore_dpp,
-                                                # Comment this for now. Useful
-                                                # in next cvxpy release
+                                                canon_backend=canon_backend,
                                                 solver_opts=solver_opts
                                                 )
         #
@@ -260,7 +265,7 @@ class RobustProblem(Problem):
                     opt = OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
                     # opt = OPTIMIZERS[optimizer](variables, lr=lr)
                     if scheduler:
-                        scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=5)
+                        scheduler_ = torch.optim.lr_scheduler.ReduceLRonPlateau(opt, patience=5)
 
                     paramlst = prob.parameters()
                     newlst = []
@@ -383,7 +388,7 @@ class RobustProblem(Problem):
                     # opt = OPTIMIZERS[optimizer](variables, lr=lr)
                     # opt = torch.optim.SGD(variables, lr=lr, momentum=.8)
                     if scheduler:
-                        scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=5)
+                        scheduler_ = torch.optim.lr_scheduler.ReduceLRonPlateau(opt, patience=5)
                     # assign parameter values
                     paramlst = prob.parameters()
                     newlst = []

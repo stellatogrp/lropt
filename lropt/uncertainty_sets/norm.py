@@ -1,7 +1,7 @@
 import numpy as np
 from cvxpy import Parameter, Variable, norm
 
-from lro.uncertainty_sets.uncertainty_set import UncertaintySet
+from lropt.uncertainty_sets.uncertainty_set import UncertaintySet
 
 
 class Norm(UncertaintySet):

@@ -1,6 +1,6 @@
-from lro.remove_uncertain.atom_canonicalizers import \
+from lropt.remove_uncertain.atom_canonicalizers import \
     CANON_METHODS as remove_uncertain_methods
-from lro.uncertain_canon.uncertain_canonicalization import \
+from lropt.uncertain_canon.uncertain_canonicalization import \
     Uncertain_Canonicalization
 
 

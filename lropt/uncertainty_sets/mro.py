@@ -3,9 +3,9 @@ import scipy as sc
 from cvxpy import Parameter, Variable, norm
 from sklearn.cluster import KMeans
 
-from lro.uncertainty_sets.uncertainty_set import UncertaintySet
+from lropt.uncertainty_sets.uncertainty_set import UncertaintySet
 
-# from lro.utils import check_affine_transform
+# from lropt.utils import check_affine_transform
 
 
 class MRO(UncertaintySet):

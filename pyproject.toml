@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lro"
+name = "lropt"
 description="A package for decision-making under uncertainty, using data."
 readme = "README.md"
 license = {text = "Apache 2.0"}

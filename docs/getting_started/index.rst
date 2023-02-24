@@ -5,11 +5,11 @@ Getting started
 Installation
 ------------
 
-You can install :code:`lro` with
+You can install :code:`lropt` with
 
 .. code:: bash
 
-   pip install lro
+   pip install lropt
 
 
 .. toctree::

@@ -5,10 +5,10 @@ from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
 from cvxpy.reductions.solution import Solution
 
-from lro.uncertain import UncertainParameter
-from lro.uncertain_canon.separate_uncertainty import \
+from lropt.uncertain import UncertainParameter
+from lropt.uncertain_canon.separate_uncertainty import \
     SEPARATION_METHODS as sep_methods
-from lro.utils import unique_list
+from lropt.utils import unique_list
 
 
 class Separate_Uncertain_Params(Reduction):
@@ -42,7 +42,7 @@ class Separate_Uncertain_Params(Reduction):
 
                 for unc_function in unc_lst:
                     param_lst = self.get_unq_uncertain_param(unc_function)
-                    # assert len(param_lst) == 1, "two different parameters multiplied violates lro ruleset"
+                    # assert len(param_lst) == 1, "two different parameters multiplied violates lropt ruleset"
                     unc_param = param_lst[0]
 
                     unc_dict[unc_param] += unc_function
