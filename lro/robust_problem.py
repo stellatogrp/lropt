@@ -303,6 +303,7 @@ class RobustProblem(Problem):
                              "Test_val": obj2.item(),
                              "Violations": violations2.item(),
                              "Violation_val": var_vio.item(),
+                             "Violation_train": cvar_update.item(),
                              "A_norm": np.linalg.norm(paramT_tch.detach().numpy().copy()),
                              "mu": mu,
                              "lam": lam,
@@ -439,6 +440,7 @@ class RobustProblem(Problem):
                              "Opt_val": obj.item(),
                              "Violations": violations2.item(),
                              "Violation_val": var_vio.item(),
+                             "Violation_train": cvar_update.item(),
                              "Test_val": obj2.item(),
                              "A_norm": np.mean(1/eps_tch.detach().numpy().copy()),
                              "Eps_vals": 1/eps_tch.detach().numpy().copy(),
@@ -605,7 +607,8 @@ class RobustProblem(Problem):
                             paramT_tch = eps_tch1[0][0]*init
                         newlst[-1] = paramT_tch
                     var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
-                    temploss, obj, violations, _ = unc_set.loss(*var_values, torch.tensor(init_alpha), val_dset)
+                    temploss, obj, violations, cvar_update = unc_set.loss(
+                        *var_values, torch.tensor(init_alpha), val_dset)
                     evalloss, obj2, violations2, var_vio = unc_set.loss(*var_values, torch.tensor(init_alpha), eval_set)
                     if temploss <= minval:
                         minval = temploss
@@ -619,6 +622,7 @@ class RobustProblem(Problem):
                             "Test_val": obj2.item(),
                             "Violations": violations2.item(),
                             "Violation_val": var_vio.item(),
+                            "Violation_train": cvar_update.item(),
                             "Eps": 1/eps_tch1[0][0].detach().numpy().copy()
                          })
                     df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
