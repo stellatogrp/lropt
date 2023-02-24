@@ -472,7 +472,7 @@ div.rendered_html tbody tr:hover {
 <section id="Learning-Uncertainty-Sets">
 <h1>Learning Uncertainty Sets<a class="headerlink" href="#Learning-Uncertainty-Sets" title="Permalink to this heading">#</a></h1>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[74]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
@@ -493,15 +493,17 @@ div.rendered_html tbody tr:hover {
     <span class="s2">&quot;font.family&quot;</span><span class="p">:</span> <span class="s2">&quot;serif&quot;</span>
 <span class="p">})</span>
 <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:green&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span>
-          <span class="s2">&quot;blue&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:purple&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:brown&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:pink&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:grey&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:olive&quot;</span><span class="p">]</span>
+          <span class="s2">&quot;blue&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:purple&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:brown&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:pink&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:grey&quot;</span><span class="p">,</span> <span class="s2">&quot;red&quot;</span><span class="p">]</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[75]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">pareto_frontier</span><span class="p">(</span><span class="n">Xs</span><span class="p">,</span> <span class="n">Ys</span><span class="p">,</span> <span class="n">maxX</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">maxY</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="n">Xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Xs</span><span class="p">)</span>
+    <span class="n">Ys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Ys</span><span class="p">)</span>
 <span class="c1"># Sort the list in either ascending or descending order of X</span>
     <span class="n">myList</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([[</span><span class="n">Xs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">Ys</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Xs</span><span class="p">))],</span> <span class="n">reverse</span><span class="o">=</span><span class="n">maxX</span><span class="p">)</span>
 <span class="c1"># Start the Pareto frontier with the first value in the sorted list</span>
@@ -539,7 +541,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>where <span class="math notranslate nohighlight">\(\theta\)</span> encodes the training parameters <span class="math notranslate nohighlight">\((A,b)\)</span>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[76]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Formulate constants</span>
@@ -552,42 +554,6 @@ div.rendered_html tbody tr:hover {
 <span class="n">k_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
 <span class="n">p_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
 
-<span class="n">k1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">3.</span><span class="p">,</span><span class="mf">2.</span><span class="p">])</span>
-<span class="n">p1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">4.</span><span class="p">,</span><span class="mf">1.5</span><span class="p">])</span>
-<span class="n">k1_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">k1</span><span class="p">,</span> <span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
-<span class="n">p1_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
-
-<span class="n">b</span> <span class="o">=</span> <span class="n">npr</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
-<span class="n">b_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
-<span class="c1"># Formulate loss function</span>
-<span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">data</span><span class="p">,</span><span class="n">l</span> <span class="o">=</span> <span class="mi">5</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">t</span> <span class="o">+</span><span class="n">y</span> <span class="o">+</span> <span class="n">l</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="nd">@p_tch</span><span class="p">,</span> <span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span> <span class="n">p_tch</span><span class="nd">@x</span><span class="p">)</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)))</span><span class="o">+</span> <span class="n">l</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k1_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="nd">@k1_tch</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">))</span> <span class="o">-</span> <span class="n">y</span><span class="p">,</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))),</span> <span class="n">t</span><span class="o">+</span><span class="n">y</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((((</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="nd">@p_tch</span><span class="p">,</span> <span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span> <span class="n">p_tch</span><span class="nd">@x</span><span class="p">)</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.001</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">+</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k1_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="nd">@k1_tch</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">))</span> <span class="o">-</span> <span class="n">y</span><span class="p">,</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.001</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">())</span><span class="o">&gt;=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">())</span>
-<span class="c1">#+ torch.maximum(k_tch@(x - b_tch),torch.tensor(0.))</span>
-
-<span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">data</span><span class="p">,</span><span class="n">l</span> <span class="o">=</span> <span class="mi">5</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">t</span> <span class="o">+</span> <span class="n">l</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span> <span class="n">data</span><span class="nd">@k_tch</span> <span class="o">+</span> <span class="n">k1_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="o">@</span><span class="p">(</span><span class="n">k_tch</span> <span class="o">+</span> <span class="n">k1_tch</span><span class="p">),</span> <span class="n">data</span><span class="nd">@k_tch</span> <span class="o">+</span> <span class="n">k1_tch</span><span class="nd">@x</span> <span class="o">-</span> <span class="n">x</span><span class="o">@</span><span class="p">(</span><span class="n">k_tch</span> <span class="o">+</span> <span class="n">k1_tch</span><span class="p">))</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))),</span> <span class="n">t</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">data</span><span class="nd">@k_tch</span> <span class="o">+</span> <span class="n">k1_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="o">@</span><span class="p">(</span><span class="n">k_tch</span> <span class="o">+</span> <span class="n">k1_tch</span><span class="p">),</span> <span class="n">data</span><span class="nd">@k_tch</span> <span class="o">+</span> <span class="n">k1_tch</span><span class="nd">@x</span> <span class="o">-</span> <span class="n">x</span><span class="o">@</span><span class="p">(</span><span class="n">k_tch</span> <span class="o">+</span> <span class="n">k1_tch</span><span class="p">))</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.001</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">())</span>
-<span class="c1">#+ torch.maximum(k_tch@(x - b_tch),torch.tensor(0.))</span>
-
-<span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">data</span><span class="p">,</span><span class="n">l</span> <span class="o">=</span> <span class="mi">5</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">t</span> <span class="o">+</span> <span class="n">l</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span> <span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="o">@</span><span class="p">(</span><span class="n">p_tch</span><span class="p">),</span> <span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span> <span class="n">x</span><span class="o">@</span><span class="p">(</span><span class="n">p_tch</span><span class="p">))</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))),</span> <span class="n">t</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="o">@</span><span class="p">(</span><span class="n">p_tch</span><span class="p">),</span> <span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span> <span class="n">x</span><span class="o">@</span><span class="p">(</span><span class="n">p_tch</span><span class="p">))</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.001</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">())</span>
-<span class="c1">#+ torch.maximum(k_tch@(x - b_tch),torch.tensor(0.))</span>
-
 <span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">alpha</span><span class="p">,</span><span class="n">data</span><span class="p">,</span> <span class="n">mu</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">l</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">quantile</span> <span class="o">=</span> <span class="mf">0.95</span><span class="p">,</span><span class="n">target</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">):</span>
     <span class="n">sums</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span> <span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="o">@</span><span class="p">(</span><span class="n">p_tch</span><span class="p">),</span> <span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span> <span class="n">x</span><span class="o">@</span><span class="p">(</span><span class="n">p_tch</span><span class="p">))</span> <span class="o">-</span> <span class="n">t</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">,</span>
@@ -596,7 +562,6 @@ div.rendered_html tbody tr:hover {
     <span class="k">return</span> <span class="n">t</span> <span class="o">+</span> <span class="n">l</span><span class="o">*</span><span class="p">(</span><span class="n">sums</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">mu</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">sums</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="o">@</span><span class="p">(</span><span class="n">p_tch</span><span class="p">),</span> <span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span> <span class="n">x</span><span class="o">@</span><span class="p">(</span><span class="n">p_tch</span><span class="p">))</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.001</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()),</span> <span class="n">sums</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-
 
 <span class="k">def</span> <span class="nf">gen_demand</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
     <span class="n">F</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
@@ -607,14 +572,14 @@ div.rendered_html tbody tr:hover {
     <span class="k">return</span> <span class="n">d_train</span>
 
 <span class="c1"># Generate data</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">gen_demand</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">N</span><span class="p">)</span>
+<span class="c1"># data = gen_demand(n,N)</span>
 <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;data4.npy&quot;</span><span class="p">)</span>
 <span class="c1"># np.save(&quot;data4.npy&quot;, data)</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[77]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># data = gen_demand(n,N)</span>
@@ -670,26 +635,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">A_fin</span><span class="p">,</span> <span class="n">b_fin</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-(array([[ 1.07063027, -0.12409226],
-        [ 0.42854979,  1.59071613]]),
- array([-1.56686479, -4.33028127]))
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[78]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">eps_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
@@ -733,11 +679,11 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_7_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_7_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_6_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_6_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[79]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">eps_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
@@ -781,11 +727,11 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_8_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_8_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_7_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_7_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[80]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Plot results</span>
@@ -816,11 +762,11 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_9_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_9_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_8_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_8_0.png" />
 </div>
 </div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[81]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">x_opt_base</span> <span class="o">=</span> <span class="p">{}</span>
@@ -879,56 +825,12 @@ div.rendered_html tbody tr:hover {
     <span class="n">t_learned</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">value</span>
     <span class="n">x_opt_learned</span><span class="p">,</span><span class="n">x_opt_base</span><span class="p">,</span><span class="n">t_learned</span><span class="p">,</span> <span class="n">t_base</span>
     <span class="c1"># A_fin, init, b_fin, init_bval</span>
-<span class="n">x_opt_learned</span><span class="p">,</span><span class="n">x_opt_base</span><span class="p">,</span><span class="n">t_learned</span><span class="p">,</span> <span class="n">t_base</span>
-<br/></pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<span class="c1"># x_opt_learned,x_opt_base,t_learned, t_base</span>
 </pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-({0: array([6.14179444e-11, 5.53206650e+00]),
-  1: array([3.21249482e-10, 3.60838895e+00]),
-  2: array([1.70741754e-10, 2.78395571e+00]),
-  3: array([1.90796160e-09, 1.95952247e+00])},
- {0: array([1.40162056e-09, 8.07597689e+00]),
-  1: array([8.32933972e-10, 5.26769983e+00]),
-  2: array([3.71697362e-10, 4.06415252e+00]),
-  3: array([3.74900857e-10, 2.86060521e+00])},
- {0: array(-0.23649591),
-  1: array(-0.15425867),
-  2: array(-0.11901414),
-  3: array(-0.08376961)},
- {0: array(8.67607338),
-  1: array(5.65912346),
-  2: array(4.36614492),
-  3: array(3.07316638)})
-</pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">A_fin</span><span class="p">,</span> <span class="n">b_fin</span>
-<span class="n">result3</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">result3</span><span class="o">.</span><span class="n">b</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-(array([[0.34802978, 0.22183809],
-        [0.22183809, 2.28620322]]),
- array([-1.89004551, -5.64576754]))
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[86]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">fmt</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
@@ -983,50 +885,33 @@ div.rendered_html tbody tr:hover {
             <span class="k">for</span> <span class="n">k_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
                 <span class="n">init_set</span><span class="p">[</span><span class="n">ind</span><span class="p">][</span><span class="n">k_ind</span><span class="p">][</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">((</span><span class="mi">1</span><span class="o">/</span><span class="n">eps_list</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="n">ind</span><span class="p">]])</span><span class="o">*</span><span class="n">result3</span><span class="o">.</span><span class="n">A</span><span class="p">[</span><span class="n">k_ind</span><span class="o">*</span><span class="n">n</span><span class="p">:(</span><span class="n">k_ind</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">n</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">n</span><span class="p">]</span><span class="o">@</span> <span class="n">u_vec</span>  <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">eps_list</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="n">ind</span><span class="p">]])</span><span class="o">*</span><span class="n">result3</span><span class="o">.</span><span class="n">b</span><span class="p">)</span>
             <span class="c1"># init_set[i,j] = np.linalg.norm(init@ u_vec - init@np.mean(data, axis = 0))</span>
-            <span class="n">g_level_learned</span><span class="p">[</span><span class="n">ind</span><span class="p">][</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k</span> <span class="o">@</span> <span class="n">x_opt_learned</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">-</span> <span class="n">p</span> <span class="o">@</span> <span class="n">x_opt_learned</span><span class="p">[</span><span class="n">ind</span><span class="p">],</span> <span class="n">k</span> <span class="o">@</span> <span class="n">x_opt_learned</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">-</span> <span class="n">p</span> <span class="o">@</span> <span class="n">u_vec</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k1</span> <span class="o">@</span> <span class="p">(</span><span class="n">x_opt_learned</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="o">-</span><span class="n">u_vec</span><span class="p">),</span><span class="mi">0</span><span class="p">)</span>
-            <span class="n">g_level_base</span><span class="p">[</span><span class="n">ind</span><span class="p">][</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k</span> <span class="o">@</span> <span class="n">x_opt_base</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">-</span> <span class="n">p</span> <span class="o">@</span> <span class="n">x_opt_base</span><span class="p">[</span><span class="n">ind</span><span class="p">],</span> <span class="n">k</span> <span class="o">@</span> <span class="n">x_opt_base</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">-</span> <span class="n">p</span> <span class="o">@</span> <span class="n">u_vec</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k1</span> <span class="o">@</span> <span class="p">(</span><span class="n">x_opt_base</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="o">-</span><span class="n">u_vec</span><span class="p">),</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">g_level_learned</span><span class="p">[</span><span class="n">ind</span><span class="p">][</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k</span> <span class="o">@</span> <span class="n">x_opt_learned</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">-</span> <span class="n">p</span> <span class="o">@</span> <span class="n">x_opt_learned</span><span class="p">[</span><span class="n">ind</span><span class="p">],</span> <span class="n">k</span> <span class="o">@</span> <span class="n">x_opt_learned</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">-</span> <span class="n">p</span> <span class="o">@</span> <span class="n">u_vec</span><span class="p">)</span>
+            <span class="n">g_level_base</span><span class="p">[</span><span class="n">ind</span><span class="p">][</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k</span> <span class="o">@</span> <span class="n">x_opt_base</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">-</span> <span class="n">p</span> <span class="o">@</span> <span class="n">x_opt_base</span><span class="p">[</span><span class="n">ind</span><span class="p">],</span> <span class="n">k</span> <span class="o">@</span> <span class="n">x_opt_base</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">-</span> <span class="n">p</span> <span class="o">@</span> <span class="n">u_vec</span><span class="p">)</span>
 
 
 <span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">,</span> <span class="n">ax3</span><span class="p">,</span> <span class="n">ax4</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">),</span> <span class="n">constrained_layout</span><span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
 
 <span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\epsilon$ = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">eps_list</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span><span class="mi">2</span><span class="p">)))</span>
-<span class="c1"># Set x axis label for the contour plot</span>
 <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_1$&quot;</span><span class="p">)</span>
-<span class="c1"># Set y axis label for the contour plot</span>
-<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
 <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_2$&quot;</span><span class="p">)</span>
-<span class="c1"># plt.ylim(-20,40)</span>
-<span class="c1"># plt.xlim(-20,40)</span>
-<span class="c1"># for k_ind in range(K):</span>
-<span class="c1">#     ax1.contour(x,y,fin_set[k_ind], [1], colors = [&quot;tab:orange&quot;])</span>
 <span class="k">for</span> <span class="n">k_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
-    <span class="n">ax1</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">init_set</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
-<span class="c1"># for k_ind in range(K):</span>
-<span class="c1">#     ax1.contour(x,y,fin_set[0][k_ind], [1], colors = [&quot;tab:orange&quot;])</span>
-<span class="n">a1</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_base</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">)</span>
-<span class="c1"># ax1.contourf(x,y,g_level_base1,alpha = 0.5)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">init_set</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">],</span><span class="n">linewidths</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_base</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">)</span>
 
 <span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span> <span class="p">,</span><span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
-<span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">])</span>
 <span class="n">aa</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a1</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">ax1</span><span class="p">)</span>
 
 <span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\epsilon$ = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">eps_list</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span><span class="mi">2</span><span class="p">)))</span>
-<span class="c1"># Set x axis label for the contour plot</span>
 <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_1$&quot;</span><span class="p">)</span>
-<span class="c1"># Set y axis label for the contour plot</span>
 <span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
 <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_2$&quot;</span><span class="p">)</span>
-<span class="c1"># plt.ylim(-20,40)</span>
-<span class="c1"># plt.xlim(-20,40)</span>
 <span class="k">for</span> <span class="n">k_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
-    <span class="n">ax2</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">init_set</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
-<span class="c1"># for k_ind in range(K):</span>
-<span class="c1">#     ax1.contour(x,y,init_set[k_ind], [1], colors = [&quot;tab:blue&quot;])</span>
-<span class="n">a2</span> <span class="o">=</span> <span class="n">ax2</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_base</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">)</span>
-<span class="c1"># ax2.contourf(x,y,g_level_learned1,alpha = 0.5)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">init_set</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">],</span><span class="n">linewidths</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">ax2</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_base</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">)</span>
 
 <span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
-<span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">])</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a2</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">ax2</span><span class="p">,</span> <span class="n">boundaries</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
 
 
@@ -1034,40 +919,27 @@ div.rendered_html tbody tr:hover {
 <span class="c1"># Set x axis label for the contour plot</span>
 <span class="n">ax3</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_1$&quot;</span><span class="p">)</span>
 <span class="c1"># Set y axis label for the contour plot</span>
-<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
 <span class="n">ax3</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_2$&quot;</span><span class="p">)</span>
-<span class="c1"># plt.ylim(-20,40)</span>
-<span class="c1"># plt.xlim(-20,40)</span>
 <span class="k">for</span> <span class="n">k_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
-    <span class="n">ax3</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">init_set</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
-<span class="c1"># for k_ind in range(K):</span>
-<span class="c1">#     ax1.contour(x,y,init_set[k_ind], [1], colors = [&quot;tab:blue&quot;])</span>
-<span class="n">a3</span> <span class="o">=</span> <span class="n">ax3</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_base</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">)</span>
-<span class="c1"># ax2.contourf(x,y,g_level_learned1,alpha = 0.5)</span>
+    <span class="n">ax3</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">init_set</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">],</span><span class="n">linewidths</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="n">a3</span> <span class="o">=</span> <span class="n">ax3</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_base</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">)</span>
 
 <span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span><span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
-<span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">])</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a3</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">ax3</span><span class="p">,</span> <span class="n">boundaries</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
 
 <span class="n">ax4</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\epsilon$ = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">eps_list</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="mi">3</span><span class="p">]],</span><span class="mi">2</span><span class="p">)))</span>
-<span class="c1"># Set x axis label for the contour plot</span>
 <span class="n">ax4</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_1$&quot;</span><span class="p">)</span>
-<span class="c1"># Set y axis label for the contour plot</span>
-<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
 <span class="n">ax4</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_2$&quot;</span><span class="p">)</span>
-<span class="c1"># plt.ylim(-20,40)</span>
-<span class="c1"># plt.xlim(-20,40)</span>
+
 <span class="k">for</span> <span class="n">k_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
-    <span class="n">ax4</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">init_set</span><span class="p">[</span><span class="mi">3</span><span class="p">][</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
-<span class="c1"># for k_ind in range(K):</span>
-<span class="c1">#     ax1.contour(x,y,init_set[k_ind], [1], colors = [&quot;tab:blue&quot;])</span>
-<span class="n">a4</span> <span class="o">=</span> <span class="n">ax4</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_base</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">)</span>
-<span class="c1"># ax2.contourf(x,y,g_level_learned1,alpha = 0.5)</span>
+    <span class="n">ax4</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">init_set</span><span class="p">[</span><span class="mi">3</span><span class="p">][</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">],</span><span class="n">linewidths</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="n">a4</span> <span class="o">=</span> <span class="n">ax4</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_base</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">)</span>
 
 <span class="n">ax4</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span><span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
-<span class="n">ax4</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">])</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a4</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">ax4</span><span class="p">,</span> <span class="n">boundaries</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
-<span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Standard set&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Standard set&quot;</span><span class="p">,</span> <span class="n">fontsize</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span>
 
 <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;Reshaped1_1.pdf&quot;</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
 <br/></pre></div>
@@ -1085,94 +957,60 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_12_1.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_12_1.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_10_1.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_10_1.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[87]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">,</span> <span class="n">ax3</span><span class="p">,</span> <span class="n">ax4</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">),</span> <span class="n">constrained_layout</span><span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
 
 <span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\epsilon$ = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">eps_list</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span><span class="mi">2</span><span class="p">)))</span>
-<span class="c1"># Set x axis label for the contour plot</span>
 <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_1$&quot;</span><span class="p">)</span>
-<span class="c1"># Set y axis label for the contour plot</span>
-<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
 <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_2$&quot;</span><span class="p">)</span>
-<span class="c1"># plt.ylim(-20,40)</span>
-<span class="c1"># plt.xlim(-20,40)</span>
-<span class="c1"># for k_ind in range(K):</span>
-<span class="c1">#     ax1.contour(x,y,fin_set[k_ind], [1], colors = [&quot;tab:orange&quot;])</span>
 <span class="k">for</span> <span class="n">k_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
-    <span class="n">ax1</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">fin_set</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">])</span>
-
-<span class="n">a1</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_learned</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">)</span>
-<span class="c1"># ax1.contourf(x,y,g_level_base1,alpha = 0.5)</span>
-
+    <span class="n">ax1</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">fin_set</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">],</span><span class="n">linewidths</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_learned</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">)</span>
 <span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span><span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
-<span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">])</span>
 <span class="n">aa</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a1</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">ax1</span><span class="p">)</span>
 
 <span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\epsilon$ = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">eps_list</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span><span class="mi">2</span><span class="p">)))</span>
-<span class="c1"># Set x axis label for the contour plot</span>
 <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_1$&quot;</span><span class="p">)</span>
-<span class="c1"># Set y axis label for the contour plot</span>
-<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
 <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_2$&quot;</span><span class="p">)</span>
-<span class="c1"># plt.ylim(-20,40)</span>
-<span class="c1"># plt.xlim(-20,40)</span>
 <span class="k">for</span> <span class="n">k_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
-    <span class="n">ax2</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">fin_set</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">])</span>
-<span class="c1"># for k_ind in range(K):</span>
-<span class="c1">#     ax1.contour(x,y,init_set[k_ind], [1], colors = [&quot;tab:blue&quot;])</span>
-<span class="n">a2</span> <span class="o">=</span> <span class="n">ax2</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_learned</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">)</span>
-<span class="c1"># ax2.contourf(x,y,g_level_learned1,alpha = 0.5)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">fin_set</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">],</span><span class="n">linewidths</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">ax2</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_learned</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">)</span>
 
 <span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span><span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
-<span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">])</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a2</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">ax2</span><span class="p">,</span> <span class="n">boundaries</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
 
 
 <span class="n">ax3</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\epsilon$ = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">eps_list</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="mi">2</span><span class="p">]],</span><span class="mi">2</span><span class="p">)))</span>
-<span class="c1"># Set x axis label for the contour plot</span>
 <span class="n">ax3</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_1$&quot;</span><span class="p">)</span>
-<span class="c1"># Set y axis label for the contour plot</span>
 <span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
 <span class="n">ax3</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_2$&quot;</span><span class="p">)</span>
-<span class="c1"># plt.ylim(-20,40)</span>
-<span class="c1"># plt.xlim(-20,40)</span>
 <span class="k">for</span> <span class="n">k_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
-    <span class="n">ax3</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">fin_set</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">])</span>
-<span class="c1"># for k_ind in range(K):</span>
-<span class="c1">#     ax1.contour(x,y,init_set[k_ind], [1], colors = [&quot;tab:blue&quot;])</span>
-<span class="n">a3</span> <span class="o">=</span> <span class="n">ax3</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_learned</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">)</span>
-<span class="c1"># ax2.contourf(x,y,g_level_learned1,alpha = 0.5)</span>
+    <span class="n">ax3</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">fin_set</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">],</span><span class="n">linewidths</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="n">a3</span> <span class="o">=</span> <span class="n">ax3</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_learned</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">)</span>
 
 <span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span><span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
-<span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">])</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a3</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">ax3</span><span class="p">,</span> <span class="n">boundaries</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
 
 <span class="n">ax4</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\epsilon$ = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">eps_list</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="mi">3</span><span class="p">]],</span><span class="mi">2</span><span class="p">)))</span>
-<span class="c1"># Set x axis label for the contour plot</span>
 <span class="n">ax4</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_1$&quot;</span><span class="p">)</span>
-<span class="c1"># Set y axis label for the contour plot</span>
-<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
 <span class="n">ax4</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$u_2$&quot;</span><span class="p">)</span>
-<span class="c1"># plt.ylim(-20,40)</span>
-<span class="c1"># plt.xlim(-20,40)</span>
 <span class="k">for</span> <span class="n">k_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
-    <span class="n">ax4</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">fin_set</span><span class="p">[</span><span class="mi">3</span><span class="p">][</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">])</span>
-<span class="c1"># for k_ind in range(K):</span>
-<span class="c1">#     ax1.contour(x,y,init_set[k_ind], [1], colors = [&quot;tab:blue&quot;])</span>
-<span class="n">a4</span> <span class="o">=</span> <span class="n">ax4</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_learned</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">)</span>
-<span class="c1"># ax2.contourf(x,y,g_level_learned1,alpha = 0.5)</span>
+    <span class="n">ax4</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">fin_set</span><span class="p">[</span><span class="mi">3</span><span class="p">][</span><span class="n">k_ind</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">],</span><span class="n">linewidths</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="n">a4</span> <span class="o">=</span> <span class="n">ax4</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">g_level_learned</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span><span class="n">extend</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">)</span>
 
 <span class="n">ax4</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span><span class="n">edgecolors</span><span class="o">=</span> <span class="s2">&quot;black&quot;</span><span class="p">)</span>
-<span class="n">ax4</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tab:olive&quot;</span><span class="p">])</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">])</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a4</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">ax4</span><span class="p">,</span> <span class="n">boundaries</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
-<span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Reshaped set&quot;</span><span class="p">)</span>
-
+<span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Reshaped set&quot;</span><span class="p">,</span> <span class="n">fontsize</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span>
 
 <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;Reshaped2_1.pdf&quot;</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
 <br/></pre></div>
@@ -1182,7 +1020,214 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_13_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_13_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_11_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_11_0.png" />
+</div>
+</div>
+</section>
+<section id="Larger-Newsvendor">
+<h2>Larger Newsvendor<a class="headerlink" href="#Larger-Newsvendor" title="Permalink to this heading">#</a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[67]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Formulate constants</span>
+<span class="n">n</span> <span class="o">=</span> <span class="mi">15</span>
+<span class="n">N</span> <span class="o">=</span> <span class="mi">300</span>
+<span class="n">k</span> <span class="o">=</span> <span class="n">npr</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="n">n</span><span class="p">)</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">k</span> <span class="o">+</span> <span class="n">npr</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">n</span><span class="p">)</span>
+<span class="n">k1</span> <span class="o">=</span> <span class="n">npr</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">n</span><span class="p">)</span>
+<span class="n">p1</span> <span class="o">=</span> <span class="n">k1</span> <span class="o">+</span> <span class="n">npr</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">n</span><span class="p">)</span>
+<span class="c1"># k = np.array([4.,5.])</span>
+<span class="c1"># p = np.array([5,6.5])</span>
+<span class="n">k_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="n">p_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="n">k1_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">k1</span><span class="p">,</span> <span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="n">p1_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">alpha</span><span class="p">,</span><span class="n">data</span><span class="p">,</span> <span class="n">mu</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">l</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">quantile</span> <span class="o">=</span> <span class="mf">0.95</span><span class="p">,</span><span class="n">target</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">):</span>
+    <span class="n">sums</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span> <span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="o">@</span><span class="p">(</span><span class="n">p_tch</span><span class="p">),</span> <span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span> <span class="n">x</span><span class="o">@</span><span class="p">(</span><span class="n">p_tch</span><span class="p">))</span> <span class="o">-</span> <span class="n">t</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)))</span>
+    <span class="n">sums</span> <span class="o">=</span> <span class="n">sums</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">quantile</span><span class="p">)</span> <span class="o">+</span> <span class="n">alpha</span>
+    <span class="k">return</span> <span class="n">t</span> <span class="o">+</span> <span class="n">l</span><span class="o">*</span><span class="p">(</span><span class="n">sums</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">mu</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">sums</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="o">@</span><span class="p">(</span><span class="n">p_tch</span><span class="p">),</span> <span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span> <span class="n">x</span><span class="o">@</span><span class="p">(</span><span class="n">p_tch</span><span class="p">))</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.001</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()),</span> <span class="n">sums</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">x</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">mu</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">l</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">quantile</span> <span class="o">=</span> <span class="mf">0.95</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">):</span>
+    <span class="n">sums</span> <span class="o">=</span>  <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="nd">@p_tch</span><span class="p">,</span> <span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span> <span class="n">p_tch</span><span class="nd">@x</span><span class="p">)</span> <span class="o">-</span> <span class="n">t</span><span class="o">-</span><span class="n">alpha</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)))</span><span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k1_tch</span><span class="nd">@x1</span> <span class="o">-</span><span class="n">data</span><span class="nd">@p1_tch</span><span class="p">,</span> <span class="n">k1_tch</span><span class="nd">@x1</span> <span class="o">-</span> <span class="n">p1_tch</span><span class="nd">@x</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="o">-</span><span class="n">alpha</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)))</span>
+    <span class="n">sums</span> <span class="o">=</span> <span class="n">sums</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">quantile</span><span class="p">))</span> <span class="o">+</span> <span class="n">alpha</span>
+    <span class="k">return</span> <span class="n">t</span> <span class="o">+</span><span class="n">y</span> <span class="o">+</span> <span class="n">l</span><span class="o">*</span><span class="p">(</span><span class="n">sums</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">mu</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">sums</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">t</span><span class="o">+</span><span class="n">y</span><span class="p">,</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="nd">@p_tch</span><span class="p">,</span> <span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span> <span class="n">p_tch</span><span class="nd">@x</span><span class="p">)</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.001</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">())</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k1_tch</span><span class="nd">@x1</span> <span class="o">-</span><span class="n">data</span><span class="nd">@p1_tch</span><span class="p">,</span> <span class="n">k1_tch</span><span class="nd">@x1</span> <span class="o">-</span> <span class="n">p1_tch</span><span class="nd">@x</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.001</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()),</span> <span class="n">sums</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">gen_demand</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+    <span class="n">F</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="mf">0.1</span><span class="o">*</span><span class="n">F</span><span class="o">@</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mf">0.2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">norms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span><span class="n">sig</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
+    <span class="n">d_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">norms</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">d_train</span>
+
+<span class="c1"># Generate data</span>
+<span class="c1"># data = gen_demand(n,N)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;data5.npy&quot;</span><span class="p">)</span>
+<span class="c1"># np.save(&quot;data4.npy&quot;, data)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[71]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># data = gen_demand(n,N)</span>
+<span class="c1"># Formulate uncertainty set</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span>
+                        <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">lro</span><span class="o">.</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                                    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span><span class="p">))</span>
+<span class="c1"># Formulate the Robust Problem</span>
+<span class="n">x_r</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="n">x_1</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
+
+<span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">t</span><span class="o">+</span><span class="n">y</span><span class="p">)</span>
+
+<span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@x_r</span><span class="p">,</span> <span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@u</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">t</span><span class="p">]</span>
+<span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">p1</span><span class="nd">@x_1</span><span class="p">,</span> <span class="n">k1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">p1</span><span class="nd">@u</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">y</span><span class="p">]</span>
+
+<span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x_r</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x_r</span> <span class="o">&gt;=</span> <span class="n">x_1</span><span class="p">]</span>
+
+<span class="n">prob</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+<span class="n">target</span> <span class="o">=</span> <span class="mf">0.</span>
+<span class="n">s</span> <span class="o">=</span> <span class="mi">1</span>
+
+<span class="c1"># # Grid search epsilon</span>
+<span class="c1"># dfgrid, newprob = prob.grid(epslst = np.linspace(0.8, 2, 40), seed = s)</span>
+<span class="n">init</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">T</span><span class="p">)))</span>
+<span class="n">init_bval</span> <span class="o">=</span> <span class="o">-</span><span class="n">init</span><span class="nd">@np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="c1"># Train A and b</span>
+<span class="n">result1</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span> <span class="o">=</span> <span class="mf">0.00001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">fixb</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">init_mu</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">mu_multiplier</span> <span class="o">=</span> <span class="mf">1.01</span><span class="p">)</span>
+<span class="n">df1</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">df</span>
+<span class="n">A_fin</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">A</span>
+<span class="n">b_fin</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">b</span>
+
+<span class="c1"># result2 = prob.train(eps = True, lr = 0.001, step=500, momentum = 0.8, optimizer = &quot;SGD&quot;, seed = s, init_A = A_fin, init_b = b_fin, init_mu = 1, init_lam = 5, target_cvar = target, init_alpha = 0.)</span>
+<span class="c1"># df_r1 = result2.df</span>
+
+<span class="n">result3</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.00001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">init_mu</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>  <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span><span class="mf">0.</span><span class="p">,</span><span class="n">mu_multiplier</span> <span class="o">=</span> <span class="mf">1.01</span><span class="p">)</span>
+<span class="n">df_r2</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">df</span>
+
+<span class="c1"># Grid search epsilon</span>
+<span class="n">result4</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">)</span>
+<span class="n">dfgrid</span> <span class="o">=</span> <span class="n">result4</span><span class="o">.</span><span class="n">df</span>
+
+<span class="n">result5</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">A_fin</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">b_fin</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">)</span>
+<span class="n">dfgrid2</span> <span class="o">=</span> <span class="n">result5</span><span class="o">.</span><span class="n">df</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[72]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+    <span class="s2">&quot;text.usetex&quot;</span><span class="p">:</span><span class="kc">True</span><span class="p">,</span>
+
+    <span class="s2">&quot;font.size&quot;</span><span class="p">:</span><span class="mi">22</span><span class="p">,</span>
+    <span class="s2">&quot;font.family&quot;</span><span class="p">:</span> <span class="s2">&quot;serif&quot;</span>
+<span class="p">})</span>
+
+<span class="n">new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pareto_frontier</span><span class="p">(</span><span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">][:],</span><span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][:]))</span>
+<span class="n">orig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pareto_frontier</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Violations&#39;</span><span class="p">][</span><span class="mi">5</span><span class="p">:],</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][</span><span class="mi">5</span><span class="p">:]))</span>
+
+<span class="n">orig1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pareto_frontier</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">][</span><span class="mi">5</span><span class="p">:],</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][</span><span class="mi">5</span><span class="p">:]))</span>
+<span class="n">new1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pareto_frontier</span><span class="p">(</span><span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Violation_val&#39;</span><span class="p">][:],</span><span class="n">dfgrid2</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">][:]))</span>
+
+<span class="c1"># Plot results</span>
+<span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">orig</span><span class="p">[</span><span class="mi">0</span><span class="p">][:],</span> <span class="n">orig</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Standard set&quot;</span><span class="p">)</span>
+<span class="c1"># ax2.plot(df_r2[&#39;Violations&#39;][:], df_r2[&#39;Test_val&#39;][:], color=&quot;tab:blue&quot;, label=r&quot;Learning $\epsilon$&quot;)</span>
+<span class="c1"># ax2.plot(df1[&#39;Violations&#39;][3:13], df1[&#39;Test_val&#39;][3:13],color = &quot;tab:orange&quot;)</span>
+
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">new</span><span class="p">[</span><span class="mi">0</span><span class="p">][:],</span> <span class="n">new</span><span class="p">[</span><span class="mi">1</span><span class="p">][:],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Reshaped set&quot;</span><span class="p">)</span>
+<span class="c1"># ax2.legend()</span>
+<span class="c1"># ax2.set_ylim([-35.98,-35.8])</span>
+
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Probability of constraint violation&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Objective value&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">orig1</span><span class="p">[</span><span class="mi">0</span><span class="p">][:],</span> <span class="n">orig1</span><span class="p">[</span><span class="mi">1</span><span class="p">][:],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Standard set&quot;</span><span class="p">)</span>
+<span class="c1">#</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">new1</span><span class="p">[</span><span class="mi">0</span><span class="p">][:],</span><span class="n">new1</span><span class="p">[</span><span class="mi">1</span><span class="p">][:],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Reshaped set&quot;</span><span class="p">)</span>
+
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Empirical $\mathbf</span><span class="si">{CVaR}</span><span class="s2">$&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Objective value&quot;</span><span class="p">)</span>
+<span class="c1"># ax1.set_ylim([-35.98,-35.8])</span>
+
+<span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;News_tradeoff.pdf&quot;</span><span class="p">,</span><span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df1</span><span class="p">[</span><span class="s2">&quot;Violation_val&quot;</span><span class="p">][:],</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Out-of-sample empirical CVaR&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df1</span><span class="p">[</span><span class="s2">&quot;Violation_val&quot;</span><span class="p">][:],</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;In-sample empirical CVaR&quot;</span><span class="p">,</span><span class="n">linestyle</span> <span class="o">=</span> <span class="s2">&quot;--&quot;</span><span class="p">,)</span>
+<span class="c1"># ax1.set_ylabel(&quot;Empirical CVaR&quot;)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Iterations&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">hlines</span><span class="p">(</span><span class="n">xmin</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">xmax</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">linestyles</span> <span class="o">=</span> <span class="s2">&quot;--&quot;</span><span class="p">,</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Target threshold: 0&quot;</span><span class="p">)</span>
+<span class="c1"># ax1.set_ylim([-2,30])</span>
+
+<span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df1</span><span class="p">[</span><span class="s2">&quot;Test_val&quot;</span><span class="p">][:],</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Objective value&quot;</span><span class="p">)</span>
+<span class="c1"># ax2.set_ylabel(&quot;Objective Value (k)&quot;)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Iterations&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;News_iters.pdf&quot;</span><span class="p">,</span><span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_15_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_15_0.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_15_1.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_15_1.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[73]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># np.save(&quot;k.npy&quot;,k)</span>
+<span class="c1"># np.save(&quot;k1.npy&quot;,k1)</span>
+<span class="c1"># np.save(&quot;p.npy&quot;,p)</span>
+<span class="c1"># np.save(&quot;p1.npy&quot;,p1)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[49]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># df1.to_csv(&quot;df1_news&quot;)</span>
+<span class="c1"># df_r2.to_csv(&quot;df_r2_news&quot;)</span>
+<span class="c1"># dfgrid.to_csv(&quot;dfgrid_news&quot;)</span>
+<span class="c1"># dfgrid2.to_csv(&quot;dfgrid2_news&quot;)</span>
+</pre></div>
 </div>
 </div>
 </section>
@@ -1223,8 +1268,8 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <br/></pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[462]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[71]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="n">n</span> <span class="o">=</span> <span class="mi">10</span>
@@ -1296,6 +1341,25 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">AttributeError</span>                            Traceback (most recent call last)
+Cell <span class="ansi-green-fg">In [71], line 13</span>
+<span class="ansi-green-intense-fg ansi-bold">      9</span> K = 1
+<span class="ansi-green-intense-fg ansi-bold">     10</span> u = lro.UncertainParameter(m,
+<span class="ansi-green-intense-fg ansi-bold">     11</span>                                 uncertainty_set = lro.MRO(p=2, K = K,
+<span class="ansi-green-intense-fg ansi-bold">     12</span>                                                                   rho=1., data =data, loss =loss, uniqueA = True))
+<span class="ansi-green-fg">---&gt; 13</span> Astart = u.uncertainty_set._init_A
+<span class="ansi-green-intense-fg ansi-bold">     14</span> # formulate cvxpy variable
+<span class="ansi-green-intense-fg ansi-bold">     15</span> L = cp.Variable()
+
+<span class="ansi-red-fg">AttributeError</span>: &#39;MRO&#39; object has no attribute &#39;_init_A&#39;
+</pre></div></div>
+</div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[463]:
 </pre></div>
@@ -1327,7 +1391,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_17_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_17_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_21_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_21_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -1374,7 +1438,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_18_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_18_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_22_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_22_0.png" />
 </div>
 </div>
 <div class="nboutput docutils container">
@@ -1390,7 +1454,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_18_2.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_18_2.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_22_2.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_22_2.png" />
 </div>
 </div>
 <div class="nbinput nblast docutils container">
@@ -1510,7 +1574,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_20_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_20_0.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_24_0.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_24_0.png" />
 </div>
 </div>
 <div class="nboutput docutils container">
@@ -1526,7 +1590,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_20_2.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_20_2.png" />
+<img alt="../../_images/examples_experiments_tutorial_learning_copy_3_24_2.png" src="../../_images/examples_experiments_tutorial_learning_copy_3_24_2.png" />
 </div>
 </div>
 <div class="nbinput nblast docutils container">
@@ -1843,6 +1907,7 @@ text{subject to} &amp; -r^Ty^0 - r^TYu + (t+h)^Ts le L, quad forall uin mathcal{
             <ul>
 <li><a class="reference internal" href="#">Learning Uncertainty Sets</a><ul>
 <li><a class="reference internal" href="#Example-3:-Max-of-affine-uncertainty">Example 3: Max of affine uncertainty</a></li>
+<li><a class="reference internal" href="#Larger-Newsvendor">Larger Newsvendor</a></li>
 <li><a class="reference internal" href="#Example-4:-Affine-Adjustable-Robust-Optimization:-Inventory-management">Example 4: Affine Adjustable Robust Optimization: Inventory management</a></li>
 <li><a class="reference internal" href="#Example-4:-Affine-Adjustable-Robust-Optimization:-Hydro-power-plant">Example 4: Affine Adjustable Robust Optimization: Hydro power plant</a></li>
 </ul>

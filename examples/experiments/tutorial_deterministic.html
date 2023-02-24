@@ -526,32 +526,18 @@ div.rendered_html tbody tr:hover {
 </ul>
 </li>
 </ul>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Ellipsoidal uncertainty set example</span>
+<span class="n">m</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="n">m</span><span class="p">))</span>
 <span class="n">ellip_u</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">m</span><span class="p">,</span>
                                 <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">p</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
                                                                   <span class="n">rho</span><span class="o">=</span><span class="mf">2.</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)))</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In [2], line 2</span>
-<span class="ansi-green-intense-fg ansi-bold">      1</span> # Ellipsoidal uncertainty set example
-<span class="ansi-green-fg">----&gt; 2</span> ellip_u = lro.UncertainParameter(m,
-<span class="ansi-green-intense-fg ansi-bold">      3</span>                                 uncertainty_set = lro.Ellipsoidal(p = 2,
-<span class="ansi-green-intense-fg ansi-bold">      4</span>                                                                   rho=2., b = np.mean(data, axis = 0)))
-
-<span class="ansi-red-fg">NameError</span>: name &#39;m&#39; is not defined
-</pre></div></div>
 </div>
 </section>
 <section id="Mean-Robust-uncertainty:-\{-u-=-(v_1,\dots,v_K)-\mid-\sum_{k=1}-^K-w_k-\|-A_k(v_k---\bar{d}_k)-\|_p^{\text{power}}-\le-\rho-\}">
@@ -594,7 +580,7 @@ Cell <span class="ansi-green-fg">In [2], line 2</span>
 </li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># size of uncertain parameter</span>
@@ -627,8 +613,8 @@ Cell <span class="ansi-green-fg">In [2], line 2</span>
 </ul>
 </li>
 </ul>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Box uncertainty set example</span>
@@ -636,21 +622,6 @@ Cell <span class="ansi-green-fg">In [2], line 2</span>
                               <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lro</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">rho</span><span class="o">=</span><span class="mf">2.</span><span class="p">))</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In [1], line 2</span>
-<span class="ansi-green-intense-fg ansi-bold">      1</span> # Box uncertainty set example
-<span class="ansi-green-fg">----&gt; 2</span> box_u = lro.UncertainParameter(m,
-<span class="ansi-green-intense-fg ansi-bold">      3</span>                               uncertainty_set = lro.Box(rho=2.))
-
-<span class="ansi-red-fg">NameError</span>: name &#39;lro&#39; is not defined
-</pre></div></div>
 </div>
 </section>
 <section id="Budget-uncertainty:-\{u-\mid-\|-A_1u-+-b_1-\|_\infty-\leq-\rho_1,-\|-A_2u-+-b_2-\|_1-\leq-\rho_2\}">
@@ -678,7 +649,7 @@ Cell <span class="ansi-green-fg">In [1], line 2</span>
 </li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Budget uncertainty set example</span>
@@ -696,7 +667,7 @@ Cell <span class="ansi-green-fg">In [1], line 2</span>
 <li><p><span class="math notranslate nohighlight">\(d\)</span> : np.array</p></li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Polyhedral uncertainty set example</span>
@@ -724,7 +695,7 @@ Cell <span class="ansi-green-fg">In [1], line 2</span>
 </div>
 <p>where <span class="math notranslate nohighlight">\(c\)</span>, <span class="math notranslate nohighlight">\(P\)</span>, and <span class="math notranslate nohighlight">\(a\)</span> are constants, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from the ellipsoidal set above, where <span class="math notranslate nohighlight">\(b\)</span> is nonzero.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#restate the ellipsoidal set</span>
@@ -761,13 +732,13 @@ Cell <span class="ansi-green-fg">In [1], line 2</span>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -2.1457486234953023
-LRO x:  [-0.11586756 -0.8942907  -0.83603474 -1.11975264]
+LRO objective value:  -1.3035062563063478
+LRO x:  [-0.17355941 -0.27170113 -1.30397771 -1.24629681]
 </pre></div></div>
 </div>
 <p>We note that this is equivalent to using the MRO uncertainty set with <span class="math notranslate nohighlight">\(K = 1\)</span> and power = 1.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#</span>
@@ -798,8 +769,8 @@ LRO x:  [-0.11586756 -0.8942907  -0.83603474 -1.11975264]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-MRO objective value:  -2.145748622757675
-MRO x:  [-0.11586238 -0.89430096 -0.83602668 -1.11974885]
+MRO objective value:  -1.3035062561499626
+MRO x:  [-0.17355937 -0.27170117 -1.30397781 -1.2462967 ]
 </pre></div></div>
 </div>
 <p>We compare the above with its explicit reformulation and solution</p>
@@ -811,7 +782,7 @@ MRO x:  [-0.11586238 -0.89430096 -0.83602668 -1.11974885]
 \end{array}\end{split}\]</div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate cvxpy variable</span>
@@ -841,8 +812,8 @@ MRO x:  [-0.11586238 -0.89430096 -0.83602668 -1.11974885]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -2.1457486236187804
-Cvxpy x:  [-0.11586288 -0.89429999 -0.83602745 -1.11974921]
+Cvxpy objective value:  -1.3035062542614264
+Cvxpy x:  [-0.17355973 -0.27170087 -1.30397697 -1.24629765]
 </pre></div></div>
 </div>
 <p>We see that they provide the same solution.</p>
@@ -861,7 +832,7 @@ Cvxpy x:  [-0.11586288 -0.89429999 -0.83602745 -1.11974921]
 <p>where again <span class="math notranslate nohighlight">\(c\)</span>, <span class="math notranslate nohighlight">\(P\)</span>, and <span class="math notranslate nohighlight">\(a\)</span> are constants, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from a box uncertainty set. We note that the uncertain parameter can appear more than once in the uncertain constraint.</p>
 <p>Note that using the box uncertainty set is equivalent to using the ellipsoidal uncertainty set with <span class="math notranslate nohighlight">\(p = \infty\)</span></p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#formulate using the box set</span>
@@ -927,12 +898,12 @@ Cvxpy x:  [-0.11586288 -0.89429999 -0.83602745 -1.11974921]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Box objective value:  -1.868772213575003
-Box x:  [1.00000000e+00 1.09537465e-10 5.39218043e-10 5.78687150e-01
- 1.00000000e+00]
-Ellipsoidal objective value:  -1.868772213575002
-Ellipsoidal x:  [1.00000000e+00 1.09537957e-10 5.39219513e-10 5.78687150e-01
- 1.00000000e+00]
+Box objective value:  -1.729211175078039
+Box x:  [1.00000000e+00 1.04836492e-01 5.33748614e-11 1.00000000e+00
+ 2.63557150e-10]
+Ellipsoidal objective value:  -1.7292111750780346
+Ellipsoidal x:  [1.00000000e+00 1.04836492e-01 5.33758000e-11 1.00000000e+00
+ 2.63574026e-10]
 </pre></div></div>
 </div>
 <p>We compare the above with its explicit reformulation and solution</p>
@@ -944,7 +915,7 @@ Ellipsoidal x:  [1.00000000e+00 1.09537957e-10 5.39219513e-10 5.78687150e-01
 \end{array}\end{split}\]</div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate using cvxpy</span>
@@ -968,14 +939,49 @@ Ellipsoidal x:  [1.00000000e+00 1.09537957e-10 5.39219513e-10 5.78687150e-01
 <br/></pre></div>
 </div>
 </div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Cvxpy objective value:  -1.9481406773175662
+Cvxpy x:  [1.00000000e+00 9.81775742e-11 3.09578792e-11 1.00000000e+00
+ 7.13753984e-01]
+</pre></div></div>
+</div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -1.868772213778191
-Cvxpy x:  [1.00000000e+00 2.26486437e-11 1.22333765e-11 5.78687150e-01
- 1.00000000e+00]
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">AssertionError</span>                            Traceback (most recent call last)
+Cell <span class="ansi-green-fg">In [13], line 18</span>
+<span class="ansi-green-intense-fg ansi-bold">     15</span> print(&#34;Cvxpy objective value: &#34;, prob_cvxpy.objective.value, &#34;\nCvxpy x: &#34;, x_cvxpy.value)
+<span class="ansi-green-intense-fg ansi-bold">     17</span> # assert x values are equal
+<span class="ansi-green-fg">---&gt; 18</span> npt.assert_allclose(x_box.value, x_cvxpy.value, rtol=RTOL, atol=ATOL)
+
+    <span class="ansi-red-fg">[... skipping hidden 1 frame]</span>
+
+File <span class="ansi-green-fg">~/anaconda3/envs/lro/lib/python3.9/site-packages/numpy/testing/_private/utils.py:844</span>, in <span class="ansi-cyan-fg">assert_array_compare</span><span class="ansi-blue-fg">(comparison, x, y, err_msg, verbose, header, precision, equal_nan, equal_inf)</span>
+<span class="ansi-green-intense-fg ansi-bold">    840</span>         err_msg += &#39;\n&#39; + &#39;\n&#39;.join(remarks)
+<span class="ansi-green-intense-fg ansi-bold">    841</span>         msg = build_err_msg([ox, oy], err_msg,
+<span class="ansi-green-intense-fg ansi-bold">    842</span>                             verbose=verbose, header=header,
+<span class="ansi-green-intense-fg ansi-bold">    843</span>                             names=(&#39;x&#39;, &#39;y&#39;), precision=precision)
+<span class="ansi-green-fg">--&gt; 844</span>         raise AssertionError(msg)
+<span class="ansi-green-intense-fg ansi-bold">    845</span> except ValueError:
+<span class="ansi-green-intense-fg ansi-bold">    846</span>     import traceback
+
+<span class="ansi-red-fg">AssertionError</span>:
+Not equal to tolerance rtol=0.0001, atol=0.0001
+
+Mismatched elements: 2 / 5 (40%)
+Max absolute difference: 0.71375398
+Max relative difference: 1.06782524e+09
+ x: array([1.000000e+00, 1.048365e-01, 5.337486e-11, 1.000000e+00,
+       2.635572e-10])
+ y: array([1.000000e+00, 9.817757e-11, 3.095788e-11, 1.000000e+00,
+       7.137540e-01])
 </pre></div></div>
 </div>
 </section>
@@ -993,7 +999,7 @@ Cvxpy x:  [1.00000000e+00 2.26486437e-11 1.22333765e-11 5.78687150e-01
 </div>
 <p>where <span class="math notranslate nohighlight">\(c\)</span>, <span class="math notranslate nohighlight">\(P_1\)</span>, <span class="math notranslate nohighlight">\(P_2\)</span>, and <span class="math notranslate nohighlight">\(a\)</span> are constants, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from a polyhedral uncertainty set</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#restate the ellipsoidal set</span>
@@ -1036,8 +1042,8 @@ Cvxpy x:  [1.00000000e+00 2.26486437e-11 1.22333765e-11 5.78687150e-01
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -4.438607088554558
-LRO x:  [ 5.          5.          5.         -7.21578437]
+LRO objective value:  -6.210559850421451
+LRO x:  [ 5.          4.99999998  5.         -5.78302582]
 </pre></div></div>
 </div>
 <p>We compare it with its direct reformulation, where each uncertain constraint is treated independently,</p>
@@ -1055,7 +1061,7 @@ LRO x:  [ 5.          5.          5.         -7.21578437]
 </div>
 <p>where <span class="math notranslate nohighlight">\(w_1\)</span>, <span class="math notranslate nohighlight">\(w_2\)</span> are new variables introduced.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate using cvxpy</span>
@@ -1088,8 +1094,8 @@ LRO x:  [ 5.          5.          5.         -7.21578437]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -4.438607088556255
-Cvxpy x:  [ 5.          5.          5.         -7.21578437]
+Cvxpy objective value:  -6.210559850676112
+Cvxpy x:  [ 5.          4.99999997  5.         -5.78302582]
 </pre></div></div>
 </div>
 </section>
@@ -1106,7 +1112,7 @@ Cvxpy x:  [ 5.          5.          5.         -7.21578437]
 </div>
 <p>where <span class="math notranslate nohighlight">\(c\)</span>, <span class="math notranslate nohighlight">\(P\)</span>,and <span class="math notranslate nohighlight">\(a\)</span> are constants, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from a budet uncertainty set. We can include constraints that relates directly the values of <span class="math notranslate nohighlight">\(x\)</span> and <span class="math notranslate nohighlight">\(u\)</span>, as in the second constraint.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#restate the ellipsoidal set</span>
@@ -1144,8 +1150,8 @@ Cvxpy x:  [ 5.          5.          5.         -7.21578437]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  7.502600154463243
-LRO x:  [2.73957884 2.37985963 2.80962115 2.76543541]
+LRO objective value:  4.391079884818289
+LRO x:  [2.81096615 2.81096615 2.81096615 2.81096614]
 </pre></div></div>
 </div>
 <p>We compare this with its direct reformulation,</p>
@@ -1159,7 +1165,7 @@ LRO x:  [2.73957884 2.37985963 2.80962115 2.76543541]
 </div>
 <p>where <span class="math notranslate nohighlight">\((P_1^T)_i\)</span> is the <span class="math notranslate nohighlight">\(i\)</span>’th row of <span class="math notranslate nohighlight">\(P_1\)</span>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate cvxpy variables</span>
@@ -1187,13 +1193,46 @@ LRO x:  [2.73957884 2.37985963 2.80962115 2.76543541]
 <br/></pre></div>
 </div>
 </div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Cvxpy objective value:  3.8750339196069947
+Cvxpy x:  [2.81096618 2.39079088 2.80974827 2.45239157]
+</pre></div></div>
+</div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  7.502600151392322
-Cvxpy x:  [2.73957884 2.37985962 2.80962115 2.76543541]
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">AssertionError</span>                            Traceback (most recent call last)
+Cell <span class="ansi-green-fg">In [17], line 22</span>
+<span class="ansi-green-intense-fg ansi-bold">     19</span> print(&#34;Cvxpy objective value: &#34;, prob_cvxpy.objective.value, &#34;\nCvxpy x: &#34;, x_cvxpy.value)
+<span class="ansi-green-intense-fg ansi-bold">     21</span> # assert x values are equal
+<span class="ansi-green-fg">---&gt; 22</span> npt.assert_allclose(x_r.value, x_cvxpy.value, rtol=RTOL, atol=ATOL)
+
+    <span class="ansi-red-fg">[... skipping hidden 1 frame]</span>
+
+File <span class="ansi-green-fg">~/anaconda3/envs/lro/lib/python3.9/site-packages/numpy/testing/_private/utils.py:844</span>, in <span class="ansi-cyan-fg">assert_array_compare</span><span class="ansi-blue-fg">(comparison, x, y, err_msg, verbose, header, precision, equal_nan, equal_inf)</span>
+<span class="ansi-green-intense-fg ansi-bold">    840</span>         err_msg += &#39;\n&#39; + &#39;\n&#39;.join(remarks)
+<span class="ansi-green-intense-fg ansi-bold">    841</span>         msg = build_err_msg([ox, oy], err_msg,
+<span class="ansi-green-intense-fg ansi-bold">    842</span>                             verbose=verbose, header=header,
+<span class="ansi-green-intense-fg ansi-bold">    843</span>                             names=(&#39;x&#39;, &#39;y&#39;), precision=precision)
+<span class="ansi-green-fg">--&gt; 844</span>         raise AssertionError(msg)
+<span class="ansi-green-intense-fg ansi-bold">    845</span> except ValueError:
+<span class="ansi-green-intense-fg ansi-bold">    846</span>     import traceback
+
+<span class="ansi-red-fg">AssertionError</span>:
+Not equal to tolerance rtol=0.0001, atol=0.0001
+
+Mismatched elements: 3 / 4 (75%)
+Max absolute difference: 0.42017527
+Max relative difference: 0.17574739
+ x: array([2.810966, 2.810966, 2.810966, 2.810966])
+ y: array([2.810966, 2.390791, 2.809748, 2.452392])
 </pre></div></div>
 </div>
 </section>
@@ -1211,7 +1250,7 @@ Cvxpy x:  [2.73957884 2.37985962 2.80962115 2.76543541]
 </div>
 <p>where each <span class="math notranslate nohighlight">\(P_i\in \mathbf{R}^{n\times n}\)</span> is a symmetric positive definite matrix, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from an ellipsoidal uncertainty set.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate uncertainty set</span>
@@ -1252,8 +1291,8 @@ Cvxpy x:  [2.73957884 2.37985962 2.80962115 2.76543541]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -2.001521732684513e-10
-LRO x:  [0.79877228 0.80135493 0.80078944 0.79878038 0.80030297]
+LRO objective value:  -2.0091470479502785e-10
+LRO x:  [0.79872176 0.80141668 0.80082058 0.79873012 0.80031086]
 </pre></div></div>
 </div>
 <dl class="simple">
@@ -1272,7 +1311,7 @@ LRO x:  [0.79877228 0.80135493 0.80078944 0.79878038 0.80030297]
 </div></blockquote>
 <p>end{equation}` where we have <span class="math notranslate nohighlight">\(\gamma \in \mathbf{R}^m, z \in \mathbf{R}^n, z_i \in \mathbf{R}^n\)</span>, <span class="math notranslate nohighlight">\(i = 1,\dots,n\)</span>, as auxiliary variables.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate using cvxpy</span>
@@ -1323,7 +1362,7 @@ Cvxpy x:  [0.79880041 0.80132141 0.80077192 0.79880835 0.80029791]
 </div>
 <p>where <span class="math notranslate nohighlight">\(a\)</span> and <span class="math notranslate nohighlight">\(d\)</span> are constants, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from an ellipsoidal uncertainty set.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate uncertainty set</span>
@@ -1361,14 +1400,14 @@ Cvxpy x:  [0.79880041 0.80132141 0.80077192 0.79880835 0.80029791]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -32.06671916626774
-LRO x:  [-1.97882870e-10  1.82283951e-10 -1.45896438e-10 -9.01159384e-11
-  1.87986728e+01]
+LRO objective value:  -30.79802922462408
+LRO x:  [-5.25081946e-10 -3.07064108e-10 -4.02445255e-10  1.85258181e+01
+ -2.06122464e-10]
 </pre></div></div>
 </div>
 <p>We again note that this is equivalent to using the MRO uncertainty set with <span class="math notranslate nohighlight">\(K= 1\)</span> and power = 1.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate uncertainty set</span>
@@ -1401,13 +1440,13 @@ LRO x:  [-1.97882870e-10  1.82283951e-10 -1.45896438e-10 -9.01159384e-11
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-MRO objective value:  -32.06671916409249
-MRO x:  [-1.21123861e-10  3.74997820e-10 -1.08718057e-10  1.00825091e-10
-  1.87986728e+01]
+MRO objective value:  -30.798029194437653
+MRO x:  [ 4.23926635e-09  1.57998672e-09  5.13453869e-09  1.85258181e+01
+ -4.00815262e-10]
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate using cvxpy</span>
@@ -1437,9 +1476,9 @@ MRO x:  [-1.21123861e-10  3.74997820e-10 -1.08718057e-10  1.00825091e-10
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -32.06671915162912
-Cvxpy x:  [4.39834399e-10 8.11862181e-10 4.45567335e-10 8.37229500e-10
- 1.87986728e+01]
+Cvxpy objective value:  -30.79802922217572
+Cvxpy x:  [1.63082452e-09 6.21752185e-10 7.86787336e-10 1.85258181e+01
+ 2.87047513e-10]
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
