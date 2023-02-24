@@ -1,4 +1,4 @@
-from lro.uncertain import UncertainParameter
+from lropt.uncertain import UncertainParameter
 
 
 def has_uncertain_param_extra(self, expr):

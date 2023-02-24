@@ -1,7 +1,7 @@
 Examples
 ========
 
-Here is a list of :code:`lro` code examples
+Here is a list of :code:`lropt` code examples
 
 
 .. toctree::

@@ -1,5 +1,5 @@
 Robust Problem
-==============
+===============
 
-.. autoclass:: lro.RobustProblem
+.. autoclass:: lropt.RobustProblem
    :members:

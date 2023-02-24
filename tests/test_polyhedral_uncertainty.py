@@ -4,9 +4,9 @@ import cvxpy as cp
 import numpy as np
 import numpy.testing as npt
 
-from lro.robust_problem import RobustProblem
-from lro.uncertain import UncertainParameter
-from lro.uncertainty_sets.polyhedral import Polyhedral
+from lropt.robust_problem import RobustProblem
+from lropt.uncertain import UncertainParameter
+from lropt.uncertainty_sets.polyhedral import Polyhedral
 from tests.settings import TESTS_ATOL as ATOL
 from tests.settings import TESTS_RTOL as RTOL
 
@@ -42,7 +42,7 @@ class TestPolyhedralUncertainty(unittest.TestCase):
         prob_cvxpy = cp.Problem(objective, constraints)
         prob_cvxpy.solve()
         x_cvxpy = x.value
-        # Formulate robust constraints with lro
+        # Formulate robust constraints with lropt
         unc_set = Polyhedral(d=b_poly,
                              D=A_poly)
         a = UncertainParameter(n,
@@ -79,7 +79,7 @@ class TestPolyhedralUncertainty(unittest.TestCase):
         prob_cvxpy = cp.Problem(objective, constraints)
         prob_cvxpy.solve()
         x_cvxpy = x.value
-        # Formulate robust constraints with lro
+        # Formulate robust constraints with lropt
         unc_set = Polyhedral(d=b_poly,
                              D=A_poly)
         a = UncertainParameter(n,

@@ -9,17 +9,17 @@ from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
 from cvxpy.reductions.solution import Solution
 
-from lro.remove_uncertain.atom_canonicalizers.mul_canon import \
+from lropt.remove_uncertain.atom_canonicalizers.mul_canon import \
     mul_canon_transform
-from lro.uncertain import UncertainParameter
-from lro.uncertain_canon.remove_constant import \
+from lropt.uncertain import UncertainParameter
+from lropt.uncertain_canon.remove_constant import \
     REMOVE_CONSTANT_METHODS as rm_const_methods
-from lro.uncertain_canon.separate_uncertainty import \
+from lropt.uncertain_canon.separate_uncertainty import \
     SEPARATION_METHODS as sep_methods
-from lro.uncertainty_sets.budget import Budget
-from lro.uncertainty_sets.mro import MRO
-from lro.uncertainty_sets.polyhedral import Polyhedral
-from lro.utils import unique_list
+from lropt.uncertainty_sets.budget import Budget
+from lropt.uncertainty_sets.mro import MRO
+from lropt.uncertainty_sets.polyhedral import Polyhedral
+from lropt.utils import unique_list
 
 
 class Uncertain_Canonicalization(Reduction):

@@ -1,6 +1,6 @@
 import numpy as np
 
-from lro.uncertainty_sets.norm import Norm
+from lropt.uncertainty_sets.norm import Norm
 
 # import scipy.sparse as spa
 

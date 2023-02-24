@@ -6,9 +6,9 @@ import numpy as np
 # import numpy.random as npr
 import numpy.testing as npt
 
-from lro.robust_problem import RobustProblem
-from lro.uncertain import UncertainParameter
-from lro.uncertainty_sets.ellipsoidal import Ellipsoidal
+from lropt.robust_problem import RobustProblem
+from lropt.uncertain import UncertainParameter
+from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
 from tests.settings import SOLVER
 from tests.settings import TESTS_ATOL as ATOL
 from tests.settings import TESTS_RTOL as RTOL
@@ -44,7 +44,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         prob_cvxpy = cp.Problem(objective, constraints)
         prob_cvxpy.solve(solver=SOLVER)
         x_cvxpy = x.value
-        # Formulate robust constraints with lro
+        # Formulate robust constraints with lropt
         a = UncertainParameter(n,
                                uncertainty_set=Ellipsoidal(rho=rho))
         constraints = [a @ x <= b]
@@ -67,7 +67,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         prob_cvxpy = cp.Problem(objective, constraints)
         prob_cvxpy.solve(solver=SOLVER)
         x_cvxpy = x.value
-        # Formulate robust constraints with lro
+        # Formulate robust constraints with lropt
         unc_set = Ellipsoidal(rho=rho)
         a = UncertainParameter(n,
                                uncertainty_set=unc_set)
@@ -84,7 +84,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # Robust set
         A_unc = 3. * np.eye(n)
         b_unc = 0.1 * np.random.rand(n)
-        # Formulate robust constraints with lro
+        # Formulate robust constraints with lropt
         unc_set = Ellipsoidal(rho=rho)
         a = UncertainParameter(n,
                                uncertainty_set=unc_set)

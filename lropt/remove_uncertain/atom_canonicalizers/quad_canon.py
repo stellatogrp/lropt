@@ -2,7 +2,7 @@ import numpy as np
 import scipy as sc
 from cvxpy.atoms.quad_over_lin import quad_over_lin
 
-from lro.uncertain import UncertainParameter
+from lropt.uncertain import UncertainParameter
 
 
 def quad_canon(expr, args, var, constant):

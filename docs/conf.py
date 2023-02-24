@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'LRO documentation'
+project = 'LROPT documentation'
 copyright = '2023, Irina Wang, Cole Becker, Bart Van Parys, Bartolomeo Stellato'
 author = 'Irina Wang, Cole Becker, Bart Van Parys, Bartolomeo Stellato'
 
