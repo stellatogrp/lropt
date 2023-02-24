@@ -247,6 +247,7 @@ class TestBoxUncertainty(unittest.TestCase):
 
         # formulate cvxpy variable
         x = cp.Variable(n)
+        # x_2 = cp.Variable(n)
 
         # formulate problem constants
         P = 3*np.random.rand(n, m)
@@ -258,7 +259,7 @@ class TestBoxUncertainty(unittest.TestCase):
         objective = cp.Minimize(-c@x)
 
         # formulate constraints
-        constraints = [P@(A @ box_u + b) @ x - 2*(A @ box_u + b)@x <= 10, x >= 0, x <= 1]
+        constraints = [(P@(A @ box_u + b)) @ x - 2*(A @ box_u + b)@x <= 10, x >= 0, x <= 1]
 
         # formulate Robust Problem
         prob_robust = RobustProblem(objective, constraints)
@@ -280,6 +281,7 @@ class TestBoxUncertainty(unittest.TestCase):
 
         # solve
         prob_cvxpy.solve()
+
         npt.assert_allclose(x.value, x_cvx.value, rtol=RTOL, atol=ATOL)
 
     def test_budget(self):

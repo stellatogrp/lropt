@@ -1,6 +1,6 @@
 from cvxpy import Variable, problems
+from cvxpy import sum as cp_sum
 from cvxpy.atoms.elementwise.maximum import maximum
-from cvxpy.constraints.nonpos import Inequality
 from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
 from cvxpy.reductions.solution import Solution
@@ -19,8 +19,6 @@ class Separate_Uncertain_Params(Reduction):
     def apply(self, problem):
         """Recursively canonicalize the objective and every constraint."""
         inverse_data = InverseData(problem)
-        # import ipdb
-        # ipdb.set_trace()
         canon_objective, canon_constraints = problem.objective, []
 
         for constraint in problem.constraints:
@@ -29,33 +27,39 @@ class Separate_Uncertain_Params(Reduction):
             # ipdb.set_trace()
             if self.has_unc_param(constraint):
 
+                unique_unc_params = self.get_unq_uncertain_param(constraint)
+                num_unc_params = len(unique_unc_params)
+
+                unc_dict = {}
+                for unc_param in unique_unc_params:
+                    unc_dict[unc_param] = 0
+                unc_epi = Variable(num_unc_params)
+
                 unc_lst, std_lst, is_max = self.separate_uncertainty(constraint)
 
                 assert (is_max == 0)
                 original_constraint = 0
 
                 for unc_function in unc_lst:
-                    unc_var = Variable()
-                    canon_constraints += [unc_function <= unc_var]
+                    param_lst = self.get_unq_uncertain_param(unc_function)
+                    # assert len(param_lst) == 1, "two different parameters multiplied violates lro ruleset"
+                    unc_param = param_lst[0]
 
-                    original_constraint += unc_var
+                    unc_dict[unc_param] += unc_function
 
-                for std_function in std_lst:
-                    original_constraint += std_function
+                for i, unc_param in enumerate(unique_unc_params):
+                    canon_constraints += [unc_dict[unc_param] <= unc_epi[i]]
+
+                original_constraint += sum(std_lst) + cp_sum(unc_epi)
 
                 canon_constr = original_constraint <= 0
                 canon_constraints += [canon_constr]
 
             else:
-                # canon_constr, aux_constr = self.canonicalize_tree(
-                #     constraint, 0)
                 canon_constr = constraint
                 canon_constraints += [canon_constr]
 
             inverse_data.cons_id_map.update({constraint.id: canon_constr.id})
-
-        # import ipdb
-        # ipdb.set_trace()
 
         new_problem = problems.problem.Problem(canon_objective,
                                                canon_constraints)
@@ -71,17 +75,12 @@ class Separate_Uncertain_Params(Reduction):
         return Solution(solution.status, solution.opt_val, pvars, dvars,
                         solution.attr)
 
-    def count_unq_uncertain_param(self, expr):
-        unc_params = []
-        if isinstance(expr, Inequality):
-            unc_params += [v for v in expr.parameters()
-                           if isinstance(v, UncertainParameter)]
-            return len(unique_list(unc_params))
+    def get_unq_uncertain_param(self, expr):
+        return unique_list([v for v in expr.parameters()
+                            if isinstance(v, UncertainParameter)])
 
-        else:
-            unc_params += [v for v in expr.parameters()
-                           if isinstance(v, UncertainParameter)]
-        return len(unique_list(unc_params))
+    def count_unq_uncertain_param(self, expr):
+        return len(self.get_unq_uncertain_param(expr))
 
     def has_unc_param(self, expr):
         if not isinstance(expr, int) and not isinstance(expr, float):
