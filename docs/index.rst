@@ -1,5 +1,5 @@
 Welcome to LROPT's documentation!
-===============================
+==================================
 
 Learning for robust optimization (LROPT) is a package to model and solve optimization problems under uncertainty of the form
 
