@@ -31,7 +31,7 @@ write_to = "lropt/_version.py"
 [project.optional-dependencies]
 dev = ["pytest", "pre-commit", "python-lsp-server[all]",
        "sphinx", "furo", "nbsphinx", "ipython",
-       "pandas"]
+       "pandas","matplotlib"]
 
 [tool.autopep8]
 max_line_length = 120
