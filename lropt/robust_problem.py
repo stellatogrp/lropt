@@ -127,7 +127,7 @@ class RobustProblem(Problem):
         self, eps=False, fixb=True, step=45, lr=0.01, scheduler=True, momentum=0.8,
         optimizer="SGD", init_eps=None, init_A=None, init_b=None, save_iters=False, seed=1, init_lam=10, init_mu=10,
         mu_multiplier=1.02, init_alpha=-0.01,
-        target_cvar=0., solver: Optional[str] = None
+        target_cvar=0., test_percentage = 0.2, solver: Optional[str] = None
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. loss metric
@@ -216,7 +216,7 @@ class RobustProblem(Problem):
                 df = pd.DataFrame(columns=["step", "Opt_val", "Eval_val", "Loss_val", "Violations", "A_norm"])
 
                 # setup train and test data
-                train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]/4), random_state=seed)
+                train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]*test_percentage), random_state=seed)
                 val_dset = torch.tensor(train, requires_grad=True, dtype=torch.double)
                 eval_set = torch.tensor(test, requires_grad=True, dtype=torch.double)
                 # create cvxpylayer
@@ -490,7 +490,7 @@ class RobustProblem(Problem):
             return Result(self, prob, df, unc_set.paramT.value, None, return_eps, obj.item(), var_values,
                           T_iter=T_iter)
 
-    def grid(self, epslst=None, seed=1, init_A=None, init_b=None, init_alpha=-0.01, solver: Optional[str] = None):
+    def grid(self, epslst=None, seed=1, init_A=None, init_b=None, init_alpha=-0.01, test_percentage = 0.2, solver: Optional[str] = None):
         r"""
         performs gridsearch to find optimal :math:`\epsilon`-ball around data with respect to user-defined loss
 
@@ -560,7 +560,7 @@ class RobustProblem(Problem):
                 else:
                     mro_set = False
                 # setup train and test data
-                train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]/4), random_state=seed)
+                train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]*test_percentage), random_state=seed)
                 val_dset = torch.tensor(train, requires_grad=True, dtype=torch.double)
                 eval_set = torch.tensor(test, requires_grad=True, dtype=torch.double)
                 # create cvxpylayer
