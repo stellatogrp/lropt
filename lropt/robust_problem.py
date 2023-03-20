@@ -127,7 +127,7 @@ class RobustProblem(Problem):
         self, eps=False, fixb=True, step=45, lr=0.01, scheduler=True, momentum=0.8,
         optimizer="SGD", init_eps=None, init_A=None, init_b=None, save_iters=False, seed=1, init_lam=10, init_mu=10,
         mu_multiplier=1.02, init_alpha=-0.01,
-        target_cvar=0., test_percentage = 0.2, solver: Optional[str] = None
+        target_cvar=0., test_percentage = 0.2, scenarios = None, num_scenarios = None,solver: Optional[str] = None
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. loss metric
@@ -268,47 +268,65 @@ class RobustProblem(Problem):
                         scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=5)
 
                     paramlst = prob.parameters()
-                    newlst = []
-                    if not mro_set:
-                        for i in paramlst[:-2]:
-                            newlst.append(torch.tensor(np.array(i.value).astype(
-                                np.float), requires_grad=True, dtype=torch.double))
-                        newlst.append(paramT_tch)
-                        newlst.append(paramb_tch)
-                    else:
-                        for i in paramlst[:-1]:
-                            newlst.append(torch.tensor(np.array(i.value).astype(
-                                np.float), requires_grad=True, dtype=torch.double))
-                        newlst.append(paramT_tch)
+                    newlst = {}
+                    for scene in range(num_scenarios):
+                        newlst[scene] = []
+                        if not mro_set:
+                            for i in range(len(paramlst[:-2])):
+                                newlst[scene].append(torch.tensor(np.array(scenarios[scene][i]).astype(
+                                    float), requires_grad=True, dtype=torch.double))
+                            newlst[scene].append(paramT_tch)
+                            newlst[scene].append(paramb_tch)
+                        else:
+                            for  i in range(len(paramlst[:-1])):
+                                newlst[scene].append(torch.tensor(np.array(scenarios[scene][i]).astype(
+                                    float), requires_grad=True, dtype=torch.double))
+                            newlst[scene].append(paramT_tch)
 
                     # train
-                    lam = init_lam
-                    mu = init_mu
+                    lam = np.ones(num_scenarios)*init_lam
+                    mu = np.ones(num_scenarios)*init_mu
                     for steps in range(step):
                         # import ipdb
                         # ipdb.set_trace()
-                        if not mro_set:
-                            newlst[-1] = paramb_tch
-                            newlst[-2] = paramT_tch
-                        else:
-                            newlst[-1] = paramT_tch
-                        var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
-                        temploss, obj, violations, cvar_update = unc_set.loss(
-                            *var_values, alpha, val_dset,  mu, lam, target=target_cvar)
-                        evalloss, obj2, violations2, var_vio = unc_set.loss(
-                            *var_values,  alpha, eval_set, mu, lam, target=target_cvar)
-                        lam = np.maximum(lam + mu*(cvar_update - target_cvar), 0)
-                        mu = mu*mu_multiplier
-                        temploss.backward()
+                        totloss = 0
+                        totevalloss = 0
+                        optval = 0
+                        testval = 0
+                        test_vio = 0
+                        violation_val = 0
+                        violation_train = 0
+                        for scene in range(num_scenarios):
+                            if not mro_set:
+                                newlst[scene][-1] = paramb_tch
+                                newlst[scene][-2] = paramT_tch
+                            else:
+                                newlst[scene][-1] = paramT_tch
+                            var_values = cvxpylayer(*newlst[scene], solver_args={'solve_method': 'ECOS'})
+                            temploss, obj, violations, cvar_update = unc_set.loss(
+                                *var_values, *newlst[scene][:-2], alpha, val_dset,  mu[scene], lam[scene], target=target_cvar)
+                            evalloss, obj2, violations2, var_vio = unc_set.loss(
+                                *var_values, *newlst[scene][:-2], alpha, eval_set, mu[scene], lam[scene], target=target_cvar)
+                            lam[scene] = np.maximum(lam[scene] + mu[scene]*(cvar_update - target_cvar), 0)
+                            mu[scene] = mu[scene]*mu_multiplier
+                            totloss = totloss + temploss
+                            totevalloss = totevalloss + evalloss
+                            optval += obj.item()
+                            testval += obj2.item()
+                            test_vio += violations2.item()
+                            violation_val +=  var_vio.item()
+                            violation_train += cvar_update.item()
+                        totloss = totloss/num_scenarios
+                        totloss.backward()
                         newrow = pd.Series(
                             {"step": steps,
-                             "Loss_val": temploss.item(),
-                             "Eval_val": evalloss.item(),
-                             "Opt_val": obj.item(),
-                             "Test_val": obj2.item(),
-                             "Violations": violations2.item(),
-                             "Violation_val": var_vio.item(),
-                             "Violation_train": cvar_update.item(),
+                             "Loss_val": totloss.item(),
+                             "Eval_val": totevalloss.item()/num_scenarios,
+                             "Opt_val": optval/num_scenarios,
+                             "Test_val": testval/num_scenarios,
+                             "Violations": test_vio/num_scenarios,
+                             "Violation_val": violation_val/num_scenarios,
+                             "Violation_train": violation_train/num_scenarios,
                              "A_norm": np.linalg.norm(paramT_tch.detach().numpy().copy()),
                              "mu": mu,
                              "lam": lam,
@@ -328,7 +346,7 @@ class RobustProblem(Problem):
                             opt.step()
                             opt.zero_grad()
                             if scheduler:
-                                scheduler_.step(temploss)
+                                scheduler_.step(totloss)
 
                     self._trained = True
                     unc_set._trained = True
@@ -391,62 +409,80 @@ class RobustProblem(Problem):
                         scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=5)
                     # assign parameter values
                     paramlst = prob.parameters()
-                    newlst = []
-                    if not mro_set:
-                        for i in paramlst[:-2]:
-                            newlst.append(torch.tensor(np.array(i.value).astype(
-                                np.float), requires_grad=True, dtype=torch.double))
-                        newlst.append(paramT_tch)
-                        newlst.append(paramb_tch)
-                    else:
-                        for i in paramlst[:-1]:
-                            newlst.append(torch.tensor(np.array(i.value).astype(
-                                np.float), requires_grad=True, dtype=torch.double))
-                        newlst.append(paramT_tch)
+                    newlst = {}
+                    for scene in range(num_scenarios):
+                        newlst[scene] = []
+                        if not mro_set:
+                            for i in range(len(paramlst[:-2])):
+                                newlst[scene].append(torch.tensor(np.array(scenarios[scene][i]).astype(
+                                    float), requires_grad=True, dtype=torch.double))
+                            newlst[scene].append(paramT_tch)
+                            newlst[scene].append(paramb_tch)
+                        else:
+                            for  i in range(len(paramlst[:-1])):
+                                newlst[scene].append(torch.tensor(np.array(scenarios[scene][i]).astype(
+                                    float), requires_grad=True, dtype=torch.double))
+                            newlst[scene].append(paramT_tch)
 
                     # train
-                    mu = init_mu
-                    lam = init_lam
+                    lam = np.ones(num_scenarios)*init_lam
+                    mu = np.ones(num_scenarios)*init_mu
                     for steps in range(step):
                         # import ipdb
                         # ipdb.set_trace()
-                        if not mro_set:
-                            newlst[-1] = eps_tch*init_bval
-                            newlst[-2] = eps_tch*init
-                        else:
-                            if case == 0:
-                                paramT_tch = eps_tch[0]*init
-                                for k_ind in range(1, unc_set._K):
-                                    paramT_tch = torch.vstack((paramT_tch, eps_tch[k_ind]*init))
-                            elif case == 1:
-                                paramT_tch = eps_tch[0] * \
-                                    torch.tensor(init_A[0:unc_set._m, 0:unc_set._m], dtype=torch.double)
-                                for k_ind in range(1, unc_set._K):
-                                    paramT_tch = torch.vstack(
-                                        (paramT_tch, eps_tch[k_ind] *
-                                            torch.tensor(init_A[(k_ind*unc_set._m):(k_ind+1)
-                                                                * unc_set._m, 0:unc_set._m], dtype=torch.double)))
+                        totloss = 0
+                        totevalloss = 0
+                        optval = 0
+                        testval = 0
+                        test_vio = 0
+                        violation_val = 0
+                        violation_train = 0
+                        for scene in range(num_scenarios):
+                            if not mro_set:
+                                newlst[scene][-1] = eps_tch*init_bval
+                                newlst[scene][-2] = eps_tch*init
                             else:
-                                paramT_tch = eps_tch*init
-                            newlst[-1] = paramT_tch
-                        var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
-                        temploss, obj, violations, cvar_update = unc_set.loss(
-                            *var_values,  alpha, val_dset, mu, lam, target=target_cvar)
-                        evalloss, obj2, violations2, var_vio = unc_set.loss(
-                            *var_values, alpha, eval_set, mu, lam, target=target_cvar)
-                        lam = np.maximum(lam + mu*(cvar_update - target_cvar), 0)
-                        mu = mu*mu_multiplier
-                        temploss.backward()
+                                if case == 0:
+                                    paramT_tch = eps_tch[0]*init
+                                    for k_ind in range(1, unc_set._K):
+                                        paramT_tch = torch.vstack((paramT_tch, eps_tch[k_ind]*init))
+                                elif case == 1:
+                                    paramT_tch = eps_tch[0] * \
+                                        torch.tensor(init_A[0:unc_set._m, 0:unc_set._m], dtype=torch.double)
+                                    for k_ind in range(1, unc_set._K):
+                                        paramT_tch = torch.vstack(
+                                            (paramT_tch, eps_tch[k_ind] *
+                                                torch.tensor(init_A[(k_ind*unc_set._m):(k_ind+1)
+                                                                    * unc_set._m, 0:unc_set._m], dtype=torch.double)))
+                                else:
+                                    paramT_tch = eps_tch*init
+                                newlst[scene][-1] = paramT_tch
+                            var_values = cvxpylayer(*newlst[scene], solver_args={'solve_method': 'ECOS'})
+                            temploss, obj, violations, cvar_update = unc_set.loss(
+                                *var_values,  *newlst[scene][:-2], alpha, val_dset, mu[scene], lam[scene], target=target_cvar)
+                            evalloss, obj2, violations2, var_vio = unc_set.loss(
+                                *var_values, *newlst[scene][:-2], alpha, eval_set, mu[scene], lam[scene], target=target_cvar)
+                            lam[scene] = np.maximum(lam[scene] + mu[scene]*(cvar_update - target_cvar), 0)
+                            mu[scene] = mu[scene]*mu_multiplier
+                            totloss = totloss + temploss
+                            totevalloss = totevalloss + evalloss
+                            optval += obj.item()
+                            testval += obj2.item()
+                            test_vio += violations2.item()
+                            violation_val +=  var_vio.item()
+                            violation_train += cvar_update.item()
+                        totloss = totloss/num_scenarios
+                        totloss.backward()
                         # eps_tch = torch.maximum(eps_tch, torch.tensor(0.0001))
                         newrow = pd.Series(
                             {"step": steps,
-                             "Loss_val": temploss.item(),
-                             "Eval_val": evalloss.item(),
-                             "Opt_val": obj.item(),
-                             "Violations": violations2.item(),
-                             "Violation_val": var_vio.item(),
-                             "Violation_train": cvar_update.item(),
-                             "Test_val": obj2.item(),
+                             "Loss_val": totloss.item(),
+                             "Eval_val": totevalloss.item()/num_scenarios,
+                             "Opt_val": optval/num_scenarios,
+                             "Test_val": testval/num_scenarios,
+                             "Violations": test_vio/num_scenarios,
+                             "Violation_val": violation_val/num_scenarios,
+                             "Violation_train": violation_train/num_scenarios,
                              "A_norm": np.mean(1/eps_tch.detach().numpy().copy()),
                              "Eps_vals": 1/eps_tch.detach().numpy().copy(),
                              "mu": mu,
@@ -467,7 +503,7 @@ class RobustProblem(Problem):
                             opt.zero_grad()
                             torch.clamp(eps_tch, min=0.001)
                             if scheduler:
-                                scheduler_.step(temploss)
+                                scheduler_.step(totloss)
 
                     self._trained = True
                     unc_set._trained = True
@@ -490,7 +526,7 @@ class RobustProblem(Problem):
             return Result(self, prob, df, unc_set.paramT.value, None, return_eps, obj.item(), var_values,
                           T_iter=T_iter)
 
-    def grid(self, epslst=None, seed=1, init_A=None, init_b=None, init_alpha=-0.01, test_percentage = 0.2, solver: Optional[str] = None):
+    def grid(self, epslst=None, seed=1, init_A=None, init_b=None, init_alpha=-0.01, test_percentage = 0.2, scenarios = None, num_scenarios = None, solver: Optional[str] = None):
         r"""
         performs gridsearch to find optimal :math:`\epsilon`-ball around data with respect to user-defined loss
 
@@ -570,18 +606,20 @@ class RobustProblem(Problem):
                 paramT_tch = eps_tch[0][0]*torch.tensor(np.eye(train.shape[1]), requires_grad=True, dtype=torch.double)
                 # assign parameter values
                 paramlst = prob.parameters()
-                newlst = []
-                if not mro_set:
-                    for i in paramlst[:-2]:
-                        newlst.append(torch.tensor(np.array(i.value).astype(
-                            np.float), requires_grad=True), dtype=torch.double)
-                    newlst.append(paramT_tch)
-                    newlst.append(paramb_tch)
-                else:
-                    for i in paramlst[:-1]:
-                        newlst.append(torch.tensor(np.array(i.value).astype(
-                            np.float), requires_grad=True), dtype=torch.double)
-                    newlst.append(paramT_tch)
+                newlst = {}
+                for scene in range(num_scenarios):
+                    newlst[scene] = []
+                    if not mro_set:
+                        for i in range(len(paramlst[:-2])):
+                            newlst[scene].append(torch.tensor(np.array(scenarios[scene][i]).astype(
+                                float), requires_grad=True, dtype=torch.double))
+                        newlst[scene].append(paramT_tch)
+                        newlst[scene].append(paramb_tch)
+                    else:
+                        for  i in range(len(paramlst[:-1])):
+                            newlst[scene].append(torch.tensor(np.array(scenarios[scene][i]).astype(
+                                float), requires_grad=True, dtype=torch.double))
+                        newlst[scene].append(paramT_tch)
                 minval = 9999999
                 var_vals = 0
 
@@ -598,36 +636,52 @@ class RobustProblem(Problem):
                     # import ipdb
                     eps_tch1 = torch.tensor([[1/epss]], requires_grad=True, dtype=torch.double)
                     # ipdb.set_trace()
-                    if not mro_set:
-                        newlst[-1] = eps_tch1[0][0]*init_bval
-                        newlst[-2] = eps_tch1[0][0]*init
-                    else:
-                        if unc_set._uniqueA:
-                            if init_A is None or (init_A is not None and init_A.shape[0] != (unc_set._K*unc_set._m)):
-                                paramT_tch = eps_tch1[0][0]*init
-                                paramT_tch = paramT_tch.repeat(unc_set._K, 1)
+                    totloss = 0
+                    totevalloss = 0
+                    optval = 0
+                    testval = 0
+                    test_vio = 0
+                    violation_val = 0
+                    violation_train = 0
+                    for scene in range(num_scenarios):
+                        if not mro_set:
+                            newlst[scene][-1] = eps_tch1[0][0]*init_bval
+                            newlst[scene][-2] = eps_tch1[0][0]*init
+                        else:
+                            if unc_set._uniqueA:
+                                if init_A is None or (init_A is not None and init_A.shape[0] != (unc_set._K*unc_set._m)):
+                                    paramT_tch = eps_tch1[0][0]*init
+                                    paramT_tch = paramT_tch.repeat(unc_set._K, 1)
+                                else:
+                                    paramT_tch = eps_tch1[0][0]*init
                             else:
                                 paramT_tch = eps_tch1[0][0]*init
-                        else:
-                            paramT_tch = eps_tch1[0][0]*init
-                        newlst[-1] = paramT_tch
-                    var_values = cvxpylayer(*newlst, solver_args={'solve_method': 'ECOS'})
-                    temploss, obj, violations, cvar_update = unc_set.loss(
-                        *var_values, torch.tensor(init_alpha), val_dset)
-                    evalloss, obj2, violations2, var_vio = unc_set.loss(*var_values, torch.tensor(init_alpha), eval_set)
-                    if temploss <= minval:
+                            newlst[scene][-1] = paramT_tch
+                        var_values = cvxpylayer(*newlst[scene], solver_args={'solve_method': 'ECOS'})
+                        temploss, obj, violations, cvar_update = unc_set.loss(
+                            *var_values, *newlst[scene][:-2], torch.tensor(init_alpha), val_dset)
+                        evalloss, obj2, violations2, var_vio = unc_set.loss(*var_values, *newlst[scene][:-2], torch.tensor(init_alpha), eval_set)
+                        totloss = totloss + temploss
+                        totevalloss = totevalloss + evalloss
+                        optval += obj.item()
+                        testval += obj2.item()
+                        test_vio += violations2.item()
+                        violation_val +=  var_vio.item()
+                        violation_train += cvar_update.item()
+                    totloss = totloss/num_scenarios
+                    if totloss <= minval:
                         minval = temploss
                         mineps = eps_tch1.clone()
                         minT = paramT_tch.clone()
                         var_vals = var_values
                     newrow = pd.Series(
-                        {"Loss_val": temploss.item(),
-                            "Eval_val": evalloss.item(),
-                            "Opt_val": obj.item(),
-                            "Test_val": obj2.item(),
-                            "Violations": violations2.item(),
-                            "Violation_val": var_vio.item(),
-                            "Violation_train": cvar_update.item(),
+                        {"Loss_val": totloss.item(),
+                             "Eval_val": totevalloss.item()/num_scenarios,
+                             "Opt_val": optval/num_scenarios,
+                             "Test_val": testval/num_scenarios,
+                             "Violations": test_vio/num_scenarios,
+                             "Violation_val": violation_val/num_scenarios,
+                             "Violation_train": violation_train/num_scenarios,
                             "Eps": 1/eps_tch1[0][0].detach().numpy().copy()
                          })
                     df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
