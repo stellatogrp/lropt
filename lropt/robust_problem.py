@@ -127,7 +127,7 @@ class RobustProblem(Problem):
         self, eps=False, fixb=True, step=45, lr=0.01, scheduler=True, momentum=0.8,
         optimizer="SGD", init_eps=None, init_A=None, init_b=None, save_iters=False, seed=1, init_lam=10, init_mu=10,
         mu_multiplier=1.02, init_alpha=-0.01,
-        target_cvar=0., test_percentage = 0.2, scenarios = None, num_scenarios = None,solver: Optional[str] = None
+        target_cvar=0., test_percentage = 0.2, scenarios = None, num_scenarios = None,max_inner_iter = 10,solver: Optional[str] = None
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. loss metric
@@ -285,7 +285,8 @@ class RobustProblem(Problem):
 
                     # train
                     lam = np.ones(num_scenarios)*init_lam
-                    mu = np.ones(num_scenarios)*init_mu
+                    curlam = init_lam
+                    mu = init_mu
                     for steps in range(step):
                         # import ipdb
                         # ipdb.set_trace()
@@ -296,6 +297,10 @@ class RobustProblem(Problem):
                         test_vio = 0
                         violation_val = 0
                         violation_train = 0
+                        totdloss = 0
+                        totuloss = 0
+                        totvloss = 0
+                        random_int = np.random.randint(0,val_dset.shape[0],int(val_dset.shape[0]/10))
                         for scene in range(num_scenarios):
                             if not mro_set:
                                 newlst[scene][-1] = paramb_tch
@@ -304,24 +309,73 @@ class RobustProblem(Problem):
                                 newlst[scene][-1] = paramT_tch
                             var_values = cvxpylayer(*newlst[scene], solver_args={'solve_method': 'ECOS'})
                             temploss, obj, violations, cvar_update = unc_set.loss(
-                                *var_values, *newlst[scene][:-2], alpha, val_dset,  mu[scene], lam[scene], target=target_cvar)
+                                *var_values, *newlst[scene][:-2], alpha, val_dset, mu, curlam, target=target_cvar)
+                            uloss, _,_,_= unc_set.loss(
+                                *var_values, *newlst[scene][:-2], alpha, val_dset[random_int], mu, curlam, target=target_cvar)
+                            totdloss = totdloss + temploss/num_scenarios
+                            totuloss = totuloss + uloss/num_scenarios
+                        backuptotdloss = totdloss.detach().clone()
+                        totdloss.backward(retain_graph = True)
+                        totdloss = backuptotdloss
+                        opt.step()
+                        opt.zero_grad()
+                        if scheduler:
+                            scheduler_.step(totdloss)
+                        tot_inner_step = np.random.randint(0,max_inner_iter)
+                        for inner_step in range(tot_inner_step-1):
+                            totvloss = 0
+                            newuloss = 0
+                            for scene in range(num_scenarios):
+                                if not mro_set:
+                                    newlst[scene][-1] = paramb_tch
+                                    newlst[scene][-2] = paramT_tch
+                                else:
+                                    newlst[scene][-1] = paramT_tch
+                                var_values = cvxpylayer(*newlst[scene], solver_args={'solve_method': 'ECOS'})
+                                vloss, _,_,_ = unc_set.loss(
+                                    *var_values, *newlst[scene][:-2], alpha, val_dset[random_int],  mu, curlam, target=target_cvar)
+                                random_int = np.random.randint(0,val_dset.shape[0],int(val_dset.shape[0]/10))
+                                uloss, _,_,_ = unc_set.loss(
+                                    *var_values, *newlst[scene][:-2], alpha, val_dset[random_int], mu, curlam, target=target_cvar)
+                                totvloss = totvloss + vloss/num_scenarios
+                                newuloss = newuloss + uloss/num_scenarios
+                            totdloss = totvloss + (1-0.01)*(totdloss - totuloss)
+                            backuptotdloss = totdloss.detach().clone()
+                            totdloss.backward(retain_graph=True)
+                            totdloss = backuptotdloss
+                            totuloss = newuloss.detach().clone()
+                            if inner_step < tot_inner_step-2:
+                                opt.step()
+                                opt.zero_grad()
+                                if scheduler:
+                                    scheduler_.step(totdloss)
+                        #update lagrange multipliers
+                        for scene in range(num_scenarios):
+                            if not mro_set:
+                                newlst[scene][-1] = paramb_tch
+                                newlst[scene][-2] = paramT_tch
+                            else:
+                                newlst[scene][-1] = paramT_tch
+                            var_values = cvxpylayer(*newlst[scene], solver_args={'solve_method': 'ECOS'})
+                            temploss, obj, violations, cvar_update = unc_set.loss(
+                                *var_values, *newlst[scene][:-2], alpha, val_dset,  mu, curlam, target=target_cvar)
                             evalloss, obj2, violations2, var_vio = unc_set.loss(
-                                *var_values, *newlst[scene][:-2], alpha, eval_set, mu[scene], lam[scene], target=target_cvar)
-                            lam[scene] = np.maximum(lam[scene] + mu[scene]*(cvar_update - target_cvar), 0)
-                            mu[scene] = mu[scene]*mu_multiplier
-                            totloss = totloss + temploss
-                            totevalloss = totevalloss + evalloss
+                                *var_values, *newlst[scene][:-2], alpha, eval_set, mu, curlam, target=target_cvar)
+                            lam[scene] = cvar_update - target_cvar
+                            totloss = totloss + temploss/num_scenarios
+                            totevalloss = totevalloss + evalloss/num_scenarios
                             optval += obj.item()
                             testval += obj2.item()
                             test_vio += violations2.item()
                             violation_val +=  var_vio.item()
                             violation_train += cvar_update.item()
+                        curlam = np.maximum(curlam + mu*(np.mean(lam)), 0)
+                        mu = mu*mu_multiplier
                         totloss = totloss/num_scenarios
-                        totloss.backward()
                         newrow = pd.Series(
                             {"step": steps,
                              "Loss_val": totloss.item(),
-                             "Eval_val": totevalloss.item()/num_scenarios,
+                             "Eval_val": totevalloss.item(),
                              "Opt_val": optval/num_scenarios,
                              "Test_val": testval/num_scenarios,
                              "Violations": test_vio/num_scenarios,
@@ -329,7 +383,7 @@ class RobustProblem(Problem):
                              "Violation_train": violation_train/num_scenarios,
                              "A_norm": np.linalg.norm(paramT_tch.detach().numpy().copy()),
                              "mu": mu,
-                             "lam": lam,
+                             "lam": curlam,
                              "alpha": alpha.item(),
                              "alphagrad": alpha.grad,
                              "dfnorm": np.linalg.norm(paramT_tch.grad),
@@ -342,11 +396,11 @@ class RobustProblem(Problem):
                             if not mro_set:
                                 b_iter.append(paramb_tch.detach().numpy().copy())
 
-                        if steps < step - 1:
-                            opt.step()
-                            opt.zero_grad()
-                            if scheduler:
-                                scheduler_.step(totloss)
+                        # if steps < step - 1:
+                        #     opt.step()
+                        #     opt.zero_grad()
+                        #     if scheduler:
+                        #         scheduler_.step(totloss)
 
                     self._trained = True
                     unc_set._trained = True
@@ -426,7 +480,8 @@ class RobustProblem(Problem):
 
                     # train
                     lam = np.ones(num_scenarios)*init_lam
-                    mu = np.ones(num_scenarios)*init_mu
+                    mu = init_mu
+                    curlam = init_lam
                     for steps in range(step):
                         # import ipdb
                         # ipdb.set_trace()
@@ -459,11 +514,10 @@ class RobustProblem(Problem):
                                 newlst[scene][-1] = paramT_tch
                             var_values = cvxpylayer(*newlst[scene], solver_args={'solve_method': 'ECOS'})
                             temploss, obj, violations, cvar_update = unc_set.loss(
-                                *var_values,  *newlst[scene][:-2], alpha, val_dset, mu[scene], lam[scene], target=target_cvar)
+                                *var_values,  *newlst[scene][:-2], alpha, val_dset, mu, curlam, target=target_cvar)
                             evalloss, obj2, violations2, var_vio = unc_set.loss(
-                                *var_values, *newlst[scene][:-2], alpha, eval_set, mu[scene], lam[scene], target=target_cvar)
-                            lam[scene] = np.maximum(lam[scene] + mu[scene]*(cvar_update - target_cvar), 0)
-                            mu[scene] = mu[scene]*mu_multiplier
+                                *var_values, *newlst[scene][:-2], alpha, eval_set, mu, curlam, target=target_cvar)
+                            lam[scene] = cvar_update - target_cvar
                             totloss = totloss + temploss
                             totevalloss = totevalloss + evalloss
                             optval += obj.item()
@@ -471,6 +525,8 @@ class RobustProblem(Problem):
                             test_vio += violations2.item()
                             violation_val +=  var_vio.item()
                             violation_train += cvar_update.item()
+                        curlam = np.maximum(curlam + mu*np.mean(lam), 0)
+                        mu = mu*mu_multiplier
                         totloss = totloss/num_scenarios
                         totloss.backward()
                         # eps_tch = torch.maximum(eps_tch, torch.tensor(0.0001))
@@ -486,7 +542,7 @@ class RobustProblem(Problem):
                              "A_norm": np.mean(1/eps_tch.detach().numpy().copy()),
                              "Eps_vals": 1/eps_tch.detach().numpy().copy(),
                              "mu": mu,
-                             "lam": lam,
+                             "lam": curlam,
                              "alpha": alpha.item(),
                              "alphagrad": alpha.grad,
                              "dfnorm": np.linalg.norm(eps_tch.grad),
