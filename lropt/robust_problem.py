@@ -693,12 +693,13 @@ class RobustProblem(Problem):
                     eps_tch1 = torch.tensor([[1/epss]], requires_grad=True, dtype=torch.double)
                     # ipdb.set_trace()
                     totloss = 0
-                    totevalloss = 0
-                    optval = 0
-                    testval = 0
-                    test_vio = 0
-                    violation_val = 0
-                    violation_train = 0
+                    totevalloss = []
+                    optval = []
+                    testval = []
+                    test_vio = []
+                    violation_val = []
+                    violation_train = []
+                    
                     for scene in range(num_scenarios):
                         if not mro_set:
                             newlst[scene][-1] = eps_tch1[0][0]*init_bval
@@ -718,12 +719,12 @@ class RobustProblem(Problem):
                             *var_values, *newlst[scene][:-2], torch.tensor(init_alpha), val_dset)
                         evalloss, obj2, violations2, var_vio = unc_set.loss(*var_values, *newlst[scene][:-2], torch.tensor(init_alpha), eval_set)
                         totloss = totloss + temploss
-                        totevalloss = totevalloss + evalloss
-                        optval += obj.item()
-                        testval += obj2.item()
-                        test_vio += violations2.item()
-                        violation_val +=  var_vio.item()
-                        violation_train += cvar_update.item()
+                        totevalloss.append(evalloss.item())
+                        optval.append(obj.item())
+                        testval.append(obj2.item())
+                        test_vio.append(violations2.item())
+                        violation_val.append(var_vio.item())
+                        violation_train.append(cvar_update.item())
                     totloss = totloss/num_scenarios
                     if totloss <= minval:
                         minval = temploss
@@ -732,12 +733,12 @@ class RobustProblem(Problem):
                         var_vals = var_values
                     newrow = pd.Series(
                         {"Loss_val": totloss.item(),
-                             "Eval_val": totevalloss.item()/num_scenarios,
-                             "Opt_val": optval/num_scenarios,
-                             "Test_val": testval/num_scenarios,
-                             "Violations": test_vio/num_scenarios,
-                             "Violation_val": violation_val/num_scenarios,
-                             "Violation_train": violation_train/num_scenarios,
+                             "Eval_val": totevalloss,
+                             "Opt_val": optval,
+                             "Test_val": testval,
+                             "Violations": test_vio,
+                             "Violation_val": violation_val,
+                             "Violation_train": violation_train,
                             "Eps": 1/eps_tch1[0][0].detach().numpy().copy()
                          })
                     df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
