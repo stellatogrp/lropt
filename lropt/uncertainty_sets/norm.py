@@ -44,9 +44,6 @@ class Norm(UncertaintySet):
         if p < 0.:
             raise ValueError("Order must be a nonnegative number.")
 
-        if data is not None and loss is None:
-            raise ValueError("You must provide a loss function")
-
         if data is not None:
             dat_shape = data.shape[1]
             paramT = Parameter((dat_shape, dat_shape))

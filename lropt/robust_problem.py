@@ -37,6 +37,7 @@ class RobustProblem(Problem):
         self._trained = False
         self._values = None
         self.new_prob = None
+        self.loss = self.set_loss()
 
     @property
     def trained(self):
@@ -86,6 +87,10 @@ class RobustProblem(Problem):
                            if isinstance(v, FamilyParameter)]
 
         return unique_list(fam_params)
+
+    def set_loss(self):
+        loss = None
+        return loss
 
 # create function for only remove_uncertain reduction
     def _construct_chain(
