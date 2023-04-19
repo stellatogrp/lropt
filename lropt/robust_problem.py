@@ -73,8 +73,6 @@ class RobustProblem(Problem):
         num_params : int
             the number of unique uncertain parameters in robust problem
         """
-        import ipdb
-        ipdb.set_trace()
 
         fam_params = []
 
