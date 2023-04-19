@@ -58,7 +58,4 @@ class TestBudgetUncertainty(unittest.TestCase):
         # solve
         prob_cvxpy.solve()
 
-        import ipdb
-        ipdb.set_trace()
-
         npt.assert_allclose(x_r.value, x_cvxpy.value, rtol=RTOL, atol=ATOL)

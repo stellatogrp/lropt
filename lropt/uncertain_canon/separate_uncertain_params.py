@@ -35,8 +35,6 @@ class Separate_Uncertain_Params(Reduction):
                     unc_dict[unc_param] = 0
                 unc_epi = Variable((num_unc_params,) + constraint.shape)
 
-                # shape= (num_unc_params,) + constraint.shape
-
                 unc_lst, std_lst, is_max = self.separate_uncertainty(constraint)
 
                 assert (is_max == 0)
