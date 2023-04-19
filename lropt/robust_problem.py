@@ -15,6 +15,7 @@ from cvxpy.reductions.solvers.solving_chain import (SolvingChain,
 from cvxpylayers.torch import CvxpyLayer
 from sklearn.model_selection import train_test_split
 
+from lropt.family_parameter import FamilyParameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lropt.settings import EPS_LST_DEFAULT, OPTIMIZERS
 from lropt.uncertain import UncertainParameter
@@ -36,6 +37,7 @@ class RobustProblem(Problem):
         self._trained = False
         self._values = None
         self.new_prob = None
+        self.loss = self.set_loss()
 
     @property
     def trained(self):
@@ -55,13 +57,42 @@ class RobustProblem(Problem):
         """
         unc_params = []
         # TODO: Add also in cost
+        unc_params += [v for v in self.objective.parameters()
+                       if isinstance(v, UncertainParameter)]
         for c in self.constraints:
             unc_params += [v for v in c.parameters()
                            if isinstance(v, UncertainParameter)]
 
         return unique_list(unc_params)
-# create function for only remove_uncertain reduction
 
+    def family_parameters(self):
+        """Find which variables are uncertain
+
+        Returns
+        -------
+        num_params : int
+            the number of unique uncertain parameters in robust problem
+        """
+        import ipdb
+        ipdb.set_trace()
+
+        fam_params = []
+
+        fam_params += [v for v in self.objective.parameters()
+                       if isinstance(v, FamilyParameter)]
+
+        # TODO: Add also in cost
+        for c in self.constraints:
+            fam_params += [v for v in c.parameters()
+                           if isinstance(v, FamilyParameter)]
+
+        return unique_list(fam_params)
+
+    def set_loss(self):
+        loss = None
+        return loss
+
+# create function for only remove_uncertain reduction
     def _construct_chain(
         self, solver: Optional[str] = None, gp: bool = False,
         enforce_dpp: bool = True, ignore_dpp: bool = False,
@@ -127,7 +158,8 @@ class RobustProblem(Problem):
         self, eps=False, fixb=True, step=45, lr=0.01, scheduler=True, momentum=0.8,
         optimizer="SGD", init_eps=None, init_A=None, init_b=None, save_iters=False, seed=1, init_lam=10, init_mu=10,
         mu_multiplier=1.02, init_alpha=-0.01,
-        target_cvar=0., test_percentage = 0.2, scenarios = None, num_scenarios = None,max_inner_iter = 10,solver: Optional[str] = None
+        target_cvar=0., test_percentage=0.2, scenarios=None, num_scenarios=None, max_inner_iter=10,
+        solver: Optional[str] = None
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. loss metric
@@ -216,7 +248,8 @@ class RobustProblem(Problem):
                 df = pd.DataFrame(columns=["step", "Opt_val", "Eval_val", "Loss_val", "Violations", "A_norm"])
 
                 # setup train and test data
-                train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]*test_percentage), random_state=seed)
+                train, test = train_test_split(unc_set.data, test_size=int(
+                    unc_set.data.shape[0]*test_percentage), random_state=seed)
                 val_dset = torch.tensor(train, requires_grad=True, dtype=torch.double)
                 eval_set = torch.tensor(test, requires_grad=True, dtype=torch.double)
                 # create cvxpylayer
@@ -278,7 +311,7 @@ class RobustProblem(Problem):
                             newlst[scene].append(paramT_tch)
                             newlst[scene].append(paramb_tch)
                         else:
-                            for  i in range(len(paramlst[:-1])):
+                            for i in range(len(paramlst[:-1])):
                                 newlst[scene].append(torch.tensor(np.array(scenarios[scene][i]).astype(
                                     float), requires_grad=True, dtype=torch.double))
                             newlst[scene].append(paramT_tch)
@@ -300,7 +333,7 @@ class RobustProblem(Problem):
                         totdloss = 0
                         totuloss = 0
                         totvloss = 0
-                        random_int = np.random.randint(0,val_dset.shape[0],int(val_dset.shape[0]/10))
+                        random_int = np.random.randint(0, val_dset.shape[0], int(val_dset.shape[0]/10))
                         for scene in range(num_scenarios):
                             if not mro_set:
                                 newlst[scene][-1] = paramb_tch
@@ -310,18 +343,19 @@ class RobustProblem(Problem):
                             var_values = cvxpylayer(*newlst[scene], solver_args={'solve_method': 'ECOS'})
                             temploss, obj, violations, cvar_update = unc_set.loss(
                                 *var_values, *newlst[scene][:-2], alpha, val_dset, mu, curlam, target=target_cvar)
-                            uloss, _,_,_= unc_set.loss(
-                                *var_values, *newlst[scene][:-2], alpha, val_dset[random_int], mu, curlam, target=target_cvar)
+                            uloss, _, _, _ = unc_set.loss(
+                                *var_values, *newlst[scene][:-2], alpha, val_dset[random_int], mu, curlam,
+                                target=target_cvar)
                             totdloss = totdloss + temploss/num_scenarios
                             totuloss = totuloss + uloss/num_scenarios
                         backuptotdloss = totdloss.detach().clone()
-                        totdloss.backward(retain_graph = True)
+                        totdloss.backward(retain_graph=True)
                         totdloss = backuptotdloss
                         opt.step()
                         opt.zero_grad()
                         if scheduler:
                             scheduler_.step(totdloss)
-                        tot_inner_step = np.random.randint(0,max_inner_iter)
+                        tot_inner_step = np.random.randint(0, max_inner_iter)
                         for inner_step in range(tot_inner_step-1):
                             totvloss = 0
                             newuloss = 0
@@ -332,11 +366,13 @@ class RobustProblem(Problem):
                                 else:
                                     newlst[scene][-1] = paramT_tch
                                 var_values = cvxpylayer(*newlst[scene], solver_args={'solve_method': 'ECOS'})
-                                vloss, _,_,_ = unc_set.loss(
-                                    *var_values, *newlst[scene][:-2], alpha, val_dset[random_int],  mu, curlam, target=target_cvar)
-                                random_int = np.random.randint(0,val_dset.shape[0],int(val_dset.shape[0]/10))
-                                uloss, _,_,_ = unc_set.loss(
-                                    *var_values, *newlst[scene][:-2], alpha, val_dset[random_int], mu, curlam, target=target_cvar)
+                                vloss, _, _, _ = unc_set.loss(
+                                    *var_values, *newlst[scene][:-2], alpha, val_dset[random_int],  mu, curlam,
+                                    target=target_cvar)
+                                random_int = np.random.randint(0, val_dset.shape[0], int(val_dset.shape[0]/10))
+                                uloss, _, _, _ = unc_set.loss(
+                                    *var_values, *newlst[scene][:-2], alpha, val_dset[random_int], mu, curlam,
+                                    target=target_cvar)
                                 totvloss = totvloss + vloss/num_scenarios
                                 newuloss = newuloss + uloss/num_scenarios
                             totdloss = totvloss + (1-0.01)*(totdloss - totuloss)
@@ -349,7 +385,7 @@ class RobustProblem(Problem):
                                 opt.zero_grad()
                                 if scheduler:
                                     scheduler_.step(totdloss)
-                        #update lagrange multipliers
+                        # update lagrange multipliers
                         for scene in range(num_scenarios):
                             if not mro_set:
                                 newlst[scene][-1] = paramb_tch
@@ -367,7 +403,7 @@ class RobustProblem(Problem):
                             optval += obj.item()
                             testval += obj2.item()
                             test_vio += violations2.item()
-                            violation_val +=  var_vio.item()
+                            violation_val += var_vio.item()
                             violation_train += cvar_update.item()
                         curlam = np.maximum(curlam + mu*(np.mean(lam)), 0)
                         mu = mu*mu_multiplier
@@ -473,7 +509,7 @@ class RobustProblem(Problem):
                             newlst[scene].append(paramT_tch)
                             newlst[scene].append(paramb_tch)
                         else:
-                            for  i in range(len(paramlst[:-1])):
+                            for i in range(len(paramlst[:-1])):
                                 newlst[scene].append(torch.tensor(np.array(scenarios[scene][i]).astype(
                                     float), requires_grad=True, dtype=torch.double))
                             newlst[scene].append(paramT_tch)
@@ -523,7 +559,7 @@ class RobustProblem(Problem):
                             optval += obj.item()
                             testval += obj2.item()
                             test_vio += violations2.item()
-                            violation_val +=  var_vio.item()
+                            violation_val += var_vio.item()
                             violation_train += cvar_update.item()
                         curlam = np.maximum(curlam + mu*np.mean(lam), 0)
                         mu = mu*mu_multiplier
@@ -582,7 +618,8 @@ class RobustProblem(Problem):
             return Result(self, prob, df, unc_set.paramT.value, None, return_eps, obj.item(), var_values,
                           T_iter=T_iter)
 
-    def grid(self, epslst=None, seed=1, init_A=None, init_b=None, init_alpha=-0.01, test_percentage = 0.2, scenarios = None, num_scenarios = None, solver: Optional[str] = None):
+    def grid(self, epslst=None, seed=1, init_A=None, init_b=None, init_alpha=-0.01, test_percentage=0.2, scenarios=None,
+             num_scenarios=None, solver: Optional[str] = None):
         r"""
         performs gridsearch to find optimal :math:`\epsilon`-ball around data with respect to user-defined loss
 
@@ -652,7 +689,8 @@ class RobustProblem(Problem):
                 else:
                     mro_set = False
                 # setup train and test data
-                train, test = train_test_split(unc_set.data, test_size=int(unc_set.data.shape[0]*test_percentage), random_state=seed)
+                train, test = train_test_split(unc_set.data, test_size=int(
+                    unc_set.data.shape[0]*test_percentage), random_state=seed)
                 val_dset = torch.tensor(train, requires_grad=True, dtype=torch.double)
                 eval_set = torch.tensor(test, requires_grad=True, dtype=torch.double)
                 # create cvxpylayer
@@ -672,7 +710,7 @@ class RobustProblem(Problem):
                         newlst[scene].append(paramT_tch)
                         newlst[scene].append(paramb_tch)
                     else:
-                        for  i in range(len(paramlst[:-1])):
+                        for i in range(len(paramlst[:-1])):
                             newlst[scene].append(torch.tensor(np.array(scenarios[scene][i]).astype(
                                 float), requires_grad=True, dtype=torch.double))
                         newlst[scene].append(paramT_tch)
@@ -699,14 +737,15 @@ class RobustProblem(Problem):
                     test_vio = []
                     violation_val = []
                     violation_train = []
-                    
+
                     for scene in range(num_scenarios):
                         if not mro_set:
                             newlst[scene][-1] = eps_tch1[0][0]*init_bval
                             newlst[scene][-2] = eps_tch1[0][0]*init
                         else:
                             if unc_set._uniqueA:
-                                if init_A is None or (init_A is not None and init_A.shape[0] != (unc_set._K*unc_set._m)):
+                                if init_A is None or (init_A is not None and init_A.shape[0] !=
+                                                      (unc_set._K*unc_set._m)):
                                     paramT_tch = eps_tch1[0][0]*init
                                     paramT_tch = paramT_tch.repeat(unc_set._K, 1)
                                 else:
@@ -717,7 +756,8 @@ class RobustProblem(Problem):
                         var_values = cvxpylayer(*newlst[scene], solver_args={'solve_method': 'ECOS'})
                         temploss, obj, violations, cvar_update = unc_set.loss(
                             *var_values, *newlst[scene][:-2], torch.tensor(init_alpha), val_dset)
-                        evalloss, obj2, violations2, var_vio = unc_set.loss(*var_values, *newlst[scene][:-2], torch.tensor(init_alpha), eval_set)
+                        evalloss, obj2, violations2, var_vio = unc_set.loss(
+                            *var_values, *newlst[scene][:-2], torch.tensor(init_alpha), eval_set)
                         totloss = totloss + temploss
                         totevalloss.append(evalloss.item())
                         optval.append(obj.item())
@@ -733,12 +773,12 @@ class RobustProblem(Problem):
                         var_vals = var_values
                     newrow = pd.Series(
                         {"Loss_val": totloss.item(),
-                             "Eval_val": totevalloss,
-                             "Opt_val": optval,
-                             "Test_val": testval,
-                             "Violations": test_vio,
-                             "Violation_val": violation_val,
-                             "Violation_train": violation_train,
+                         "Eval_val": totevalloss,
+                         "Opt_val": optval,
+                         "Test_val": testval,
+                         "Violations": test_vio,
+                         "Violation_val": violation_val,
+                         "Violation_train": violation_train,
                             "Eps": 1/eps_tch1[0][0].detach().numpy().copy()
                          })
                     df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
@@ -776,8 +816,6 @@ class RobustProblem(Problem):
         return super(RobustProblem, self)
 
     def solve(self, solver: Optional[str] = None):
-        # import ipdb
-        # ipdb.set_trace()
         if self.new_prob is not None:
             return self.new_prob.solve(solver=solver)
         elif self.uncertain_parameters():
