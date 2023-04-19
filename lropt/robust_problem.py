@@ -816,8 +816,6 @@ class RobustProblem(Problem):
         return super(RobustProblem, self)
 
     def solve(self, solver: Optional[str] = None):
-        # import ipdb
-        # ipdb.set_trace()
         if self.new_prob is not None:
             return self.new_prob.solve(solver=solver)
         elif self.uncertain_parameters():
