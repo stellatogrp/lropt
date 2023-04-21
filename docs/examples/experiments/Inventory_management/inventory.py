@@ -121,4 +121,4 @@ dfgrid2 = result5.df
 
 plot_tradeoff(dfgrid,dfgrid2,"inventory",ind_1 = (14,30), ind_2 = (24,40))
 
-plot_iters(df1,"inventory")
+plot_iters(df1,"inventory_log", logscale = True, steps = 400)

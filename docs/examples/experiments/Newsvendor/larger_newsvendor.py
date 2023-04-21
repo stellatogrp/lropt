@@ -59,7 +59,7 @@ num_scenarios = 5
 for scene in range(num_scenarios):
     np.random.seed(scene)
     scenarios[scene] = {}
-    scenarios[scene][0] = p + np.random.normal(0,0.1,n)
+    scenarios[scene][0] = p + np.random.normal(0,1,n)
 
 # Formulate uncertainty set
 u = lropt.UncertainParameter(n,
@@ -104,6 +104,6 @@ dfgrid = result4.df
 result5 = prob.grid(epslst = np.linspace(0.01, 3, 40), init_A = A_fin, init_b = b_fin, seed = s, init_alpha = 0.,test_percentage = test_p,scenarios = scenarios, num_scenarios = num_scenarios)
 dfgrid2 = result5.df
 
-plot_tradeoff(dfgrid,dfgrid2,"News")
+plot_tradeoff(dfgrid,dfgrid2,"News",ind_1=(10,20),ind_2=(0,30) )
 
-plot_iters(df1,"News", steps = 800)
+plot_iters(df1,"News", steps = 800,logscale = 1)
