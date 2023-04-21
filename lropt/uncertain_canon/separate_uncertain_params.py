@@ -33,7 +33,7 @@ class Separate_Uncertain_Params(Reduction):
                 unc_dict = {}
                 for unc_param in unique_unc_params:
                     unc_dict[unc_param] = 0
-                unc_epi = Variable(num_unc_params)
+                unc_epi = Variable((num_unc_params,) + constraint.shape)
 
                 unc_lst, std_lst, is_max = self.separate_uncertainty(constraint)
 
@@ -41,16 +41,15 @@ class Separate_Uncertain_Params(Reduction):
                 original_constraint = 0
 
                 for unc_function in unc_lst:
-                    param_lst = self.get_unq_uncertain_param(unc_function)
+                    unc_param = self.get_unq_uncertain_param(unc_function)[0]
                     # assert len(param_lst) == 1, "two different parameters multiplied violates lropt ruleset"
-                    unc_param = param_lst[0]
 
                     unc_dict[unc_param] += unc_function
 
                 for i, unc_param in enumerate(unique_unc_params):
                     canon_constraints += [unc_dict[unc_param] <= unc_epi[i]]
 
-                original_constraint += sum(std_lst) + cp_sum(unc_epi)
+                original_constraint += sum(std_lst) + cp_sum(unc_epi, axis=0)
 
                 canon_constr = original_constraint <= 0
                 canon_constraints += [canon_constr]
