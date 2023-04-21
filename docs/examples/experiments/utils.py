@@ -1,15 +1,16 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
 
 def plot_tradeoff(df_standard,df_reshape,title,ind_1 = (0,100), ind_2 = (0,100)):
     plt.rcParams.update({
     "text.usetex":True,
-    
+
     "font.size":22,
     "font.family": "serif"
 })
     beg1,end1 = ind_1
-    beg2,end2 = ind_2    
+    beg2,end2 = ind_2
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 3))
     ax1.plot(np.mean(np.vstack(df_standard['Violation_val']),axis = 1)[beg1:end1], np.mean(np.vstack(df_standard['Test_val']),axis = 1)[beg1:end1], color="tab:blue", label=r"Standard set")
@@ -38,7 +39,7 @@ def plot_tradeoff(df_standard,df_reshape,title,ind_1 = (0,100), ind_2 = (0,100))
 def plot_iters(dftrain, title, steps = 2000, logscale = True):
     plt.rcParams.update({
     "text.usetex":True,
-    
+
     "font.size":22,
     "font.family": "serif"
 })
@@ -58,7 +59,7 @@ def plot_iters(dftrain, title, steps = 2000, logscale = True):
         ax1.set_xscale("log")
         ax2.set_xscale("log")
     plt.savefig(title+"_iters.pdf",bbox_inches='tight')
-    
+
 
 def pareto_frontier(Xs, Ys, maxX = False, maxY = False):
     Xs = np.array(Xs)
@@ -66,10 +67,10 @@ def pareto_frontier(Xs, Ys, maxX = False, maxY = False):
 # Sort the list in either ascending or descending order of X
     myList = sorted([[Xs[i], Ys[i]] for i in range(len(Xs))], reverse=maxX)
 # Start the Pareto frontier with the first value in the sorted list
-    p_front = [myList[0]]    
+    p_front = [myList[0]]
 # Loop through the sorted list
     for pair in myList[1:]:
-        if maxY: 
+        if maxY:
             if pair[1] >= p_front[-1][1]: # Look for higher values of Y…
                 p_front.append(pair) # … and add them to the Pareto frontier
         else:

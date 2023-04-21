@@ -5,8 +5,6 @@ from sklearn.cluster import KMeans
 
 from lropt.uncertainty_sets.uncertainty_set import UncertaintySet
 
-# from lropt.utils import check_affine_transform
-
 
 class MRO(UncertaintySet):
     r"""
@@ -58,9 +56,11 @@ class MRO(UncertaintySet):
                 for k_ind in range(1, K):
                     dat = data[kmeans.labels_ == k_ind]
                     if dat.shape[0] <= 2:
-                        initnew = np.vstack((initnew, sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))))
+                        initnew = np.vstack((initnew,
+                                             sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))))
                     else:
-                        initnew = np.vstack((initnew, sc.linalg.sqrtm(sc.linalg.inv(np.cov(dat.T)))))
+                        initnew = np.vstack((initnew,
+                                             sc.linalg.sqrtm(sc.linalg.inv(np.cov(dat.T)))))
                 self._initA = initnew
             else:
                 paramT = Parameter((self._m, self._m))
@@ -255,7 +255,8 @@ class MRO(UncertaintySet):
                 if shape == 1:
                     newvar = Variable(ushape)  # gamma aux variable
                     constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
-                    constr += [self.paramT[k_ind*self._m:(k_ind+1)*self._m, 0:self._m].T@newvar == var[0]]
+                    constr += \
+                        [self.paramT[k_ind*self._m:(k_ind+1)*self._m, 0:self._m].T@newvar == var[0]]
                     constr += [lmbda >= 0]
                     return newvar*(self.paramT[k_ind*self._m:(k_ind+1) *
                                                self._m, 0:self._m]@self.Dbar[k_ind]) -\

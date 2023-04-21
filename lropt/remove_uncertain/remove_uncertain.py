@@ -1,7 +1,5 @@
-from lropt.remove_uncertain.atom_canonicalizers import \
-    CANON_METHODS as remove_uncertain_methods
-from lropt.uncertain_canon.uncertain_canonicalization import \
-    Uncertain_Canonicalization
+from lropt.remove_uncertain.atom_canonicalizers import CANON_METHODS as remove_uncertain_methods
+from lropt.uncertain_canon.uncertain_canonicalization import Uncertain_Canonicalization
 
 
 class RemoveUncertainParameters(Uncertain_Canonicalization):

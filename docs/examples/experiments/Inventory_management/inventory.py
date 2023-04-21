@@ -1,19 +1,24 @@
-import cvxpy as cp
-import scipy as sc
-import numpy as np
-import numpy.random as npr
-import torch
-from sklearn import datasets
-import pandas as pd
-import lropt
-import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
+import os.path as path
+import sys
 import warnings
 from inspect import getsourcefile
-import os.path as path, sys
+
+import cvxpy as cp
+import matplotlib.pyplot as plt
+import numpy as np
+import numpy.random as npr
+import pandas as pd
+import scipy as sc
+import torch
+from sklearn import datasets
+from sklearn.model_selection import train_test_split
+
+import lropt
+
 current_dir = path.dirname(path.abspath(getsourcefile(lambda:0)))
 sys.path.insert(0, current_dir[:current_dir.rfind(path.sep)])
-from utils import plot_tradeoff,plot_iters
+from utils import plot_iters, plot_tradeoff
+
 sys.path.pop(0)
 warnings.filterwarnings("ignore")
 
@@ -52,7 +57,7 @@ def loss(L,y,Y,s,r,alpha, data,mu=1000,l=10000,quantile = 0.95, target = -0.1):
 n = 10
 m = 4
 
-#formulate parameters 
+#formulate parameters
 r = np.random.uniform(20,40,n)
 scenarios = {}
 num_scenarios = 5
@@ -68,7 +73,7 @@ m = 4
 data = data_modes(600,m,[10,20,30],seed = seed)
 # formulate the ellipsoidal set
 u = lropt.UncertainParameter(m,
-                                uncertainty_set = lropt.Ellipsoidal(p=2, 
+                                uncertainty_set = lropt.Ellipsoidal(p=2,
                                                                   rho=1., data =data, loss =loss))
 # formulate cvxpy variable
 L = cp.Variable()

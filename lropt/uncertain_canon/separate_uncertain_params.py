@@ -6,8 +6,7 @@ from cvxpy.reductions.reduction import Reduction
 from cvxpy.reductions.solution import Solution
 
 from lropt.uncertain import UncertainParameter
-from lropt.uncertain_canon.separate_uncertainty import \
-    SEPARATION_METHODS as sep_methods
+from lropt.uncertain_canon.separate_uncertainty import SEPARATION_METHODS as sep_methods
 from lropt.utils import unique_list
 
 
@@ -42,7 +41,6 @@ class Separate_Uncertain_Params(Reduction):
 
                 for unc_function in unc_lst:
                     unc_param = self.get_unq_uncertain_param(unc_function)[0]
-                    # assert len(param_lst) == 1, "two different parameters multiplied violates lropt ruleset"
 
                     unc_dict[unc_param] += unc_function
 
@@ -95,7 +93,8 @@ class Separate_Uncertain_Params(Reduction):
         Output:
             unc_lst :
                 EX: :math:`[g_1(u_1,x), g_2(u_1,x)]`
-                a list of cvxpy multiplication expressions from expr each containing one uncertain parameter
+                a list of cvxpy multiplication expressions from expr each containing one
+                uncertain parameter
             std_lst :
                 Ex: :math:`[h_1(x),h_2(x)]`
                 any other cvxpy expressions
