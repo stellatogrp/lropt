@@ -1,5 +1,5 @@
 Norm Uncertainty
-================
+=================
 
-.. autoclass:: lro.Norm
+.. autoclass:: lropt.Norm
    :members:

@@ -5,10 +5,10 @@
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Polyhedral Uncertainty" href="polyhedral.html" /><link rel="prev" title="Ellipsoidal Uncertainty" href="ellipsoidal.html" />
 
-    <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
-        <title>Box Uncertainty - LRO documentation documentation</title>
+    <!-- Generated with Sphinx 6.1.3 and Furo 2023.03.27 -->
+        <title>Box Uncertainty - LROPT documentation documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?digest=fad236701ea90a88636c2a8c73b44ae642ed2a53" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
     
     
@@ -123,7 +123,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">LRO documentation  documentation</div></a>
+      <a href="../../index.html"><div class="brand">LROPT documentation  documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -146,7 +146,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
   
-  <span class="sidebar-brand-text">LRO documentation  documentation</span>
+  <span class="sidebar-brand-text">LROPT documentation  documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -162,7 +162,6 @@
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../examples/index.html">Examples</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/experiments/tutorial_deterministic.html">Deterministic Uncertainty Sets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/experiments/tutorial_learning.html">Learning Uncertainty Sets</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">API</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
@@ -215,8 +214,8 @@
           <section id="box-uncertainty">
 <h1>Box Uncertainty<a class="headerlink" href="#box-uncertainty" title="Permalink to this heading">#</a></h1>
 <dl class="py class">
-<dt class="sig sig-object py" id="lro.Box">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lro.</span></span><span class="sig-name descname"><span class="pre">Box</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lro.Box" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="lropt.Box">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lropt.</span></span><span class="sig-name descname"><span class="pre">Box</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.Box" title="Permalink to this definition">#</a></dt>
 <dd><p>Box uncertainty set defined as</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -231,11 +230,12 @@
 </dd>
 <dt>b<span class="classifier">np.array, optional</span></dt><dd><p>vector defining <span class="math notranslate nohighlight">\(b\)</span> in uncertainty set definition. By default <span class="math notranslate nohighlight">\(b = 0\)</span></p>
 </dd>
-<dt>data: np.array, optional</dt><dd><p>An array of uncertainty realizations, where each row is one realization. Required if the uncertainty should
-be trained, or if <cite>loss</cite> function passed.</p>
+<dt>data: np.array, optional</dt><dd><p>An array of uncertainty realizations, where each row is one realization.
+Required if the uncertainty should be trained, or if <cite>loss</cite> function passed.</p>
 </dd>
-<dt>loss: function, optional</dt><dd><p>The loss function used to train the uncertainty set. Required if uncertainty set parameters should be trained
-or if <cite>data</cite> is passed. function must use torch tensors, and arguments to loss function must be given in the
+<dt>loss: function, optional</dt><dd><p>The loss function used to train the uncertainty set.
+Required if uncertainty set parameters should be trained or if <cite>data</cite> is passed.
+Function must use torch tensors, and arguments to loss function must be given in the
 same order as cvxpy variables defined in problem.</p>
 </dd>
 </dl>
@@ -307,7 +307,7 @@ same order as cvxpy variables defined in problem.</p>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Box Uncertainty</a><ul>
-<li><a class="reference internal" href="#lro.Box"><code class="docutils literal notranslate"><span class="pre">Box</span></code></a></li>
+<li><a class="reference internal" href="#lropt.Box"><code class="docutils literal notranslate"><span class="pre">Box</span></code></a></li>
 </ul>
 </li>
 </ul>

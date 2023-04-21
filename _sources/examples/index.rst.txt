@@ -1,7 +1,7 @@
 Examples
 ========
 
-Here is a list of :code:`lro` code examples
+Here is a list of :code:`lropt` code examples
 
 
 .. toctree::
@@ -9,4 +9,3 @@ Here is a list of :code:`lro` code examples
    :glob:
 
    experiments/tutorial_deterministic
-   experiments/tutorial_learning
