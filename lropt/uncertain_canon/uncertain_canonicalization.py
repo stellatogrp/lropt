@@ -6,13 +6,10 @@ from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
 from cvxpy.reductions.solution import Solution
 
-from lropt.remove_uncertain.atom_canonicalizers.mul_canon import \
-    mul_canon_transform
+from lropt.remove_uncertain.atom_canonicalizers.mul_canon import mul_canon_transform
 from lropt.uncertain import UncertainParameter
-from lropt.uncertain_canon.remove_constant import \
-    REMOVE_CONSTANT_METHODS as rm_const_methods
-from lropt.uncertain_canon.separate_uncertainty import \
-    SEPARATION_METHODS as sep_methods
+from lropt.uncertain_canon.remove_constant import REMOVE_CONSTANT_METHODS as rm_const_methods
+from lropt.uncertain_canon.separate_uncertainty import SEPARATION_METHODS as sep_methods
 from lropt.uncertainty_sets.budget import Budget
 from lropt.uncertainty_sets.mro import MRO
 from lropt.uncertainty_sets.polyhedral import Polyhedral
