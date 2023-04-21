@@ -2,8 +2,10 @@ import unittest
 
 import cvxpy as cp
 import numpy as np
+
 # import numpy.testing as npt
 import scipy as sc
+
 # import pytest
 # import torch
 from sklearn import datasets
@@ -11,10 +13,12 @@ from sklearn import datasets
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertain_atoms.quad_form import quad_form
+
 # from lropt.uncertainty_sets.box import Box
 # from lropt.uncertainty_sets.budget import Budget
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
 from lropt.uncertainty_sets.mro import MRO
+
 # from lropt.uncertainty_sets.polyhedral import Polyhedral
 from tests.settings import SOLVER
 

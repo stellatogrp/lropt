@@ -1,8 +1,10 @@
 import unittest
 
 import cvxpy as cp
+
 # import matplotlib.pyplot as plt
 import numpy as np
+
 # import numpy.random as npr
 import numpy.testing as npt
 
