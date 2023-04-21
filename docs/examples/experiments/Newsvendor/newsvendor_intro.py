@@ -27,13 +27,13 @@ p = np.array([5,6.5])
 # k_tch = torch.tensor(k, requires_grad = True)
 # p_tch = torch.tensor(p, requires_grad = True)
 
-def loss(t,x,k_tch, p_tch, alpha,data, mu = 1, l = 5, quantile = 0.95,target = 1.): 
+def loss(t,x,k_tch, p_tch, alpha,data, mu = 1, l = 5, quantile = 0.95,target = 1.):
     sums = torch.mean(torch.maximum(
-        torch.maximum( k_tch@x -data@(p_tch), k_tch@x - x@(p_tch)) - t - alpha, 
+        torch.maximum( k_tch@x -data@(p_tch), k_tch@x - x@(p_tch)) - t - alpha,
         torch.tensor(0.,requires_grad = True)))
     sums = sums/(1-quantile) + alpha
     return t + l*(sums - target) + (mu/2)*(sums - target)**2, t, torch.mean((torch.maximum(
-        torch.maximum(k_tch@x -data@(p_tch), k_tch@x - x@(p_tch)) - t, 
+        torch.maximum(k_tch@x -data@(p_tch), k_tch@x - x@(p_tch)) - t,
         torch.tensor(0.,requires_grad = True))>=0.001).float()), sums.detach().numpy()
 
 def gen_demand_intro(N, seed):
@@ -131,7 +131,7 @@ for ind in range(4):
                   (np.mean(np.vstack(dfgrid['Violations']),axis = 1)[inds[ind]],np.mean(np.vstack(dfgrid['Test_val']),axis = 1)[inds[ind]]), # these are the coordinates to position the label
                   textcoords="offset points", # how to position the text
                   xytext=(5,3), # distance from text to points (x,y)
-                  ha='left',color="tab:green",fontsize=15) 
+                  ha='left',color="tab:green",fontsize=15)
 
 plt.plot(np.mean(np.vstack(dfgrid2['Violations']),axis = 1),np.mean(np.vstack(dfgrid2['Test_val']),axis = 1), color="tab:orange", label="Reshaped set", marker = "^",zorder=1)
 plt.fill(np.append(np.quantile(np.vstack(dfgrid2['Violations']),0.1,axis = 1),np.quantile(np.vstack(dfgrid2['Violations']),0.9,axis = 1)[::-1]), np.append(np.quantile(np.vstack(dfgrid2['Test_val']),0.1,axis = 1),np.quantile(np.vstack(dfgrid2['Test_val']),0.90,axis = 1)[::-1]), color="tab:orange", alpha=0.2)
@@ -141,7 +141,7 @@ for ind in [0,1,3]:
                   (np.mean(np.vstack(dfgrid2['Violations']),axis = 1)[inds[ind]],np.mean(np.vstack(dfgrid2['Test_val']),axis = 1)[inds[ind]]), # these are the coordinates to position the label
                   textcoords="offset points", # how to position the text
                   xytext=(5,1), # distance from text to points (x,y)
-                  ha='left',color="black", fontsize = 15) 
+                  ha='left',color="black", fontsize = 15)
 plt.ylabel("Objective valye")
 plt.xlabel("Probability of constraint violation")
 plt.ylim([-50,70])
@@ -158,7 +158,7 @@ for ind in range(4):
                   (np.mean(np.vstack(dfgrid['Violation_val']),axis = 1)[inds[ind]],np.mean(np.vstack(dfgrid['Test_val']),axis = 1)[inds[ind]]), # these are the coordinates to position the label
                   textcoords="offset points", # how to position the text
                   xytext=(5,3), # distance from text to points (x,y)
-                  ha='left',color="tab:green",fontsize=15) 
+                  ha='left',color="tab:green",fontsize=15)
 
 plt.plot(np.mean(np.vstack(dfgrid2['Violation_val']),axis = 1),np.mean(np.vstack(dfgrid2['Test_val']),axis = 1), color="tab:orange", label="Reshaped set", marker = "^",zorder=1)
 plt.fill(np.append(np.quantile(np.vstack(dfgrid2['Violation_val']),0.1,axis = 1),np.quantile(np.vstack(dfgrid2['Violation_val']),0.9,axis = 1)[::-1]), np.append(np.quantile(np.vstack(dfgrid2['Test_val']),0.1,axis = 1),np.quantile(np.vstack(dfgrid2['Test_val']),0.90,axis = 1)[::-1]), color="tab:orange", alpha=0.2)
@@ -168,7 +168,7 @@ for ind in [1,3]:
                   (np.mean(np.vstack(dfgrid2['Violation_val']),axis = 1)[inds[ind]],np.mean(np.vstack(dfgrid2['Test_val']),axis = 1)[inds[ind]]), # these are the coordinates to position the label
                   textcoords="offset points", # how to position the text
                   xytext=(5,1), # distance from text to points (x,y)
-                  ha='left',color="black", fontsize = 15) 
+                  ha='left',color="black", fontsize = 15)
 plt.ylabel("Objective valye")
 plt.ylim([-50,70])
 plt.xlabel("Empirical $\mathbf{CVaR}$")
@@ -277,11 +277,11 @@ for ind in range(4):
 
             for k_ind in range(K):
                 init_set[ind][k_ind][i,j] = np.linalg.norm((1/eps_list[inds[ind]])*result3.A[k_ind*n:(k_ind+1)*n, 0:n]@ u_vec  + (1/eps_list[inds[ind]])*result3.b)
-            
+
             for scene in range(num_scenarios):
                 g_level_learned[ind][scene][i,j] = np.maximum(scenarios[scene][0] @ x_opt_learned[ind][scene] - scenarios[scene][1] @ x_opt_learned[ind][scene], scenarios[scene][0] @ x_opt_learned[ind][scene] - scenarios[scene][1] @ u_vec) - t_learned[ind][scene]
                 g_level_base[ind][scene][i,j] = np.maximum(scenarios[scene][0] @ x_opt_base[ind][scene] - scenarios[scene][1] @ x_opt_base[ind][scene], scenarios[scene][0] @ x_opt_base[ind][scene] - scenarios[scene][1] @ u_vec) - t_base[ind][scene]
 
-#plot contours 
-plot_contours_line(x,y,init_set, g_level_base,eps_list, inds, num_scenarios,train, "news_intro",standard = True) 
+#plot contours
+plot_contours_line(x,y,init_set, g_level_base,eps_list, inds, num_scenarios,train, "news_intro",standard = True)
 plot_contours_line(x,y,fin_set, g_level_learned,eps_list, inds, num_scenarios,train, "news_intro",standard = False)
