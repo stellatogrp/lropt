@@ -1,19 +1,25 @@
+import os.path as path
+import sys
+from inspect import getsourcefile
+
 import cvxpy as cp
-import scipy as sc
 import numpy as np
 import numpy.random as npr
+import pandas as pd
+import scipy as sc
 import torch
 from sklearn import datasets
-import pandas as pd
+
 import lropt
-from inspect import getsourcefile
-import os.path as path, sys
+
 current_dir = path.dirname(path.abspath(getsourcefile(lambda:0)))
 sys.path.insert(0, current_dir[:current_dir.rfind(path.sep)])
-from utils import plot_tradeoff,plot_iters
+import warnings
+
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-import warnings
+from utils import plot_iters, plot_tradeoff
+
 warnings.filterwarnings("ignore")
 
 # Formulate constants
@@ -31,15 +37,15 @@ p1_tch = torch.tensor(p1, requires_grad = True)
 
 def loss(t,y,x, x1, p_tch, alpha, data, mu = 100, l=1000, quantile = 0.95, target = 0.):
     sums =  torch.mean(torch.maximum(
-        torch.maximum(k_tch@x -data@p_tch, k_tch@x - p_tch@x) - t-alpha, 
+        torch.maximum(k_tch@x -data@p_tch, k_tch@x - p_tch@x) - t-alpha,
         torch.tensor(0.,requires_grad = True)))+ torch.mean(torch.maximum(
-        torch.maximum(k1_tch@x1 -data@p1_tch, k1_tch@x1 - p1_tch@x) - y-alpha, 
+        torch.maximum(k1_tch@x1 -data@p1_tch, k1_tch@x1 - p1_tch@x) - y-alpha,
         torch.tensor(0.,requires_grad = True)))
     sums = sums/(2*(1-quantile)) + alpha
     return t +y + l*(sums - target) + (mu/2)*(sums - target)**2, t+y, 0.5*torch.mean((torch.maximum(
-        torch.maximum(k_tch@x -data@p_tch, k_tch@x - p_tch@x) - t, 
+        torch.maximum(k_tch@x -data@p_tch, k_tch@x - p_tch@x) - t,
         torch.tensor(0.,requires_grad = True))>=0.001).float()) + 0.5*torch.mean((torch.maximum(
-        torch.maximum(k1_tch@x1 -data@p1_tch, k1_tch@x1 - p1_tch@x) - y, 
+        torch.maximum(k1_tch@x1 -data@p1_tch, k1_tch@x1 - p1_tch@x) - y,
         torch.tensor(0.,requires_grad = True))>=0.001).float()), sums.detach().numpy()
 
 def gen_demand(n, N, seed=399):
