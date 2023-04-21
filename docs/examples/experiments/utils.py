@@ -36,7 +36,13 @@ def plot_tradeoff(df_standard,df_reshape,title,ind_1 = (0,100), ind_2 = (0,100))
     plt.savefig(title+"_curve.pdf",bbox_inches='tight')
     plt.show()
 
-def plot_iters(dftrain, title, steps = 2000):
+def plot_iters(dftrain, title, steps = 2000, logscale = True):
+    plt.rcParams.update({
+    "text.usetex":True,
+
+    "font.size":22,
+    "font.family": "serif"
+})
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 3))
 
     ax1.plot(dftrain["Violation_val"][:steps], label = "Out-of-sample empirical CVaR")
@@ -49,6 +55,9 @@ def plot_iters(dftrain, title, steps = 2000):
     ax2.set_xlabel("Iterations")
     ax2.ticklabel_format(style="sci",axis='y',scilimits = (0,0), useMathText=True)
     ax2.legend()
+    if logscale:
+        ax1.set_xscale("log")
+        ax2.set_xscale("log")
     plt.savefig(title+"_iters.pdf",bbox_inches='tight')
 
 
@@ -71,3 +80,87 @@ def pareto_frontier(Xs, Ys, maxX = False, maxY = False):
     p_frontX = [pair[0] for pair in p_front]
     p_frontY = [pair[1] for pair in p_front]
     return p_frontX, p_frontY
+
+def plot_contours(x,y,set, g_level,eps_list, inds, num_scenarios,train, title, lower = -10, upper = 25, diff = 5, standard = True):
+    fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(16, 3.5), constrained_layout= True)
+    ax_lst = [ax1, ax2, ax3, ax4]
+
+    cur_ind = 0
+    contours = []
+    for axis in ax_lst:
+        axis.set_title(r"$\epsilon$ = {}".format(round(eps_list[inds[cur_ind]],2)))
+        axis.set_xlabel(r"$u_1$")
+        axis.set_ylabel(r"$u_2$")
+        for k_ind in range(1):
+            axis.contour(x,y,set[cur_ind][k_ind], [1], colors = ["red"],linewidths = [2])
+
+        a1 = axis.contourf(x,y,np.zeros((50,50)),np.arange(lower, upper, diff),extend='both',alpha = 1)
+        contours.append(a1)
+        for scene in range(num_scenarios):
+            a1 = axis.contourf(x,y,g_level[cur_ind][scene],np.arange(lower, upper, diff),extend='both',alpha = 0.4)
+            contours.append(a1)
+        axis.scatter(train[:,0],train[:,1], color = "white" ,edgecolors= "black")
+        axis.scatter(np.mean(train,axis= 0)[0], np.mean(train,axis= 0)[1],color = ["tab:orange"])
+        cur_ind +=1
+        fig.colorbar(contours[0], ax = axis)
+
+    if standard:
+        post = "Standard"
+    else:
+        post = "Reshaped"
+    fig.suptitle(post+" set", fontsize = 30)
+    plt.savefig(title+"_"+ post + ".pdf", bbox_inches='tight')
+
+
+def plot_contours2(x,y,set, g_level,eps_list, inds, num_scenarios,train, title, lower = -10, upper = 25, diff = 5, standard = True):
+    fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(16, 3.5), constrained_layout= True)
+    ax_lst = [ax1, ax2, ax3, ax4]
+
+    cur_ind = 0
+    contours = []
+    for axis in ax_lst:
+        axis.set_title(r"$\epsilon$ = {}".format(round(eps_list[inds[cur_ind]],2)))
+        axis.set_xlabel(r"$u_1$")
+        axis.set_ylabel(r"$u_2$")
+        for k_ind in range(1):
+            axis.contour(x,y,set[cur_ind][k_ind], [1], colors = ["red"],linewidths = [2])
+
+        a1 = axis.contourf(x,y,np.zeros((50,50)),np.arange(lower, upper, diff),extend='both',alpha = 1)
+        contours.append(a1)
+        for scene in range(num_scenarios):
+            a1 = axis.contourf(x,y,g_level[cur_ind][scene],np.arange(lower, upper, diff),extend='both',alpha = 0.4)
+            contours.append(a1)
+        axis.scatter(train[:,0],train[:,1], color = "white" ,edgecolors= "black")
+        axis.scatter(np.mean(train,axis= 0)[0], np.mean(train,axis= 0)[1],color = ["tab:orange"])
+        cur_ind +=1
+        fig.colorbar(contours[0], ax = axis)
+
+    if standard:
+        post = "Standard"
+    else:
+        post = "Reshaped"
+    fig.suptitle(post+" set", fontsize = 30)
+    plt.savefig(title+"_"+ post + ".pdf", bbox_inches='tight')
+
+def plot_contours_line(x,y,set, g_level,eps_list, inds, num_scenarios,train, title, standard = True):
+    fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(16, 3.5), constrained_layout= True)
+    ax_lst = [ax1, ax2, ax3, ax4]
+
+    cur_ind = 0
+    for axis in ax_lst:
+        axis.set_title(r"$\epsilon$ = {}".format(round(eps_list[inds[cur_ind]],2)))
+        axis.set_xlabel(r"$u_1$")
+        axis.set_ylabel(r"$u_2$")
+        for scene in range(num_scenarios):
+            axis.contour(x,y,g_level[cur_ind][scene],[0], colors = ["tab:purple"],alpha = 1,linestyles = ["-"])
+        axis.scatter(train[:,0],train[:,1], color = "white",edgecolor = "black")
+        axis.scatter(np.mean(train,axis= 0)[0], np.mean(train,axis= 0)[1],color = ["tab:orange"])
+        for k_ind in range(1):
+            axis.contour(x,y,set[cur_ind][k_ind], [1], colors = ["red"],linewidths = [2])
+        cur_ind +=1
+    if standard:
+        post = "Standard"
+    else:
+        post = "Reshaped"
+    fig.suptitle(post+" set", fontsize = 30)
+    plt.savefig(title+"_"+ post + ".pdf", bbox_inches='tight')

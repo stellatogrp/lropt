@@ -142,4 +142,4 @@ docs/examples/**/*.png
 docs/examples/misc/
 
 # SCM version
-lropt/_version.py
+#lropt/_version.py
