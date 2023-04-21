@@ -6,7 +6,8 @@ from cvxpy.reductions.reduction import Reduction
 from cvxpy.reductions.solution import Solution
 
 from lropt.uncertain import UncertainParameter
-from lropt.uncertain_canon.separate_uncertainty import SEPARATION_METHODS as sep_methods
+from lropt.uncertain_canon.separate_uncertainty import \
+    SEPARATION_METHODS as sep_methods
 from lropt.utils import unique_list
 
 

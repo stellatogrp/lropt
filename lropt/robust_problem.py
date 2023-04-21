@@ -9,7 +9,8 @@ from cvxpy.problems.objective import Maximize
 from cvxpy.problems.problem import Problem
 from cvxpy.reductions import Dcp2Cone, Qp2SymbolicQp
 from cvxpy.reductions.flip_objective import FlipObjective
-from cvxpy.reductions.solvers.solving_chain import SolvingChain, construct_solving_chain
+from cvxpy.reductions.solvers.solving_chain import (SolvingChain,
+                                                    construct_solving_chain)
 from cvxpylayers.torch import CvxpyLayer
 from sklearn.model_selection import train_test_split
 
@@ -17,7 +18,8 @@ from lropt.family_parameter import FamilyParameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lropt.settings import EPS_LST_DEFAULT, OPTIMIZERS
 from lropt.uncertain import UncertainParameter
-from lropt.uncertain_canon.separate_uncertain_params import Separate_Uncertain_Params
+from lropt.uncertain_canon.separate_uncertain_params import \
+    Separate_Uncertain_Params
 from lropt.uncertain_canon.uncertain_chain import UncertainChain
 from lropt.uncertainty_sets.mro import MRO
 from lropt.utils import unique_list
