@@ -18,11 +18,12 @@ class Ellipsoidal(Norm):
     b : np.array, optional
         vector defining :math:`b` in uncertainty set definition. By default :math:`b = 0`
     data: np.array, optional
-        An array of uncertainty realizations, where each row is one realization. Required if the uncertainty should
-        be trained, or if `loss` function passed.
+        An array of uncertainty realizations, where each row is one realization.
+        Required if the uncertainty should be trained, or if `loss` function passed.
     loss: function, optional
-        The loss function used to train the uncertainty set. Required if uncertainty set parameters should be trained
-        or if `data` is passed. function must use torch tensors, and arguments to loss function must be given in the
+        The loss function used to train the uncertainty set.
+        Required if uncertainty set parameters should be trained or if `data` is passed.
+        Function must use torch tensors, and arguments to loss function must be given in the
         same order as cvxpy variables defined in problem.
 
     Returns

@@ -9,7 +9,8 @@ class Budget(UncertaintySet):
     Budget uncertainty set defined as
 
     .. math::
-        \mathcal{U}_{\text{budget}} = \{u \ | \ \| A_1 u + b_1 \|_\infty \le \rho_1, \| A_2 u + b_2 \|_1 \leq \rho_2\}
+        \mathcal{U}_{\text{budget}} = \{u \ | \ \| A_1 u + b_1 \|_\infty \le \rho_1,
+        \| A_2 u + b_2 \|_1 \leq \rho_2\}
 
     Parameters
     ----------
@@ -26,11 +27,12 @@ class Budget(UncertaintySet):
     b2 : np.array, optional
         vector defining :math:`b_2` in uncertainty set definition. By default :math:`b_2 = 0`
     data: np.array, optional
-        An array of uncertainty realizations, where each row is one realization. Required if the uncertainty should
-        be trained, or if `loss` function passed.
+        An array of uncertainty realizations, where each row is one realization.
+        Required if the uncertainty should be trained, or if `loss` function passed.
     loss: function, optional
-        The loss function used to train the uncertainty set. Required if uncertainty set parameters should be trained
-        or if `data` is passed. function must use torch tensors, and arguments to loss function must be given in the
+        The loss function used to train the uncertainty set.
+        Required if uncertainty set parameters should be trained or if `data` is passed.
+        Function must use torch tensors, and arguments to loss function must be given in the
         same order as cvxpy variables defined in problem.
 
     Returns
@@ -178,6 +180,7 @@ class Budget(UncertaintySet):
             self._b1 = np.zeros(ushape)
         if self._b2 is None:
             self._b2 = np.zeros(ushape)
+
         if self.data is not None and self.train_box:
             if shape == 1:
                 newvar = Variable(ushape)  # z conjugate variables
@@ -187,7 +190,8 @@ class Budget(UncertaintySet):
                 constr += [norm(newvar2[0], np.inf) <= lmbda2]
                 constr += [self.paramT.T@newvar == newvar1[0]]
                 constr += [lmbda1 >= 0, lmbda2 >= 0]
-                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar*self.paramb, constr, (lmbda1, lmbda2)
+                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar*self.paramb, \
+                    constr, (lmbda1, lmbda2)
             else:
                 lmbda1 = Variable(shape)
                 lmbda2 = Variable(shape)
@@ -197,7 +201,8 @@ class Budget(UncertaintySet):
                     constr += [norm(newvar[ind], p=1) <= lmbda1[ind]]
                     constr += [norm(newvar2[ind], p=np.inf) <= lmbda2[ind]]
                     constr += [self.paramT.T@newvar[ind] == newvar1[ind]]
-                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar@self.paramb, constr, (lmbda1, lmbda2)
+                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar@self.paramb, \
+                    constr, (lmbda1, lmbda2)
         elif self.data is not None and not self.train_box:
             if shape == 1:
                 newvar = Variable(ushape)  # z conjugate variables
@@ -207,7 +212,8 @@ class Budget(UncertaintySet):
                 constr += [norm(newvar[0], np.inf) <= lmbda2]
                 constr += [self.paramT.T@newvar == newvar2[0]]
                 constr += [lmbda1 >= 0, lmbda2 >= 0]
-                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar*self.paramb, constr, (lmbda1, lmbda2)
+                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar*self.paramb, \
+                    constr, (lmbda1, lmbda2)
             else:
                 lmbda1 = Variable(shape)
                 lmbda2 = Variable(shape)
@@ -217,7 +223,8 @@ class Budget(UncertaintySet):
                     constr += [norm(newvar1[ind], p=1) <= lmbda1[ind]]
                     constr += [norm(newvar[ind], p=np.inf) <= lmbda2[ind]]
                     constr += [self.paramT.T@newvar[ind] == newvar2[ind]]
-                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar@self.paramb, constr, (lmbda1, lmbda2)
+                return self.rho1 * lmbda1 + self.rho2 * lmbda2 - newvar@self.paramb, \
+                    constr, (lmbda1, lmbda2)
         # else:
         #     if shape == 1:
         #         lmbda1 = Variable()

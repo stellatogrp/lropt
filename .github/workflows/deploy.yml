@@ -27,9 +27,11 @@ jobs:
         run: |
           python -m build -s -w -o ./dist/ .
 
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./dist/*
+      # Disable upload artifacts to avoid taking too much memory on github
+        # actions
+      # - uses: actions/upload-artifact@v3
+      #   with:
+      #     path: ./dist/*
 
   upload_pypi:
     name: Upload to PyPI

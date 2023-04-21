@@ -43,7 +43,8 @@ def mulexpression_sep(unc_canon, expr):
             return unc_lst, std_lst, 0
         else:
             for idx in range(len(unc_lst)):
-                unc_lst[idx], std_lst[idx] = default_sep_sub(non_unc_param, unc_lst[idx], std_lst[idx])
+                unc_lst[idx], std_lst[idx] = default_sep_sub(non_unc_param, unc_lst[idx],
+                                                             std_lst[idx])
                 return unc_lst, std_lst, 1
 
     func = SEPARATION_SUB_METHODS[type(non_unc_param)]

@@ -36,9 +36,6 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         num_instances = 10
         y_instances = npr.multivariate_normal(np.zeros(n), np.eye(n), num_instances)
 
-        import ipdb
-        ipdb.set_trace()
-
         # Problem
         y = FamilyParameter(n, instances=y_instances)
         u = UncertainParameter(n, uncertainty_set=Ellipsoidal(data=self.data))

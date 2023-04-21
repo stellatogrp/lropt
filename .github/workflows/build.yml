@@ -13,8 +13,8 @@ jobs:
           python-version: "3.10"
       - name: isort
         uses: jamescurtin/isort-action@master
-      - name: flake8
-        uses: py-actions/flake8@v1
+      - name: ruff
+        uses: chartboost/ruff-action@v1
 
   test:
     runs-on: ubuntu-latest

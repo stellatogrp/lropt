@@ -2,28 +2,15 @@ import unittest
 
 import cvxpy as cp
 import numpy as np
-
-# import numpy.testing as npt
 import scipy as sc
-
-# import pytest
-# import torch
 from sklearn import datasets
 
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertain_atoms.quad_form import quad_form
-
-# from lropt.uncertainty_sets.box import Box
-# from lropt.uncertainty_sets.budget import Budget
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
 from lropt.uncertainty_sets.mro import MRO
-
-# from lropt.uncertainty_sets.polyhedral import Polyhedral
 from tests.settings import SOLVER
-
-# from tests.settings import TESTS_ATOL as ATOL
-# from tests.settings import TESTS_RTOL as RTOL
 
 
 class TestQuad(unittest.TestCase):
@@ -57,8 +44,6 @@ class TestQuad(unittest.TestCase):
         objective = cp.Minimize(t)
         constraints = [cp.sum([-0.5*quad_form(u, A[i]*x[i]) for i in range(m)]) <= t]
         constraints += [x >= 0, x <= 1]
-        # import ipdb
-        # ipdb.set_trace()
         prob = RobustProblem(objective, constraints)
         newprob = prob.dualize_constraints()
         newprob.solve(solver=SOLVER)
@@ -144,8 +129,10 @@ class TestQuad(unittest.TestCase):
         # formulate constraints
         constraints = [-cp.sum([c[t]*x0[t] + c[t]*x[t]@P[t]@u for t in range(T)]) <= tau]
         for t in range(T):
-            constraints += [l0 - lhigh + np.ones(t+1)@P[t]@u - cp.sum([x0[i] + x[i]@P[i]@u for i in range(t+1)]) <= 0]
-            constraints += [llow - l0 - np.ones(t+1)@P[t]@u + cp.sum([x0[i] + x[i]@P[i]@u for i in range(t+1)]) <= 0]
+            constraints += [l0 - lhigh + np.ones(t+1)@P[t]@u -
+                            cp.sum([x0[i] + x[i]@P[i]@u for i in range(t+1)]) <= 0]
+            constraints += [llow - l0 - np.ones(t+1)@P[t]@u +
+                            cp.sum([x0[i] + x[i]@P[i]@u for i in range(t+1)]) <= 0]
             constraints += [-x0[t] - x[t]@P[t]@u <= 0]
 
         # formulate Robust Problem
