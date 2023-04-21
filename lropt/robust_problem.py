@@ -89,6 +89,9 @@ class RobustProblem(Problem):
         return unique_list(fam_params)
 
     def set_loss(self):
+
+        # def prob_loss(x, y_scene, alpha, val_dset, target):
+
         loss = None
         return loss
 
