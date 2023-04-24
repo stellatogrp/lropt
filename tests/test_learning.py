@@ -1,6 +1,7 @@
 import unittest
 
 import cvxpy as cp
+
 # import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random as npr
@@ -34,9 +35,6 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         n = self.n
         num_instances = 10
         y_instances = npr.multivariate_normal(np.zeros(n), np.eye(n), num_instances)
-
-        import ipdb
-        ipdb.set_trace()
 
         # Problem
         y = FamilyParameter(n, instances=y_instances)

@@ -1,8 +1,7 @@
 import numpy as np
 
 # from cvxpy.atoms.affine.unary_operators import NegExpression
-from lropt.remove_uncertain.atom_canonicalizers.mul_canon import \
-    mul_canon_transform
+from lropt.remove_uncertain.atom_canonicalizers.mul_canon import mul_canon_transform
 from lropt.uncertain import UncertainParameter
 
 
