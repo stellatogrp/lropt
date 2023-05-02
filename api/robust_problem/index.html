@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Uncertainty Sets" href="../uncertainty_sets/index.html" /><link rel="prev" title="API" href="../index.html" />
 
-    <!-- Generated with Sphinx 6.1.3 and Furo 2023.03.27 -->
+    <!-- Generated with Sphinx 6.2.1 and Furo 2023.03.27 -->
         <title>Robust Problem - LROPT documentation documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?digest=fad236701ea90a88636c2a8c73b44ae642ed2a53" />
@@ -218,19 +218,6 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lropt.</span></span><span class="sig-name descname"><span class="pre">RobustProblem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">objective</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraints</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem" title="Permalink to this definition">#</a></dt>
 <dd><p>Create a Robust Optimization Problem with uncertain variables</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="lropt.RobustProblem.family_parameters">
-<span class="sig-name descname"><span class="pre">family_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.family_parameters" title="Permalink to this definition">#</a></dt>
-<dd><p>Find which variables are uncertain</p>
-<section id="returns">
-<h2>Returns<a class="headerlink" href="#returns" title="Permalink to this heading">#</a></h2>
-<dl class="simple">
-<dt>num_params<span class="classifier">int</span></dt><dd><p>the number of unique uncertain parameters in robust problem</p>
-</dd>
-</dl>
-</section>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.grid">
 <span class="sig-name descname"><span class="pre">grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epslst</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_A</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scenarios</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_scenarios</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.grid" title="Permalink to this definition">#</a></dt>
 <dd><p>Perform gridsearch to find optimal <span class="math notranslate nohighlight">\(\epsilon\)</span>-ball around data.</p>
@@ -245,8 +232,8 @@
 </dd>
 </dl>
 </section>
-<section id="id1">
-<h2>Returns<a class="headerlink" href="#id1" title="Permalink to this heading">#</a></h2>
+<section id="returns">
+<h2>Returns<a class="headerlink" href="#returns" title="Permalink to this heading">#</a></h2>
 <dl class="simple">
 <dt>A pandas data frame with information on each <span class="math notranslate nohighlight">\(\epsilon\)</span> having the following columns:</dt><dd><dl class="simple">
 <dt>Opt_val: float</dt><dd><p>The objective value of the Robust Problem</p>
@@ -258,6 +245,19 @@
 <dt>Eps: float</dt><dd><p>The epsilon value</p>
 </dd>
 </dl>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lropt.RobustProblem.parameters">
+<span class="sig-name descname"><span class="pre">parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.parameters" title="Permalink to this definition">#</a></dt>
+<dd><p>Find which variables are uncertain</p>
+<section id="id1">
+<h2>Returns<a class="headerlink" href="#id1" title="Permalink to this heading">#</a></h2>
+<dl class="simple">
+<dt>num_params<span class="classifier">int</span></dt><dd><p>the number of unique uncertain parameters in robust problem</p>
 </dd>
 </dl>
 </section>
@@ -464,8 +464,8 @@ covariance of the data, and b will be initialized as <span class="math notransla
             <ul>
 <li><a class="reference internal" href="#">Robust Problem</a><ul>
 <li><a class="reference internal" href="#lropt.RobustProblem"><code class="docutils literal notranslate"><span class="pre">RobustProblem</span></code></a><ul>
-<li><a class="reference internal" href="#lropt.RobustProblem.family_parameters"><code class="docutils literal notranslate"><span class="pre">RobustProblem.family_parameters()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.grid"><code class="docutils literal notranslate"><span class="pre">RobustProblem.grid()</span></code></a></li>
+<li><a class="reference internal" href="#lropt.RobustProblem.parameters"><code class="docutils literal notranslate"><span class="pre">RobustProblem.parameters()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.solve"><code class="docutils literal notranslate"><span class="pre">RobustProblem.solve()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.train"><code class="docutils literal notranslate"><span class="pre">RobustProblem.train()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.uncertain_parameters"><code class="docutils literal notranslate"><span class="pre">RobustProblem.uncertain_parameters()</span></code></a></li>
