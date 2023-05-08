@@ -288,6 +288,20 @@ text{subject to} &amp; k_1^Tx_1 - p_1^Tmin{x_1, u} le tau quad forall u in mathc
         <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k1_tch</span><span class="nd">@x1</span> <span class="o">-</span><span class="n">data</span><span class="nd">@p1_tch</span><span class="p">,</span> <span class="n">k1_tch</span><span class="nd">@x1</span> <span class="o">-</span> <span class="n">p1_tch</span><span class="nd">@x</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">,</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.001</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()),</span> <span class="n">sums</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 
+
+<span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">x</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">p_tch</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">mu</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">l</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">quantile</span> <span class="o">=</span> <span class="mf">0.95</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">):</span>
+    <span class="n">Nsample</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">sums</span> <span class="o">=</span>  <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="nd">@p_tch</span><span class="p">,</span> <span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span> <span class="n">p_tch</span><span class="nd">@x</span><span class="p">)</span> <span class="o">-</span> <span class="n">t</span><span class="o">-</span><span class="n">alpha</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k1_tch</span><span class="nd">@x1</span> <span class="o">-</span><span class="n">data</span><span class="nd">@p1_tch</span><span class="p">,</span> <span class="n">k1_tch</span><span class="nd">@x1</span> <span class="o">-</span> <span class="n">p1_tch</span><span class="nd">@x</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="o">-</span><span class="n">alpha</span><span class="p">))</span>
+    <span class="n">sums</span> <span class="o">=</span> <span class="n">sums</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">quantile</span><span class="p">)</span> <span class="o">+</span> <span class="n">alpha</span>
+    <span class="k">return</span> <span class="n">t</span> <span class="o">+</span><span class="n">y</span> <span class="o">+</span> <span class="n">l</span><span class="o">*</span><span class="p">(</span><span class="n">sums</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">mu</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">sums</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">t</span><span class="o">+</span><span class="n">y</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="nd">@p_tch</span><span class="p">,</span> <span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span> <span class="n">p_tch</span><span class="nd">@x</span><span class="p">)</span> <span class="o">-</span> <span class="n">t</span><span class="o">-</span><span class="n">alpha</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k1_tch</span><span class="nd">@x1</span> <span class="o">-</span><span class="n">data</span><span class="nd">@p1_tch</span><span class="p">,</span> <span class="n">k1_tch</span><span class="nd">@x1</span> <span class="o">-</span> <span class="n">p1_tch</span><span class="nd">@x</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="o">-</span><span class="n">alpha</span><span class="p">))</span><span class="o">&gt;=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">1.</span><span class="p">))</span><span class="o">/</span><span class="n">Nsample</span><span class="p">,</span> <span class="n">sums</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+
 <span class="k">def</span> <span class="nf">gen_demand</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">399</span><span class="p">):</span>
     <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
     <span class="n">F</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
@@ -295,10 +309,10 @@ text{subject to} &amp; k_1^Tx_1 - p_1^Tmin{x_1, u} le tau quad forall u in mathc
     <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mf">0.2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">n</span><span class="p">)</span>
     <span class="n">norms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span><span class="n">sig</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
     <span class="n">d_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">norms</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">d_train</span>
+    <span class="k">return</span> <span class="n">mu</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="n">d_train</span>
 
 <span class="c1"># Generate data</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">gen_demand</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">N</span><span class="o">*</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">mu</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">gen_demand</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">N</span><span class="o">*</span><span class="mi">2</span><span class="p">)</span>
 
 <span class="n">scenarios</span> <span class="o">=</span> <span class="p">{}</span>
 <span class="n">num_scenarios</span> <span class="o">=</span> <span class="mi">5</span>
@@ -310,10 +324,12 @@ text{subject to} &amp; k_1^Tx_1 - p_1^Tmin{x_1, u} le tau quad forall u in mathc
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Formulate uncertainty set</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span><span class="n">sig</span><span class="p">,</span> <span class="n">N</span><span class="o">*</span><span class="mi">2</span><span class="p">))</span>
+<span class="c1"># Formulate uncertainty set</span>
 <span class="n">u</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span>
                         <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">lropt</span><span class="o">.</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
                                                     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span><span class="p">))</span>
@@ -328,41 +344,43 @@ text{subject to} &amp; k_1^Tx_1 - p_1^Tmin{x_1, u} le tau quad forall u in mathc
 <span class="c1"># p1.value = scenarios[0][1]</span>
 <span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">t</span><span class="o">+</span><span class="n">y</span><span class="p">)</span>
 
-<span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@x_r</span><span class="p">,</span> <span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@u</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">t</span><span class="p">]</span>
-<span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">p1</span><span class="nd">@x_1</span><span class="p">,</span> <span class="n">k1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">p1</span><span class="nd">@u</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">y</span><span class="p">]</span>
+
+<span class="c1"># constraints = [cp.maximum(k@x_r - p@x_r, k@x_r - p@u) &lt;= t]</span>
+<span class="c1"># constraints += [cp.maximum(k1@x_1 - p1@x_1, k1@x_1 - p1@u) &lt;= y]</span>
+<span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span> <span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@u</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span><span class="n">k1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">p1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">y</span><span class="p">,</span>  <span class="n">k1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">p1</span><span class="nd">@u</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">]</span>
 
 <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x_r</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x_r</span> <span class="o">&gt;=</span> <span class="n">x_1</span><span class="p">]</span>
 
 <span class="n">prob</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
-<span class="n">target</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.05</span>
+<span class="n">target</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.015</span>
 <span class="n">test_p</span> <span class="o">=</span> <span class="mf">0.5</span>
 <span class="n">s</span> <span class="o">=</span> <span class="mi">5</span>
 <span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">test_p</span><span class="p">),</span> <span class="n">random_state</span><span class="o">=</span><span class="n">s</span><span class="p">)</span>
 <span class="n">init</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">T</span><span class="p">)))</span>
 <span class="n">init_bval</span> <span class="o">=</span> <span class="o">-</span><span class="n">init</span><span class="nd">@np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 <span class="c1"># Train A and b</span>
-<span class="n">result1</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span> <span class="o">=</span> <span class="mf">0.00001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">800</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">fixb</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">init_mu</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">mu_multiplier</span> <span class="o">=</span> <span class="mf">1.01</span><span class="p">,</span> <span class="n">test_percentage</span> <span class="o">=</span> <span class="n">test_p</span><span class="p">,</span> <span class="n">scenarios</span> <span class="o">=</span> <span class="n">scenarios</span><span class="p">,</span> <span class="n">num_scenarios</span> <span class="o">=</span> <span class="n">num_scenarios</span><span class="p">,</span> <span class="n">max_inner_iter</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
+<span class="n">result1</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span> <span class="o">=</span> <span class="mf">0.000001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">800</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">fixb</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">init_mu</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">mu_multiplier</span> <span class="o">=</span> <span class="mf">1.01</span><span class="p">,</span> <span class="n">test_percentage</span> <span class="o">=</span> <span class="n">test_p</span><span class="p">,</span> <span class="n">scenarios</span> <span class="o">=</span> <span class="n">scenarios</span><span class="p">,</span> <span class="n">num_scenarios</span> <span class="o">=</span> <span class="n">num_scenarios</span><span class="p">,</span> <span class="n">max_inner_iter</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span>
 <span class="n">df1</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">df</span>
 <span class="n">A_fin</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">A</span>
 <span class="n">b_fin</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">b</span>
 
-<span class="n">result3</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.00001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">800</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">init_mu</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>  <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span><span class="mf">0.</span><span class="p">,</span><span class="n">mu_multiplier</span> <span class="o">=</span> <span class="mf">1.01</span><span class="p">,</span><span class="n">test_percentage</span> <span class="o">=</span> <span class="n">test_p</span><span class="p">,</span><span class="n">scenarios</span> <span class="o">=</span> <span class="n">scenarios</span><span class="p">,</span> <span class="n">num_scenarios</span> <span class="o">=</span> <span class="n">num_scenarios</span><span class="p">)</span>
+<span class="n">result3</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.00001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">800</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">init_mu</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>  <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span><span class="mf">0.</span><span class="p">,</span><span class="n">mu_multiplier</span> <span class="o">=</span> <span class="mf">1.01</span><span class="p">,</span><span class="n">test_percentage</span> <span class="o">=</span> <span class="n">test_p</span><span class="p">,</span><span class="n">scenarios</span> <span class="o">=</span> <span class="n">scenarios</span><span class="p">,</span> <span class="n">num_scenarios</span> <span class="o">=</span> <span class="n">num_scenarios</span><span class="p">)</span>
 <span class="n">df_r2</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">df</span>
 
 <span class="c1"># Grid search epsilon</span>
-<span class="n">result4</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span><span class="n">test_percentage</span> <span class="o">=</span> <span class="n">test_p</span><span class="p">,</span><span class="n">scenarios</span> <span class="o">=</span> <span class="n">scenarios</span><span class="p">,</span> <span class="n">num_scenarios</span> <span class="o">=</span> <span class="n">num_scenarios</span><span class="p">)</span>
+<span class="n">result4</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mi">60</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.93</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">,</span> <span class="mi">15</span><span class="p">))),</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span><span class="n">test_percentage</span> <span class="o">=</span> <span class="n">test_p</span><span class="p">,</span><span class="n">scenarios</span> <span class="o">=</span> <span class="n">scenarios</span><span class="p">,</span> <span class="n">num_scenarios</span> <span class="o">=</span> <span class="n">num_scenarios</span><span class="p">)</span>
 <span class="n">dfgrid</span> <span class="o">=</span> <span class="n">result4</span><span class="o">.</span><span class="n">df</span>
 
-<span class="n">result5</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">A_fin</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">b_fin</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span><span class="n">test_percentage</span> <span class="o">=</span> <span class="n">test_p</span><span class="p">,</span><span class="n">scenarios</span> <span class="o">=</span> <span class="n">scenarios</span><span class="p">,</span> <span class="n">num_scenarios</span> <span class="o">=</span> <span class="n">num_scenarios</span><span class="p">)</span>
+<span class="n">result5</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mi">60</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.61</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">,</span> <span class="mi">15</span><span class="p">))),</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">A_fin</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">b_fin</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span><span class="n">test_percentage</span> <span class="o">=</span> <span class="n">test_p</span><span class="p">,</span><span class="n">scenarios</span> <span class="o">=</span> <span class="n">scenarios</span><span class="p">,</span> <span class="n">num_scenarios</span> <span class="o">=</span> <span class="n">num_scenarios</span><span class="p">)</span>
 <span class="n">dfgrid2</span> <span class="o">=</span> <span class="n">result5</span><span class="o">.</span><span class="n">df</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[45]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_tradeoff</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">,</span><span class="n">dfgrid2</span><span class="p">,</span><span class="s2">&quot;News&quot;</span><span class="p">,</span><span class="n">ind_1</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">),</span><span class="n">ind_2</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">30</span><span class="p">)</span> <span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_tradeoff</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">,</span><span class="n">dfgrid2</span><span class="p">,</span><span class="s2">&quot;News&quot;</span><span class="p">,</span><span class="n">ind_1</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">100</span><span class="p">),</span><span class="n">ind_2</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">100</span><span class="p">)</span> <span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -374,7 +392,7 @@ text{subject to} &amp; k_1^Tx_1 - p_1^Tmin{x_1, u} le tau quad forall u in mathc
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_iters</span><span class="p">(</span><span class="n">df1</span><span class="p">,</span><span class="s2">&quot;News&quot;</span><span class="p">,</span> <span class="n">steps</span> <span class="o">=</span> <span class="mi">800</span><span class="p">,</span><span class="n">logscale</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
@@ -387,6 +405,712 @@ text{subject to} &amp; k_1^Tx_1 - p_1^Tmin{x_1, u} le tau quad forall u in mathc
 <div class="output_area docutils container">
 <img alt="../../../_images/examples_experiments_Newsvendor_Larger_newsvendor_6_0.png" src="../../../_images/examples_experiments_Newsvendor_Larger_newsvendor_6_0.png" />
 </div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[46]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">eval</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">x</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span><span class="n">data</span><span class="p">):</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">x1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span>
+    <span class="n">p_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">p1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">p1</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="nd">@p_tch</span><span class="p">,</span> <span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span> <span class="n">p_tch</span><span class="nd">@x</span><span class="p">)</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.0001</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">())</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k1_tch</span><span class="nd">@x1</span> <span class="o">-</span><span class="n">data</span><span class="nd">@p1</span><span class="p">,</span> <span class="n">k1_tch</span><span class="nd">@x1</span> <span class="o">-</span> <span class="n">p1</span><span class="nd">@x</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.0001</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">())</span>
+
+<span class="k">def</span> <span class="nf">eval</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">x</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span><span class="n">data</span><span class="p">):</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">x1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">p1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">p1</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">Nsample</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span><span class="n">data</span><span class="nd">@p</span><span class="p">,</span> <span class="n">k_tch</span><span class="nd">@x</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@x</span><span class="p">)</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k1_tch</span><span class="nd">@x1</span> <span class="o">-</span><span class="n">data</span><span class="nd">@p1</span><span class="p">,</span> <span class="n">k1_tch</span><span class="nd">@x1</span> <span class="o">-</span> <span class="n">p1</span><span class="nd">@x</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">))</span><span class="o">&gt;=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">1.</span><span class="p">))</span><span class="o">/</span><span class="n">Nsample</span>
+
+<span class="k">def</span> <span class="nf">make_table</span><span class="p">(</span><span class="n">result_A</span><span class="p">,</span><span class="n">result_b</span><span class="p">,</span> <span class="n">dfgrid</span><span class="p">,</span><span class="n">test</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span><span class="n">eps</span><span class="p">,</span> <span class="n">cvar_train</span><span class="p">,</span> <span class="n">cvar_test</span><span class="p">):</span>
+    <span class="n">trial1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_scenarios</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">scene</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_scenarios</span><span class="p">):</span>
+        <span class="c1"># formulate the ellipsoidal set</span>
+        <span class="k">if</span> <span class="n">eps</span><span class="p">:</span>
+          <span class="n">r_eps</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">r_eps</span> <span class="o">=</span> <span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Eps&#39;</span><span class="p">][</span><span class="n">np</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">dfgrid</span><span class="p">[</span><span class="s1">&#39;Violations_train&#39;</span><span class="p">]),</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">argmin</span><span class="p">()]</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span>
+                                    <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                                                    <span class="n">rho</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">A</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">r_eps</span><span class="p">)</span><span class="o">*</span><span class="n">result_A</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">r_eps</span><span class="p">)</span><span class="o">*</span><span class="n">result_b</span><span class="p">))</span>
+        <span class="c1"># Formulate the Robust Problem</span>
+        <span class="n">x_r</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="n">x_1</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="c1"># p1 = cp.Parameter(n)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">scenarios</span><span class="p">[</span><span class="n">scene</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># p1.value = scenarios[0][1]</span>
+        <span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">t</span><span class="o">+</span><span class="n">y</span><span class="p">)</span>
+
+        <span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span> <span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@u</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span><span class="n">k1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">p1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">y</span><span class="p">,</span>  <span class="n">k1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">p1</span><span class="nd">@u</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># constraints = [cp.maximum(k@x_r - p@x_r, k@x_r - p@u) &lt;= t]</span>
+        <span class="c1"># constraints += [cp.maximum(k1@x_1 - p1@x_1, k1@x_1 - p1@u) &lt;= y]</span>
+
+        <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x_r</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x_r</span> <span class="o">&gt;=</span> <span class="n">x_1</span><span class="p">]</span>
+
+        <span class="n">prob</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+        <span class="n">newprob</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">dualize_constraints</span><span class="p">()</span>
+        <span class="n">newprob</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+        <span class="n">trial1</span><span class="p">[</span><span class="n">scene</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">newprob</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">trial1</span><span class="p">[</span><span class="n">scene</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">y</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">x_r</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">x_1</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">p1</span><span class="p">,</span><span class="n">p</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">test</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">trial1</span><span class="p">[</span><span class="n">scene</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">y</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">x_r</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">x_1</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">p1</span><span class="p">,</span><span class="n">p</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">train</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">trial1</span><span class="p">[</span><span class="n">scene</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">cvar_train</span>
+        <span class="n">trial1</span><span class="p">[</span><span class="n">scene</span><span class="p">,</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">cvar_test</span>
+        <span class="n">trial1</span><span class="p">[</span><span class="n">scene</span><span class="p">,</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="n">newprob</span><span class="o">.</span><span class="n">solver_stats</span><span class="o">.</span><span class="n">solve_time</span>
+    <span class="k">return</span> <span class="n">trial1</span>
+<span class="k">def</span> <span class="nf">mro</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">test</span><span class="p">,</span> <span class="n">K</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span> <span class="n">rho</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="n">vios</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_scenarios</span><span class="p">))</span>
+    <span class="n">vios_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_scenarios</span><span class="p">))</span>
+    <span class="n">objs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_scenarios</span><span class="p">))</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_scenarios</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">scene</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_scenarios</span><span class="p">):</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span>
+                                          <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">MRO</span><span class="p">(</span><span class="n">train</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">train</span><span class="p">,</span> <span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span><span class="p">,</span> <span class="n">A</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">K</span> <span class="o">=</span> <span class="n">K</span><span class="p">))</span>
+            <span class="c1"># Formulate the Robust Problem</span>
+        <span class="n">x_r</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="n">x_1</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="c1"># p1 = cp.Parameter(n)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">scenarios</span><span class="p">[</span><span class="n">scene</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># p1.value = scenarios[0][1]</span>
+        <span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">t</span><span class="o">+</span><span class="n">y</span><span class="p">)</span>
+
+        <span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span> <span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@u</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span><span class="n">k1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">p1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">y</span><span class="p">,</span>  <span class="n">k1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">p1</span><span class="nd">@u</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x_r</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x_r</span> <span class="o">&gt;=</span> <span class="n">x_1</span><span class="p">]</span>
+
+        <span class="n">prob</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+        <span class="n">newprob</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">dualize_constraints</span><span class="p">()</span>
+        <span class="n">newprob</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+        <span class="n">objs</span><span class="p">[</span><span class="n">scene</span><span class="p">]</span> <span class="o">=</span> <span class="n">newprob</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">vios</span><span class="p">[</span><span class="n">scene</span><span class="p">]</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">y</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">x_r</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">x_1</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">p1</span><span class="p">,</span><span class="n">p</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">test</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">vios_1</span><span class="p">[</span><span class="n">scene</span><span class="p">]</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">y</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">x_r</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">x_1</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">p1</span><span class="p">,</span><span class="n">p</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">train</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">time</span><span class="p">[</span><span class="n">scene</span><span class="p">]</span> <span class="o">=</span> <span class="n">newprob</span><span class="o">.</span><span class="n">solver_stats</span><span class="o">.</span><span class="n">solve_time</span>
+    <span class="k">return</span> <span class="n">vios</span><span class="p">,</span> <span class="n">vios_1</span><span class="p">,</span> <span class="n">objs</span><span class="p">,</span> <span class="n">time</span>
+
+
+<span class="k">def</span> <span class="nf">sg</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">test</span><span class="p">):</span>
+    <span class="n">vios</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_scenarios</span><span class="p">))</span>
+    <span class="n">objs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_scenarios</span><span class="p">))</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_scenarios</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">scene</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_scenarios</span><span class="p">):</span>
+            <span class="c1"># Formulate the Robust Problem</span>
+        <span class="n">x_r</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="n">x_1</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="c1"># p1 = cp.Parameter(n)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">scenarios</span><span class="p">[</span><span class="n">scene</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># p1.value = scenarios[0][1]</span>
+        <span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">t</span><span class="o">+</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">x_r</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x_r</span> <span class="o">&gt;=</span> <span class="n">x_1</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">train</span><span class="p">:</span>
+          <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span> <span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@u</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span><span class="n">k1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">p1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">y</span><span class="p">,</span>  <span class="n">k1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">p1</span><span class="nd">@u</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">]</span>
+          <span class="c1"># constraints += [cp.maximum(k@x_r - p@x_r, k@x_r - p@u) &lt;= t]</span>
+          <span class="c1"># constraints += [cp.maximum(k1@x_1 - p1@x_1, k1@x_1 - p1@u) &lt;= y]</span>
+        <span class="n">prob</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+        <span class="n">prob</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+        <span class="n">objs</span><span class="p">[</span><span class="n">scene</span><span class="p">]</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">vios</span><span class="p">[</span><span class="n">scene</span><span class="p">]</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">y</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">x_r</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">x_1</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">p1</span><span class="p">,</span><span class="n">p</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="n">test</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">time</span><span class="p">[</span><span class="n">scene</span><span class="p">]</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">solver_stats</span><span class="o">.</span><span class="n">solve_time</span>
+    <span class="k">return</span> <span class="n">vios</span><span class="p">,</span> <span class="n">objs</span><span class="p">,</span> <span class="n">time</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[53]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">Ar_saved</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">100</span><span class="p">,</span><span class="mi">15</span><span class="p">,</span><span class="mi">15</span><span class="p">))</span>
+<span class="n">br_saved</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">100</span><span class="p">,</span><span class="mi">15</span><span class="p">))</span>
+<span class="n">As_saved</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">100</span><span class="p">,</span><span class="mi">15</span><span class="p">,</span><span class="mi">15</span><span class="p">))</span>
+<span class="n">bs_saved</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">100</span><span class="p">,</span><span class="mi">15</span><span class="p">))</span>
+<span class="n">reshaped_table</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">18</span><span class="p">))</span>
+<span class="n">standard_table</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">18</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">experiment</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">experiment</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span><span class="n">sig</span><span class="p">,</span> <span class="n">N</span><span class="o">*</span><span class="mi">2</span><span class="p">))</span>
+    <span class="c1"># Formulate uncertainty set</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span>
+                            <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">lropt</span><span class="o">.</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                                        <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span><span class="p">))</span>
+    <span class="c1"># Formulate the Robust Problem</span>
+    <span class="n">x_r</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">x_1</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="c1"># p1 = cp.Parameter(n)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">scenarios</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="c1"># p1.value = scenarios[0][1]</span>
+    <span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">t</span><span class="o">+</span><span class="n">y</span><span class="p">)</span>
+
+    <span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">cp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span> <span class="n">k</span><span class="nd">@x_r</span> <span class="o">-</span> <span class="n">p</span><span class="nd">@u</span> <span class="o">-</span> <span class="n">t</span><span class="p">,</span><span class="n">k1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">p1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">y</span><span class="p">,</span>  <span class="n">k1</span><span class="nd">@x_1</span> <span class="o">-</span> <span class="n">p1</span><span class="nd">@u</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x_r</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x_r</span> <span class="o">&gt;=</span> <span class="n">x_1</span><span class="p">]</span>
+
+    <span class="n">prob</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.015</span>
+    <span class="n">test_p</span> <span class="o">=</span> <span class="mf">0.5</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">test_p</span><span class="p">),</span> <span class="n">random_state</span><span class="o">=</span><span class="n">s</span><span class="p">)</span>
+    <span class="n">init</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">T</span><span class="p">)))</span>
+    <span class="n">init_bval</span> <span class="o">=</span> <span class="o">-</span><span class="n">init</span><span class="nd">@np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># Train A and b</span>
+    <span class="n">result1</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span> <span class="o">=</span> <span class="mf">0.000001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">800</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">fixb</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">init_mu</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">mu_multiplier</span> <span class="o">=</span> <span class="mf">1.01</span><span class="p">,</span> <span class="n">test_percentage</span> <span class="o">=</span> <span class="n">test_p</span><span class="p">,</span> <span class="n">scenarios</span> <span class="o">=</span> <span class="n">scenarios</span><span class="p">,</span> <span class="n">num_scenarios</span> <span class="o">=</span> <span class="n">num_scenarios</span><span class="p">,</span> <span class="n">max_inner_iter</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="n">df1</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">df</span>
+    <span class="n">A_fin</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">A</span>
+    <span class="n">b_fin</span> <span class="o">=</span> <span class="n">result1</span><span class="o">.</span><span class="n">b</span>
+    <span class="n">Ar_saved</span><span class="p">[</span><span class="n">experiment</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">A_fin</span>
+    <span class="n">br_saved</span><span class="p">[</span><span class="n">experiment</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">b_fin</span>
+
+    <span class="n">result3</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">eps</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.00001</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">800</span><span class="p">,</span> <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">optimizer</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">init</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">init_bval</span><span class="p">,</span> <span class="n">init_mu</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">init_lam</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>  <span class="n">target_cvar</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span><span class="mf">0.</span><span class="p">,</span><span class="n">mu_multiplier</span> <span class="o">=</span> <span class="mf">1.01</span><span class="p">,</span><span class="n">test_percentage</span> <span class="o">=</span> <span class="n">test_p</span><span class="p">,</span><span class="n">scenarios</span> <span class="o">=</span> <span class="n">scenarios</span><span class="p">,</span> <span class="n">num_scenarios</span> <span class="o">=</span> <span class="n">num_scenarios</span><span class="p">)</span>
+    <span class="n">df_r2</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">df</span>
+    <span class="n">As_saved</span><span class="p">[</span><span class="n">experiment</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">A</span>
+    <span class="n">bs_saved</span><span class="p">[</span><span class="n">experiment</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">b</span>
+
+    <span class="c1"># Grid search epsilon</span>
+    <span class="n">result4</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mi">60</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.93</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">,</span> <span class="mi">15</span><span class="p">))),</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span><span class="n">test_percentage</span> <span class="o">=</span> <span class="n">test_p</span><span class="p">,</span><span class="n">scenarios</span> <span class="o">=</span> <span class="n">scenarios</span><span class="p">,</span> <span class="n">num_scenarios</span> <span class="o">=</span> <span class="n">num_scenarios</span><span class="p">)</span>
+    <span class="n">dfgrid</span> <span class="o">=</span> <span class="n">result4</span><span class="o">.</span><span class="n">df</span>
+
+    <span class="n">result5</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">epslst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mi">60</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.61</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">,</span> <span class="mi">15</span><span class="p">))),</span> <span class="n">init_A</span> <span class="o">=</span> <span class="n">A_fin</span><span class="p">,</span> <span class="n">init_b</span> <span class="o">=</span> <span class="n">b_fin</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">init_alpha</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span><span class="n">test_percentage</span> <span class="o">=</span> <span class="n">test_p</span><span class="p">,</span><span class="n">scenarios</span> <span class="o">=</span> <span class="n">scenarios</span><span class="p">,</span> <span class="n">num_scenarios</span> <span class="o">=</span> <span class="n">num_scenarios</span><span class="p">)</span>
+    <span class="n">dfgrid2</span> <span class="o">=</span> <span class="n">result5</span><span class="o">.</span><span class="n">df</span>
+
+    <span class="n">r_t</span> <span class="o">=</span> <span class="n">make_table</span><span class="p">(</span><span class="n">A_fin</span><span class="p">,</span> <span class="n">b_fin</span><span class="p">,</span> <span class="n">dfgrid2</span><span class="p">,</span><span class="n">test</span><span class="p">,</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">eps</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">cvar_train</span> <span class="o">=</span> <span class="n">df1</span><span class="p">[</span><span class="s2">&quot;Violation_train&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">cvar_test</span> <span class="o">=</span> <span class="n">df1</span><span class="p">[</span><span class="s2">&quot;Violation_val&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">r_t1</span> <span class="o">=</span> <span class="n">make_table</span><span class="p">(</span><span class="n">A_fin</span><span class="p">,</span> <span class="n">b_fin</span><span class="p">,</span> <span class="n">dfgrid2</span><span class="p">,</span><span class="n">test</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span> <span class="n">eps</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span><span class="n">cvar_train</span> <span class="o">=</span> <span class="n">df1</span><span class="p">[</span><span class="s2">&quot;Violation_train&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">cvar_test</span> <span class="o">=</span> <span class="n">df1</span><span class="p">[</span><span class="s2">&quot;Violation_val&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">r_t2</span> <span class="o">=</span> <span class="n">make_table</span><span class="p">(</span><span class="n">A_fin</span><span class="p">,</span> <span class="n">b_fin</span><span class="p">,</span> <span class="n">dfgrid2</span><span class="p">,</span><span class="n">test</span><span class="p">,</span><span class="mf">0.04</span><span class="p">,</span> <span class="n">eps</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span><span class="n">cvar_train</span> <span class="o">=</span> <span class="n">df1</span><span class="p">[</span><span class="s2">&quot;Violation_train&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">cvar_test</span> <span class="o">=</span> <span class="n">df1</span><span class="p">[</span><span class="s2">&quot;Violation_val&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">r_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">r_t</span><span class="p">,</span> <span class="n">r_t1</span><span class="p">,</span> <span class="n">r_t2</span><span class="p">))</span>
+
+    <span class="n">reshaped_table</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">reshaped_table</span><span class="p">,</span> <span class="n">r_t</span><span class="p">))</span>
+
+    <span class="n">s_t</span> <span class="o">=</span> <span class="n">make_table</span><span class="p">(</span><span class="n">result3</span><span class="o">.</span><span class="n">A</span><span class="p">,</span><span class="n">result3</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">dfgrid</span><span class="p">,</span><span class="n">test</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">,</span> <span class="n">eps</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span><span class="n">cvar_train</span> <span class="o">=</span> <span class="n">df_r2</span><span class="p">[</span><span class="s2">&quot;Violation_train&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">cvar_test</span> <span class="o">=</span> <span class="n">df_r2</span><span class="p">[</span><span class="s2">&quot;Violation_val&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">s_t1</span> <span class="o">=</span> <span class="n">make_table</span><span class="p">(</span><span class="n">result3</span><span class="o">.</span><span class="n">A</span><span class="p">,</span><span class="n">result3</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">dfgrid</span><span class="p">,</span><span class="n">test</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">eps</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span><span class="n">cvar_train</span> <span class="o">=</span> <span class="n">df_r2</span><span class="p">[</span><span class="s2">&quot;Violation_train&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">cvar_test</span> <span class="o">=</span> <span class="n">df_r2</span><span class="p">[</span><span class="s2">&quot;Violation_val&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">s_t2</span> <span class="o">=</span> <span class="n">make_table</span><span class="p">(</span><span class="n">result3</span><span class="o">.</span><span class="n">A</span><span class="p">,</span><span class="n">result3</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">dfgrid</span><span class="p">,</span><span class="n">test</span><span class="p">,</span> <span class="mf">0.04</span><span class="p">,</span> <span class="n">eps</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span><span class="n">cvar_train</span> <span class="o">=</span> <span class="n">df_r2</span><span class="p">[</span><span class="s2">&quot;Violation_train&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">cvar_test</span> <span class="o">=</span> <span class="n">df_r2</span><span class="p">[</span><span class="s2">&quot;Violation_val&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">s_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">s_t</span><span class="p">,</span> <span class="n">s_t1</span><span class="p">,</span> <span class="n">s_t2</span><span class="p">))</span>
+    <span class="n">standard_table</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">standard_table</span><span class="p">,</span> <span class="n">s_t</span><span class="p">))</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">standard_table</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s2">&quot;standard_table_2.csv&quot;</span><span class="p">)</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s2">&quot;reshaped_table_2.csv&quot;</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;Ar_saved.npy&quot;</span><span class="p">,</span> <span class="n">Ar_saved</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;As_saved.npy&quot;</span><span class="p">,</span> <span class="n">As_saved</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;br_saved.npy&quot;</span><span class="p">,</span> <span class="n">br_saved</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;bs_saved.npy&quot;</span><span class="p">,</span> <span class="n">bs_saved</span><span class="p">)</span>
+<span class="c1"># standard_table = pd.read_csv(&quot;standard_table_1.csv&quot;).iloc[:,1:]</span>
+<span class="c1"># reshaped_table = pd.read_csv(&quot;reshaped_table_1.csv&quot;).iloc[:,1:]</span>
+<span class="c1"># standard_table = standard_table.values</span>
+<span class="c1"># reshaped_table = reshaped_table.values</span>
+<span class="c1"># pd.DataFrame(standard_table).to_csv(&quot;standard_table_1.csv&quot;)</span>
+<span class="c1"># pd.DataFrame(reshaped_table).to_csv(&quot;reshaped_table_1.csv&quot;)</span>
+<span class="n">reshaped_table</span> <span class="o">=</span> <span class="n">reshaped_table</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+<span class="n">standard_table</span> <span class="o">=</span> <span class="n">standard_table</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;test_vio_target: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)),</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;&quot;train_vio_target: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)),</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;&quot;test_obj_target: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)),</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;&quot;test_vio: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">7</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)),</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;&quot;train_vio: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">8</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)),</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;&quot;test_obj: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">6</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)),</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;&quot;test_cvar: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)),</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;&quot;train_cvar: &quot;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+test_vio_target:  0.08200000077486039
+train_vio_target:  0.07599999979138375
+test_obj_target:  -140.48398734348805
+test_vio:  0.0026666667312383653
+train_vio:  0.003999999910593033
+test_obj:  -104.02443117968998
+test_cvar:  -0.06786448076956371
+train_cvar:  -0.06674101676174
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;test_vio_target: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)),</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;&quot;train_vio_target: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)),</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;&quot;test_obj_target: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)),</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;&quot;test_vio: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">7</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)),</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;&quot;train_vio: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">8</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)),</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;&quot;test_obj: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">6</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)),</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;&quot;test_cvar: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)),</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;&quot;train_cvar: &quot;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+test_vio_target:  0.11666666567325593
+train_vio_target:  0.10400000140070915
+test_obj_target:  -61.86965189387822
+test_vio:  0.007333333697170019
+train_vio:  0.00800000037997961
+test_obj:  -23.350960467284054
+test_cvar:  -0.09575550258159637
+train_cvar:  -0.09532358453106657
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[35]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">standard_table</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Standard set&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Reshaped set&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_experiments_Newsvendor_Larger_newsvendor_11_0.png" src="../../../_images/examples_experiments_Newsvendor_Larger_newsvendor_11_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">4</span><span class="p">],</span> <span class="n">standard_table</span><span class="p">[:,</span><span class="mi">3</span><span class="p">],</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Standard set&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">4</span><span class="p">],</span> <span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">3</span><span class="p">],</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Reshaped set&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_experiments_Newsvendor_Larger_newsvendor_12_0.png" src="../../../_images/examples_experiments_Newsvendor_Larger_newsvendor_12_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[348]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">totalvios</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_scenarios</span><span class="o">*</span><span class="mi">100</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
+<span class="n">totalvios_train</span> <span class="o">=</span>  <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_scenarios</span><span class="o">*</span><span class="mi">100</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
+<span class="n">totalobjs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_scenarios</span><span class="o">*</span><span class="mi">100</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
+<span class="n">totaltime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_scenarios</span><span class="o">*</span><span class="mi">100</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
+<span class="n">epsrange</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">experiment</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">experiment</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">experiment</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span><span class="n">sig</span><span class="p">,</span> <span class="n">N</span><span class="o">*</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">test_p</span><span class="p">),</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">ind</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">eps</span> <span class="ow">in</span> <span class="n">epsrange</span><span class="p">:</span>
+        <span class="n">vios</span><span class="p">,</span> <span class="n">vios1</span><span class="p">,</span> <span class="n">objs</span><span class="p">,</span> <span class="n">time</span> <span class="o">=</span> <span class="n">mro</span><span class="p">(</span><span class="n">train</span><span class="p">,</span><span class="n">test</span><span class="p">,</span> <span class="n">K</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span> <span class="n">rho</span> <span class="o">=</span> <span class="n">eps</span><span class="p">)</span>
+        <span class="n">totalvios</span><span class="p">[(</span><span class="n">experiment</span><span class="o">*</span><span class="n">num_scenarios</span><span class="p">):((</span><span class="n">experiment</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">num_scenarios</span><span class="p">),</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">vios</span>
+        <span class="n">totalvios_train</span><span class="p">[(</span><span class="n">experiment</span><span class="o">*</span><span class="n">num_scenarios</span><span class="p">):((</span><span class="n">experiment</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">num_scenarios</span><span class="p">),</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">vios1</span>
+        <span class="n">totalobjs</span><span class="p">[(</span><span class="n">experiment</span><span class="o">*</span><span class="n">num_scenarios</span><span class="p">):((</span><span class="n">experiment</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">num_scenarios</span><span class="p">),</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">objs</span>
+        <span class="n">totaltime</span><span class="p">[(</span><span class="n">experiment</span><span class="o">*</span><span class="n">num_scenarios</span><span class="p">):((</span><span class="n">experiment</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">num_scenarios</span><span class="p">),</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span>
+        <span class="n">ind</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;totalvios2.npy&quot;</span><span class="p">,</span> <span class="n">totalvios</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;totalvios_train2.npy&quot;</span><span class="p">,</span> <span class="n">totalvios_train</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;totalobjs2.npy&quot;</span><span class="p">,</span> <span class="n">totalobjs</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;totaltime2.npy&quot;</span><span class="p">,</span> <span class="n">totaltime</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">totalvios</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">6</span><span class="p">]</span> <span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">totalobjs</span><span class="p">,</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">6</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;tab:green&quot;</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot; Wass DRO&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">4</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">3</span><span class="p">]),</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Standard set&quot;</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;tab:blue&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">4</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">3</span><span class="p">]),</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Reshaped set&quot;</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;tab:orange&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sg_vals</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sg_vals</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]),</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;SG&quot;</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;tab:purple&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Empirical probability of constraint violation&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Out-of-sample objective&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_experiments_Newsvendor_Larger_newsvendor_14_0.png" src="../../../_images/examples_experiments_Newsvendor_Larger_newsvendor_14_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">totaltime</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">6</span><span class="p">]</span> <span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">totalobjs</span><span class="p">,</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">6</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;tab:green&quot;</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot; Wass DRO&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">5</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">3</span><span class="p">]),</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Standard set&quot;</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;tab:blue&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">5</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">3</span><span class="p">]),</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Reshaped set&quot;</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;tab:orange&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sg_vals</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sg_vals</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]),</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;SG&quot;</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;tab:purple&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Final solve time&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Out-of-sample objective&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_experiments_Newsvendor_Larger_newsvendor_15_0.png" src="../../../_images/examples_experiments_Newsvendor_Larger_newsvendor_15_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[45]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">4</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span> <span class="o">&gt;=</span> <span class="mf">0.05</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">4</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span> <span class="o">&gt;=</span> <span class="mf">0.05</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sg_vals</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span> <span class="o">&gt;=</span> <span class="mf">0.05</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">totalvios</span><span class="p">[:,</span><span class="mi">6</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span> <span class="o">&gt;=</span> <span class="mf">0.05</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+0.04365482233502538
+0.006091370558375634
+0.0
+0.108
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[44]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;reshaped = &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">4</span><span class="p">])</span><span class="o">*</span><span class="mi">2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">3</span><span class="p">]),</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">5</span><span class="p">]))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;standard = &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">4</span><span class="p">])</span><span class="o">*</span><span class="mi">2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">3</span><span class="p">]),</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">5</span><span class="p">]))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;DRO = &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">totalvios</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">6</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span> <span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">totalobjs</span><span class="p">,</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">6</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">totaltime</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">6</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;SG = &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sg_vals</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span><span class="o">*</span><span class="mi">2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sg_vals</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]),</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sg_vals</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+reshaped =  0.007133671819577449 -107.06029972551575 0.0005262797705583757
+standard =  0.010619289428941121 -58.56273194455417 0.0005685917939086294
+DRO =  0.012326666741631924 -78.59854222394392 0.15599188118
+SG =  0.005566666716709733 -150.8560468577561 0.012848807482
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">standard_table</span><span class="p">[:,</span><span class="mi">4</span><span class="p">],</span> <span class="n">standard_table</span><span class="p">[:,</span><span class="mi">3</span><span class="p">],</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Standard set&quot;</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;tab:blue&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">4</span><span class="p">],</span> <span class="n">reshaped_table</span><span class="p">[:,</span><span class="mi">3</span><span class="p">],</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Reshaped set&quot;</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;tab:orange&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">sg_vals</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">sg_vals</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;SG&quot;</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;tab:purple&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">totalvios</span><span class="p">[:,</span><span class="mi">6</span><span class="p">]</span> <span class="p">,</span><span class="n">totalobjs</span><span class="p">[:,</span><span class="mi">6</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;tab:green&quot;</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot; Wass DRO&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Empirical probability of constraint violation&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Out-of-sample objective&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_experiments_Newsvendor_Larger_newsvendor_18_0.png" src="../../../_images/examples_experiments_Newsvendor_Larger_newsvendor_18_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[375]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sg_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_scenarios</span><span class="o">*</span><span class="mi">100</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">experiment</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">experiment</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">experiment</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span><span class="n">sig</span><span class="p">,</span> <span class="n">N</span><span class="o">*</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">test_p</span><span class="p">),</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">vios</span><span class="p">,</span> <span class="n">objs</span><span class="p">,</span> <span class="n">time</span> <span class="o">=</span> <span class="n">sg</span><span class="p">(</span><span class="n">train</span><span class="p">,</span><span class="n">test</span><span class="p">)</span>
+    <span class="n">sg_vals</span><span class="p">[(</span><span class="n">experiment</span><span class="o">*</span><span class="n">num_scenarios</span><span class="p">):((</span><span class="n">experiment</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">num_scenarios</span><span class="p">),</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">vios</span>
+    <span class="n">sg_vals</span><span class="p">[(</span><span class="n">experiment</span><span class="o">*</span><span class="n">num_scenarios</span><span class="p">):((</span><span class="n">experiment</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">num_scenarios</span><span class="p">),</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">objs</span>
+    <span class="n">sg_vals</span><span class="p">[(</span><span class="n">experiment</span><span class="o">*</span><span class="n">num_scenarios</span><span class="p">):((</span><span class="n">experiment</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">num_scenarios</span><span class="p">),</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;sg_vals1.npy&quot;</span><span class="p">,</span> <span class="n">sg_vals</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">standard_table</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;standard_table_1.csv&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">values</span>
+<span class="n">reshaped_table</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;reshaped_table_1.csv&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">values</span>
+<span class="n">totalvios</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;totalvios.npy&quot;</span><span class="p">)</span>
+<span class="n">totalobjs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;totalobjs.npy&quot;</span><span class="p">)</span>
+<span class="n">totaltime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;totaltime.npy&quot;</span><span class="p">)</span>
+<span class="n">sg_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;sg_vals.npy&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[52]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">make_table</span><span class="p">(</span><span class="n">result3</span><span class="o">.</span><span class="n">A</span><span class="p">,</span><span class="n">result3</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">dfgrid</span><span class="p">,</span><span class="n">test</span><span class="p">,</span> <span class="mf">0.048</span><span class="p">,</span> <span class="n">eps</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span><span class="n">cvar_train</span> <span class="o">=</span> <span class="n">df_r2</span><span class="p">[</span><span class="s2">&quot;Violation_train&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">cvar_test</span> <span class="o">=</span> <span class="n">df_r2</span><span class="p">[</span><span class="s2">&quot;Violation_val&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])[:,</span><span class="mi">1</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[52]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+0.05533333420753479
+</pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
