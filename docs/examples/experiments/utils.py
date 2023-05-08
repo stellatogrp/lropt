@@ -142,13 +142,13 @@ def plot_contours2(x,y,set, g_level,eps_list, inds, num_scenarios,train, title, 
     fig.suptitle(post+" set", fontsize = 30)
     plt.savefig(title+"_"+ post + ".pdf", bbox_inches='tight')
 
-def plot_contours_line(x,y,set, g_level,eps_list, inds, num_scenarios,train, title, standard = True):
+def plot_contours_line(x,y,set, g_level,prob_list, num_scenarios,train, title, standard = True):
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(16, 3.5), constrained_layout= True)
     ax_lst = [ax1, ax2, ax3, ax4]
 
     cur_ind = 0
     for axis in ax_lst:
-        axis.set_title(r"$\epsilon$ = {}".format(round(eps_list[inds[cur_ind]],2)))
+        axis.set_title(r'$\hat{\eta}$' + ' = {}'.format(prob_list[cur_ind]))
         axis.set_xlabel(r"$u_1$")
         axis.set_ylabel(r"$u_2$")
         for scene in range(num_scenarios):

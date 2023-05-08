@@ -326,6 +326,7 @@ class RobustProblem(Problem):
                         optval = 0
                         testval = 0
                         test_vio = 0
+                        train_vio = 0
                         violation_val = 0
                         violation_train = 0
                         totdloss = 0
@@ -410,11 +411,11 @@ class RobustProblem(Problem):
                             optval += obj.item()
                             testval += obj2.item()
                             test_vio += violations2.item()
+                            train_vio += violations.item()
                             violation_val += var_vio.item()
                             violation_train += cvar_update.item()
                         curlam = np.maximum(curlam + mu*(np.mean(lam)), 0)
                         mu = mu*mu_multiplier
-                        totloss = totloss/num_scenarios
                         newrow = pd.Series(
                             {"step": steps,
                              "Loss_val": totloss.item(),
@@ -422,6 +423,7 @@ class RobustProblem(Problem):
                              "Opt_val": optval/num_scenarios,
                              "Test_val": testval/num_scenarios,
                              "Violations": test_vio/num_scenarios,
+                             "Violations_train": train_vio/num_scenarios,
                              "Violation_val": violation_val/num_scenarios,
                              "Violation_train": violation_train/num_scenarios,
                              "A_norm": np.linalg.norm(paramT_tch.detach().numpy().copy()),
@@ -536,6 +538,7 @@ class RobustProblem(Problem):
                         optval = 0
                         testval = 0
                         test_vio = 0
+                        train_vio = 0
                         violation_val = 0
                         violation_train = 0
                         for scene in range(num_scenarios):
@@ -574,6 +577,7 @@ class RobustProblem(Problem):
                             optval += obj.item()
                             testval += obj2.item()
                             test_vio += violations2.item()
+                            train_vio += violations.item()
                             violation_val += var_vio.item()
                             violation_train += cvar_update.item()
                         curlam = np.maximum(curlam + mu*np.mean(lam), 0)
@@ -587,6 +591,7 @@ class RobustProblem(Problem):
                              "Opt_val": optval/num_scenarios,
                              "Test_val": testval/num_scenarios,
                              "Violations": test_vio/num_scenarios,
+                             "Violations_train": train_vio/num_scenarios,
                              "Violation_val": violation_val/num_scenarios,
                              "Violation_train": violation_train/num_scenarios,
                              "A_norm": np.mean(1/eps_tch.detach().numpy().copy()),
@@ -712,11 +717,11 @@ class RobustProblem(Problem):
                 # create cvxpylayer
                 cvxpylayer = CvxpyLayer(prob, parameters=prob.parameters(),
                                         variables=self.variables())
-                eps_tch = torch.tensor([[epslst[0]]], requires_grad=True, dtype=torch.double)
-                paramb_tch = eps_tch[0][0]*torch.tensor(-np.mean(train, axis=0), requires_grad=True,
-                                                        dtype=torch.double)
-                paramT_tch = eps_tch[0][0]*torch.tensor(np.eye(train.shape[1]), requires_grad=True,
-                                                        dtype=torch.double)
+                # eps_tch = torch.tensor([[epslst[0]]], requires_grad=True, dtype=torch.double)
+                # paramb_tch = eps_tch[0][0]*torch.tensor(-np.mean(train, axis=0), requires_grad=True,
+                #                                         dtype=torch.double)
+                # paramT_tch = eps_tch[0][0]*torch.tensor(np.eye(train.shape[1]), requires_grad=True,
+                #                                         dtype=torch.double)
                 # assign parameter values
                 paramlst = prob.parameters()
                 newlst = {}
@@ -725,14 +730,14 @@ class RobustProblem(Problem):
                     if not mro_set:
                         for i in range(len(paramlst[:-2])):
                             newlst[scene].append(torch.tensor(np.array(scenarios[scene][i]).astype(
-                                float), requires_grad=True, dtype=torch.double))
-                        newlst[scene].append(paramT_tch)
-                        newlst[scene].append(paramb_tch)
+                                float)))
+                        newlst[scene].append(0)
+                        newlst[scene].append(0)
                     else:
                         for i in range(len(paramlst[:-1])):
                             newlst[scene].append(torch.tensor(np.array(scenarios[scene][i]).astype(
-                                float), requires_grad=True, dtype=torch.double))
-                        newlst[scene].append(paramT_tch)
+                                float)))
+                        newlst[scene].append(0)
                 minval = 9999999
                 var_vals = 0
 
@@ -757,6 +762,7 @@ class RobustProblem(Problem):
                     optval = []
                     testval = []
                     test_vio = []
+                    train_vio = []
                     violation_val = []
                     violation_train = []
 
@@ -764,6 +770,7 @@ class RobustProblem(Problem):
                         if not mro_set:
                             newlst[scene][-1] = eps_tch1[0][0]*init_bval
                             newlst[scene][-2] = eps_tch1[0][0]*init
+                            paramT_tch = eps_tch1[0][0]*init
                         else:
                             if unc_set._uniqueA:
                                 if init_A is None or (init_A is not None and init_A.shape[0] !=
@@ -778,14 +785,15 @@ class RobustProblem(Problem):
                         var_values = cvxpylayer(*newlst[scene],
                                                 solver_args={'solve_method': 'ECOS'})
                         temploss, obj, violations, cvar_update = unc_set.loss(
-                            *var_values, *newlst[scene][:-2], torch.tensor(init_alpha), val_dset)
+                            *var_values, *newlst[scene][:-2], alpha = torch.tensor(init_alpha), data = val_dset)
                         evalloss, obj2, violations2, var_vio = unc_set.loss(
-                            *var_values, *newlst[scene][:-2], torch.tensor(init_alpha), eval_set)
-                        totloss = totloss + temploss
+                            *var_values, *newlst[scene][:-2], alpha = torch.tensor(init_alpha), data = eval_set)
+                        totloss += temploss.item()
                         totevalloss.append(evalloss.item())
                         optval.append(obj.item())
                         testval.append(obj2.item())
                         test_vio.append(violations2.item())
+                        train_vio.append(violations.item())
                         violation_val.append(var_vio.item())
                         violation_train.append(cvar_update.item())
                     totloss = totloss/num_scenarios
@@ -795,11 +803,12 @@ class RobustProblem(Problem):
                         minT = paramT_tch.clone()
                         var_vals = var_values
                     newrow = pd.Series(
-                        {"Loss_val": totloss.item(),
+                        {"Loss_val": totloss,
                          "Eval_val": totevalloss,
                          "Opt_val": optval,
                          "Test_val": testval,
                          "Violations": test_vio,
+                         "Violations_train": train_vio,
                          "Violation_val": violation_val,
                          "Violation_train": violation_train,
                             "Eps": 1/eps_tch1[0][0].detach().numpy().copy()
