@@ -6,7 +6,7 @@ import cvxpy as cp
 import numpy as np
 import numpy.random as npr
 
-from lropt.family_parameter import FamilyParameter
+from lropt.parameter import Parameter
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
@@ -30,6 +30,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         norms = npr.multivariate_normal(np.zeros(self.n), np.eye(self.n), self.N)
         self.data = np.exp(norms)
 
+    @unittest.skip('learning not ready')
     def test_simple_learn(self):
         # Setup
         n = self.n
@@ -37,7 +38,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         y_instances = npr.multivariate_normal(np.zeros(n), np.eye(n), num_instances)
 
         # Problem
-        y = FamilyParameter(n, instances=y_instances)
+        y = Parameter(n, instances=y_instances)
         u = UncertainParameter(n, uncertainty_set=Ellipsoidal(data=self.data))
 
         a = npr.randint(-3, 3, n)

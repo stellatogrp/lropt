@@ -13,7 +13,7 @@ from cvxpy.reductions.solvers.solving_chain import SolvingChain, construct_solvi
 from cvxpylayers.torch import CvxpyLayer
 from sklearn.model_selection import train_test_split
 
-from lropt.family_parameter import FamilyParameter
+from lropt.parameter import Parameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lropt.settings import EPS_LST_DEFAULT, OPTIMIZERS
 from lropt.uncertain import UncertainParameter
@@ -62,7 +62,7 @@ class RobustProblem(Problem):
 
         return unique_list(unc_params)
 
-    def family_parameters(self):
+    def parameters(self):
         """Find which variables are uncertain
 
         Returns
@@ -74,12 +74,12 @@ class RobustProblem(Problem):
         fam_params = []
 
         fam_params += [v for v in self.objective.parameters()
-                       if isinstance(v, FamilyParameter)]
+                       if isinstance(v, Parameter)]
 
         # TODO: Add also in cost
         for c in self.constraints:
             fam_params += [v for v in c.parameters()
-                           if isinstance(v, FamilyParameter)]
+                           if isinstance(v, Parameter)]
 
         return unique_list(fam_params)
 
