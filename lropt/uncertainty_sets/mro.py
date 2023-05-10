@@ -28,7 +28,7 @@ class MRO(UncertaintySet):
         if power < 0:
             raise ValueError("Power must be a nonnegative integer.")
 
-        kmeans = KMeans(n_clusters=K).fit(data)
+        kmeans = KMeans(n_clusters=K, n_init='auto').fit(data)
         self.affine_transform_temp = None
         self.affine_transform = None
         self._data = data
