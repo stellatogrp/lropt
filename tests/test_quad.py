@@ -28,8 +28,6 @@ class TestQuad(unittest.TestCase):
         self.p = 2
 
     def test_quad_simple(self):
-        # import ipdb
-        # ipdb.set_trace()
         m = 5
         n = 5
         x = cp.Variable(n)
