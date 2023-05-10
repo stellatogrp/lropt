@@ -19,6 +19,8 @@ class Separate_Uncertain_Params(Reduction):
         """Recursively canonicalize the objective and every constraint."""
         inverse_data = InverseData(problem)
         canon_objective, canon_constraints = problem.objective, []
+        # import ipdb
+        # ipdb.set_trace()
 
         for constraint in problem.constraints:
             # canon_constr is the constraint rexpressed in terms of
@@ -32,8 +34,10 @@ class Separate_Uncertain_Params(Reduction):
                 unc_dict = {}
                 for unc_param in unique_unc_params:
                     unc_dict[unc_param] = 0
-                unc_epi = Variable((num_unc_params,) + constraint.shape)
-
+                if len(constraint.shape)== 2:
+                    unc_epi = Variable((num_unc_params,) + (constraint.shape[0],))
+                else:
+                    unc_epi = Variable((num_unc_params,) + constraint.shape)
                 unc_lst, std_lst, is_max = self.separate_uncertainty(constraint)
 
                 assert (is_max == 0)

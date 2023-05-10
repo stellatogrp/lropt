@@ -27,27 +27,29 @@ class TestQuad(unittest.TestCase):
         self.rho = 0.2
         self.p = 2
 
-    # def test_quad_simple(self):
-    #     m = 5
-    #     n = 5
-    #     x = cp.Variable(n)
-    #     t = cp.Variable()
-    #     u = UncertainParameter(m,
-    #                            uncertainty_set=Ellipsoidal(p=2,
-    #                                                        rho=2.))
-    #     A = {}
-    #     Ainv = {}
-    #     for i in range(m):
-    #         A[i] = datasets.make_spd_matrix(m, random_state=i)
-    #         Ainv[i] = sc.linalg.sqrtm(np.linalg.inv(A[i]))
+    def test_quad_simple(self):
+        # import ipdb
+        # ipdb.set_trace()
+        m = 5
+        n = 5
+        x = cp.Variable(n)
+        t = cp.Variable()
+        u = UncertainParameter(m,
+                               uncertainty_set=Ellipsoidal(p=2,
+                                                           rho=2.))
+        A = {}
+        Ainv = {}
+        for i in range(m):
+            A[i] = datasets.make_spd_matrix(m, random_state=i)
+            Ainv[i] = sc.linalg.sqrtm(np.linalg.inv(A[i]))
 
-    #     objective = cp.Minimize(t)
-    #     constraints = [cp.sum([-0.5*quad_form(u, A[i]*x[i]) for i in range(m)]) <= t]
-    #     constraints += [x >= 0, x <= 1]
-    #     prob = RobustProblem(objective, constraints)
-    #     newprob = prob.dualize_constraints()
-    #     newprob.solve(solver=SOLVER)
-    #     print(x.value)
+        objective = cp.Minimize(t)
+        constraints = [cp.sum([-0.5*quad_form(u, A[i]*x[i]) for i in range(m)]) <= t]
+        constraints += [x >= 0, x <= 1]
+        prob = RobustProblem(objective, constraints)
+        newprob = prob.dualize_constraints()
+        newprob.solve(solver=SOLVER)
+        print(x.value)
 
     # def test_quad_simple_2(self):
     #     m = 5
@@ -57,7 +59,7 @@ class TestQuad(unittest.TestCase):
     #     u = UncertainParameter(m,
     #                            uncertainty_set=Ellipsoidal(p=2,
     #                                                        rho=2.))
-    #     X = cp.variable((n,n))
+    #     X = cp.Variable((n,n))
 
     #     objective = cp.Minimize(t)
     #     constraints = [-quad_form(u,X) <= t]
