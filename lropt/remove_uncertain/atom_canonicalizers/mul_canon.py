@@ -40,8 +40,6 @@ def mul_canon(expr, args, var, cons):
 
 def mul_canon_transform(u, c):
     # adjust affine transform
-    # import ipdb
-    # ipdb.set_trace()
     uset = u.uncertainty_set
     if isinstance(c, Promote):
         c = c.value[0]

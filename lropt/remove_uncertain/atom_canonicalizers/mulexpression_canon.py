@@ -7,24 +7,12 @@ from lropt.uncertain import UncertainParameter
 
 def mulexpression_canon(expr, args, var, cons):
 
-    # import ipdb
-    # ipdb.set_trace()
+
     # Check for direct parameter usage
     if isinstance(args[0], UncertainParameter):
         u, x = args
     elif isinstance(args[1], UncertainParameter):
         x, u = args
-    # check for negative parameter and negate affine transform
-    # elif isinstance(args[0], NegExpression):
-    #     if isinstance(args[0].args[0], UncertainParameter):
-    #         u = args[0].args[0]
-    #         x = args[1]
-    #         u = mulexpression_canon_transform(u, -np.eye(u.shape[0]))
-    # elif isinstance(args[1], NegExpression):
-    #     if isinstance(args[1].args[0], UncertainParameter):
-    #         u = args[1].args[0]
-    #         x = args[0]
-    #         u = mulexpression_canon_transform(u, -np.eye(u.shape[0]))
     else:
         # No uncertain variables
         return args[0]@args[1], []

@@ -61,14 +61,13 @@ class TestQuad(unittest.TestCase):
     #                                                        rho=2.))
     #     X = cp.Variable((n,n))
 
-    #     objective = cp.Minimize(t)
-    #     constraints = [-quad_form(u,X) <= t]
-    #     # import ipdb
-    #     # ipdb.set_trace()
-    #     prob = RobustProblem(objective, constraints)
-    #     newprob = prob.dualize_constraints()
-    #     newprob.solve(solver=SOLVER)
-    #     print(x.value)
+        constraints = [cp.sum([-0.5*quad_form(u, A[i]*x[i]) for i in range(m)]) <= t]
+        constraints += [x >= 0, x <= 1]
+        prob = RobustProblem(objective, constraints)
+
+        # newprob = prob.dualize_constraints()
+        prob.solve(solver=SOLVER)
+        print(x.value)
 
     def test_max(self):
         n = 2
@@ -89,8 +88,7 @@ class TestQuad(unittest.TestCase):
         # formulate constraints
         constraints = [cp.maximum(a@x - d@x, a@x - d@u) <= t]
         constraints += [x >= 0]
-        # import ipdb
-        # ipdb.set_trace()
+
         # formulate Robust Problem
         prob_robust = RobustProblem(objective, constraints)
 
@@ -268,4 +266,3 @@ class TestQuad(unittest.TestCase):
     #     # result4 = prob.grid(epslst = np.linspace(0.01, 3, 40),\
     #     #  initA = init, initb = init_b, seed = s)
     #     # dfgrid = result4.df
-
