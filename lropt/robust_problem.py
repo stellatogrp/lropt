@@ -193,19 +193,6 @@ class RobustProblem(Problem):
             Eps: float
                 The :math:`\epsilon` value
         """
-        # if enforce_dpp is False:
-        #      warnings.warn("should enforce problem is dpp")
-
-        # candidate_solvers = self._find_candidate_solvers(solver=solver, gp=False)
-        # self._sort_candidate_solvers(candidate_solvers)
-        # solving_chain = construct_solving_chain(self, candidate_solvers, gp=False,
-        #                                         enforce_dpp=True,
-        #                                         ignore_dpp=False,
-        #                                         # Comment this for now. Useful
-        #                                         # in next cvxpy release
-        #                                         solver_opts=None
-        #                                         )
-        #
 
         T_iter = []
         b_iter = []
@@ -217,15 +204,7 @@ class RobustProblem(Problem):
             if unc_set.data is None:
                 raise ValueError("Cannot train without uncertainty set data")
 
-            # new_reductions = solving_chain.reductions
-            # # Find position of Dcp2Cone or Qp2SymbolicQp
-            # for idx in range(len(new_reductions)):
-            #     if type(new_reductions[idx]) in [Dcp2Cone, Qp2SymbolicQp]:
-            #         # Insert RemoveUncertainParameters before those reductions
-            #         new_reductions.insert(idx, RemoveUncertainParameters())
-            #         unc_reductions = new_reductions[:idx+1]
-            #         break
-        # return a chain instead (chain.apply, return the problem and inverse data)
+
             unc_reductions = []
             if type(self.objective) == Maximize:
                 unc_reductions += [FlipObjective()]
@@ -665,16 +644,7 @@ class RobustProblem(Problem):
         if epslst is None:
             epslst = EPS_LST_DEFAULT
 
-        # candidate_solvers = self._find_candidate_solvers(solver=solver, gp=False)
-        # self._sort_candidate_solvers(candidate_solvers)
-        # solving_chain = construct_solving_chain(self, candidate_solvers,  gp=False,
-        #                                         enforce_dpp=True,
-        #                                         ignore_dpp=False,
-        #                                         # Comment this for now. Useful
-        #                                         # in next cvxpy release
-        #                                         solver_opts=None
-        #                                         )
-        # #
+
         if self.uncertain_parameters():
             # import ipdb
             # ipdb.set_trace()
@@ -683,15 +653,7 @@ class RobustProblem(Problem):
             if unc_set.data is None:
                 raise ValueError("Cannot train without uncertainty set data")
 
-        #     new_reductions = solving_chain.reductions
-        #     # Find position of Dcp2Cone or Qp2SymbolicQp
-        #     for idx in range(len(new_reductions)):
-        #         if type(new_reductions[idx]) in [Dcp2Cone, Qp2SymbolicQp]:
-        #             # Insert RemoveUncertainParameters before those reductions
-        #             new_reductions.insert(idx, RemoveUncertainParameters())
-        #             unc_reductions = new_reductions[:idx+1]
-        #             break
-        # # return a chain instead (chain.apply, return the problem and inverse data)
+
             unc_reductions = []
             if type(self.objective) == Maximize:
                 unc_reductions += [FlipObjective()]
@@ -831,7 +793,7 @@ class RobustProblem(Problem):
             unc_reductions = []
             if type(self.objective) == Maximize:
                 unc_reductions += [FlipObjective()]
-            # Add separate uncertainty
+
             unc_reductions += [Distribute_Uncertain_Params()]
             unc_reductions += [RemoveUncertainParameters()]
             newchain = UncertainChain(self, reductions=unc_reductions)
@@ -851,13 +813,6 @@ class RobustProblem(Problem):
                     _ = self.train()
                     return self.new_prob.solve(solver=solver)
             prob = self.dualize_constraints()
-            # unc_reductions = []
-            # if type(self.objective) == Maximize:
-            #     unc_reductions += [FlipObjective()]
-            # unc_reductions += [RemoveUncertainParameters()]
-            # newchain = UncertainChain(self, reductions=unc_reductions)
-            # prob, _ = newchain.apply(self)
-
             return prob.solve(solver=solver)
         return super(RobustProblem, self).solve()
 

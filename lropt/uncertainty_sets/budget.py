@@ -253,7 +253,7 @@ class Budget(UncertaintySet):
                 constr += [self._A2.T@newvar_2 == newvar2[0]]
                 constr += [lmbda1 >= 0, lmbda2 >= 0]
                 return self.rho1 * lmbda1 + self.rho2 * lmbda2 \
-                    - newvar_1*self._b1 - newvar_2*self._b2,\
+                    - newvar_1@self._b1 - newvar_2@self._b2,\
                     constr, (lmbda1, lmbda2)
             else:
                 lmbda1 = Variable(shape)

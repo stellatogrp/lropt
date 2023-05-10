@@ -19,23 +19,7 @@ def add_canon(expr, args, var, cons):
         u, x = args
     elif isinstance(args[1], UncertainParameter):
         x, u = args
-    # check for negative parameter and negate affine transform
-    # elif isinstance(args[0], NegExpression):
-    #     if isinstance(args[0].args[0], UncertainParameter):
-    #         u = args[0].args[0]
-    #         x = args[1]
-    #         if len(u.shape) == 1:
-    #             u = mulexpression_canon_transform(u, -np.eye(u.shape[0]))
-    #         else:
-    #             u = mul_canon_transform(u, -1)
-    # elif isinstance(args[1], NegExpression):
-    #     if isinstance(args[1].args[0], UncertainParameter):
-    #         u = args[1].args[0]
-    #         x = args[0]
-    #         if len(u.shape) == 1:
-    #             u = mulexpression_canon_transform(u, -np.eye(u.shape[0]))
-    #         else:
-    #             u = mul_canon_transform(u, -1)
+
     else:
         # No uncertain variables
         return args[0] + args[1], []
