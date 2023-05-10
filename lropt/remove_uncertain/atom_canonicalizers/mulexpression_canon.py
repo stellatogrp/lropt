@@ -7,8 +7,7 @@ from lropt.uncertain import UncertainParameter
 
 def mulexpression_canon(expr, args, var, cons):
 
-    # import ipdb
-    # ipdb.set_trace()
+
     # Check for direct parameter usage
     if isinstance(args[0], UncertainParameter):
         u, x = args

@@ -17,7 +17,7 @@ from lropt.parameter import Parameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lropt.settings import EPS_LST_DEFAULT, OPTIMIZERS
 from lropt.uncertain import UncertainParameter
-from lropt.uncertain_canon.separate_uncertain_params import Separate_Uncertain_Params
+from lropt.uncertain_canon.distribute_uncertain_params import Distribute_Uncertain_Params
 from lropt.uncertain_canon.uncertain_chain import UncertainChain
 from lropt.uncertainty_sets.mro import MRO
 from lropt.utils import unique_list
@@ -832,7 +832,7 @@ class RobustProblem(Problem):
             if type(self.objective) == Maximize:
                 unc_reductions += [FlipObjective()]
             # Add separate uncertainty
-            unc_reductions += [Separate_Uncertain_Params()]
+            unc_reductions += [Distribute_Uncertain_Params()]
             unc_reductions += [RemoveUncertainParameters()]
             newchain = UncertainChain(self, reductions=unc_reductions)
             prob, _ = newchain.apply(self)

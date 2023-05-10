@@ -11,7 +11,7 @@ from lropt.robust_problem import RobustProblem
 
 class TestNonrobustProblems(unittest.TestCase):
 
-    @unittest.skip('not ready')
+    # @unittest.skip('not ready')
     def test_nonrobust_dualize(self):
 
         n = 4
@@ -32,7 +32,6 @@ class TestNonrobustProblems(unittest.TestCase):
 
         npt.assert_allclose(prob_lropt.value, prob_cvxpy.value)
 
-    @unittest.skip('not ready')
     def test_nonrobust_solve(self):
 
         n = 4

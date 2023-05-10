@@ -10,10 +10,11 @@ from lropt.uncertain_canon.separate_uncertainty import SEPARATION_METHODS as sep
 from lropt.utils import unique_list
 
 
-class Separate_Uncertain_Params(Reduction):
+class Distribute_Uncertain_Params(Reduction):
+    '''Reduction to Distribute Uncertain Parameters into different constraints'''
 
     def __init__(self, problem=None) -> None:
-        super(Separate_Uncertain_Params, self).__init__(problem=problem)
+        super(Distribute_Uncertain_Params, self).__init__(problem=problem)
 
     def apply(self, problem):
         """Recursively canonicalize the objective and every constraint."""
