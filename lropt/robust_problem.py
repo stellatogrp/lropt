@@ -257,6 +257,12 @@ class RobustProblem(Problem):
 
                     alpha = torch.tensor(init_alpha, requires_grad=True)
                     paramT_tch = torch.tensor(init, requires_grad=True, dtype=DTYPE)
+
+                    if save_iters:
+                        T_iter.append(paramT_tch.detach().numpy().copy())
+                        if not mro_set:
+                            b_iter.append(paramb_tch.detach().numpy().copy())
+
                     if fixb or mro_set:
                         if mro_set and unc_set._uniqueA:
                             if init_A is None:
