@@ -30,9 +30,6 @@ class TestObjectiveUncertainty(unittest.TestCase):
 
     def test_objective_uncertainty(self):
 
-        # import ipdb
-        # ipdb.set_trace()
-
         n = 5
         x_lropt = cp.Variable(n)
         c = npr.rand(n)
@@ -83,7 +80,5 @@ class TestObjectiveUncertainty(unittest.TestCase):
         prob_cvx = RobustProblem(objective_2, constraints_2)
         prob_cvx.solve()
 
-        import ipdb
-        ipdb.set_trace()
 
         # npt.assert_allclose(x_cvxpy, x_robust, rtol=RTOL, atol=ATOL)
