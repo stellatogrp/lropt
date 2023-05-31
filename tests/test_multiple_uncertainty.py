@@ -69,9 +69,6 @@ class TestMultipleUncertainty(unittest.TestCase):
         prob_cvx = RobustProblem(objective_2, constraints_2)
         prob_cvx.solve()
 
-        import ipdb
-        ipdb.set_trace()
-
         npt.assert_allclose(x_lropt.value, x_cvx.value, rtol=RTOL, atol=ATOL)
 
     def test_matrix(self):
