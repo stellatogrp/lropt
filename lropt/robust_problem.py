@@ -148,11 +148,11 @@ class RobustProblem(Problem):
         return SolvingChain(reductions=new_reductions)
 
     def train(
-        self, eps=False, fixb=True, step=45, lr=0.01, scheduler=True, momentum=0.8,
+        self, eps=False, fixb=True, step=45, lr=0.0001, scheduler=True, momentum=0.8,
         optimizer="SGD", init_eps=None,
-        init_A=None, init_b=None, save_iters=False, seed=1, init_lam=10, init_mu=10,
-        mu_multiplier=1.02, init_alpha=-0.01,
-        target_cvar=0., test_percentage=0.2, scenarios=None, num_scenarios=None, max_inner_iter=10,
+        init_A=None, init_b=None, save_iters=False, seed=1, init_lam=0, init_mu=1,
+        mu_multiplier=1.01, init_alpha=-0.01,
+        target_cvar=-0.015, test_percentage=0.2, scenarios=None, num_scenarios=None, max_inner_iter=10,
         solver: Optional[str] = None
     ):
         r"""

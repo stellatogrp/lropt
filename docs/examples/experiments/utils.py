@@ -154,7 +154,7 @@ def plot_contours_line(x,y,set, g_level,prob_list, num_scenarios,train, title, s
         for scene in range(num_scenarios):
             axis.contour(x,y,g_level[cur_ind][scene],[0], colors = ["tab:purple"],alpha = 1,linestyles = ["-"])
         axis.scatter(train[:,0],train[:,1], color = "white",edgecolor = "black")
-        axis.scatter(np.mean(train,axis= 0)[0], np.mean(train,axis= 0)[1],color = ["tab:orange"])
+        axis.scatter(np.mean(train,axis= 0)[0], np.mean(train,axis= 0)[1],color = ["green"])
         for k_ind in range(1):
             axis.contour(x,y,set[cur_ind][k_ind], [1], colors = ["red"],linewidths = [2])
         cur_ind +=1
