@@ -285,3 +285,94 @@ for ind in range(4):
 #plot contours
 plot_contours_line(x,y,init_set, g_level_base,eps_list, inds, num_scenarios,train, "news_intro",standard = True)
 plot_contours_line(x,y,fin_set, g_level_learned,eps_list, inds, num_scenarios,train, "news_intro",standard = False)
+
+
+## GIF GENERATION ##
+
+A_fin = result1.A
+b_fin = result1.b
+A1_iters, b1_iters = result1.uncset_iters
+
+def newsvendor_prob(A_final, b_final, scene):
+    n = 2
+    u = lropt.UncertainParameter(n,uncertainty_set=lropt.Ellipsoidal(p=2, A = A_final, b = b_final))
+    # Formulate the Robust Problem
+    x_r = cp.Variable(n)
+    t = cp.Variable()
+    k = scenarios[scene][0]
+    p = scenarios[scene][1]
+    # y = cp.Variable()
+
+    objective = cp.Minimize(t)
+
+    constraints = [cp.maximum(k@x_r - p@x_r, k@x_r - p@u) <= t]
+    # constraints += [cp.maximum(k1@(x_r-u),0) <= y]
+    # constraints = [cp.maximum(u@k + k1@x_r -u@(k + k1), u@k + k1@x_r - x_r@(k + k1))<=t]
+
+    constraints += [x_r >= 0]
+
+    prob = lropt.RobustProblem(objective, constraints)
+    prob.solve()
+    t_opt = t.value
+    x_opt = x_r.value
+
+    return x_opt, t_opt
+
+offset = 1
+x_min, x_max = np.min(train[:,0]) - 3*offset, np.max(train[:,0]) + offset
+y_min, y_max = np.min(train[:,1]) - offset, np.max(train[:,1]) + offset
+n_points = 100
+X = np.linspace(x_min,x_max,n_points)
+Y = np.linspace(y_min,y_max,n_points)
+x_mesh,y_mesh = np.meshgrid(X,Y)
+
+def optimal_sols(A_final, b_final, num_scenarios):
+    x_opt = {}
+    t_opt = {}
+    for scene in range(num_scenarios):
+        x_opt[scene], t_opt[scene] = newsvendor_prob(A_final, b_final, scene)
+    return x_opt, t_opt
+
+def level_set(A_final, b_final, offset = 2, n = n_points, x_mesh = x_mesh, y_mesh = y_mesh):
+    unc_level_set = np.zeros((n,n))
+    g_level_set = np.zeros((num_scenarios,n,n))
+    x_opt,t_opt = optimal_sols(A_final, b_final, num_scenarios)
+    for i in range(n):
+        for j in range(n):
+            u_vec = [x_mesh[i,j], y_mesh[i,j]]
+            unc_level_set[i,j] = np.linalg.norm(A_final @ u_vec  + b_final)
+            for scene in range(num_scenarios):
+                g_level_set[scene,i,j] = np.maximum(scenarios[scene][0] @ x_opt[scene] - scenarios[scene][1] @ x_opt[scene], scenarios[scene][0] @ x_opt[scene] - scenarios[scene][1] @ u_vec) - t_opt[scene]
+
+    return unc_level_set, g_level_set
+
+import os
+import imageio
+
+filenames = []
+for i in range(len(A1_iters)):
+    #
+    unc_level, g_level = level_set(A1_iters[i], b1_iters[i])
+    plt.figure(figsize=(5, 5))
+    plt.title("Original and reshaped sets")
+    # Set axis label for the contour plot
+    plt.xlabel(r"$u_1$")
+    plt.ylabel(r"$u_2$")
+
+    plt.contour(x_mesh,y_mesh,unc_level_base, [1], colors = ["tab:blue"], label = "Initial Set")
+    plt.contour(x_mesh,y_mesh,unc_level, [1], colors = ["tab:red"], label = "trained Set")
+    plt.contour(x_mesh,y_mesh,unc_level_learned, [1], colors = ["tab:green"], label = "Final Set")
+    for scene in range(num_scenarios):
+        plt.contour(x_mesh,y_mesh,g_level[scene,:,:], [1], colors = ["tab:purple"], label = "Initial Set")
+
+    filename = f'gif_images/{i}.png'
+    filenames.append(filename)
+
+    plt.scatter(train[:,0],train[:,1], color = "white",edgecolors= "black", s = 10)
+    plt.savefig(filename)
+    plt.close()
+
+with imageio.get_writer('gifs/newsvendor.gif', mode='I') as writer:
+    for filename in filenames:
+        image = imageio.imread(filename)
+        writer.append_data(image)
