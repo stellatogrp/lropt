@@ -17,9 +17,6 @@ from tests.settings import TESTS_RTOL as RTOL
 # import torch
 
 
-print("Hello")
-
-
 class TestBoxUncertainty(unittest.TestCase):
 
     def setUp(self):

@@ -11,6 +11,7 @@ from lropt.robust_problem import RobustProblem
 
 class TestNonrobustProblems(unittest.TestCase):
 
+    # @unittest.skip('not ready')
     def test_nonrobust_dualize(self):
 
         n = 4

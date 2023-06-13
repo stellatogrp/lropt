@@ -28,7 +28,7 @@ class MRO(UncertaintySet):
         if power < 0:
             raise ValueError("Power must be a nonnegative integer.")
 
-        kmeans = KMeans(n_clusters=K).fit(data)
+        kmeans = KMeans(n_clusters=K, n_init='auto').fit(data)
         self.affine_transform_temp = None
         self.affine_transform = None
         self._data = data
@@ -129,35 +129,7 @@ class MRO(UncertaintySet):
         else:
             return (self.q() - 1.)**(self.q() - 1.)/(self.q()**self.q())
 
-    # def canonicalize(self, x):
 
-    #     # TODO: DEFINE k
-    #     k = 10  # put it now to fix linting errors
-
-    #     trans = self.affine_transform
-    #     s = Variable(self._K)
-    #     lam = Variable()
-
-    #     new_expr = -s[k]
-    #     new_constraints = [lam >= 0]
-    #     new_constraints += [lam * self._eps + self._w * s <= 0]
-    #     if trans:
-    #         new_expr += trans['b'] * x + (trans['A'].T * x).T * self._Dbar[k]
-    #         if self._p == 1:
-    #             new_constraints += [norm(trans['A'].T * x,
-    #                                      self.dual_norm()) <= lam]
-    #         else:
-    #             new_expr += self.phi() * lam**(-(self.q() - 1)) * \
-    #                 norm(trans['A'].T * x, self.dual_norm())**self.q()
-    #     else:
-    #         new_expr += x.T * self._Dbar[k]
-    #         if self._p == 1:
-    #             new_constraints += [norm(x, self.dual_norm()) <= lam]
-    #         else:
-    #             new_expr += self.phi() * lam**(-(self.q() - 1)) * \
-    #                 norm(x, self.dual_norm())**self.q()
-
-    #     return new_expr, new_constraints
 
     def canonicalize(self, x, var):
         # import ipdb
@@ -241,7 +213,7 @@ class MRO(UncertaintySet):
                     constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
                     constr += [self.paramT.T@newvar == var[0]]
                     constr += [lmbda >= 0]
-                    return newvar*(self.paramT@self.Dbar[k_ind])-sval[k_ind], constr, lmbda, sval
+                    return newvar@(self.paramT@self.Dbar[k_ind])-sval[k_ind], constr, lmbda, sval
                 else:
                     constr = []
                     newvar = Variable((shape, ushape))
@@ -258,7 +230,7 @@ class MRO(UncertaintySet):
                     constr += \
                         [self.paramT[k_ind*self._m:(k_ind+1)*self._m, 0:self._m].T@newvar == var[0]]
                     constr += [lmbda >= 0]
-                    return newvar*(self.paramT[k_ind*self._m:(k_ind+1) *
+                    return newvar@(self.paramT[k_ind*self._m:(k_ind+1) *
                                                self._m, 0:self._m]@self.Dbar[k_ind]) -\
                         sval[k_ind], constr, lmbda, sval
                 else:
@@ -277,7 +249,7 @@ class MRO(UncertaintySet):
                 if shape == 1:
                     constr = [norm(var[0], p=self.dual_norm()) <= lmbda]
                     constr += [lmbda >= 0]
-                    return var[0]*self.Dbar[k_ind]-sval[k_ind], constr, lmbda, sval
+                    return var[0]@self.Dbar[k_ind]-sval[k_ind], constr, lmbda, sval
                 else:
                     constr = []
                     constr += [lmbda >= 0]

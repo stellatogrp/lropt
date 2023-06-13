@@ -3,8 +3,6 @@ from cvxpy.atoms.affine.unary_operators import NegExpression
 
 
 def promote_sep_sub(expr, unc_lst, std_lst):
-    # import ipdb
-    # ipdb.set_trace()
     new_unc_lst = [expr.value[0] * g_u for g_u in unc_lst]
     new_std_lst = [expr.value[0] * h_x for h_x in std_lst]
     return new_unc_lst, new_std_lst
