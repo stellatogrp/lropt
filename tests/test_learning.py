@@ -49,8 +49,16 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         z = cp.Variable(n)
 
         objective = cp.Maximize(a @ x)
+
+        def f_tch(x,z,y,u):
+            return a @ x
+        def g_tch(x,z,y,u):
+            return x @ u + z @ b + y @ x - c
+
+
+
         constraints = [x @ u + z @ b + y @ x <= c]
 
-        prob = RobustProblem(objective, constraints)
+        prob = RobustProblem(objective, constraints, f_tch=f_tch, g_tch=[g_tch])
         prob.train()
         prob.solve()
