@@ -26,7 +26,7 @@ from lropt.utils import unique_list
 class RobustProblem(Problem):
     """Create a Robust Optimization Problem with uncertain variables"""
 
-    def __init__(self, objective, constraints):
+    def __init__(self, objective, constraints, f_tch=None, g_tch=None):
         self._trained = False
         self._values = None
         self._numvars = 0
@@ -82,10 +82,6 @@ class RobustProblem(Problem):
                            if isinstance(v, Parameter)]
 
         return unique_list(fam_params)
-
-    def set_loss(self):
-        loss = None
-        return loss
 
     # create function for only remove_uncertain reduction
     def _construct_chain(
@@ -152,8 +148,8 @@ class RobustProblem(Problem):
         optimizer="SGD", init_eps=None,
         init_A=None, init_b=None, save_iters=False, seed=1, init_lam=0, init_mu=1,
         mu_multiplier=1.01, init_alpha=-0.01,
-        target_cvar=-0.015, test_percentage=0.2, scenarios=None, num_scenarios=None, max_inner_iter=10,
-        solver: Optional[str] = None
+        target_cvar=-0.015, test_percentage=0.2, scenarios=None, num_scenarios=None,
+        max_inner_iter=10, solver: Optional[str] = None
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. loss metric
