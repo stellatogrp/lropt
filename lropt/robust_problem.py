@@ -34,7 +34,6 @@ class RobustProblem(Problem):
         self._trained = False
         self._values = None
         self.new_prob = None
-        self.loss = self.set_loss()
 
     @property
     def trained(self):
