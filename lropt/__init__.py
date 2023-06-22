@@ -2,6 +2,7 @@ from lropt._version import __version__
 from lropt.robust_problem import RobustProblem
 from lropt.settings import OPTIMIZERS
 from lropt.uncertain import UncertainParameter
+from lropt.parameter import Parameter
 from lropt.uncertain_atoms.quad_form import quad_form
 from lropt.uncertainty_sets.box import Box
 from lropt.uncertainty_sets.budget import Budget

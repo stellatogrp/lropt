@@ -4,14 +4,15 @@ import numpy as np
 
 class Parameter(cp.Parameter):
     def __init__(self, *args, **kwargs):
-        instances = kwargs.pop('instances', None)
+        data = kwargs.pop('data', None)
 
-        if instances is None:
-            raise ValueError("You must provide instances")
-        assert isinstance(instances, np.ndarray), "not a numpy array"
+        if data is None:
+            raise ValueError("You must provide data")
+        assert isinstance(data, np.ndarray), "not a numpy array"
 
         super(Parameter, self).__init__(*args, **kwargs)
 
-        assert (instances.shape[1:] == self.shape)
+        assert (data.shape[1:] == self.shape)
+        assert (data.shape[0] > 0)
 
-        self.instances = instances
+        self.data = data
