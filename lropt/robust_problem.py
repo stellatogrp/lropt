@@ -466,16 +466,16 @@ class RobustProblem(Problem):
                             var_values = cvxpylayer(*newlst[scene],
                                                     solver_args=LAYER_SOLVER)
 
-                            temploss, obj, cvar_update, violations = self.aug_lag(var_values, \
-                                [newlst[scene][:-2]], self._udata_to_lst(val_dset), \
+                            temploss, obj, cvar_update, violations = self.aug_lag(var_values,
+                                [newlst[scene][:-2]], self._udata_to_lst(val_dset),
                                     alpha, mu, curlam)
 
                             # temploss, obj, violations, cvar_update =
                             #      unc_set.loss(# v_0 line 3 algorithm 2
                             #     *var_values, *newlst[scene][:-2], alpha, val_dset, mu, curlam,
                             #     target=target_cvar)
-                            uloss, _, _, _ = self.aug_lag(var_values, [newlst[scene][:-2]], \
-                                            self._udata_to_lst(val_dset[random_int]), \
+                            uloss, _, _, _ = self.aug_lag(var_values, [newlst[scene][:-2]],
+                                            self._udata_to_lst(val_dset[random_int]),
                                                 alpha, mu, curlam)
                             # uloss, _, _, _ = unc_set.loss(
                             #     *var_values, *newlst[scene][:-2], alpha, val_dset[random_int], \
@@ -504,8 +504,8 @@ class RobustProblem(Problem):
                                     newlst[scene][-1] = paramT_tch
                                 var_values = cvxpylayer(*newlst[scene],
                                                         solver_args=LAYER_SOLVER)
-                                vloss, _, _, _ = self.aug_lag(var_values, [newlst[scene][:-2]], \
-                                                self._udata_to_lst(val_dset[random_int]), \
+                                vloss, _, _, _ = self.aug_lag(var_values, [newlst[scene][:-2]],
+                                                self._udata_to_lst(val_dset[random_int]),
                                                     alpha, mu, curlam)
                                 # vloss, _, _, _ = unc_set.loss(
                                 #     *var_values, *newlst[scene][:-2], alpha, val_dset[random_int],
@@ -513,8 +513,8 @@ class RobustProblem(Problem):
                                 #     target=target_cvar)
                                 random_int = np.random.randint(0, val_dset.shape[0],
                                                                int(val_dset.shape[0]/10))
-                                uloss, _, _, _ = self.aug_lag(var_values, [newlst[scene][:-2]], \
-                                                self._udata_to_lst(val_dset[random_int]), \
+                                uloss, _, _, _ = self.aug_lag(var_values, [newlst[scene][:-2]],
+                                                self._udata_to_lst(val_dset[random_int]),
                                                     alpha, mu, curlam)
                                 # uloss, _, _, _ = unc_set.loss(
                                 #     *var_values, *newlst[scene][:-2], alpha, val_dset[random_int],
@@ -543,14 +543,14 @@ class RobustProblem(Problem):
                                 newlst[scene][-1] = paramT_tch
                             var_values = cvxpylayer(*newlst[scene],
                                                     solver_args=LAYER_SOLVER)
-                            temploss, obj, cvar_update, violations = self.aug_lag(var_values, \
-                                        [newlst[scene][:-2]], self._udata_to_lst(val_dset), \
+                            temploss, obj, cvar_update, violations = self.aug_lag(var_values,
+                                        [newlst[scene][:-2]], self._udata_to_lst(val_dset),
                                             alpha, mu, curlam)
                             # temploss, obj, violations, cvar_update = unc_set.loss(
                             #     *var_values, *newlst[scene][:-2], alpha, val_dset,  mu, curlam,
                             #     target=target_cvar)
-                            evalloss, obj2, var_vio, violations2 = self.aug_lag(var_values, \
-                                     [newlst[scene][:-2]], self._udata_to_lst(eval_set), \
+                            evalloss, obj2, var_vio, violations2 = self.aug_lag(var_values,
+                                     [newlst[scene][:-2]], self._udata_to_lst(eval_set),
                                         alpha, mu, curlam)
                             # evalloss, obj2, violations2, var_vio = unc_set.loss(
                             #     *var_values, *newlst[scene][:-2], alpha, eval_set, mu, curlam,
@@ -716,8 +716,8 @@ class RobustProblem(Problem):
                             #     *var_values,  *newlst[scene][:-2], alpha, val_dset, mu, curlam,
                             #     target=target_cvar)
 
-                            temploss, obj, cvar_update, violations = self.aug_lag(var_values, \
-                                            [newlst[scene][:-2]], self._udata_to_lst(val_dset), \
+                            temploss, obj, cvar_update, violations = self.aug_lag(var_values,
+                                            [newlst[scene][:-2]], self._udata_to_lst(val_dset),
                                                 alpha, mu, curlam)
 
                             # temploss, obj, violations, cvar_update =
@@ -725,8 +725,8 @@ class RobustProblem(Problem):
                             #     *var_values, *newlst[scene][:-2], alpha, val_dset, mu, curlam,
                             #     target=target_cvar)
 
-                            evalloss, obj2, var_vio, violations2 = self.aug_lag(var_values, \
-                                        [newlst[scene][:-2]], self._udata_to_lst(eval_set), \
+                            evalloss, obj2, var_vio, violations2 = self.aug_lag(var_values,
+                                        [newlst[scene][:-2]], self._udata_to_lst(eval_set),
                                             alpha, mu, curlam)
 
                             # evalloss, obj2, violations2, var_vio = unc_set.loss(
