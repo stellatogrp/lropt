@@ -38,8 +38,7 @@ class RobustProblem(Problem):
 
         self.num_scenarios = self.verify_y_parameters()
         self.f, self.g = objective_torch, constraints_torch
-        self.l, self.h = self.fg_to_lh(objective_torch, constraints_torch)
-        self.num_g = len(self.g)
+        self.l, self.h, self.num_g= self.fg_to_lh(objective_torch, constraints_torch)
 
     @property
     def trained(self):
@@ -73,6 +72,8 @@ class RobustProblem(Problem):
 
     def fg_to_lh(self, f_tch, g_tch):
         '''Returns l and h for single x,y,u triplet (i.e. one instance of each)'''
+        if f_tch is None or g_tch is None:
+            return None, None, None
         sig_f = signature(f_tch)
         arg_num = len(sig_f.parameters)
         true_arg_num = (len(self.variables())
@@ -88,7 +89,7 @@ class RobustProblem(Problem):
             h_funcs.append(hg)
 
         l_func = f_tch
-        return l_func, h_funcs
+        return l_func, h_funcs, len(h_funcs)
 
     def F(self, vars, y_params_mat, u_params_mat):
         '''
