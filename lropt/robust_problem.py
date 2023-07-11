@@ -194,7 +194,7 @@ class RobustProblem(Problem):
             u_params_mat.append([data[i, :]])
         return u_params_mat
 
-    def aug_lag(self, vars, y_params_mat, u_params_mat, alpha, mu, lam, eta=0.05, kappa=-0.015):
+    def lagrange(self, vars, y_params_mat, u_params_mat, alpha, lam, eta=0.05, kappa=-0.05):
         '''Defines L augmented lagrangian function, which computes loss for
         Arguments
         _________
@@ -225,7 +225,7 @@ class RobustProblem(Problem):
         F = self.F(vars, y_params_mat, u_params_mat)
         H = self.H(vars, y_params_mat, u_params_mat, alpha, eta, kappa)
         prob_constr_violation = self.prob_constr_violation(vars, y_params_mat, u_params_mat)
-        return F + lam @ H + (mu / 2) * (torch.norm(H)**2), F, H, prob_constr_violation
+        return F + lam @ H, F, H, prob_constr_violation
 
     # create function for only remove_uncertain reduction
     def _construct_chain(
@@ -290,10 +290,10 @@ class RobustProblem(Problem):
     def train(
         self, eps=False, fixb=False, step=45, lr=0.0001, scheduler=True, momentum=0.8,
         optimizer="SGD", init_eps=None,
-        init_A=None, init_b=None, save_iters=False, seed=1, init_lam=0., init_mu=1,
-        mu_multiplier=1.01, init_alpha=-0.01,
+        init_A=None, init_b=None, save_iters=False, seed=1, init_lam=0., init_alpha=-0.01,
         target_cvar=-0.015, test_percentage=0.2, scenarios=None, num_scenarios=None,
-        max_inner_iter=10, solver: Optional[str] = None
+        step_y = 0.1, batch_percentage = 0.2,
+        solver: Optional[str] = None
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. loss metric
@@ -439,10 +439,8 @@ class RobustProblem(Problem):
                     # train
                     lam = init_lam * torch.ones((num_scenarios, self.num_g), dtype=float)
                     curlam = init_lam * torch.ones(self.num_g, dtype=float)
-                    mu = init_mu
 
                     for steps in range(step):
-
                         totloss = torch.tensor(0., dtype=float)
                         totevalloss = torch.tensor(0., dtype=float)
                         optval = torch.tensor(0., dtype=float)
@@ -451,12 +449,9 @@ class RobustProblem(Problem):
                         train_vio = torch.tensor(0., dtype=float)
                         violation_val = torch.tensor(0., dtype=float)
                         violation_train = torch.tensor(0., dtype=float)
-                        totdloss = torch.tensor(0., dtype=float) #v^(t-1)
-                        totuloss = torch.tensor(0., dtype=float) #v_1^t Line 8 algorithm 2
-                        totvloss = torch.tensor(0., dtype=float)
+                        
                         random_int = np.random.randint(0, val_dset.shape[0],
-                                                       int(val_dset.shape[0]/10))
-                        # FOR LOOP 1 line 6 in algorithm 2
+                                                       int(val_dset.shape[0]*batch_percentage))
 
                         for scene in range(num_scenarios):
                             if not mro_set:
@@ -466,96 +461,13 @@ class RobustProblem(Problem):
                                 newlst[scene][-1] = paramT_tch
                             var_values = cvxpylayer(*newlst[scene],
                                                     solver_args=LAYER_SOLVER)
+                            temploss, obj, cvar_update, violations = self.lagrange(var_values,
+                                        [newlst[scene][:-2]], self._udata_to_lst(val_dset[random_int]),
+                                            alpha, curlam)
 
-                            temploss, obj, cvar_update, violations = self.aug_lag(var_values,
-                                [newlst[scene][:-2]], self._udata_to_lst(val_dset),
-                                    alpha, mu, curlam)
-
-                            # temploss, obj, violations, cvar_update =
-                            #      unc_set.loss(# v_0 line 3 algorithm 2
-                            #     *var_values, *newlst[scene][:-2], alpha, val_dset, mu, curlam,
-                            #     target=target_cvar)
-                            uloss, _, _, _ = self.aug_lag(var_values, [newlst[scene][:-2]],
-                                            self._udata_to_lst(val_dset[random_int]),
-                                                alpha, mu, curlam)
-                            # uloss, _, _, _ = unc_set.loss(
-                            #     *var_values, *newlst[scene][:-2], alpha, val_dset[random_int], \
-                            #  mu, # v_1^T (can use random y's as well)
-                            #     curlam, target=target_cvar)
-                            totdloss = totdloss + temploss/num_scenarios
-                            totuloss = totuloss + uloss/num_scenarios  #v_1^t
-                        backuptotdloss = totdloss.detach().clone()
-                        totdloss.backward(retain_graph=True) # gradient for line 6 (v^(t-1))
-                        totdloss = backuptotdloss
-                        opt.step()
-                        opt.zero_grad()
-                        if scheduler:
-                            scheduler_.step(totdloss)
-                        tot_inner_step = np.random.randint(0, max_inner_iter)
-                        # FOR LOOP 2
-
-                        for inner_step in range(tot_inner_step-1):
-                            totvloss = torch.tensor(0., requires_grad=True) #v_2^(t) Line 9
-                            newuloss = torch.tensor(0., requires_grad=True) #v_1^(t+1) Line 8
-                            for scene in range(num_scenarios):
-                                if not mro_set:
-                                    newlst[scene][-1] = paramb_tch
-                                    newlst[scene][-2] = paramT_tch
-                                else:
-                                    newlst[scene][-1] = paramT_tch
-                                var_values = cvxpylayer(*newlst[scene],
-                                                        solver_args=LAYER_SOLVER)
-                                vloss, _, _, _ = self.aug_lag(var_values, [newlst[scene][:-2]],
-                                                self._udata_to_lst(val_dset[random_int]),
-                                                    alpha, mu, curlam)
-                                # vloss, _, _, _ = unc_set.loss(
-                                #     *var_values, *newlst[scene][:-2], alpha, val_dset[random_int],
-                                #     mu, curlam,
-                                #     target=target_cvar)
-                                random_int = np.random.randint(0, val_dset.shape[0],
-                                                               int(val_dset.shape[0]/10))
-                                uloss, _, _, _ = self.aug_lag(var_values, [newlst[scene][:-2]],
-                                                self._udata_to_lst(val_dset[random_int]),
-                                                    alpha, mu, curlam)
-                                # uloss, _, _, _ = unc_set.loss(
-                                #     *var_values, *newlst[scene][:-2], alpha, val_dset[random_int],
-                                #     mu, curlam, target=target_cvar)
-                                totvloss = totvloss + vloss/num_scenarios
-                                newuloss = newuloss + uloss/num_scenarios
-                            totdloss = totvloss + (1-0.01)*(totdloss - totuloss) # Line 10 in alg
-                            backuptotdloss = totdloss.detach().clone()
-                            totdloss.backward(retain_graph=True)
-                            totdloss = backuptotdloss
-                            totuloss = newuloss.detach().clone()
-                            if inner_step < tot_inner_step-2:
-                                opt.step()
-                                opt.zero_grad()
-                                if scheduler:
-                                    scheduler_.step(totdloss)
-                        # update lagrange multipliers
-
-                        # BEFORE UPDTATING PANDAS DATAFRAME
-                        # FOR LOOP 3 --> Algorithm 1 update lambda/mu
-                        for scene in range(num_scenarios):
-                            if not mro_set:
-                                newlst[scene][-1] = paramb_tch
-                                newlst[scene][-2] = paramT_tch
-                            else:
-                                newlst[scene][-1] = paramT_tch
-                            var_values = cvxpylayer(*newlst[scene],
-                                                    solver_args=LAYER_SOLVER)
-                            temploss, obj, cvar_update, violations = self.aug_lag(var_values,
-                                        [newlst[scene][:-2]], self._udata_to_lst(val_dset),
-                                            alpha, mu, curlam)
-                            # temploss, obj, violations, cvar_update = unc_set.loss(
-                            #     *var_values, *newlst[scene][:-2], alpha, val_dset,  mu, curlam,
-                            #     target=target_cvar)
-                            evalloss, obj2, var_vio, violations2 = self.aug_lag(var_values,
+                            evalloss, obj2, var_vio, violations2 = self.lagrange(var_values,
                                      [newlst[scene][:-2]], self._udata_to_lst(eval_set),
-                                        alpha, mu, curlam)
-                            # evalloss, obj2, violations2, var_vio = unc_set.loss(
-                            #     *var_values, *newlst[scene][:-2], alpha, eval_set, mu, curlam,
-                            #     target=target_cvar)
+                                        alpha, curlam)
                             lam[scene, :] = cvar_update
                             totloss = totloss + temploss/num_scenarios
                             totevalloss = totevalloss + evalloss/num_scenarios
@@ -565,10 +477,15 @@ class RobustProblem(Problem):
                             train_vio += violations.item()
                             violation_val += var_vio.item()
                             violation_train += cvar_update.item()
-
-                        curlam = torch.maximum(curlam + mu*(torch.mean(lam, axis=0)), \
+                        curlam = torch.maximum(curlam + step_y*(torch.mean(lam, axis=0)), \
                                                torch.zeros(self.num_g, dtype=float))
-                        mu = mu*mu_multiplier
+                        totloss.backward()
+                        coverage = 0
+                        for datind in range(val_dset.shape[0]):
+                            coverage += torch.where(torch.norm(paramT_tch@val_dset[datind] + paramb_tch)<= 1, 1, 0 )
+                        coverage2 = 0
+                        for datind in range(eval_set.shape[0]):
+                            coverage2 += torch.where(torch.norm(paramT_tch@eval_set[datind] + paramb_tch)<= 1, 1, 0 )                   
                         # BEFORE UPDTATING PANDAS DATAFRAME
                         newrow = pd.Series(
                             {"step": steps,
@@ -581,12 +498,13 @@ class RobustProblem(Problem):
                              "Violation_val": violation_val/num_scenarios,
                              "Violation_train": violation_train/num_scenarios,
                              "A_norm": np.linalg.norm(paramT_tch.detach().numpy().copy()),
-                             "mu": mu,
                              "lam": curlam.detach().numpy().copy(),
                              "alpha": alpha.item(),
                              "alphagrad": alpha.grad,
                              "dfnorm": np.linalg.norm(paramT_tch.grad),
-                             "gradnorm": paramT_tch.grad}
+                             "gradnorm": paramT_tch.grad,
+                             "coverage_train": coverage.detach().numpy().item()/val_dset.shape[0],
+                             "coverage_test": coverage2.detach().numpy().item()/eval_set.shape[0]}
                         )
                         df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
 
@@ -594,6 +512,12 @@ class RobustProblem(Problem):
                             T_iter.append(paramT_tch.detach().numpy().copy())
                             if not mro_set:
                                 b_iter.append(paramb_tch.detach().numpy().copy())
+
+                        if steps < step - 1:
+                            opt.step()
+                            opt.zero_grad()
+                            if scheduler:
+                                scheduler_.step(totloss)
 
                     self._trained = True
                     unc_set._trained = True
@@ -676,7 +600,6 @@ class RobustProblem(Problem):
                     # train
                     lam = init_lam * torch.ones((num_scenarios, self.num_g), dtype=float)
                     curlam = init_lam * torch.ones(self.num_g, dtype=float)
-                    mu = init_mu
 
                     for steps in range(step):
                         totloss = torch.tensor(0., dtype=float)
@@ -687,8 +610,7 @@ class RobustProblem(Problem):
                         train_vio = torch.tensor(0., dtype=float)
                         violation_val = torch.tensor(0., dtype=float)
                         violation_train = torch.tensor(0., dtype=float)
-                        random_int = np.random.randint(0, val_dset.shape[0],
-                                                       int(val_dset.shape[0]/10))
+                        random_int = np.random.randint(0, val_dset.shape[0], int(batch_percentage*val_dset.shape[0]))
                         for scene in range(num_scenarios):
                             if not mro_set:
                                 newlst[scene][-1] = eps_tch*init_bval
@@ -717,18 +639,18 @@ class RobustProblem(Problem):
                             #     *var_values,  *newlst[scene][:-2], alpha, val_dset, mu, curlam,
                             #     target=target_cvar)
 
-                            temploss, obj, cvar_update, violations = self.aug_lag(var_values,
-                                            [newlst[scene][:-2]], self._udata_to_lst(val_dset),
-                                                alpha, mu, curlam)
+                            temploss, obj, cvar_update, violations = self.lagrange(var_values,
+                                            [newlst[scene][:-2]], self._udata_to_lst(val_dset[random_int]),
+                                                alpha, curlam)
 
                             # temploss, obj, violations, cvar_update =
                             # unc_set.loss(# v_0 line 3 algorithm 2
                             #     *var_values, *newlst[scene][:-2], alpha, val_dset, mu, curlam,
                             #     target=target_cvar)
 
-                            evalloss, obj2, var_vio, violations2 = self.aug_lag(var_values,
+                            evalloss, obj2, var_vio, violations2 = self.lagrange(var_values,
                                         [newlst[scene][:-2]], self._udata_to_lst(eval_set),
-                                            alpha, mu, curlam)
+                                            alpha,  curlam)
 
                             # evalloss, obj2, violations2, var_vio = unc_set.loss(
                             #     *var_values, *newlst[scene][:-2], alpha, eval_set, mu, curlam,
@@ -743,12 +665,17 @@ class RobustProblem(Problem):
                             violation_val += var_vio.item()
                             violation_train += cvar_update.item()
 
-                        curlam = torch.maximum(curlam + mu*(torch.mean(lam, axis=0)),
+                        curlam = torch.maximum(curlam + step_y*(torch.mean(lam, axis=0)),
                                                torch.zeros(self.num_g, dtype=float))
                         # curlam = np.maximum(curlam + mu*np.mean(lam, axis=0), 0)
-                        mu = mu*mu_multiplier
                         totloss = totloss/num_scenarios
                         totloss.backward()
+                        coverage = 0
+                        for datind in range(val_dset.shape[0]):
+                            coverage += torch.where(torch.norm(eps_tch*init@val_dset[datind] + eps_tch*init_bval)<= 1, 1, 0 )
+                        coverage2 = 0
+                        for datind in range(eval_set.shape[0]):
+                            coverage2 += torch.where(torch.norm(eps_tch*init@eval_set[datind] + eps_tch*init_bval)<= 1, 1, 0 )
                         newrow = pd.Series(
                             {"step": steps,
                              "Loss_val": totloss.item(),
@@ -761,12 +688,13 @@ class RobustProblem(Problem):
                              "Violation_train": violation_train/num_scenarios,
                              "A_norm": np.mean(1/eps_tch.detach().numpy().copy()),
                              "Eps_vals": 1/eps_tch.detach().numpy().copy(),
-                             "mu": mu,
                              "lam": curlam.detach().numpy().copy(),
                              "alpha": alpha.item(),
                              "alphagrad": alpha.grad,
                              "dfnorm": np.linalg.norm(eps_tch.grad),
-                             "gradnorm": eps_tch.grad})
+                             "gradnorm": eps_tch.grad,
+                             "coverage_train": coverage.detach().numpy().item()/val_dset.shape[0],
+                             "coverage_test": coverage2.detach().numpy().item()/eval_set.shape[0]})
                         df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
 
                         if save_iters:
@@ -920,7 +848,6 @@ class RobustProblem(Problem):
                     train_vio = []
                     violation_val = []
                     violation_train = []
-
                     for scene in range(num_scenarios):
                         if not mro_set:
                             newlst[scene][-1] = eps_tch1[0][0]*init_bval
@@ -940,16 +867,16 @@ class RobustProblem(Problem):
                         var_values = cvxpylayer(*newlst[scene],
                                                 solver_args=LAYER_SOLVER)
 
-                        temploss, obj, cvar_update, violations = self.aug_lag(var_values,
+                        temploss, obj, cvar_update, violations = self.lagrange(var_values,
                                         [newlst[scene][:-2]], self._udata_to_lst(val_dset),
-                                        alpha, mu=100, curlam=1000)
+                                        alpha, curlam=1000)
                         # temploss, obj, violations,cvar_update = unc_set.loss(
                         #     *var_values, *newlst[scene][:-2], alpha = torch.tensor(
                         #     init_alpha), data = val_dset)
 
-                        evalloss, obj2, var_vio, violations2 = self.aug_lag(var_values,
+                        evalloss, obj2, var_vio, violations2 = self.lagrange(var_values,
                                     [newlst[scene][:-2]], self._udata_to_lst(eval_set),
-                                    alpha, mu=100, lam=1000)
+                                    alpha,lam=1000)
                         # evalloss, obj2, violations2, var_vio = unc_set.loss(
                         #     *var_values, *newlst[scene][:-2], alpha = torch.tensor(
                         #     init_alpha), data = eval_set)
@@ -968,6 +895,12 @@ class RobustProblem(Problem):
                         mineps = eps_tch1.clone()
                         minT = paramT_tch.clone()
                         var_vals = var_values
+                    coverage = 0
+                    for datind in range(val_dset.shape[0]):
+                        coverage += torch.where(torch.norm(paramT_tch@val_dset[datind] + eps_tch1[0][0]*init_bval)<= 1, 1, 0 )
+                    coverage2 = 0
+                    for datind in range(eval_set.shape[0]):
+                        coverage2 += torch.where(torch.norm(paramT_tch@eval_set[datind] + eps_tch1[0][0]*init_bval)<= 1, 1, 0 )
                     newrow = pd.Series(
                         {"Loss_val": totloss,
                          "Eval_val": totevalloss,
@@ -977,7 +910,9 @@ class RobustProblem(Problem):
                          "Violations_train": train_vio,
                          "Violation_val": violation_val,
                          "Violation_train": violation_train,
-                            "Eps": 1/eps_tch1[0][0].detach().numpy().copy()
+                        "Eps": 1/eps_tch1[0][0].detach().numpy().copy(),
+                        "coverage_train": coverage.detach().numpy().item()/val_dset.shape[0],
+                        "coverage_test": coverage2.detach().numpy().item()/eval_set.shape[0]
                          })
                     df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
 
