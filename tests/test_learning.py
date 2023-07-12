@@ -55,16 +55,15 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # y_tch = torch.tensor(y, dtype = float)
         a_tch = torch.tensor(a, dtype=float)
         c_tch = torch.tensor(c, dtype=float)
+
+        constraints = [x @ (u + y) <= c, cp.norm(x) <= 2*c]
+
         def f_tch(x,y,u):
             return a_tch @ x
         def g_tch(x,y,u):
             return x @ u + x @ y - c_tch
 
-
-
-        constraints = [x @ (u + y) <= c, cp.norm(x) <= 2*c]
-
         prob = RobustProblem(objective, constraints,
                              objective_torch=f_tch, constraints_torch=[g_tch])
-        prob.train(lr = 0.001, step=1, momentum = 0.8, optimizer = "SGD")
+        prob.train(lr = 0.001, step=2, momentum = 0.8, optimizer = "SGD")
         # prob.solve()
