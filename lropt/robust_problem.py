@@ -449,7 +449,7 @@ class RobustProblem(Problem):
                         train_vio = torch.tensor(0., dtype=float)
                         violation_val = torch.tensor(0., dtype=float)
                         violation_train = torch.tensor(0., dtype=float)
-                        
+
                         random_int = np.random.randint(0, val_dset.shape[0],
                                                        int(val_dset.shape[0]*batch_percentage))
 
@@ -462,7 +462,7 @@ class RobustProblem(Problem):
                             var_values = cvxpylayer(*newlst[scene],
                                                     solver_args=LAYER_SOLVER)
                             temploss, obj, cvar_update, violations = self.lagrange(var_values,
-                                        [newlst[scene][:-2]], self._udata_to_lst(val_dset[random_int]),
+                                    [newlst[scene][:-2]], self._udata_to_lst(val_dset[random_int]),
                                             alpha, curlam)
 
                             evalloss, obj2, var_vio, violations2 = self.lagrange(var_values,
@@ -479,13 +479,15 @@ class RobustProblem(Problem):
                             violation_train += cvar_update.item()
                         curlam = torch.maximum(curlam + step_y*(torch.mean(lam, axis=0)), \
                                                torch.zeros(self.num_g, dtype=float))
-                        totloss.backward()
+                        totloss.backward(retain_graph=True)
                         coverage = 0
                         for datind in range(val_dset.shape[0]):
-                            coverage += torch.where(torch.norm(paramT_tch@val_dset[datind] + paramb_tch)<= 1, 1, 0 )
+                            coverage += torch.where(torch.norm(paramT_tch@val_dset[datind] \
+                                                               + paramb_tch)<= 1, 1, 0)
                         coverage2 = 0
                         for datind in range(eval_set.shape[0]):
-                            coverage2 += torch.where(torch.norm(paramT_tch@eval_set[datind] + paramb_tch)<= 1, 1, 0 )                   
+                            coverage2 += torch.where(torch.norm(paramT_tch@eval_set[datind] \
+                                                                 + paramb_tch)<= 1, 1, 0 )
                         # BEFORE UPDTATING PANDAS DATAFRAME
                         newrow = pd.Series(
                             {"step": steps,
@@ -610,7 +612,8 @@ class RobustProblem(Problem):
                         train_vio = torch.tensor(0., dtype=float)
                         violation_val = torch.tensor(0., dtype=float)
                         violation_train = torch.tensor(0., dtype=float)
-                        random_int = np.random.randint(0, val_dset.shape[0], int(batch_percentage*val_dset.shape[0]))
+                        random_int = np.random.randint(0, val_dset.shape[0], \
+                                            int(batch_percentage*val_dset.shape[0]))
                         for scene in range(num_scenarios):
                             if not mro_set:
                                 newlst[scene][-1] = eps_tch*init_bval
@@ -640,7 +643,7 @@ class RobustProblem(Problem):
                             #     target=target_cvar)
 
                             temploss, obj, cvar_update, violations = self.lagrange(var_values,
-                                            [newlst[scene][:-2]], self._udata_to_lst(val_dset[random_int]),
+                                    [newlst[scene][:-2]], self._udata_to_lst(val_dset[random_int]),
                                                 alpha, curlam)
 
                             # temploss, obj, violations, cvar_update =
@@ -672,10 +675,12 @@ class RobustProblem(Problem):
                         totloss.backward()
                         coverage = 0
                         for datind in range(val_dset.shape[0]):
-                            coverage += torch.where(torch.norm(eps_tch*init@val_dset[datind] + eps_tch*init_bval)<= 1, 1, 0 )
+                            coverage += torch.where(torch.norm(eps_tch*init@val_dset[datind] + \
+                                                               eps_tch*init_bval)<= 1, 1, 0 )
                         coverage2 = 0
                         for datind in range(eval_set.shape[0]):
-                            coverage2 += torch.where(torch.norm(eps_tch*init@eval_set[datind] + eps_tch*init_bval)<= 1, 1, 0 )
+                            coverage2 += torch.where(torch.norm(eps_tch*init@eval_set[datind] + \
+                                                                eps_tch*init_bval)<= 1, 1, 0 )
                         newrow = pd.Series(
                             {"step": steps,
                              "Loss_val": totloss.item(),
@@ -897,10 +902,12 @@ class RobustProblem(Problem):
                         var_vals = var_values
                     coverage = 0
                     for datind in range(val_dset.shape[0]):
-                        coverage += torch.where(torch.norm(paramT_tch@val_dset[datind] + eps_tch1[0][0]*init_bval)<= 1, 1, 0 )
+                        coverage += torch.where(torch.norm(paramT_tch@val_dset[datind] + \
+                                                           eps_tch1[0][0]*init_bval)<= 1, 1, 0 )
                     coverage2 = 0
                     for datind in range(eval_set.shape[0]):
-                        coverage2 += torch.where(torch.norm(paramT_tch@eval_set[datind] + eps_tch1[0][0]*init_bval)<= 1, 1, 0 )
+                        coverage2 += torch.where(torch.norm(paramT_tch@eval_set[datind] + \
+                                                            eps_tch1[0][0]*init_bval)<= 1, 1, 0 )
                     newrow = pd.Series(
                         {"Loss_val": totloss,
                          "Eval_val": totevalloss,
