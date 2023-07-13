@@ -122,7 +122,7 @@ class RobustProblem(Problem):
         J = len(y_params_mat)
         N = len(u_params_mat)
 
-        sum = 0
+        sum = torch.tensor(0., dtype=float)
         for i in range(N):
             for j in range(J):
                 sum += self.l(*vars, *y_params_mat[j], *u_params_mat[i])
@@ -163,7 +163,7 @@ class RobustProblem(Problem):
         num_g = len(self.h)
         H = torch.zeros(num_g, dtype=float)
         for k, h_k in enumerate(self.h):
-            sum = 0
+            sum = torch.tensor(0., dtype=float)
             for i in range(N):
                 for j in range(J):
                     sum += h_k(vars, y_params_mat[j], u_params_mat[i], alpha, eta, kappa)
@@ -461,6 +461,7 @@ class RobustProblem(Problem):
                                 newlst[scene][-1] = paramT_tch
                             var_values = cvxpylayer(*newlst[scene],
                                                     solver_args=LAYER_SOLVER)
+
                             temploss, obj, cvar_update, violations = self.lagrange(var_values,
                                     [newlst[scene][:-2]], self._udata_to_lst(val_dset[random_int]),
                                             alpha, curlam)
@@ -468,9 +469,9 @@ class RobustProblem(Problem):
                             evalloss, obj2, var_vio, violations2 = self.lagrange(var_values,
                                      [newlst[scene][:-2]], self._udata_to_lst(eval_set),
                                         alpha, curlam)
-                            lam[scene, :] = cvar_update
-                            totloss = totloss + temploss/num_scenarios
-                            totevalloss = totevalloss + evalloss/num_scenarios
+                            lam[scene, :] = cvar_update.detach()
+                            totloss += temploss/num_scenarios
+                            totevalloss += evalloss/num_scenarios
                             optval += obj.item()
                             testval += obj2.item()
                             test_vio += violations2.item()
@@ -479,7 +480,7 @@ class RobustProblem(Problem):
                             violation_train += cvar_update.item()
                         curlam = torch.maximum(curlam + step_y*(torch.mean(lam, axis=0)), \
                                                torch.zeros(self.num_g, dtype=float))
-                        totloss.backward(retain_graph=True)
+                        totloss.backward()
                         coverage = 0
                         for datind in range(val_dset.shape[0]):
                             coverage += torch.where(torch.norm(paramT_tch@val_dset[datind] \
@@ -515,7 +516,8 @@ class RobustProblem(Problem):
                             if not mro_set:
                                 b_iter.append(paramb_tch.detach().numpy().copy())
 
-                        if steps < step - 1:
+                        if steps <= step - 1:
+
                             opt.step()
                             opt.zero_grad()
                             if scheduler:
@@ -706,6 +708,7 @@ class RobustProblem(Problem):
                             T_iter.append(paramT_tch.detach().numpy().copy())
                             if not mro_set:
                                 b_iter.append(paramb_tch.detach().numpy().copy())
+
 
                         if steps < step - 1:
                             opt.step()

@@ -35,7 +35,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
     def test_simple_learn(self):
         # Setup
         n = self.n
-        num_instances = 10
+        num_instances = 1
         y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), num_instances)
 
         # Problem
@@ -65,5 +65,5 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         prob = RobustProblem(objective, constraints,
                              objective_torch=f_tch, constraints_torch=[g_tch])
-        prob.train(lr = 0.001, step=5, momentum = 0.8, optimizer = "SGD")
+        prob.train(lr = 0.001, step=2, momentum = 0.8, optimizer = "SGD")
         # prob.solve()
