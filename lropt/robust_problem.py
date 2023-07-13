@@ -845,6 +845,7 @@ class RobustProblem(Problem):
                 else:
                     init_bval = torch.tensor(-np.mean(train, axis=0), requires_grad=True,
                                              dtype=DTYPE)
+                curlam = 1000 * torch.ones(self.num_g, dtype=float)
 
                 for epss in epslst:
                     eps_tch1 = torch.tensor([[1/epss]], requires_grad=True, dtype=DTYPE)
@@ -877,14 +878,14 @@ class RobustProblem(Problem):
 
                         temploss, obj, cvar_update, violations = self.lagrange(var_values,
                                         [newlst[scene][:-2]], self._udata_to_lst(val_dset),
-                                        alpha, curlam=1000)
+                                        alpha, curlam)
                         # temploss, obj, violations,cvar_update = unc_set.loss(
                         #     *var_values, *newlst[scene][:-2], alpha = torch.tensor(
                         #     init_alpha), data = val_dset)
 
                         evalloss, obj2, var_vio, violations2 = self.lagrange(var_values,
                                     [newlst[scene][:-2]], self._udata_to_lst(eval_set),
-                                    alpha,lam=1000)
+                                    alpha,curlam)
                         # evalloss, obj2, violations2, var_vio = unc_set.loss(
                         #     *var_values, *newlst[scene][:-2], alpha = torch.tensor(
                         #     init_alpha), data = eval_set)
