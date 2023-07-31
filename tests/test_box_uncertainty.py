@@ -228,9 +228,6 @@ class TestBoxUncertainty(unittest.TestCase):
         npt.assert_allclose(x.value, x_cvx.value, rtol=RTOL, atol=ATOL)
 
     def test_budget(self):
-        # import ipdb
-        # ipdb.set_trace()
-        # restate the ellipsoidal set
         m = 5
         budget_u = UncertainParameter(m,
                                       uncertainty_set=Budget(rho1=2.,
