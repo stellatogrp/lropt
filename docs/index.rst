@@ -99,7 +99,7 @@ uncertainty (we are working to remove the need for this feature). Because Ellips
   prob_robust.solve()
 
 Families of problems
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 LROPT can also build uncertainty sets which generalize to a family of optimization problems, parameterized by some :math:`y`, where optimal solutions
 are now functions both of :math:`\theta` and :math:`y`
 
@@ -163,7 +163,7 @@ This would be written as
                         objective_torch=f_tch, constraints_torch=[g_tch])
   prob.train(step=10)
 
-.. image:: gif_images/newsvendor.gif
+.. image:: gifs/intro.gif
   :alt: StreamPlayer
   :align: center
 
@@ -173,12 +173,13 @@ This would be written as
   :hidden:
 
   getting_started/index
+  examples/index
   api/index
 
 
 
 Indices and tables
-```````````````````
+==================
 
 * :ref:`genindex`
 * :ref:`modindex`
