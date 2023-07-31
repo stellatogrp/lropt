@@ -5,11 +5,11 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Getting started" href="getting_started/index.html" />
 
-    <!-- Generated with Sphinx 7.0.1 and Furo 2023.05.20 -->
+    <!-- Generated with Sphinx 7.1.1 and Furo 2023.07.26 -->
         <title>LROPT documentation documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?digest=e6660623a769aa55fea372102b9bf3151b292993" />
-    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=362ab14a" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
     
     
 
@@ -134,7 +134,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -154,13 +154,14 @@
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
+  <ul>
 <li class="toctree-l1 has-children"><a class="reference internal" href="getting_started/index.html">Getting started</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Getting started</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="getting_started/my_first_robust/my_first_robust_prob.html">My First Robust Problem</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Examples</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="api/index.html">API</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/lropt_ruleset/index.html">LROPT RULESET</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/robust_problem/index.html">Robust Problem</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="api/uncertainty_sets/index.html">Uncertainty Sets</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Uncertainty Sets</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="api/uncertainty_sets/norm.html">Norm Uncertainty</a></li>
@@ -170,7 +171,6 @@
 <li class="toctree-l3"><a class="reference internal" href="api/uncertainty_sets/budget.html">Budget Uncertainty</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="api/accepted_functions/index.html">Accepted Functions</a></li>
 </ul>
 </li>
 </ul>
@@ -201,7 +201,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
@@ -209,29 +209,164 @@
         <article role="main">
           <section id="welcome-to-lropt-s-documentation">
 <h1>Welcome to LROPT’s documentation!<a class="headerlink" href="#welcome-to-lropt-s-documentation" title="Permalink to this heading">#</a></h1>
-<p>Learning for robust optimization (LROPT) is a package to model and solve optimization problems under uncertainty of the form</p>
+<p>Learning for robust optimization (LROPT) is a package to model and solve optimization Robust Optimization (RO) problems of the form</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{array}{ll}
   \mbox{minimize} &amp; f(x)\\
-  \mbox{subject to} &amp; g(x, u) \le 0,\quad \forall u \in \mathcal{U}
+  \mbox{subject to} &amp; g(x, u) \le 0,\quad \forall u \in \mathcal{U(\theta)}
 \end{array}\end{split}\]</div>
 </div>
-<div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="getting_started/index.html">Getting started</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="getting_started/index.html#installation">Installation</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="api/index.html">API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="api/robust_problem/index.html">Robust Problem</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/uncertainty_sets/index.html">Uncertainty Sets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/accepted_functions/index.html">Accepted Functions</a></li>
-</ul>
-</li>
-</ul>
+<p>where <span class="math notranslate nohighlight">\(u\)</span> denotes the uncertain parameter and <span class="math notranslate nohighlight">\(\mathcal{U(\theta)}\)</span> denotes the uncertainty set for the problem. Rather than forcing you to perform the often intensive math required to reduce this problem to a convex problem, LROPT lets you express RO problems naturally. There are two main ways
+to use LROPT:</p>
+<ol class="arabic simple">
+<li><p>By explicitly defining an uncertainty set <span class="math notranslate nohighlight">\(\mathcal{U}\)</span> and its parameterization <span class="math notranslate nohighlight">\(\theta\)</span></p></li>
+<li><p>By passing a dataset <span class="math notranslate nohighlight">\(U^N\)</span> of past realizations of <span class="math notranslate nohighlight">\(u\)</span> and letting LROPT learn <span class="math notranslate nohighlight">\(\theta\)</span></p></li>
+</ol>
+<section id="simple-examples">
+<h2>Simple Examples<a class="headerlink" href="#simple-examples" title="Permalink to this heading">#</a></h2>
+<section id="predetermined-uncertainty-set">
+<h3>Predetermined Uncertainty Set<a class="headerlink" href="#predetermined-uncertainty-set" title="Permalink to this heading">#</a></h3>
+<p>Lets see an example of the first case. Suppose we want to solve the following optimization problem, using an ellipsoidal uncertainty set:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{array}{ll}
+  \mbox{minimize} &amp; c^T x \\
+  \mbox{subject to} &amp; (Pu+a)^Tx \le d,\quad \forall u \in \mathcal{U_\text{ellip}(A,b)}
+\end{array}\end{split}\]</div>
 </div>
+<p>where <span class="math notranslate nohighlight">\(\mathcal{U_\text{ellip}(A,b)} = \{u \mid \| Au + b \|_2 \leq 1 \}\)</span>. We would use LROPT to write the following:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">lropt</span>
+
+<span class="n">n</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">A_unc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="n">b_unc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="n">P</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">n</span><span class="p">)</span>
+<span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="n">d</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="c1"># Formulate robust constraints with lropt</span>
+<span class="n">unc_set</span> <span class="o">=</span> <span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">A</span> <span class="o">=</span> <span class="n">A_unc</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">b_unc</span><span class="p">)</span>
+<span class="n">a</span> <span class="o">=</span> <span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span>
+                        <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">unc_set</span><span class="p">)</span>
+<span class="n">constraints</span> <span class="o">=</span> <span class="p">[(</span><span class="n">P</span> <span class="o">@</span> <span class="n">u</span> <span class="o">+</span> <span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="n">d</span><span class="p">]</span>
+<span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">c</span> <span class="o">@</span> <span class="n">x</span><span class="p">)</span>
+<span class="n">prob_robust</span> <span class="o">=</span> <span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+<span class="n">prob_robust</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="learned-uncertainty-set">
+<h3>Learned Uncertainty Set<a class="headerlink" href="#learned-uncertainty-set" title="Permalink to this heading">#</a></h3>
+<p>One of the most difficult modeling problems in RO is determining what <span class="math notranslate nohighlight">\(\mathcal{U}(\theta)\)</span> should be.
+Let’s now use LROPT to solve the same problem, but this time passing in a dataset <span class="math notranslate nohighlight">\(U^N\)</span> and letting LROPT learn <span class="math notranslate nohighlight">\(\theta\)</span>.
+Under the hood, training is done using pytorch, so users must additionally pass in representations of the objective and constraints with
+uncertainty (we are working to remove the need for this feature). Because Ellipsoidal uncertainty sets have a continuous boundary, they are best for learning. For more details on how this learning is done, see our associated paper.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">lropt</span>
+
+<span class="n">n</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">N</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">norms</span> <span class="o">=</span> <span class="n">npr</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">N</span><span class="p">)</span>
+<span class="n">u_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">norms</span><span class="p">)</span>
+
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">P</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">n</span><span class="p">)</span>
+<span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="c1"># Formulate robust constraints with lropt</span>
+<span class="n">a</span> <span class="o">=</span> <span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span>
+                        <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">data</span> <span class="o">=</span> <span class="n">u_data</span><span class="p">))</span>
+<span class="n">constraints</span> <span class="o">=</span> <span class="p">[(</span><span class="n">P</span> <span class="o">@</span> <span class="n">u</span> <span class="o">+</span> <span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="n">d</span><span class="p">]</span>
+<span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">c</span> <span class="o">@</span> <span class="n">x</span><span class="p">)</span>
+
+<span class="n">c_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+<span class="n">a_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+<span class="n">P_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">f_tch</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">u</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">c_tch</span> <span class="o">@</span> <span class="n">x</span>
+<span class="k">def</span> <span class="nf">g_tch</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">u</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">P_Tch</span> <span class="o">@</span> <span class="n">u</span> <span class="o">+</span> <span class="n">a_tch</span><span class="p">)</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">x</span> <span class="o">-</span> <span class="n">d</span>
+
+<span class="n">prob_robust</span> <span class="o">=</span> <span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">,</span> <span class="n">f_tch</span><span class="p">,</span> <span class="p">[</span><span class="n">g_tch</span><span class="p">])</span>
+<span class="n">prob_robust</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">step</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span>
+<span class="n">prob_robust</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="families-of-problems">
+<h2>Families of problems<a class="headerlink" href="#families-of-problems" title="Permalink to this heading">#</a></h2>
+<p>LROPT can also build uncertainty sets which generalize to a family of optimization problems, parameterized by some <span class="math notranslate nohighlight">\(y\)</span>, where optimal solutions
+are now functions both of <span class="math notranslate nohighlight">\(\theta\)</span> and <span class="math notranslate nohighlight">\(y\)</span></p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{equation}
+  x(\theta, y) \in
+  \begin{array}[t]{ll}
+    \mbox{minimize}&amp;f(x,y)\\
+    \mbox{subject to} &amp; g(x,u,y)  \le 0  \quad \forall u \in \mathcal{U}(\theta),
+  \end{array}
+\end{equation}\end{split}\]</div>
+</div>
+<p>In these instances, the user passes a dataset of <span class="math notranslate nohighlight">\(Y^J\)</span> of <span class="math notranslate nohighlight">\(y\)</span>’s we can use LROPT to learn a <span class="math notranslate nohighlight">\(\theta\)</span> which generalizes well for the entire family of optimization problems. To write it up, we can consider the following example.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{array}{ll}
+  \mbox{minimize} &amp; a^T x \\
+  \mbox{subject to} &amp; x^T (u+y) \leq c, \quad \forall u \in \mathcal{U_\text{ellip}(A,b)} \\
+  &amp; ||x|| \leq 2c
+\end{array}\end{split}\]</div>
+</div>
+<p>This would be written as</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">lropt</span>
+
+<span class="n">n</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">N</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">norms</span> <span class="o">=</span> <span class="n">npr</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">N</span><span class="p">)</span>
+<span class="n">u_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">norms</span><span class="p">)</span>
+
+<span class="n">num_instances</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">y_data</span> <span class="o">=</span> <span class="n">npr</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">num_instances</span><span class="p">)</span>
+
+<span class="n">y</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">y_data</span><span class="p">)</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">))</span>
+
+<span class="n">a</span> <span class="o">=</span> <span class="n">npr</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="n">c</span> <span class="o">=</span> <span class="mi">5</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+<span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Maximize</span><span class="p">(</span><span class="n">a</span> <span class="o">@</span> <span class="n">x</span><span class="p">)</span>
+
+<span class="n">a_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+<span class="n">c_tch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+<span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="o">@</span> <span class="p">(</span><span class="n">u</span> <span class="o">+</span> <span class="n">y</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">c</span><span class="p">,</span> <span class="n">cp</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">2</span><span class="o">*</span><span class="n">c</span><span class="p">]</span>
+
+<span class="k">def</span> <span class="nf">f_tch</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">u</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">a_tch</span> <span class="o">@</span> <span class="n">x</span>
+<span class="k">def</span> <span class="nf">g_tch</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">u</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">x</span> <span class="o">@</span> <span class="n">u</span> <span class="o">+</span> <span class="n">x</span> <span class="o">@</span> <span class="n">y</span> <span class="o">-</span> <span class="n">c_tch</span>
+
+<span class="n">prob</span> <span class="o">=</span> <span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">,</span>
+                      <span class="n">objective_torch</span><span class="o">=</span><span class="n">f_tch</span><span class="p">,</span> <span class="n">constraints_torch</span><span class="o">=</span><span class="p">[</span><span class="n">g_tch</span><span class="p">])</span>
+<span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">step</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="StreamPlayer" class="align-center" src="gifs/intro.gif" />
+<div class="toctree-wrapper compound">
+</div>
+</section>
 </section>
 <section id="indices-and-tables">
 <h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading">#</a></h1>
@@ -275,16 +410,41 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Welcome to LROPT’s documentation!</a><ul>
+<li><a class="reference internal" href="#simple-examples">Simple Examples</a><ul>
+<li><a class="reference internal" href="#predetermined-uncertainty-set">Predetermined Uncertainty Set</a></li>
+<li><a class="reference internal" href="#learned-uncertainty-set">Learned Uncertainty Set</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#families-of-problems">Families of problems</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
   </div>
-</div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-    <script src="_static/doctools.js"></script>
-    <script src="_static/sphinx_highlight.js"></script>
-    <script src="_static/scripts/furo.js"></script>
+</div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/scripts/furo.js?v=32e29ea5"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
