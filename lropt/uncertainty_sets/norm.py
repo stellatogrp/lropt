@@ -1,6 +1,7 @@
 import numpy as np
-from cvxpy import Parameter, Variable, norm
+from cvxpy import Variable, norm
 
+from lropt.shape_parameter import ShapeParameter
 from lropt.uncertainty_sets.uncertainty_set import UncertaintySet
 
 
@@ -47,8 +48,8 @@ class Norm(UncertaintySet):
 
         if data is not None:
             dat_shape = data.shape[1]
-            paramT = Parameter((dat_shape, dat_shape))
-            paramb = Parameter(dat_shape)
+            paramT = ShapeParameter((dat_shape, dat_shape))
+            paramb = ShapeParameter(dat_shape)
 
         else:
             if A is not None:

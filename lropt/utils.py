@@ -18,3 +18,8 @@ def unique_list(duplicates_list):
     used = set()
     unique = [x for x in duplicates_list if not (x in used or used.add(x))]
     return unique
+
+
+def cvxpy_to_torch(cvxpy_expr, dec_var_dict, unc_param_dict, fam_param_dict):
+
+    return None

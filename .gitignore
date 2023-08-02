@@ -142,6 +142,8 @@ docs/examples/**/*.png
 docs/examples/**/*.npy
 docs/examples/**/*.csv
 docs/examples/misc/
+*.gif
+docs/**/*.gif
 
 # SCM version
 lropt/_version.py
