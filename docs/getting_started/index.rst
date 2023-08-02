@@ -16,4 +16,5 @@ You can install :code:`lropt` with
    :maxdepth: 1
    :glob:
 
-   my_first_robust/my_first_robust_prob
+   my_first_robust_prob
+   newsvendor_tutorial

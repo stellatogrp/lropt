@@ -99,7 +99,7 @@ uncertainty (we are working to remove the need for this feature). Because Ellips
   prob_robust.solve()
 
 Families of problems
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 LROPT can also build uncertainty sets which generalize to a family of optimization problems, parameterized by some :math:`y`, where optimal solutions
 are now functions both of :math:`\theta` and :math:`y`
 

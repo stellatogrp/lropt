@@ -8,5 +8,6 @@ API documentation to solve robust problems!
    :caption: Contents:
 
    lropt_ruleset/index
+   lropt_syntax/index
    robust_problem/index
    uncertainty_sets/index
