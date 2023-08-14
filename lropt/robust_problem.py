@@ -450,11 +450,13 @@ class RobustProblem(Problem):
         case = self._calcCase(eps_tch, mro_set, unc_set, init_A)
         
         if case==MRO_CASE.no_mro:
-            paramb_tch_data = np.array(init_b) if (init_b is not None) else -self._init@np.mean(train_set, axis=0)
+            paramb_tch_data = np.array(init_b) if (init_b is not None) \
+                else -self._init@np.mean(train_set, axis=0)
             paramb_tch = torch.tensor(paramb_tch_data, requires_grad=True, dtype=DTYPE)
             paramb_tch = eps_tch*paramb_tch if eps else paramb_tch
             paramT_tch = init_tensor
-            if eps: paramT_tch*=self._init
+            if eps:
+                paramT_tch*=self._init
 
         elif case==MRO_CASE.diff_A_uninit:
             paramT_tch = eps_tch[0]*init_tensor
@@ -478,7 +480,8 @@ class RobustProblem(Problem):
 
     def _splitDataset(self, unc_set, test_percentage, seed):
         '''
-        This function splits the uncertainty set into train and test sets, and also creates torch tensors
+        This function splits the uncertainty set into train and test sets
+            and also creates torch tensors
 
         Arguments
         ---------
@@ -541,7 +544,8 @@ class RobustProblem(Problem):
         if not mro_set:
             b_iter.append(paramb_tch.detach().numpy().copy())
 
-    def _setTrainVaraibles(self, fixb, mro_set, init_A, unc_set, alpha, paramT_tch, paramb_tch, eps_tch):
+    def _setTrainVaraibles(self, fixb, mro_set, init_A, unc_set, alpha, paramT_tch, \
+                           paramb_tch, eps_tch):
         '''
         This function 
         '''
@@ -726,16 +730,21 @@ class RobustProblem(Problem):
                                     "Violations", "A_norm"])
 
         # setup train and test data
-        train_set, _, val_dset, eval_set = self._splitDataset(unc_set, test_percentage, seed) #test_set is not used
+        #test_set is not used
+        train_set, _, val_dset, eval_set = self._splitDataset(unc_set, test_percentage, seed) 
 
         cvxpylayer = CvxpyLayer(self.new_prob, parameters=self.y_parameters()
                                 + self.shape_parameters(self.new_prob), variables=self.variables())
         eps_tch = self._genEpsTch(self, init_eps, unc_set, mro_set) if eps else None
-        paramT_tch, paramb_tch, alpha, case = self._initTorches(init_eps, init_A, init_b, init_alpha, train_set, eps_tch, mro_set, unc_set)
-        if not eps: self._updateIters(save_iters, T_iter, b_iter, paramT_tch, paramb_tch, mro_set)
-        paramT_tch, variables = self._setTrainVaraibles(fixb, mro_set, init_A, unc_set, alpha, paramT_tch, paramb_tch, eps_tch)
+        paramT_tch, paramb_tch, alpha, case = self._initTorches(init_eps, init_A, init_b, \
+                                                                init_alpha, train_set, eps_tch, mro_set, unc_set)
+        if not eps:
+            self._updateIters(save_iters, T_iter, b_iter, paramT_tch, paramb_tch, mro_set)
+        paramT_tch, variables = self._setTrainVaraibles(fixb, mro_set, init_A, unc_set, alpha, \
+                                                        paramT_tch, paramb_tch, eps_tch)
         opt = OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
-        scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=5) if scheduler else None
+        scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=5) if scheduler \
+            else None
         # y's and cvxpylayer begin
         y_parameters = self.y_parameters()
         num_scenarios = self.num_scenarios
