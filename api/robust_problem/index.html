@@ -211,13 +211,50 @@
 <h1>Robust Problem<a class="headerlink" href="#robust-problem" title="Permalink to this heading">#</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="lropt.RobustProblem">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lropt.</span></span><span class="sig-name descname"><span class="pre">RobustProblem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">objective</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraints</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective_torch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraints_torch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lropt.</span></span><span class="sig-name descname"><span class="pre">RobustProblem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">objective</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraints</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective_torch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraints_torch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_torch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem" title="Permalink to this definition">#</a></dt>
 <dd><p>Create a Robust Optimization Problem with uncertain variables</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lropt.RobustProblem.Eval">
+<span class="sig-name descname"><span class="pre">Eval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vars</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_params_mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u_params_mat</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.Eval" title="Permalink to this definition">#</a></dt>
+<dd><section id="arguments">
+<h2>Arguments<a class="headerlink" href="#arguments" title="Permalink to this heading">#</a></h2>
+<dl>
+<dt>vars: list</dt><dd><p>list of torch instances of the problem variables, presented in the order
+they are defined in the cvxpy problem</p>
+</dd>
+<dt>y_params_mat: 2-d list</dt><dd><dl class="simple">
+<dt>2-d list of y_parameters with shape = (num instances, num y parameters)</dt><dd><p>[[y_1^1,…,y_1^1],
+[y_k^2,…,y_k^2],
+…,
+[y_k^J,…,y_k^J]]</p>
+</dd>
+</dl>
+<p>in order they are presented in the problem.
+However, each y_k^j is a tensor with shape of the kth y parameter introduced</p>
+</dd>
+<dt>u_params_mat: 2-d list</dt><dd><dl class="simple">
+<dt>2-d list of u parameters with shape = (num instances, num u parameters)</dt><dd><p>[[u_1^(1),…,u_m^(1)],
+[u_1^(2),…,u_m^(2)],
+…,
+[u_1^(N),…,u_m^(N)]]</p>
+</dd>
+</dl>
+<p>in order they are presented in the problem.
+However, each u_k^n is a tensor with shape of the kth u parameter introduced</p>
+</dd>
+<dt>alpha: torch.tensor</dt><dd><p>alpha from problem</p>
+</dd>
+</dl>
+<p>eta: float
+kappa: float</p>
+</section>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.F">
 <span class="sig-name descname"><span class="pre">F</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vars</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_params_mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u_params_mat</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.F" title="Permalink to this definition">#</a></dt>
-<dd><section id="arguments">
-<h2>Arguments<a class="headerlink" href="#arguments" title="Permalink to this heading">#</a></h2>
+<dd><section id="id1">
+<h2>Arguments<a class="headerlink" href="#id1" title="Permalink to this heading">#</a></h2>
 <dl>
 <dt>vars: list</dt><dd><p>list of torch instances of the problem variables, presented in the order
 they are defined in the cvxpy problem</p>
@@ -253,8 +290,8 @@ kappa: float</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.H">
 <span class="sig-name descname"><span class="pre">H</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vars</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_params_mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u_params_mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kappa</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.H" title="Permalink to this definition">#</a></dt>
-<dd><section id="id1">
-<h2>Arguments<a class="headerlink" href="#id1" title="Permalink to this heading">#</a></h2>
+<dd><section id="id2">
+<h2>Arguments<a class="headerlink" href="#id2" title="Permalink to this heading">#</a></h2>
 <dl>
 <dt>vars: list</dt><dd><p>list of torch instances of the problem variables, presented in the order
 they are defined in the cvxpy problem</p>
@@ -371,8 +408,8 @@ kappa: float</p>
 <dd><p>Compiles and solves the problem using the specified method.</p>
 <p>Populates the <code class="code docutils literal notranslate"><span class="pre">status</span></code> and <code class="code docutils literal notranslate"><span class="pre">value</span></code> attributes on the
 problem object as a side-effect.</p>
-<section id="id2">
-<h2>Arguments<a class="headerlink" href="#id2" title="Permalink to this heading">#</a></h2>
+<section id="id3">
+<h2>Arguments<a class="headerlink" href="#id3" title="Permalink to this heading">#</a></h2>
 <dl>
 <dt>solver<span class="classifier">str, optional</span></dt><dd><p>The solver to use. For example, ‘ECOS’, ‘SCS’, or ‘OSQP’.</p>
 </dd>
@@ -423,8 +460,8 @@ exact way this is done depends on the specific solver. Here are some examples:</
 solver arguments, available at</p>
 <p><a class="reference external" href="https://www.cvxpy.org/tutorial/advanced/index.html#setting-solver-options">https://www.cvxpy.org/tutorial/advanced/index.html#setting-solver-options</a></p>
 </section>
-<section id="id3">
-<h2>Returns<a class="headerlink" href="#id3" title="Permalink to this heading">#</a></h2>
+<section id="id4">
+<h2>Returns<a class="headerlink" href="#id4" title="Permalink to this heading">#</a></h2>
 <dl class="simple">
 <dt>float</dt><dd><p>The optimal value for the problem, or a string indicating
 why the problem could not be solved.</p>
@@ -451,8 +488,8 @@ or if an unanticipated error is encountered.</p>
 <dt class="sig sig-object py" id="lropt.RobustProblem.train">
 <span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">45</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduler</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">momentum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SGD'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_A</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_iters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_lam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_cvar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-0.015</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scenarios</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_scenarios</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_percentage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.train" title="Permalink to this definition">#</a></dt>
 <dd><p>Trains the uncertainty set parameters to find optimal set w.r.t. loss metric</p>
-<section id="id4">
-<h2>Parameters<a class="headerlink" href="#id4" title="Permalink to this heading">#</a></h2>
+<section id="id5">
+<h2>Parameters<a class="headerlink" href="#id5" title="Permalink to this heading">#</a></h2>
 <dl class="simple">
 <dt>eps<span class="classifier">bool, optional</span></dt><dd><p>If True, train only epsilon, where <span class="math notranslate nohighlight">\(A = \epsilon I, \
 b = \epsilon \bar{d}\)</span>, where <span class="math notranslate nohighlight">\(\bar{d}\)</span> is the centroid of the
@@ -474,8 +511,8 @@ covariance of the data, and b will be initialized as <span class="math notransla
 </dd>
 </dl>
 </section>
-<section id="id5">
-<h2>Returns<a class="headerlink" href="#id5" title="Permalink to this heading">#</a></h2>
+<section id="id6">
+<h2>Returns<a class="headerlink" href="#id6" title="Permalink to this heading">#</a></h2>
 <dl class="simple">
 <dt>A pandas data frame with information on each :math:r`epsilon` having the following columns:</dt><dd><dl class="simple">
 <dt>Opt_val: float</dt><dd><p>The objective value of the Robust Problem</p>
@@ -565,6 +602,7 @@ covariance of the data, and b will be initialized as <span class="math notransla
             <ul>
 <li><a class="reference internal" href="#">Robust Problem</a><ul>
 <li><a class="reference internal" href="#lropt.RobustProblem"><code class="docutils literal notranslate"><span class="pre">RobustProblem</span></code></a><ul>
+<li><a class="reference internal" href="#lropt.RobustProblem.Eval"><code class="docutils literal notranslate"><span class="pre">RobustProblem.Eval()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.F"><code class="docutils literal notranslate"><span class="pre">RobustProblem.F()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.H"><code class="docutils literal notranslate"><span class="pre">RobustProblem.H()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.fg_to_lh"><code class="docutils literal notranslate"><span class="pre">RobustProblem.fg_to_lh()</span></code></a></li>
