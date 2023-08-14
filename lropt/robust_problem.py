@@ -737,7 +737,8 @@ class RobustProblem(Problem):
                                 + self.shape_parameters(self.new_prob), variables=self.variables())
         eps_tch = self._genEpsTch(self, init_eps, unc_set, mro_set) if eps else None
         paramT_tch, paramb_tch, alpha, case = self._initTorches(init_eps, init_A, init_b, \
-                                                                init_alpha, train_set, eps_tch, mro_set, unc_set)
+                                                                init_alpha, train_set, eps_tch, \
+                                                                mro_set, unc_set)
         if not eps:
             self._updateIters(save_iters, T_iter, b_iter, paramT_tch, paramb_tch, mro_set)
         paramT_tch, variables = self._setTrainVaraibles(fixb, mro_set, init_A, unc_set, alpha, \
@@ -748,7 +749,8 @@ class RobustProblem(Problem):
         # y's and cvxpylayer begin
         y_parameters = self.y_parameters()
         num_scenarios = self.num_scenarios
-        if not eps: self.new_prob.parameters() #TODO: Ask Irina - is it intended that this happens only if not eps?
+        #TODO: Ask Irina - is it intended that this happens only if not eps?
+        if not eps: self.new_prob.parameters()
         newlst = self._genNewLst(num_scenarios, paramT_tch, paramb_tch, mro_set, y_parameters)
         # train
         lam = init_lam * torch.ones((num_scenarios, self.num_g), dtype=float) #List of lambdas
@@ -765,7 +767,8 @@ class RobustProblem(Problem):
                     newlst[scene][-1] = paramb_tch
                     newlst[scene][-2] = paramT_tch
                 else:
-                    paramT_tch, _, _, _ = self._initTorches(init_eps, init_A, init_b, init_alpha, train_set, eps_tch, mro_set, unc_set)
+                    paramT_tch, _, _, _ = self._initTorches(init_eps, init_A, init_b, \
+                                                            init_alpha, train_set, eps_tch, mro_set, unc_set)
                     newlst[scene][-1] = paramT_tch
                 #Solve the problem for specific y, returns the variables (x)
                 var_values = cvxpylayer(*newlst[scene],
@@ -786,7 +789,8 @@ class RobustProblem(Problem):
                             alpha, curlam)
                 #Update parameters for the next y
                 lam[scene, :] = cvar_update.detach()
-                train_stats.updateStats(temploss, num_scenarios, evalloss, obj, obj2, violations, violations2, var_vio, cvar_update)
+                train_stats.updateStats(temploss, num_scenarios, evalloss, obj, obj2, \
+                                        violations, violations2, var_vio, cvar_update)
             
             #calculate statistics over all y
             curlam = torch.maximum(curlam + step_y*(torch.mean(lam, axis=0)), \
@@ -802,13 +806,15 @@ class RobustProblem(Problem):
                                                         + paramb_tch)<= 1, 1, 0 )
 
             # BEFORE UPDTATING PANDAS DATAFRAME
-            newrow = train_stats.generateRow(num_scenarios, paramT_tch, curlam, alpha, coverage, coverage2, val_dset, eval_set)
+            newrow = train_stats.generateRow(num_scenarios, paramT_tch, curlam, alpha, coverage, \
+                                             coverage2, val_dset, eval_set)
             df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
             self._updateIters(save_iters, T_iter, b_iter, paramT_tch, paramb_tch, mro_set)
             if step_num < step - 1:
                 opt.step()
                 opt.zero_grad()
-                if scheduler: scheduler_.step(train_stats.totloss)
+                if scheduler:
+                    scheduler_.step(train_stats.totloss)
         
         self._trained = True
         unc_set._trained = True
@@ -819,7 +825,8 @@ class RobustProblem(Problem):
         return_eps = eps_tch.detach().numpy().copy() if eps else 1
         return_parab_valule = unc_set.paramb.value if mro_set else None
         return_b_iter = b_iter if mro_set else None
-        return Result(self, self.new_prob, df, unc_set.paramT.value, return_parab_valule, return_eps, obj.item(), var_values,T_iter=T_iter, b_iter=return_b_iter)
+        return Result(self, self.new_prob, df, unc_set.paramT.value, return_parab_valule, \
+                      return_eps, obj.item(), var_values,T_iter=T_iter, b_iter=return_b_iter)
 
     def grid(self, epslst=None, seed=1, init_A=None, init_b=None, init_alpha=-0.01,
              test_percentage=0.2, scenarios=None, num_scenarios=None, solver: Optional[str] = None):
