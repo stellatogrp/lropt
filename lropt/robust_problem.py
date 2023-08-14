@@ -750,7 +750,8 @@ class RobustProblem(Problem):
         y_parameters = self.y_parameters()
         num_scenarios = self.num_scenarios
         #TODO: Ask Irina - is it intended that this happens only if not eps?
-        if not eps: self.new_prob.parameters()
+        if not eps:
+            self.new_prob.parameters()
         newlst = self._genNewLst(num_scenarios, paramT_tch, paramb_tch, mro_set, y_parameters)
         # train
         lam = init_lam * torch.ones((num_scenarios, self.num_g), dtype=float) #List of lambdas
@@ -768,7 +769,8 @@ class RobustProblem(Problem):
                     newlst[scene][-2] = paramT_tch
                 else:
                     paramT_tch, _, _, _ = self._initTorches(init_eps, init_A, init_b, \
-                                                            init_alpha, train_set, eps_tch, mro_set, unc_set)
+                                                            init_alpha, train_set, \
+                                                            eps_tch, mro_set, unc_set)
                     newlst[scene][-1] = paramT_tch
                 #Solve the problem for specific y, returns the variables (x)
                 var_values = cvxpylayer(*newlst[scene],
