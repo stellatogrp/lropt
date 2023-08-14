@@ -1,8 +1,8 @@
 from abc import ABC
 from inspect import signature
 from typing import Optional
-
 from enum import Enum
+
 import numpy as np
 import pandas as pd
 import scipy as sc
@@ -24,8 +24,11 @@ from lropt.uncertain_canon.distribute_uncertain_params import Distribute_Uncerta
 from lropt.uncertain_canon.uncertain_chain import UncertainChain
 from lropt.uncertainty_sets.mro import MRO
 
-#Different types of MRO: no_mro (No MRO), diff_A_uninit (Different A for each k and uninitialized),
-# diff_A_init (Different A for each k, initialized with a different matrix for each k), same_A (same A for each k)
+#Different types of MRO:
+#no_mro (No MRO)
+#diff_A_uninit (Different A for each k and uninitialized)
+#diff_A_init (Different A for each k, initialized with a different matrix for each k)
+#same_A (same A for each k)
 MRO_CASE = Enum("MRO_CASE", "no_mro diff_A_uninit diff_A_init same_A")
 
 class TrainLoopStats():
@@ -44,7 +47,8 @@ class TrainLoopStats():
         self.violation_val = torch.tensor(0., dtype=float)
         self.violation_train = torch.tensor(0., dtype=float)
 
-    def updateStats(self, temploss, num_scenarios, evalloss, obj, obj2, violations, violations2, var_vio, cvar_update):
+    def updateStats(self, temploss, num_scenarios, evalloss, obj, obj2, violations, violations2, \
+                    var_vio, cvar_update):
         '''
         This function updates the statistics after each training iteration
         '''
@@ -57,7 +61,8 @@ class TrainLoopStats():
         self.violation_val += var_vio.item()
         self.violation_train += cvar_update.item()
 
-    def generateRow(self, num_scenarios, paramT_tch, curlam, alpha, coverage, coverage2, val_dset, eval_set):
+    def generateRow(self, num_scenarios, paramT_tch, curlam, alpha, coverage, coverage2, \
+                    val_dset, eval_set):
         '''
         This function generates a new row with the statistics
         '''
@@ -377,21 +382,26 @@ class RobustProblem(Problem):
         None
         '''
 
-        if (not override) and self.new_prob: return
+        if (not override) and (self.new_prob):
+            return
 
         #Creating uncertainty reduction and chain
         unc_reductions = []
-        if type(self.objective) == Maximize: unc_reductions += [FlipObjective()]
+        if type(self.objective) == Maximize:
+            unc_reductions += [FlipObjective()]
         unc_reductions += [RemoveUncertainParameters()]
         newchain = UncertainChain(self, reductions=unc_reductions)
 
         #Apply the chain
-        self.new_prob, _ = newchain.apply(self)  #prob is the problem without uncertainty. The second (unused) returned value is inverse_data
+        #prob is the problem without uncertainty
+        #The second (unused) returned value is inverse_data
+        self.new_prob, _ = newchain.apply(self)
 
     def _genInit(self, eps, train_set, init_eps, init_A):
         '''
         This is an internal function that calculates init.
-        Init means different things depending on eps - it is an internal function not intended to be used publicly.
+        Init means different things depending on eps
+            it is an internal function not intended to be used publicly.
 
         Arguments
         ---------
@@ -426,13 +436,15 @@ class RobustProblem(Problem):
         matrix = np.array(init_A) if (init_A is not None) else np.eye(mat_shape)
         return scalar * matrix
 
-    def _initTorches(self, init_eps, init_A, init_b, init_alpha, train_set, eps_tch, mro_set, unc_set):
+    def _initTorches(self, init_eps, init_A, init_b, init_alpha, train_set, eps_tch, \
+                     mro_set, unc_set):
         '''
         This function Initializes and returns paramT_tch, paramb_tch, and alpha as tensors
         '''
 
         eps = (eps_tch is not None)
-        self._init = self._genInit(eps, train_set, init_eps, init_A) if (self._init is None) else self._init
+        self._init = \
+            self._genInit(eps, train_set, init_eps, init_A) if (self._init is None) else self._init
         init_tensor = torch.tensor(self._init, requires_grad=True, dtype=DTYPE)
         paramb_tch = None
         case = self._calcCase(eps_tch, mro_set, unc_set, init_A)
