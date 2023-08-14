@@ -27,7 +27,7 @@ from lropt.uncertainty_sets.mro import MRO
 class RobustProblem(Problem):
     """Create a Robust Optimization Problem with uncertain variables"""
 
-    def __init__(self, objective, constraints, objective_torch=None, constraints_torch=None):
+    def __init__(self, objective, constraints, objective_torch=None, constraints_torch=None, eval_torch=None):
         self._trained = False
         self._values = None
         self._numvars = 0
@@ -37,8 +37,9 @@ class RobustProblem(Problem):
         self.new_prob = None
 
         self.num_scenarios = self.verify_y_parameters()
-        self.f, self.g = objective_torch, constraints_torch
-        self.l, self.h, self.num_g= self.fg_to_lh(objective_torch, constraints_torch)
+        self.f, self.g, self.eval = objective_torch, constraints_torch, eval_torch
+        self.l, self.h, self.num_g = self.fg_to_lh(
+            objective_torch, constraints_torch)
 
     @property
     def trained(self):
@@ -82,10 +83,11 @@ class RobustProblem(Problem):
         h_funcs = []
         for g in g_tch:
             assert len(signature(g).parameters) == true_arg_num, \
-                  "incorrect number of user's pytorch function arguments"
+                "incorrect number of user's pytorch function arguments"
+
             def hg(vars, y_params, u_params, alpha, eta, kappa):
-                return (torch.maximum(g(*vars,*y_params,*u_params)- alpha,
-                                      torch.tensor(0.,requires_grad = True)) / eta + alpha - kappa)
+                return (torch.maximum(g(*vars, *y_params, *u_params) - alpha,
+                                      torch.tensor(0., requires_grad=True)) / eta + alpha - kappa)
             h_funcs.append(hg)
 
         l_func = f_tch
@@ -166,10 +168,49 @@ class RobustProblem(Problem):
             sum = torch.tensor(0., dtype=float)
             for i in range(N):
                 for j in range(J):
-                    sum += h_k(vars, y_params_mat[j], u_params_mat[i], alpha, eta, kappa)
+                    sum += h_k(vars, y_params_mat[j],
+                               u_params_mat[i], alpha, eta, kappa)
             h_k_expectation = sum / (J * N)
             H[k] = h_k_expectation
         return H
+
+    def Eval(self, vars, y_params_mat, u_params_mat):
+        '''
+        Arguments
+        _________
+        vars: list
+            list of torch instances of the problem variables, presented in the order
+            they are defined in the cvxpy problem
+        y_params_mat: 2-d list
+            2-d list of y_parameters with shape = (num instances, num y parameters)
+                [[y_1^(scene 1),...,y_n^(scene 1)],
+                [y_1^(scene 2),...,y_n^(scene 2)],
+                ...,
+                [y_1^(scene J),...,y_n^(scene J)]]
+            in order they are presented in the problem.
+            However, each y_k^j is a tensor with shape of the kth y parameter introduced
+        u_params_mat: 2-d list
+            2-d list of u parameters with shape = (num instances, num u parameters)
+                [[u_1^(1),...,u_m^(1)],
+                [u_1^(2),...,u_m^(2)],
+                ...,
+                [u_1^(N),...,u_m^(N)]]
+            in order they are presented in the problem.
+            However, each u_k^n is a tensor with shape of the kth u parameter introduced
+        alpha: torch.tensor
+            alpha from problem
+        eta: float
+        kappa: float
+        '''
+        J = len(y_params_mat)
+        N = len(u_params_mat)
+
+        sum = torch.tensor(0., dtype=float)
+        for i in range(N):
+            for j in range(J):
+                sum += self.eval(*vars, *y_params_mat[j],
+                                 *u_params_mat[i])
+        return sum / (J * N)
 
     def prob_constr_violation(self, vars, y_params_mat, u_params_mat):
         num_g = len(self.g)
@@ -224,8 +265,10 @@ class RobustProblem(Problem):
         '''
         F = self.F(vars, y_params_mat, u_params_mat)
         H = self.H(vars, y_params_mat, u_params_mat, alpha, eta, kappa)
-        prob_constr_violation = self.prob_constr_violation(vars, y_params_mat, u_params_mat)
-        return F + lam @ H, F, H, prob_constr_violation
+        eval = self.Eval(vars, y_params_mat, u_params_mat)
+        prob_constr_violation = self.prob_constr_violation(
+            vars, y_params_mat, u_params_mat)
+        return F + lam @ H, eval, H, prob_constr_violation
 
     # create function for only remove_uncertain reduction
     def _construct_chain(
@@ -292,7 +335,7 @@ class RobustProblem(Problem):
         optimizer="SGD", init_eps=None,
         init_A=None, init_b=None, save_iters=False, seed=1, init_lam=0., init_alpha=-0.01,
         target_cvar=-0.015, test_percentage=0.2, scenarios=None, num_scenarios=None,
-        step_y = 0.1, batch_percentage = 0.2,
+        step_y=0.1, batch_percentage=0.2,
         solver: Optional[str] = None
     ):
         r"""
@@ -341,7 +384,6 @@ class RobustProblem(Problem):
             if unc_set.data is None:
                 raise ValueError("Cannot train without uncertainty set data")
 
-
             unc_reductions = []
             if type(self.objective) == Maximize:
                 unc_reductions += [FlipObjective()]
@@ -378,7 +420,8 @@ class RobustProblem(Problem):
                             if init_eps:
                                 init = (1/init_eps)*init
                         else:
-                            init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
+                            init = sc.linalg.sqrtm(
+                                sc.linalg.inv(np.cov(train.T)))
                         paramb_tch = torch.tensor(-init@np.mean(train, axis=0), requires_grad=True,
                                                   dtype=DTYPE)
                     else:
@@ -397,7 +440,8 @@ class RobustProblem(Problem):
                                                   dtype=DTYPE)
 
                     alpha = torch.tensor(init_alpha, requires_grad=True)
-                    paramT_tch = torch.tensor(init, requires_grad=True, dtype=DTYPE)
+                    paramT_tch = torch.tensor(
+                        init, requires_grad=True, dtype=DTYPE)
 
                     if save_iters:
                         T_iter.append(paramT_tch.detach().numpy().copy())
@@ -411,33 +455,36 @@ class RobustProblem(Problem):
                             elif init_A is not None and init_A.shape[0] != (unc_set._K*unc_set._m):
                                 paramT_tch = paramT_tch.repeat(unc_set._K, 1)
                         paramT = paramT_tch.detach().numpy()
-                        paramT_tch = torch.tensor(paramT, requires_grad=True, dtype=DTYPE)
+                        paramT_tch = torch.tensor(
+                            paramT, requires_grad=True, dtype=DTYPE)
                         variables = [paramT_tch, alpha]
                     else:
                         variables = [paramT_tch, paramb_tch, alpha]
 
-                    opt = OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
+                    opt = OPTIMIZERS[optimizer](
+                        variables, lr=lr, momentum=momentum)
                     if scheduler:
-                        scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=5)
+                        scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                            opt, patience=5)
 
                     # y's and cvxpylayer begin
                     y_parameters = self.y_parameters()
                     num_scenarios = self.num_scenarios
                     prob.parameters()
 
-
                     newlst = {}
                     for scene in range(num_scenarios):
                         newlst[scene] = []
                         for i in range(len(y_parameters)):
                             newlst[scene].append(torch.tensor(
-                                np.array(y_parameters[i].data[scene,:])
+                                np.array(y_parameters[i].data[scene, :])
                                 .astype(float), requires_grad=True, dtype=DTYPE))
                         newlst[scene].append(paramT_tch)
                         if not mro_set:
                             newlst[scene].append(paramb_tch)
                     # train
-                    lam = init_lam * torch.ones((num_scenarios, self.num_g), dtype=float)
+                    lam = init_lam * \
+                        torch.ones((num_scenarios, self.num_g), dtype=float)
                     curlam = init_lam * torch.ones(self.num_g, dtype=float)
 
                     for steps in range(step):
@@ -463,12 +510,14 @@ class RobustProblem(Problem):
                                                     solver_args=LAYER_SOLVER)
 
                             temploss, obj, cvar_update, violations = self.lagrange(var_values,
-                                    [newlst[scene][:-2]], self._udata_to_lst(val_dset[random_int]),
-                                            alpha, curlam)
+                                                                                   [newlst[scene][:-2]], self._udata_to_lst(
+                                                                                       val_dset[random_int]),
+                                                                                   alpha, curlam)
 
                             evalloss, obj2, var_vio, violations2 = self.lagrange(var_values,
-                                     [newlst[scene][:-2]], self._udata_to_lst(eval_set),
-                                        alpha, curlam)
+                                                                                 [newlst[scene][:-2]], self._udata_to_lst(
+                                                                                     eval_set),
+                                                                                 alpha, curlam)
                             lam[scene, :] = cvar_update.detach()
                             totloss += temploss/num_scenarios
                             totevalloss += evalloss/num_scenarios
@@ -478,17 +527,17 @@ class RobustProblem(Problem):
                             train_vio += violations.item()
                             violation_val += var_vio.item()
                             violation_train += cvar_update.item()
-                        curlam = torch.maximum(curlam + step_y*(torch.mean(lam, axis=0)), \
+                        curlam = torch.maximum(curlam + step_y*(torch.mean(lam, axis=0)),
                                                torch.zeros(self.num_g, dtype=float))
                         totloss.backward()
                         coverage = 0
                         for datind in range(val_dset.shape[0]):
-                            coverage += torch.where(torch.norm(paramT_tch@val_dset[datind] \
-                                                               + paramb_tch)<= 1, 1, 0)
+                            coverage += torch.where(torch.norm(paramT_tch@val_dset[datind]
+                                                               + paramb_tch) <= 1, 1, 0)
                         coverage2 = 0
                         for datind in range(eval_set.shape[0]):
-                            coverage2 += torch.where(torch.norm(paramT_tch@eval_set[datind] \
-                                                                 + paramb_tch)<= 1, 1, 0 )
+                            coverage2 += torch.where(torch.norm(paramT_tch@eval_set[datind]
+                                                                + paramb_tch) <= 1, 1, 0)
                         # BEFORE UPDTATING PANDAS DATAFRAME
                         newrow = pd.Series(
                             {"step": steps,
@@ -509,12 +558,14 @@ class RobustProblem(Problem):
                              "coverage_train": coverage.detach().numpy().item()/val_dset.shape[0],
                              "coverage_test": coverage2.detach().numpy().item()/eval_set.shape[0]}
                         )
-                        df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
+                        df = pd.concat(
+                            [df, newrow.to_frame().T], ignore_index=True)
 
                         if save_iters:
                             T_iter.append(paramT_tch.detach().numpy().copy())
                             if not mro_set:
-                                b_iter.append(paramb_tch.detach().numpy().copy())
+                                b_iter.append(
+                                    paramb_tch.detach().numpy().copy())
 
                         if steps <= step - 1:
 
@@ -542,32 +593,39 @@ class RobustProblem(Problem):
                                 eps_tch = torch.tensor(eps_tch, requires_grad=True,
                                                        dtype=DTYPE)
                     else:
-                        eps_tch = torch.tensor(1., requires_grad=True, dtype=DTYPE)
+                        eps_tch = torch.tensor(
+                            1., requires_grad=True, dtype=DTYPE)
                         if mro_set and unc_set._uniqueA:
                             eps_tch = eps_tch.repeat(unc_set._K)
                             eps_tch = eps_tch.detach().numpy()
-                            eps_tch = torch.tensor(eps_tch, requires_grad=True, dtype=DTYPE)
+                            eps_tch = torch.tensor(
+                                eps_tch, requires_grad=True, dtype=DTYPE)
 
                     if init_A is not None:
-                        init = torch.tensor(init_A, requires_grad=True, dtype=DTYPE)
+                        init = torch.tensor(
+                            init_A, requires_grad=True, dtype=DTYPE)
                     else:
                         init = torch.tensor(np.eye(train.shape[1]), requires_grad=True,
                                             dtype=DTYPE)
 
                     if init_b is not None:
-                        init_bval = torch.tensor(init_b, requires_grad=True, dtype=DTYPE)
+                        init_bval = torch.tensor(
+                            init_b, requires_grad=True, dtype=DTYPE)
                     else:
-                        init_bval = -init@torch.tensor(np.mean(train, axis=0), dtype=DTYPE)
+                        init_bval = - \
+                            init@torch.tensor(np.mean(train,
+                                              axis=0), dtype=DTYPE)
 
                     if not mro_set:
                         paramb_tch = eps_tch*init_bval
                         paramT_tch = eps_tch*init
                     elif unc_set._uniqueA:
                         if init_A is None or \
-                            (init_A is not None and init_A.shape[0] != (unc_set._K*unc_set._m)):
+                                (init_A is not None and init_A.shape[0] != (unc_set._K*unc_set._m)):
                             paramT_tch = eps_tch[0]*init
                             for k_ind in range(1, unc_set._K):
-                                paramT_tch = torch.vstack((paramT_tch, eps_tch[k_ind]*init))
+                                paramT_tch = torch.vstack(
+                                    (paramT_tch, eps_tch[k_ind]*init))
                             case = 0
                         else:
                             paramT_tch = eps_tch[0]*torch.tensor(init_A[0:unc_set._m, 0:unc_set._m],
@@ -584,9 +642,11 @@ class RobustProblem(Problem):
                         case = 2
                     alpha = torch.tensor(init_alpha, requires_grad=True)
                     variables = [eps_tch, alpha]
-                    opt = OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
+                    opt = OPTIMIZERS[optimizer](
+                        variables, lr=lr, momentum=momentum)
                     if scheduler:
-                        scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=5)
+                        scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                            opt, patience=5)
 
                     y_parameters = self.y_parameters()
                     num_scenarios = self.num_scenarios
@@ -595,14 +655,15 @@ class RobustProblem(Problem):
                     for scene in range(num_scenarios):
                         newlst[scene] = []
                         for i in range(len(y_parameters)):
-                            newlst[scene].append(torch.tensor(np.array(y_parameters[i].data[scene,:]).astype(
+                            newlst[scene].append(torch.tensor(np.array(y_parameters[i].data[scene, :]).astype(
                                 float), requires_grad=True, dtype=DTYPE))
                         newlst[scene].append(paramT_tch)
                         if not mro_set:
                             newlst[scene].append(paramb_tch)
 
                     # train
-                    lam = init_lam * torch.ones((num_scenarios, self.num_g), dtype=float)
+                    lam = init_lam * \
+                        torch.ones((num_scenarios, self.num_g), dtype=float)
                     curlam = init_lam * torch.ones(self.num_g, dtype=float)
 
                     for steps in range(step):
@@ -614,8 +675,8 @@ class RobustProblem(Problem):
                         train_vio = torch.tensor(0., dtype=float)
                         violation_val = torch.tensor(0., dtype=float)
                         violation_train = torch.tensor(0., dtype=float)
-                        random_int = np.random.randint(0, val_dset.shape[0], \
-                                            int(batch_percentage*val_dset.shape[0]))
+                        random_int = np.random.randint(0, val_dset.shape[0],
+                                                       int(batch_percentage*val_dset.shape[0]))
                         for scene in range(num_scenarios):
                             if not mro_set:
                                 newlst[scene][-1] = eps_tch*init_bval
@@ -624,7 +685,8 @@ class RobustProblem(Problem):
                                 if case == 0:
                                     paramT_tch = eps_tch[0]*init
                                     for k_ind in range(1, unc_set._K):
-                                        paramT_tch = torch.vstack((paramT_tch, eps_tch[k_ind]*init))
+                                        paramT_tch = torch.vstack(
+                                            (paramT_tch, eps_tch[k_ind]*init))
                                 elif case == 1:
                                     paramT_tch = eps_tch[0] * \
                                         torch.tensor(init_A[0:unc_set._m, 0:unc_set._m],
@@ -645,8 +707,9 @@ class RobustProblem(Problem):
                             #     target=target_cvar)
 
                             temploss, obj, cvar_update, violations = self.lagrange(var_values,
-                                    [newlst[scene][:-2]], self._udata_to_lst(val_dset[random_int]),
-                                                alpha, curlam)
+                                                                                   [newlst[scene][:-2]], self._udata_to_lst(
+                                                                                       val_dset[random_int]),
+                                                                                   alpha, curlam)
 
                             # temploss, obj, violations, cvar_update =
                             # unc_set.loss(# v_0 line 3 algorithm 2
@@ -654,8 +717,9 @@ class RobustProblem(Problem):
                             #     target=target_cvar)
 
                             evalloss, obj2, var_vio, violations2 = self.lagrange(var_values,
-                                        [newlst[scene][:-2]], self._udata_to_lst(eval_set),
-                                            alpha,  curlam)
+                                                                                 [newlst[scene][:-2]], self._udata_to_lst(
+                                                                                     eval_set),
+                                                                                 alpha,  curlam)
 
                             # evalloss, obj2, violations2, var_vio = unc_set.loss(
                             #     *var_values, *newlst[scene][:-2], alpha, eval_set, mu, curlam,
@@ -677,12 +741,12 @@ class RobustProblem(Problem):
                         totloss.backward()
                         coverage = 0
                         for datind in range(val_dset.shape[0]):
-                            coverage += torch.where(torch.norm(eps_tch*init@val_dset[datind] + \
-                                                               eps_tch*init_bval)<= 1, 1, 0 )
+                            coverage += torch.where(torch.norm(eps_tch*init@val_dset[datind] +
+                                                               eps_tch*init_bval) <= 1, 1, 0)
                         coverage2 = 0
                         for datind in range(eval_set.shape[0]):
-                            coverage2 += torch.where(torch.norm(eps_tch*init@eval_set[datind] + \
-                                                                eps_tch*init_bval)<= 1, 1, 0 )
+                            coverage2 += torch.where(torch.norm(eps_tch*init@eval_set[datind] +
+                                                                eps_tch*init_bval) <= 1, 1, 0)
                         newrow = pd.Series(
                             {"step": steps,
                              "Loss_val": totloss.item(),
@@ -702,13 +766,14 @@ class RobustProblem(Problem):
                              "gradnorm": eps_tch.grad,
                              "coverage_train": coverage.detach().numpy().item()/val_dset.shape[0],
                              "coverage_test": coverage2.detach().numpy().item()/eval_set.shape[0]})
-                        df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
+                        df = pd.concat(
+                            [df, newrow.to_frame().T], ignore_index=True)
 
                         if save_iters:
                             T_iter.append(paramT_tch.detach().numpy().copy())
                             if not mro_set:
-                                b_iter.append(paramb_tch.detach().numpy().copy())
-
+                                b_iter.append(
+                                    paramb_tch.detach().numpy().copy())
 
                         if steps < step - 1:
                             opt.step()
@@ -721,7 +786,8 @@ class RobustProblem(Problem):
                     unc_set._trained = True
 
                     if not mro_set:
-                        unc_set.paramT.value = (eps_tch*init).detach().numpy().copy()
+                        unc_set.paramT.value = (
+                            eps_tch*init).detach().numpy().copy()
                         unc_set.paramb.value = (
                             eps_tch*init_bval).detach().numpy().copy()
                     else:
@@ -771,13 +837,11 @@ class RobustProblem(Problem):
         if epslst is None:
             epslst = EPS_LST_DEFAULT
 
-
         if self.uncertain_parameters():
             unc_set = self.uncertain_parameters()[0].uncertainty_set
 
             if unc_set.data is None:
                 raise ValueError("Cannot train without uncertainty set data")
-
 
             unc_reductions = []
             if type(self.objective) == Maximize:
@@ -786,7 +850,8 @@ class RobustProblem(Problem):
             newchain = UncertainChain(self, reductions=unc_reductions)
             prob, inverse_data = newchain.apply(self)
             if unc_set.paramT is not None:
-                df = pd.DataFrame(columns=["Opt_val", "Eval_val", "Loss_val", "Eps"])
+                df = pd.DataFrame(
+                    columns=["Opt_val", "Eval_val", "Loss_val", "Eps"])
                 if type(unc_set) == MRO:
                     mro_set = True
                 else:
@@ -808,12 +873,11 @@ class RobustProblem(Problem):
                 for scene in range(num_scenarios):
                     newlst[scene] = []
                     for i in range(len(y_parameters)):
-                        newlst[scene].append(torch.tensor(np.array(y_parameters[i].data[scene,:]).astype(
+                        newlst[scene].append(torch.tensor(np.array(y_parameters[i].data[scene, :]).astype(
                             float), requires_grad=True, dtype=DTYPE))
                     newlst[scene].append(0)
                     if not mro_set:
                         newlst[scene].append(0)
-
 
                 # for scene in range(num_scenarios):
                 #     newlst[scene] = []
@@ -835,7 +899,8 @@ class RobustProblem(Problem):
                 alpha = torch.tensor(init_alpha, requires_grad=True)
 
                 if init_A is not None:
-                    init = torch.tensor(init_A, requires_grad=True, dtype=DTYPE)
+                    init = torch.tensor(
+                        init_A, requires_grad=True, dtype=DTYPE)
                 else:
                     init = torch.tensor(np.eye(train.shape[1]), requires_grad=True,
                                         dtype=DTYPE)
@@ -848,7 +913,8 @@ class RobustProblem(Problem):
                 curlam = 1000 * torch.ones(self.num_g, dtype=float)
 
                 for epss in epslst:
-                    eps_tch1 = torch.tensor([[1/epss]], requires_grad=True, dtype=DTYPE)
+                    eps_tch1 = torch.tensor(
+                        [[1/epss]], requires_grad=True, dtype=DTYPE)
                     totloss = 0
                     totevalloss = []
                     optval = []
@@ -867,7 +933,8 @@ class RobustProblem(Problem):
                                 if init_A is None or (init_A is not None and init_A.shape[0] !=
                                                       (unc_set._K*unc_set._m)):
                                     paramT_tch = eps_tch1[0][0]*init
-                                    paramT_tch = paramT_tch.repeat(unc_set._K, 1)
+                                    paramT_tch = paramT_tch.repeat(
+                                        unc_set._K, 1)
                                 else:
                                     paramT_tch = eps_tch1[0][0]*init
                             else:
@@ -877,15 +944,17 @@ class RobustProblem(Problem):
                                                 solver_args=LAYER_SOLVER)
 
                         temploss, obj, cvar_update, violations = self.lagrange(var_values,
-                                        [newlst[scene][:-2]], self._udata_to_lst(val_dset),
-                                        alpha, curlam)
+                                                                               [newlst[scene][:-2]], self._udata_to_lst(
+                                                                                   val_dset),
+                                                                               alpha, curlam)
                         # temploss, obj, violations,cvar_update = unc_set.loss(
                         #     *var_values, *newlst[scene][:-2], alpha = torch.tensor(
                         #     init_alpha), data = val_dset)
 
                         evalloss, obj2, var_vio, violations2 = self.lagrange(var_values,
-                                    [newlst[scene][:-2]], self._udata_to_lst(eval_set),
-                                    alpha,curlam)
+                                                                             [newlst[scene][:-2]], self._udata_to_lst(
+                                                                                 eval_set),
+                                                                             alpha, curlam)
                         # evalloss, obj2, violations2, var_vio = unc_set.loss(
                         #     *var_values, *newlst[scene][:-2], alpha = torch.tensor(
                         #     init_alpha), data = eval_set)
@@ -906,12 +975,12 @@ class RobustProblem(Problem):
                         var_vals = var_values
                     coverage = 0
                     for datind in range(val_dset.shape[0]):
-                        coverage += torch.where(torch.norm(paramT_tch@val_dset[datind] + \
-                                                           eps_tch1[0][0]*init_bval)<= 1, 1, 0 )
+                        coverage += torch.where(torch.norm(paramT_tch@val_dset[datind] +
+                                                           eps_tch1[0][0]*init_bval) <= 1, 1, 0)
                     coverage2 = 0
                     for datind in range(eval_set.shape[0]):
-                        coverage2 += torch.where(torch.norm(paramT_tch@eval_set[datind] + \
-                                                            eps_tch1[0][0]*init_bval)<= 1, 1, 0 )
+                        coverage2 += torch.where(torch.norm(paramT_tch@eval_set[datind] +
+                                                            eps_tch1[0][0]*init_bval) <= 1, 1, 0)
                     newrow = pd.Series(
                         {"Loss_val": totloss,
                          "Eval_val": totevalloss,
@@ -921,17 +990,19 @@ class RobustProblem(Problem):
                          "Violations_train": train_vio,
                          "Violation_val": violation_val,
                          "Violation_train": violation_train,
-                        "Eps": 1/eps_tch1[0][0].detach().numpy().copy(),
-                        "coverage_train": coverage.detach().numpy().item()/val_dset.shape[0],
-                        "coverage_test": coverage2.detach().numpy().item()/eval_set.shape[0]
+                         "Eps": 1/eps_tch1[0][0].detach().numpy().copy(),
+                         "coverage_train": coverage.detach().numpy().item()/val_dset.shape[0],
+                         "coverage_test": coverage2.detach().numpy().item()/eval_set.shape[0]
                          })
-                    df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
+                    df = pd.concat([df, newrow.to_frame().T],
+                                   ignore_index=True)
 
                 self._trained = True
                 unc_set._trained = True
 
                 if not mro_set:
-                    unc_set.paramT.value = (mineps*init).detach().numpy().copy()
+                    unc_set.paramT.value = (
+                        mineps*init).detach().numpy().copy()
                     unc_set.paramb.value = (
                         mineps[0]*init_bval).detach().numpy().copy()
                 else:
@@ -939,7 +1010,8 @@ class RobustProblem(Problem):
                 self.new_prob = prob
         if not mro_set:
             return Result(self, prob, df, unc_set.paramT.value,
-                          unc_set.paramb.value, mineps[0][0].detach().numpy().copy(),
+                          unc_set.paramb.value, mineps[0][0].detach(
+                          ).numpy().copy(),
                           minval, var_vals)
         else:
             return Result(self, prob, df, unc_set.paramT.value,
