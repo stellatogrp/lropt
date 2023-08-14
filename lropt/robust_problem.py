@@ -47,7 +47,7 @@ class TrainLoopStats():
         self.violation_val = torch.tensor(0., dtype=float)
         self.violation_train = torch.tensor(0., dtype=float)
 
-    def updateStats(self, temploss, num_scenarios, evalloss, obj, obj2, violations, violations2, \
+    def update_stats(self, temploss, num_scenarios, evalloss, obj, obj2, violations, violations2, \
                     var_vio, cvar_update):
         '''
         This function updates the statistics after each training iteration
@@ -68,22 +68,22 @@ class TrainLoopStats():
         '''
         newrow = pd.Series(
                     {"step": self.step_num,
-                        "Loss_val": self.totloss.item(),
-                        "Eval_val": self.totevalloss.item(),
-                        "Opt_val": self.optval/num_scenarios,
-                        "Test_val": self.testval/num_scenarios,
-                        "Violations": self.test_vio/num_scenarios,
-                        "Violations_train": self.train_vio/num_scenarios,
-                        "Violation_val": self.violation_val/num_scenarios,
-                        "Violation_train": self.violation_train/num_scenarios,
-                        "A_norm": np.linalg.norm(paramT_tch.detach().numpy().copy()),
-                        "lam": curlam.detach().numpy().copy(),
-                        "alpha": alpha.item(),
-                        "alphagrad": alpha.grad,
-                        "dfnorm": np.linalg.norm(paramT_tch.grad),
-                        "gradnorm": paramT_tch.grad,
-                        "coverage_train": coverage.detach().numpy().item()/val_dset.shape[0],
-                        "coverage_test": coverage2.detach().numpy().item()/eval_set.shape[0]}
+                     "Loss_val": self.totloss.item(),
+                     "Eval_val": self.totevalloss.item(),
+                     "Opt_val": self.optval/num_scenarios,
+                     "Test_val": self.testval/num_scenarios,
+                     "Violations": self.test_vio/num_scenarios,
+                     "Violations_train": self.train_vio/num_scenarios,
+                     "Violation_val": self.violation_val/num_scenarios,
+                     "Violation_train": self.violation_train/num_scenarios,
+                     "A_norm": np.linalg.norm(paramT_tch.detach().numpy().copy()),
+                     "lam": curlam.detach().numpy().copy(),
+                     "alpha": alpha.item(),
+                     "alphagrad": alpha.grad,
+                     "dfnorm": np.linalg.norm(paramT_tch.grad),
+                     "gradnorm": paramT_tch.grad,
+                     "coverage_train": coverage.detach().numpy().item()/val_dset.shape[0],
+                     "coverage_test": coverage2.detach().numpy().item()/eval_set.shape[0]}
                 )
         return newrow
         
@@ -224,33 +224,6 @@ class RobustProblem(Problem):
         return u_params_mat
 
     def lagrange(self, vars, y_params_mat, u_params_mat, alpha, lam, eta=0.05, kappa=-0.05):
-        """Defines L augmented lagrangian function, which computes loss for
-        Arguments
-        _________
-        vars: list
-            list of torch instances of the problem variables, presented in the order
-            they are defined in the cvxpy problem
-        y_params_mat: 2-d list
-            2-d list of y_parameters with shape = (num instances, num y parameters)
-                [[y_1^(scene 1),...,y_n^(scene 1)],
-                [y_1^(scene 2),...,y_n^(scene 2)],
-                ...,
-                [y_1^(scene J),...,y_n^(scene J)]]
-            in order they are presented in the problem.
-            However, each y_k^j is a tensor with shape of the kth y parameter introduced
-        u_params_mat: 2-d list
-            2-d list of u parameters with shape = (num instances, num u parameters)
-                [[u_1^(1),...,u_m^(1)],
-                [u_1^(2),...,u_m^(2)],
-                ...,
-                [u_1^(N),...,u_m^(N)]]
-            in order they are presented in the problem.
-            However, each u_k^n is a tensor with shape of the kth u parameter introduced
-        alpha: torch.tensor
-            alpha from problem
-        eta: float
-        kappa: float
-        """
         F = self.F(vars, y_params_mat, u_params_mat)
         H = self.H(vars, y_params_mat, u_params_mat, alpha, eta, kappa)
         eval = self.Eval(vars, y_params_mat, u_params_mat)
@@ -296,9 +269,6 @@ class RobustProblem(Problem):
         -------
         A solving chain
         """
-        # if enforce_dpp is False:
-        #      warnings.warn("should enforce problem is dpp")
-
         candidate_solvers = self._find_candidate_solvers(solver=solver, gp=gp)
         self._sort_candidate_solvers(candidate_solvers)
         solving_chain = construct_solving_chain(
@@ -323,6 +293,7 @@ class RobustProblem(Problem):
         # return a chain instead (chain.apply, return the problem and inverse data)
         return SolvingChain(reductions=new_reductions)
 
+    #TODO (bart): please let's avoid camel case and use snake case instead
     def _isMROSet(self, unc_set):
         '''
         This function returns whether we work on MRO set or not.
@@ -363,6 +334,8 @@ class RobustProblem(Problem):
         unc_reductions += [RemoveUncertainParameters()]
         newchain = UncertainChain(self, reductions=unc_reductions)
 
+        # TODO (bart): We should keep inverse data. We can use it to reconstruct the original
+        # solution from new_prob. Are we sure we don't need it?
         #Apply the chain
         #prob is the problem without uncertainty
         #The second (unused) returned value is inverse_data
@@ -778,7 +751,7 @@ class RobustProblem(Problem):
                             alpha, curlam)
                 #Update parameters for the next y
                 lam[scene, :] = cvar_update.detach()
-                train_stats.updateStats(temploss, num_scenarios, evalloss, obj, obj2, \
+                train_stats.update_stats(temploss, num_scenarios, evalloss, obj, obj2, \
                                         violations, violations2, var_vio, cvar_update)
             
             #calculate statistics over all y
