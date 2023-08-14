@@ -1,7 +1,7 @@
 from abc import ABC
+from enum import Enum
 from inspect import signature
 from typing import Optional
-from enum import Enum
 
 import numpy as np
 import pandas as pd
