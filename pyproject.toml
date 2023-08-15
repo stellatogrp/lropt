@@ -18,7 +18,8 @@ dependencies = [
     "cvxpy>=1.3.0",
     "torch",
     "scikit-learn",
-    "cvxpylayers"
+    "cvxpylayers",
+    "pandas"
 ]
 
 
@@ -30,12 +31,9 @@ write_to = "lropt/_version.py"
 
 [project.optional-dependencies]
 dev = ["pytest", "pre-commit", "ruff", "ruff-lsp", 
-       "black", "sphinx", "furo", "nbsphinx", "ipython",
-       "pandas","matplotlib", "jupyterlab"]
+       "sphinx", "furo", "nbsphinx", "ipython",
+       "matplotlib", "jupyterlab"]
 
-[tool.black]
-line-length = 100
-target-version = ['py310']
 
 [tool.ruff]
 select = ["E", "F", "I"]

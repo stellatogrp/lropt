@@ -52,14 +52,14 @@ class TrainLoopStats():
         '''
         This function updates the statistics after each training iteration
         '''
-        self.totloss += temploss/num_scenarios
-        self.totevalloss += evalloss/num_scenarios
-        self.optval += obj.item()
-        self.testval += obj2.item()
-        self.test_vio += violations2.item()
-        self.train_vio += violations.item()
-        self.violation_val += var_vio.item()
-        self.violation_train += cvar_update.item()
+        self.totloss += temploss/num_scenarios  # Lagrangian over training set
+        # self.totevalloss += evalloss/num_scenarios # Lagrangian over test set (DELETE IT) 
+        # self.optval += obj.item()  # Evaluation function over training set (DELETE IT)
+        self.testval += obj2.item()  # Evaluation function over test set
+        self.test_vio += violations2.item()  # Probability of constraint violation over test set
+        self.train_vio += violations.item() # Probability fo constraint violation over train set
+        self.violation_val += var_vio.item()  # Violation of learning constraint over test set (TODO: val -> test)
+        self.violation_train += cvar_update.item()  # Violation of learning constraint over train set
 
     def generateRow(self, num_scenarios, paramT_tch, curlam, alpha, coverage, coverage2, \
                     val_dset, eval_set):
@@ -137,7 +137,10 @@ class RobustProblem(Problem):
         return num_scenarios
 
     def fg_to_lh(self, f_tch, g_tch):
-        """Returns l and h for single x,y,u triplet (i.e. one instance of each)"""
+        """
+        Returns l and h function pointers. 
+        Each of them takes a single x,y,u triplet (i.e. one instance of each)
+        """
         if f_tch is None or g_tch is None:
             return None, None, None
         sig_f = signature(f_tch)
@@ -754,9 +757,10 @@ class RobustProblem(Problem):
                 train_stats.update_stats(temploss, num_scenarios, evalloss, obj, obj2, \
                                         violations, violations2, var_vio, cvar_update)
             
+            # TODO (bart): use only lam (cur has no meaning)
             #calculate statistics over all y
             curlam = torch.maximum(curlam + step_y*(torch.mean(lam, axis=0)), \
-                                    torch.zeros(self.num_g, dtype=float))
+                                   torch.zeros(self.num_g, dtype=float))
             train_stats.totloss.backward()
             coverage = 0
             for datind in range(val_dset.shape[0]):
