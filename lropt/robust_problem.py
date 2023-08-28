@@ -55,12 +55,12 @@ class TrainLoopStats():
             return [] if not self.train_flag else torch.tensor(0., dtype=float)
         self.step_num = step_num
         self.train_flag = train_flag
-        self.tot_lagrangian = self.__value_init__()
-        self.testval = self.__value_init__()
-        self.test_vio = self.__value_init__()
-        self.train_vio = self.__value_init__()
-        self.violation_test = self.__value_init__()
-        self.violation_train = self.__value_init__()
+        self.tot_lagrangian = __value_init__(self)
+        self.testval = __value_init__(self)
+        self.test_vio = __value_init__(self)
+        self.train_vio = __value_init__(self)
+        self.violation_test = __value_init__(self)
+        self.violation_train = __value_init__(self)
 
     def update_stats(self, temp_lagrangian, num_ys, obj_validation, train_vio, test_vio,
                     var_vio, cvar_update):
