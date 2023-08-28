@@ -767,7 +767,7 @@ class RobustProblem(Problem):
         self,
         eps=False,
         fixb=False,
-        num_iter=settings.NUM_ITER_DEFAULT,
+        num_iter=settings.NUM_ITER_DEFAULT, #Used to be "step"
         lr=settings.LR_DEFAULT,
         scheduler=True,
         momentum=settings.MOMENTUM_DEFAULT,
