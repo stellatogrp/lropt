@@ -781,7 +781,7 @@ class RobustProblem(Problem):
         init_alpha=settings.INIT_ALPHA_DEFAULT,
         kappa=settings.KAPPA_DEFAULT, #TODO (Bart): This should be Kappa and passed 
                                         #(originall target_cvar)
-        test_percentage=settings.TEST_PERCENTGE_DEFAULT,
+        test_percentage=settings.TEST_PERCENTAGE_DEFAULT,
         ys=None, #TODO (Amit): Can we remove this variable?
         num_ys=None,
         step_y=settings.STEP_Y_DEFAULT,
