@@ -1,5 +1,4 @@
 from abc import ABC
-from enum import Enum
 from inspect import signature
 from typing import Optional
 
@@ -15,27 +14,15 @@ from cvxpy.reductions.solvers.solving_chain import SolvingChain, construct_solvi
 from cvxpylayers.torch import CvxpyLayer
 from sklearn.model_selection import train_test_split
 
+#from lropt.settings import DTYPE, EPS_LST_DEFAULT, LAYER_SOLVER, OPTIMIZERS, MRO_CASE
+import lropt.settings as settings
 from lropt.parameter import Parameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
-from lropt.settings import DTYPE, EPS_LST_DEFAULT, LAYER_SOLVER, OPTIMIZERS
 from lropt.shape_parameter import ShapeParameter
 from lropt.uncertain import UncertainParameter
 from lropt.uncertain_canon.distribute_uncertain_params import Distribute_Uncertain_Params
 from lropt.uncertain_canon.uncertain_chain import UncertainChain
 from lropt.uncertainty_sets.mro import MRO
-
-"""
-Different types of MRO:
-#NO_MRO:
-    No MRO
-#DIFF_A_UNINIT:
-    Different A for each k and uninitialized
-#DIFF_A_INIT:
-    Different A for each k, initialized with a different matrix for each k
-#SAME_A:
-    same A for each k
-"""
-MRO_CASE = Enum("MRO_CASE", "NO_MRO DIFF_A_UNINIT DIFF_A_INIT SAME_A")
 
 
 #TODO (Amit): Irina, please go over the functions and update the args descrption where necessary
@@ -59,58 +46,113 @@ class TrainLoopStats():
         violation_train:
             Violation of learning constraint over train set
     """
-
-    def __init__(self, step_num):
+    #TODO (Amit): Can we change the names of the last 4 parameters? They're very confusing.
+    def __init__(self, step_num, train_flag=True):
+        def __value_init__(self):
+            """
+            This is an internal function that either initiates a tensor or a list
+            """
+            return [] if not self.train_flag else torch.tensor(0., dtype=float)
         self.step_num = step_num
-        self.tot_lagrangian = torch.tensor(0., dtype=float)
-        self.testval = torch.tensor(0., dtype=float)
-        self.test_vio = torch.tensor(0., dtype=float)
-        self.train_vio = torch.tensor(0., dtype=float)
-        self.violation_test = torch.tensor(0., dtype=float)
-        self.violation_train = torch.tensor(0., dtype=float)
+        self.train_flag = train_flag
+        self.tot_lagrangian = self.__value_init__()
+        self.testval = self.__value_init__()
+        self.test_vio = self.__value_init__()
+        self.train_vio = self.__value_init__()
+        self.violation_test = self.__value_init__()
+        self.violation_train = self.__value_init__()
 
-    def update_stats(self, temp_lagrangian, num_ys, obj_validation, violations, violations2,
+    def update_stats(self, temp_lagrangian, num_ys, obj_validation, train_vio, test_vio,
                     var_vio, cvar_update):
         """
         This function updates the statistics after each training iteration
         """
-        self.tot_lagrangian += temp_lagrangian/num_ys  
-        self.testval += obj_validation.item()  
-        self.test_vio += violations2.item()  
-        self.train_vio += violations.item() 
-        self.violation_test += var_vio.item()  
-        self.violation_train += cvar_update.item()
+        #TODO (Amit): Irina, can we please see which of these is needed
+        self.tot_lagrangian += temp_lagrangian/num_ys
+        if not self.train_flag:
+            self.testval.append(obj_validation.item())
+            self.test_vio.append(test_vio.item())
+            self.train_vio.append(train_vio.item())
+            self.violation_test.append(var_vio.item())
+            self.violation_train.append(cvar_update.item())
+        else: #if self.train_flag
+            self.testval += obj_validation.item()  
+            self.test_vio += test_vio.item()  
+            self.train_vio += train_vio.item() 
+            self.violation_test += var_vio.item()  
+            self.violation_train += cvar_update.item()
 
     def generate_row(self, num_ys, paramT_tch, lam, alpha, coverage, coverage2,
-                    val_dset, eval_set):
+                    val_dset, eval_set, eps_tch1):
         """
         This function generates a new row with the statistics
         """
-        new_row = pd.Series(
-                    {"step": self.step_num,
-                     "Lagrangian_val": self.tot_lagrangian.item(),
-                     "Test_val": self.testval/num_ys,
-                     "Violations": self.test_vio/num_ys,
-                     "Violations_train": self.train_vio/num_ys,
-                     "Violation_test": self.violation_test/num_ys,
-                     "Violation_train": self.violation_train/num_ys,
-                     "A_norm": np.linalg.norm(paramT_tch.detach().numpy().copy()),
-                     "lam_list": lam.detach().numpy().copy(),
-                     "alpha": alpha.item(),
-                     "alphagrad": alpha.grad,
-                     "dfnorm": np.linalg.norm(paramT_tch.grad),
-                     "gradnorm": paramT_tch.grad,
-                     "coverage_train": coverage.detach().numpy().item()/val_dset.shape[0],
-                     "coverage_test": coverage2.detach().numpy().item()/eval_set.shape[0]}
-                )
+        #TODO (Amit): Why do we have Violation and Violations?
+                # Also, why some fields are capitilized and some are not?
+        row_dict = {
+                    "Lagrangian_val":   self.tot_lagrangian.item(),
+                    "Test_val":         self.testval/num_ys,
+                    "Violations":       self.test_vio/num_ys,
+                    "Violations_train": self.train_vio/num_ys,
+                    "Violation_test":   self.violation_test/num_ys,
+                    "Violation_train":  self.violation_train/num_ys,
+                    "coverage_train":   coverage.detach().numpy().item()/val_dset.shape[0],
+                    "coverage_test":    coverage2.detach().numpy().item()/eval_set.shape[0]
+                    }
+        if not self.train_flag:
+            #TODO (Amit): I commented these two fields because I believe
+                            # we no longer want them, please confirm.
+            #row_dict["Eval_val"]    = totevallagrangian,
+            #row_dict["Opt_val"]     = optval,
+            row_dict["Eps"]         = 1 / eps_tch1[0][0].detach().numpy().copy(),
+        else: #if self.train_flag
+            row_dict["step"]        = self.step_num,
+            row_dict["A_norm"]      = np.linalg.norm(paramT_tch.detach().numpy().copy()),
+            row_dict["lam_list"]    = lam.detach().numpy().copy(),
+            row_dict["alpha"]       = alpha.item(),
+            row_dict["alphagrad"]   = alpha.grad,
+            row_dict["dfnorm"]      = np.linalg.norm(paramT_tch.grad),
+            row_dict["gradnorm"]    = paramT_tch.grad,
+        new_row = pd.Series(row_dict)
         return new_row
-        
+
+class GridStats():
+    """
+    This class contains useful information for grid search
+    """
+
+    def __init__(self):
+        self.minval = np.float("inf") #TODO (Amit): originally was 9999999. Please confirm.
+        self.var_vals = 0
+
+    def update(self, train_stats, temp_lagrangian, eps_tch1, paramT_tch, var_values):
+        """
+        This function updates the best stats in the grid search.
+
+        Args:
+            train_stats:
+                The train stats
+            temp_lagrangian:
+                Calculated lagrangian
+            eps_tch1:
+                Epsilon torch
+            paramT_tch
+                T torch
+            var_values
+                variance values
+        """
+        if train_stats.tot_lagrangian <= self.minval:
+            self.minval = temp_lagrangian
+            self.mineps = eps_tch1.clone()
+            self.minT = paramT_tch.clone()
+            self.var_vals = var_values
 
 class RobustProblem(Problem):
     """Create a Robust Optimization Problem with uncertain variables"""
 
     def __init__(
-        self, objective, constraints, objective_torch=None, constraints_torch=None, eval_torch=None
+        self, objective, constraints, objective_torch=None, constraints_torch=None,
+        eval_torch=None, train_flag=True
     ):
         self._trained = False
         self._values = None
@@ -119,7 +161,9 @@ class RobustProblem(Problem):
         self._trained = False
         self._values = None
         self.new_prob = None
+        self.inverse_data = None
         self._init = None
+        self.train_flag = train_flag
 
         self.num_ys = self.verify_y_parameters()
         self.f, self.g = objective_torch, constraints_torch
@@ -151,9 +195,13 @@ class RobustProblem(Problem):
         if len(y_parameters) > 0:
             num_ys = y_parameters[0].data.shape[0]
         for param in y_parameters:
-            assert param.data.shape[0] == num_ys
+            if param.data.shape[0] != num_ys:
+                raise ValueError("shape inconsistency: num_ys")
         return num_ys
 
+    #TODO (Amit): I think a lot of the following functions need refactoring, 
+    # I don't know what to change to
+    # Also, which of H, G, J, N can be changed to x_func?
     def fg_to_lh(self, f_tch, g_tch):
         """
         Returns l and h function pointers. 
@@ -166,12 +214,12 @@ class RobustProblem(Problem):
         true_arg_num = (
             len(self.variables()) + len(self.y_parameters()) + len(self.uncertain_parameters())
         )
-        assert arg_num == true_arg_num, "incorrect number of user's pytorch function arguments"
+        if arg_num != true_arg_num:
+            raise ValueError("incorrect number of user's pytorch function arguments")
         h_funcs = []
         for g in g_tch:
-            assert (
-                len(signature(g).parameters) == true_arg_num
-            ), "incorrect number of user's pytorch function arguments"
+            if len(signature(g).parameters) != true_arg_num:
+                raise ValueError("incorrect number of user's pytorch function arguments")
 
             def hg(vars, y_params, u_params, alpha, eta, kappa):
                 return (
@@ -185,7 +233,7 @@ class RobustProblem(Problem):
         l_func = f_tch
         return l_func, h_funcs, len(h_funcs)
 
-    def lagrange_ojective(self, vars, y_params_mat, u_params_mat):
+    def lagrange_objective(self, vars, y_params_mat, u_params_mat):
         J = len(y_params_mat)
         N = len(u_params_mat)
 
@@ -232,9 +280,9 @@ class RobustProblem(Problem):
                 for j in range(J):
                     G[k, j, i] = g_k(*vars, *y_params_mat[j], *u_params_mat[i])
 
-        G_max = torch.max(G, dim=0)[0]
-        G_max_violate = (G_max > 0).float()
-        return torch.mean(G_max_violate)
+        g_max = torch.max(G, dim=0)[0]
+        g_max_violate = (g_max > 0).float()
+        return torch.mean(g_max_violate)
 
     # helper function for intermediate version
     def _udata_to_lst(self, data):
@@ -244,8 +292,11 @@ class RobustProblem(Problem):
             u_params_mat.append([data[i, :]])
         return u_params_mat
 
-    def lagrange(self, vars, y_params_mat, u_params_mat, alpha, lam, eta=0.05, kappa=-0.05):
-        F = self.lagrange_ojective(vars, y_params_mat, u_params_mat)
+    def lagrange(self, vars, y_params_mat, u_params_mat, alpha, lam,
+                  eta=settings.ETA_LAGRANGIAN_DEFAULT, kappa=settings.KAPPA_LAGRANGIAN_DEFAULT):
+        #TODO (Amit): It seems to me that this function does two things: returns the lagrangian
+        # and also evaluates. Shouldn't these be two separate functions?
+        F = self.lagrange_objective(vars, y_params_mat, u_params_mat)
         H = self.lagrange_constraint(vars, y_params_mat, u_params_mat, alpha, eta, kappa)
         eval = self.Eval(vars, y_params_mat, u_params_mat)
         prob_constr_violation = self.prob_constr_violation(vars, y_params_mat, u_params_mat)
@@ -315,6 +366,40 @@ class RobustProblem(Problem):
         # return a chain instead (chain.apply, return the problem and inverse data)
         return SolvingChain(reductions=new_reductions)
 
+    def _validate_uncertain_parameters(self):
+        """
+        This function checks if there are uncertain parameters.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+
+        Raises:
+            ValueError if there are no uncertain parameters
+        """
+        if self.uncertain_parameters() is None:
+            raise ValueError("The problem has no uncertain parameters")
+        
+    def _validate_unc_set_T(self, unc_set):
+        """
+        This function checks if paramaterT is not empty.
+
+        Args:
+            unc_set
+                Uncertainty set
+        
+        Returns:
+            None.
+
+        Raises:
+            ValueError if there is no paramT in the uncertainty set
+        """
+
+        if unc_set.paramT is None:
+            raise ValueError("unc_set.paramT is None")
+
     def _is_mro_set(self, unc_set):
         """
         This function returns whether we work on MRO set or not.
@@ -331,9 +416,9 @@ class RobustProblem(Problem):
 
         return (type(unc_set)==MRO)
 
-    def _set_new_prob(self, override=False):
+    def _canonize_problem(self, override=False):
         """
-        This function cannonizes a problem and saves it to self.new_prob
+        This function canonizes a problem and saves it to self.new_prob
 
         Args:
         
@@ -355,12 +440,12 @@ class RobustProblem(Problem):
         unc_reductions += [RemoveUncertainParameters()]
         newchain = UncertainChain(self, reductions=unc_reductions)
 
-        # TODO (bart): We should keep inverse data. We can use it to reconstruct the original
+        # TODO (Bart): We should keep inverse data. We can use it to reconstruct the original
         # solution from new_prob. Are we sure we don't need it?
         #Apply the chain
         #prob is the problem without uncertainty
         #The second (unused) returned value is inverse_data
-        self.new_prob, inverse_data = newchain.apply(self)
+        self.new_prob, self.inverse_data = newchain.apply(self)
 
     def _gen_init(self, eps, train_set, init_eps, init_A):
         """
@@ -410,39 +495,41 @@ class RobustProblem(Problem):
         eps = (eps_tch is not None)
         if self._init is None:
             self._init = self._gen_init(eps, train_set, init_eps, init_A)
-        init_tensor = torch.tensor(self._init, requires_grad=True, dtype=DTYPE)
+        init_tensor = torch.tensor(self._init, requires_grad=self.train_flag, dtype=settings.DTYPE)
         paramb_tch = None
-        case = self._calc_case(eps_tch, mro_set, unc_set, init_A)
+        case = self._calc_mro_case(eps_tch, mro_set, unc_set, init_A)
         
-        if case==MRO_CASE.NO_MRO:
+        if case==settings.MRO_CASE.NO_MRO:
             if init_b is not None:
                 paramb_tch_data = np.array(init_b)
             else:
                 paramb_tch_data = -self._init@np.mean(train_set, axis=0)
-            paramb_tch = torch.tensor(paramb_tch_data, requires_grad=True, dtype=DTYPE)
+            paramb_tch = torch.tensor(paramb_tch_data, requires_grad=self.train_flag,
+                                      dtype=settings.DTYPE)
             paramb_tch = eps_tch*paramb_tch if eps else paramb_tch
             paramT_tch = init_tensor
             if eps:
                 paramT_tch*=self._init
 
-        elif case==MRO_CASE.DIFF_A_UNINIT:
+        elif case==settings.MRO_CASE.DIFF_A_UNINIT:
             paramT_tch = eps_tch[0]*init_tensor
             for k_ind in range(1, unc_set._K):
                 paramT_tch = torch.vstack((paramT_tch, eps_tch[k_ind]*self._init))
 
-        elif case==MRO_CASE.DIFF_A_INIT:
-            paramT_tch = eps_tch[0]*torch.tensor(init_A[0:unc_set._m, 0:unc_set._m], dtype=DTYPE)
+        elif case==settings.MRO_CASE.DIFF_A_INIT:
+            paramT_tch = eps_tch[0]*torch.tensor(init_A[0:unc_set._m, 0:unc_set._m],
+                                                 dtype=settings.DTYPE)
             for k_ind in range(1, unc_set._K):
                 paramT_tch = torch.vstack(
                     (paramT_tch, eps_tch[k_ind] *
                         torch.tensor(init_A[(k_ind*unc_set._m):(k_ind+1)*unc_set._m,
                                         0:unc_set._m],
-                                        dtype=DTYPE)))
+                                        dtype=settings.DTYPE)))
 
-        elif case==MRO_CASE.SAME_A:
+        elif case==settings.MRO_CASE.SAME_A:
             paramT_tch = eps_tch*init_tensor
         
-        alpha = torch.tensor(init_alpha, requires_grad=True)
+        alpha = torch.tensor(init_alpha, requires_grad=self.train_flag)
         return paramT_tch, paramb_tch, alpha, case
 
     def _split_dataset(self, unc_set, test_percentage, seed):
@@ -475,8 +562,8 @@ class RobustProblem(Problem):
         #Val is the training set, eval is the test set
         train_set, test_set = train_test_split(unc_set.data, test_size=int(
             unc_set.data.shape[0]*test_percentage), random_state=seed)
-        val_dset = torch.tensor(train_set, requires_grad=True, dtype=DTYPE)
-        eval_set = torch.tensor(test_set, requires_grad=True, dtype=DTYPE)
+        val_dset = torch.tensor(train_set, requires_grad=self.train_flag, dtype=settings.DTYPE)
+        eval_set = torch.tensor(test_set, requires_grad=self.train_flag, dtype=settings.DTYPE)
 
         return train_set, test_set, val_dset, eval_set
 
@@ -514,7 +601,7 @@ class RobustProblem(Problem):
     def _set_train_varaibles(self, fixb, mro_set, init_A, unc_set, alpha, paramT_tch,
                            paramb_tch, eps_tch):
         """
-        This function 
+        This function TODO (Amit): complete the docstrings
         """
         if eps_tch is not None:
             variables = [eps_tch, alpha]
@@ -527,7 +614,7 @@ class RobustProblem(Problem):
                 elif init_A is not None and init_A.shape[0] != (unc_set._K*unc_set._m):
                     paramT_tch = paramT_tch.repeat(unc_set._K, 1)
             paramT = paramT_tch.detach().numpy()
-            paramT_tch = torch.tensor(paramT, requires_grad=True, dtype=DTYPE)
+            paramT_tch = torch.tensor(paramT, requires_grad=self.train_flag, dtype=settings.DTYPE)
             variables = [paramT_tch, alpha]
         else:
             variables = [paramT_tch, paramb_tch, alpha]
@@ -558,7 +645,7 @@ class RobustProblem(Problem):
             for i in range(len(y_parameters)):
                 newlst[scene].append(torch.tensor(
                     np.array(y_parameters[i].data[scene,:])
-                    .astype(float), requires_grad=True, dtype=DTYPE))
+                    .astype(float), requires_grad=self.train_flag, dtype=settings.DTYPE))
             newlst[scene].append(paramT_tch)
             if not mro_set:
                 newlst[scene].append(paramb_tch)
@@ -579,7 +666,7 @@ class RobustProblem(Problem):
         """
 
         scalar = 1/np.array(init_eps) if init_eps else 1.0
-        eps_tch = torch.tensor(scalar, requires_grad=True, dtype=DTYPE)
+        eps_tch = torch.tensor(scalar, requires_grad=self.train_flag, dtype=settings.DTYPE)
 
         if (not mro_set) or (not unc_set._uniqueA):
             return eps_tch
@@ -589,10 +676,10 @@ class RobustProblem(Problem):
         
         eps_tch = eps_tch.repeat(unc_set._K)
         eps_tch = eps_tch.detach().numpy()
-        eps_tch = torch.tensor(eps_tch, requires_grad=True, dtype=DTYPE)
+        eps_tch = torch.tensor(eps_tch, requires_grad=self.train_flag, dtype=settings.DTYPE)
         return eps_tch
 
-    def _calc_case(self, eps_tch, mro_set, unc_set, init_A):
+    def _calc_mro_case(self, eps_tch, mro_set, unc_set, init_A):
         """
         This function calculates the MRO_CASE of this problem
 
@@ -615,44 +702,91 @@ class RobustProblem(Problem):
         """
 
         eps = (eps_tch is not None)
-        case = MRO_CASE.NO_MRO
+        case = settings.MRO_CASE.NO_MRO
         if (not eps) or (not mro_set):
             return case
 
         elif unc_set._uniqueA and eps:
             if init_A is None or init_A.shape[0] != (unc_set._K*unc_set._m):
-                case = MRO_CASE.DIFF_A_UNINIT
+                case = settings.MRO_CASE.DIFF_A_UNINIT
             else:
-                case = MRO_CASE.DIFF_A_INIT
+                case = settings.MRO_CASE.DIFF_A_INIT
         else:
-            case = MRO_CASE.SAME_A
+            case = settings.MRO_CASE.SAME_A
         
         return case
 
+    def _get_unc_set(self):
+        """
+        This function returns unc_set.data.
 
+        Args:
+            None
+
+        Returns:
+            uncertainty set
+
+        Raises:
+            ValueError if unc_set.data is None
+        """
+
+        unc_set = self.uncertain_parameters()[0].uncertainty_set
+        if unc_set.data is None:
+            raise ValueError("Cannot train without uncertainty set data")
+        return unc_set
+
+    def _calc_coverage(self, dset, paramT_tch, eps_tch1, paramb_tch):
+        """
+        This function calculates coverage.
+        
+        Args:
+            dset:
+                Dataset (train or test)
+            paramT_tch:
+                T torch
+            eps_tch1:
+                epsilon torch
+            paramb_tch:
+                b torch
+        
+        Returns:
+            Coverage
+        """
+        coverage = 0 
+        for datind in range(dset.shape[0]):
+            coverage += torch.where(
+                torch.norm(paramT_tch @ dset[datind] + eps_tch1[0][0] * paramb_tch)
+                <= 1,
+                1,
+                0,
+            )
+        return coverage
+    
+    #TODO (Amit): Do we want all default values in settings.py, or only the numerical values?    
     def train(
         self,
         eps=False,
         fixb=False,
-        step=45,
-        lr=0.0001,
+        num_iter=settings.NUM_ITER_DEFAULT,
+        lr=settings.LR_DEFAULT,
         scheduler=True,
-        momentum=0.8,
-        optimizer="SGD",
+        momentum=settings.MOMENTUM_DEFAULT,
+        optimizer=settings.OPT_DEFAULT,
         init_eps=None,
         init_A=None,
         init_b=None,
         save_iters=False,
-        seed=1,
-        init_lam=0.0,
-        init_alpha=-0.01,
-        target_cvar=-0.015,
-        test_percentage=0.2,
-        ys=None,
+        seed=settings.SEED_DEFAULT,
+        init_lam=settings.INIT_LAM_DEFAULT,
+        init_alpha=settings.INIT_ALPHA_DEFAULT,
+        kappa=settings.KAPPA_DEFAULT, #TODO (Bart): This should be Kappa and passed 
+                                        #(originall target_cvar)
+        test_percentage=settings.TEST_PERCENTGE_DEFAULT,
+        ys=None, #TODO (Amit): Can we remove this variable?
         num_ys=None,
-        step_y=0.1,
-        batch_percentage=0.2,
-        solver: Optional[str] = None,
+        step_y=settings.STEP_Y_DEFAULT,
+        batch_percentage=settings.BATCH_PERCENTAGE_DEFAULT,
+        solver: Optional[str] = None, #TODO (Amit): Why is this not used? Can we remove it?
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. lagrangian metric
@@ -663,20 +797,20 @@ class RobustProblem(Problem):
            If True, train only epsilon, where :math:`A = \epsilon I, \
            b = \epsilon \bar{d}`, where :math:`\bar{d}` is the centroid of the
            training data. Default False.
-        step : int, optional
-            The total number of gradient steps performed. Default 45.
+        num_iter : int, optional
+            The total number of gradient steps performed.
         lr : float, optional
-            The learning rate of gradient descent. Default 0.01.
+            The learning rate of gradient descent.
         momentum: float between 0 and 1, optional
-            The momentum for gradient descent. Default 0.8.
+            The momentum for gradient descent.
         optimizer: str or letters, optional
-            The optimizer to use tor the descent algorithm. Default "SGD".
+            The optimizer to use tor the descent algorithm.
         init_eps : float, optional
             The epsilon to initialize :math:`A` and :math:`b`, if passed. If not passed,
             :math:`A` will be initialized as the inverse square root of the
             covariance of the data, and b will be initialized as :math:`\bar{d}`.
         seed : int, optional
-            The seed to control the random state of the train-test data split. Default 1.
+            The seed to control the random state of the train-test data split.
 
         Returns:
         
@@ -694,18 +828,14 @@ class RobustProblem(Problem):
 
 
         #Validity checks and initializations
-        T_iter = [] #T is A from the paper
+        self.train_flag = True
+        T_iter = []
         b_iter = []
-        if (self.uncertain_parameters() is None):
-            raise ValueError("self.uncertain_parameters is empty")
-        unc_set = self.uncertain_parameters()[0].uncertainty_set
-        if (unc_set.data is None):
-            raise ValueError("Cannot train without uncertainty set data")
-
-        self._set_new_prob( )#Cannonize the problem
-
-        if unc_set.paramT is None:
-            raise ValueError("unc_set.paramT is None")
+        self._validate_uncertain_parameters()
+        
+        unc_set = self._get_unc_set()
+        self._canonize_problem()
+        self._validate_unc_set_T(unc_set)
         
         mro_set = self._is_mro_set(unc_set)
         df = pd.DataFrame(columns=["step", "Opt_val", "Eval_val", "Lagrangian_val",
@@ -718,17 +848,17 @@ class RobustProblem(Problem):
         cvxpylayer = CvxpyLayer(self.new_prob, parameters=self.y_parameters()
                                 + self.shape_parameters(self.new_prob), variables=self.variables())
         eps_tch = self._gen_eps_tch(self, init_eps, unc_set, mro_set) if eps else None
-        paramT_tch, paramb_tch, alpha, case = self._init_torches(init_eps, init_A, init_b,
+        paramT_tch, paramb_tch, alpha, _ = self._init_torches(init_eps, init_A, init_b,
                                                                 init_alpha, train_set, eps_tch,
                                                                 mro_set, unc_set)
         if not eps:
             self._update_iters(save_iters, T_iter, b_iter, paramT_tch, paramb_tch, mro_set)
         paramT_tch, variables = self._set_train_varaibles(fixb, mro_set, init_A, unc_set, alpha,
                                                         paramT_tch, paramb_tch, eps_tch)
-        opt = OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
+        opt = settings.OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
         scheduler=None
         if scheduler:
-            scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=5)
+            scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=settings.PATIENCE)
 
         # y's and cvxpylayer begin
         y_parameters = self.y_parameters()
@@ -738,12 +868,12 @@ class RobustProblem(Problem):
             self.new_prob.parameters()
         newlst = self._gen_new_lst(num_ys, paramT_tch, paramb_tch, mro_set, y_parameters)
         # train
-        lam_list = init_lam * torch.ones((num_ys, self.num_g), dtype=float) #List of lambdas
+        lam_list = init_lam * torch.ones((num_ys, self.num_g), dtype=float)
         lam = init_lam * torch.ones(self.num_g, dtype=float)
 
         #step is the number of iterations
-        for step_num in range(step):
-            train_stats = TrainLoopStats(step_num=step_num)
+        for step_num in range(num_iter):
+            train_stats = TrainLoopStats(step_num=step_num, train_flag=self.train_flag)
             #Index to select what data the SGD takes
             random_int = np.random.randint(0, val_dset.shape[0],
                                             int(val_dset.shape[0]*batch_percentage))
@@ -758,27 +888,26 @@ class RobustProblem(Problem):
                     newlst[scene][-1] = paramT_tch
                 #Solve the problem for specific y, returns the variables (x)
                 var_values = cvxpylayer(*newlst[scene],
-                                        solver_args=LAYER_SOLVER)
+                                        solver_args=settings.LAYER_SOLVER)
 
                 #temp_lagrangian     - Lagrangian of the Lagrangian problem (F(x)+lambda H(x))
                 #obj                - Objective value of the problem (F(x))
                 #cvar_update        - Amount of constraint violation (H(z))
-                #violations         - Probability of violation
+                #train_vio         - Probability of violation
                 
                 #Training set:
-                temp_lagrangian, obj, cvar_update, violations = self.lagrange(var_values,
+                temp_lagrangian, obj, cvar_update, train_vio = self.lagrange(var_values,
                         [newlst[scene][:-2]], self._udata_to_lst(val_dset[random_int]),
                                 alpha, lam)
                 #Testing set:
-                evallagrangian, obj_validation, var_vio, violations2 = self.lagrange(var_values,
+                evallagrangian, obj_validation, var_vio, test_vio = self.lagrange(var_values,
                             [newlst[scene][:-2]], self._udata_to_lst(eval_set),
                             alpha, lam)
                 #Update parameters for the next y
                 lam_list[scene, :] = cvar_update.detach()
                 train_stats.update_stats(temp_lagrangian, num_ys, obj_validation,
-                                        violations, violations2, var_vio, cvar_update)
+                                        train_vio, test_vio, var_vio, cvar_update)
             
-            # TODO (bart): use only lam (cur has no meaning)
             #calculate statistics over all y
             lam = torch.maximum(lam + step_y*(torch.mean(lam_list, axis=0)),
                                    torch.zeros(self.num_g, dtype=float))
@@ -794,10 +923,10 @@ class RobustProblem(Problem):
 
             # BEFORE UPDTATING PANDAS DATAFRAME
             new_row = train_stats.generate_row(num_ys, paramT_tch, lam, alpha, coverage,
-                                             coverage2, val_dset, eval_set)
+                                             coverage2, val_dset, eval_set, eps_tch)
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
             self._update_iters(save_iters, T_iter, b_iter, paramT_tch, paramb_tch, mro_set)
-            if step_num < step - 1:
+            if step_num < num_iter - 1:
                 opt.step()
                 opt.zero_grad()
                 if scheduler:
@@ -810,28 +939,28 @@ class RobustProblem(Problem):
             unc_set.paramb.value = paramb_tch.detach().numpy().copy()
 
         return_eps = eps_tch.detach().numpy().copy() if eps else 1
-        return_parab_valule = unc_set.paramb.value if mro_set else None
+        return_parab_value = unc_set.paramb.value if mro_set else None
         return_b_iter = b_iter if mro_set else None
-        return Result(self, self.new_prob, df, unc_set.paramT.value, return_parab_valule,
+        return Result(self, self.new_prob, df, unc_set.paramT.value, return_parab_value,
                       return_eps, obj.item(), var_values,T_iter=T_iter, b_iter=return_b_iter)
 
     def grid(
         self,
-        epslst=None,
-        seed=1,
+        epslst=settings.EPS_LST_DEFAULT,
+        seed=settings.SEED_DEFAULT,
         init_A=None,
         init_b=None,
-        init_alpha=-0.01,
-        test_percentage=0.2,
-        ys=None,
+        init_alpha=settings.INIT_ALPHA_DEFAULT,
+        test_percentage=settings.TEST_PERCENTAGE,
+        ys=None, #TODO (Amit): This is not used, can we delete it?
         num_ys=None,
-        solver: Optional[str] = None,
+        solver: Optional[str] = None, #TODO (Amit): This is not used, can we delete it?
     ):
         r"""
         Perform gridsearch to find optimal :math:`\epsilon`-ball around data.
 
-        Parameters
-        -----------
+        Args:
+        
         epslst : np.array, optional
             The list of :math:`\epsilon` to iterate over. "Default np.logspace(-3, 1, 20)
         seed: int
@@ -851,221 +980,162 @@ class RobustProblem(Problem):
             Eps: float
                 The epsilon value
         """
-        # if enforce_dpp is False:
-        #      warnings.warn("should enforce problem is dpp")
-        if epslst is None:
-            epslst = EPS_LST_DEFAULT
 
-        if self.uncertain_parameters():
-            unc_set = self.uncertain_parameters()[0].uncertainty_set
+        self.train_flag = False
+        self._validate_uncertain_parameters()
 
-            if unc_set.data is None:
-                raise ValueError("Cannot train without uncertainty set data")
+        unc_set = self._get_unc_set()
+        self._canonize_problem()
 
-            unc_reductions = []
-            if type(self.objective) == Maximize:
-                unc_reductions += [FlipObjective()]
-            unc_reductions += [RemoveUncertainParameters()]
-            newchain = UncertainChain(self, reductions=unc_reductions)
-            prob, inverse_data = newchain.apply(self)
-            if unc_set.paramT is not None:
-                df = pd.DataFrame(columns=["Opt_val", "Eval_val", "Lagrangian_val", "Eps"])
-                if type(unc_set) == MRO:
-                    mro_set = True
-                else:
-                    mro_set = False
-                # setup train and test data
-                train_set, test_set = train_test_split(unc_set.data, test_size=int(
-                    unc_set.data.shape[0]*test_percentage), random_state=seed)
-                val_dset = torch.tensor(train_set, requires_grad=True, dtype=DTYPE)
-                eval_set = torch.tensor(test_set, requires_grad=True, dtype=DTYPE)
-                # create cvxpylayer
-                cvxpylayer = CvxpyLayer(
-                    prob, parameters=prob.parameters(), variables=self.variables()
-                )
+        self._validate_unc_set_T(unc_set)
+        df = pd.DataFrame(columns=["Opt_val", "Eval_val", "Lagrangian_val", "Eps"])
+        mro_set = self._is_mro_set(unc_set)
+        
+        # setup train and test data
+        train_set, _, val_dset, eval_set = self._split_dataset(unc_set, test_percentage, seed)
 
-                # paramlst = prob.parameters()
-                y_parameters = self.y_parameters()
-                num_ys = self.num_ys
+        # creviolationsate cvxpylayer
+        cvxpylayer = CvxpyLayer(
+            self.new_prob, parameters=self.new_prob.parameters(), variables=self.variables()
+        )
 
-                newlst = {}
-                for scene in range(num_ys):
-                    newlst[scene] = []
-                    for i in range(len(y_parameters)):
-                        newlst[scene].append(
-                            torch.tensor(
-                                np.array(y_parameters[i].data[scene, :]).astype(float),
-                                requires_grad=True,
-                                dtype=DTYPE,
-                            )
-                        )
-                    newlst[scene].append(0)
-                    if not mro_set:
-                        newlst[scene].append(0)
+        # paramlst = prob.parameters()
+        y_parameters = self.y_parameters()
+        num_ys = self.num_ys
 
-                # for scene in range(num_ys):
-                #     newlst[scene] = []
-                #     if not mro_set:
-                #         for i in range(len(paramlst[:-2])):
-                #             newlst[scene].append(torch.tensor(
-                # np.array(ys[scene][i]).astype(
-                #                 float)))
-                #         newlst[scene].append(0)
-                #         newlst[scene].append(0)
-                #     else:
-                #         for i in range(len(paramlst[:-1])):
-                #             newlst[scene].append(torch.tensor(
-                # np.array(ys[scene][i]).astype(
-                #                 float)))
-                #         newlst[scene].append(0)
-                minval = 9999999
-                var_vals = 0
-                alpha = torch.tensor(init_alpha, requires_grad=True)
-
-                if init_A is not None:
-                    init = torch.tensor(init_A, requires_grad=True, dtype=DTYPE)
-                else:
-                    init = torch.tensor(np.eye(train_set.shape[1]), requires_grad=True,
-                                        dtype=DTYPE)
-                if init_b is not None:
-                    init_bval = torch.tensor(init_b, requires_grad=True, dtype=DTYPE)
-                else:
-                    init_bval = torch.tensor(-np.mean(train_set, axis=0), requires_grad=True,
-                                             dtype=DTYPE)
-                lam = 1000 * torch.ones(self.num_g, dtype=float)
-
-                for epss in epslst:
-                    eps_tch1 = torch.tensor([[1 / epss]], requires_grad=True, dtype=DTYPE)
-                    tot_lagrangian = 0
-                    totevallagrangian = []
-                    optval = []
-                    testval = []
-                    test_vio = []
-                    train_vio = []
-                    violation_test = []
-                    violation_train = []
-                    for scene in range(num_ys):
-                        if not mro_set:
-                            newlst[scene][-1] = eps_tch1[0][0] * init_bval
-                            newlst[scene][-2] = eps_tch1[0][0] * init
-                            paramT_tch = eps_tch1[0][0] * init
-                        else:
-                            if unc_set._uniqueA:
-                                if init_A is None or (
-                                    init_A is not None
-                                    and init_A.shape[0] != (unc_set._K * unc_set._m)
-                                ):
-                                    paramT_tch = eps_tch1[0][0] * init
-                                    paramT_tch = paramT_tch.repeat(unc_set._K, 1)
-                                else:
-                                    paramT_tch = eps_tch1[0][0] * init
-                            else:
-                                paramT_tch = eps_tch1[0][0] * init
-                            newlst[scene][-1] = paramT_tch
-                        var_values = cvxpylayer(*newlst[scene], solver_args=LAYER_SOLVER)
-
-                        temp_lagrangian, obj, cvar_update, violations = self.lagrange(
-                            var_values,
-                            [newlst[scene][:-2]],
-                            self._udata_to_lst(val_dset),
-                            alpha,
-                            lam,
-                        )
-                        # temp_lagrangian, obj, violations,cvar_update = unc_set.lagrangian(
-                        #     *var_values, *newlst[scene][:-2], alpha = torch.tensor(
-                        #     init_alpha), data = val_dset)
-
-                        evallagrangian, obj_validation, var_vio, violations2 = self.lagrange(
-                            var_values,
-                            [newlst[scene][:-2]],
-                            self._udata_to_lst(eval_set),
-                            alpha,
-                            lam,
-                        )
-                        # evallagrangian, obj_validation, violations2, var_vio = unc_set.lagrangian(
-                        #     *var_values, *newlst[scene][:-2], alpha = torch.tensor(
-                        #     init_alpha), data = eval_set)
-
-                        tot_lagrangian += temp_lagrangian.item()
-                        totevallagrangian.append(evallagrangian.item())
-                        optval.append(obj.item())
-                        testval.append(obj_validation.item())
-                        test_vio.append(violations2.item())
-                        train_vio.append(violations.item())
-                        violation_test.append(var_vio.item())
-                        violation_train.append(cvar_update.item())
-                    tot_lagrangian = tot_lagrangian / num_ys
-                    if tot_lagrangian <= minval:
-                        minval = temp_lagrangian
-                        mineps = eps_tch1.clone()
-                        minT = paramT_tch.clone()
-                        var_vals = var_values
-                    coverage = 0
-                    for datind in range(val_dset.shape[0]):
-                        coverage += torch.where(
-                            torch.norm(paramT_tch @ val_dset[datind] + eps_tch1[0][0] * init_bval)
-                            <= 1,
-                            1,
-                            0,
-                        )
-                    coverage2 = 0
-                    for datind in range(eval_set.shape[0]):
-                        coverage2 += torch.where(
-                            torch.norm(paramT_tch @ eval_set[datind] + eps_tch1[0][0] * init_bval)
-                            <= 1,
-                            1,
-                            0,
-                        )
-                    new_row = pd.Series(
-                        {
-                            "Lagrangian_val": tot_lagrangian,
-                            "Eval_val": totevallagrangian,
-                            "Opt_val": optval,
-                            "Test_val": testval,
-                            "Violations": test_vio,
-                            "Violations_train": train_vio,
-                            "Violation_test": violation_test,
-                            "Violation_train": violation_train,
-                            "Eps": 1 / eps_tch1[0][0].detach().numpy().copy(),
-                            "coverage_train": coverage.detach().numpy().item() / val_dset.shape[0],
-                            "coverage_test": coverage2.detach().numpy().item() / eval_set.shape[0],
-                        }
+        newlst = {}
+        for scene in range(num_ys):
+            newlst[scene] = []
+            for i in range(len(y_parameters)):
+                newlst[scene].append(
+                    torch.tensor(
+                        np.array(y_parameters[i].data[scene, :]).astype(float),
+                        requires_grad=self.train_flag,
+                        dtype=settings.DTYPE,
                     )
-                    df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
+                )
+            #TODO (Amit): Why do we always append 0? Is this a mistake?
+            #It looks very similar to _gen_new_lst, and I wonder if they should be the same?
+            newlst[scene].append(0)
+            if not mro_set:
+                newlst[scene].append(0)
 
-                self._trained = True
-                unc_set._trained = True
+        grid_stats = GridStats()
+        
+        '''
+        alpha = torch.tensor(init_alpha, requires_grad=self.train_flag)
 
-                if not mro_set:
-                    unc_set.paramT.value = (mineps * init).detach().numpy().copy()
-                    unc_set.paramb.value = (mineps[0] * init_bval).detach().numpy().copy()
-                else:
-                    unc_set.paramT.value = minT.detach().numpy().copy()
-                self.new_prob = prob
-        if not mro_set:
-            return Result(
-                self,
-                prob,
-                df,
-                unc_set.paramT.value,
-                unc_set.paramb.value,
-                mineps[0][0].detach().numpy().copy(),
-                minval,
-                var_vals,
-            )
+        if init_A is not None:
+            init = torch.tensor(init_A, requires_grad=self.train_flag, dtype=settings.DTYPE)
         else:
-            return Result(
-                self,
-                prob,
-                df,
-                unc_set.paramT.value,
-                None,
-                mineps[0][0].detach().numpy().copy(),
-                minval,
-                var_vals,
-            )
+            init = torch.tensor(np.eye(train_set.shape[1]), requires_grad=self.train_flag,
+                                dtype=settings.DTYPE)
+        if init_b is not None:
+            init_bval = torch.tensor(init_b, requires_grad=self.train_flag, dtype=settings.DTYPE)
+        else:
+            init_bval = torch.tensor(-np.mean(train_set, axis=0), requires_grad=self.train_flag,
+                                        dtype=settings.DTYPE)
+        '''
+
+        #TODO (Amit): What is this 1000? (numbers have no business inside a function)
+        #There's no training so there shouldn't be a lambda here.
+        lam = 1000 * torch.ones(self.num_g, dtype=float)
+
+        #TODO (Amit): Is it true that epss is the same as init_eps in train? If yes, we will have
+        #to change the name to be consistent
+        for epss in epslst:
+            #TODO (Amit): I am a bit confused. I am not sure if _init_torches that is used in train
+            #implemenets the same logic as in the commented block above.
+            #TODO (Amit): Why is it called eps_tch1 and not eps_tch?
+
+            #TODO (Amit): #Is this call correct? There are more conditions in this function
+            #Also, why is it called eps_tch1 and not eps_tch?
+            eps_tch1 = self._gen_eps_tch(epss, unc_set, mro_set)
+            paramT_tch, paramb_tch, alpha, case = self._init_torches(epss, init_A, init_b,
+                                                        init_alpha, train_set, eps_tch1,
+                                                        mro_set, unc_set)
+
+            train_stats = TrainLoopStats(step_num=np.NAN, train_flag=self.train_flag)
+            for scene in range(num_ys):
+                if not mro_set:
+                    newlst[scene][-1] = paramb_tch
+                    newlst[scene][-2] = paramT_tch
+                else:
+                    paramT_tch, _, _, _ = self._init_torches(epss, init_A, init_b,
+                                                            init_alpha, train_set,
+                                                            eps_tch1, mro_set, unc_set)
+                    newlst[scene][-1] = paramT_tch
+
+                var_values = cvxpylayer(*newlst[scene], solver_args=settings.LAYER_SOLVER)
+
+                #TODO (Bart): Is there a need to do lagrange here? There's no training.
+                #TODO (Amit): There are some unused variables here. Please correct/delete.
+                temp_lagrangian, obj, cvar_update, train_vio = self.lagrange(
+                    var_values,
+                    [newlst[scene][:-2]],
+                    self._udata_to_lst(val_dset), #TODO (Amit): shouldn't be val_dset[random_int]?
+                    alpha,
+                    lam,
+                )
+                # temp_lagrangian, obj, train_vio,cvar_update = unc_set.lagrangian(
+                #     *var_values, *newlst[scene][:-2], alpha = torch.tensor(
+                #     init_alpha), data = val_dset)
+
+                evallagrangian, obj_validation, var_vio, test_vio = self.lagrange(
+                    var_values,
+                    [newlst[scene][:-2]],
+                    self._udata_to_lst(eval_set),
+                    alpha,
+                    lam,
+                )
+                # evallagrangian, obj_validation, test_vio, var_vio = unc_set.lagrangian(
+                #     *var_values, *newlst[scene][:-2], alpha = torch.tensor(
+                #     init_alpha), data = eval_set)
+
+
+                train_stats.update_stats(temp_lagrangian, num_ys, obj_validation,
+                                            train_vio, test_vio, var_vio, cvar_update)
+            grid_stats.update(train_stats, temp_lagrangian, eps_tch1, paramT_tch, var_values)
+
+            #TODO (Amit): Shouldn't it be train_dset and test_dset (applies also to train)?
+            #TODO (Amit): If so, update names from coverage/coverage2 (bad names)
+            #TODO (Amit): Why do we sometimes use validation/evaluation/train/test?
+            # Can we come up with consistent names?
+            #TODO (Bart): why val_dset and eval_set? either dset or set.
+            coverage = self._calc_coverage(self, val_dset, paramT_tch, eps_tch1, paramb_tch)
+            coverage2 = self._calc_coverage(self, eval_set, paramT_tch, eps_tch1, paramb_tch)
+            
+            
+            new_row = train_stats.generate_row(num_ys, paramT_tch, lam, alpha, coverage, coverage2,
+                    val_dset, eval_set, eps_tch1)
+            df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
+
+        self._trained = True
+        unc_set._trained = True
+
+        if not mro_set:
+            #TODO (Amit): Irina, can we go over these assignments and see if we can use
+            # previously calculated torches? (I initialized to None to pass tests)
+            init = None #TODO (Amit): TEMPORARY ONLY, REMOVE
+            init_bval = None #TODO (Amit): TEMPORARY ONLY, REMOVE
+            unc_set.paramT.value = (grid_stats.mineps * init).detach().numpy().copy()
+            unc_set.paramb.value = (grid_stats.mineps[0] * init_bval).detach().numpy().copy()
+        else:
+            unc_set.paramT.value = grid_stats.minT.detach().numpy().copy()
+        paramb_value = None if mro_set else unc_set.paramb.value
+        return Result(
+                        self,
+                        self.new_prob,
+                        df,
+                        unc_set.paramT.value,
+                        paramb_value,
+                        grid_stats.mineps[0][0].detach().numpy().copy(),
+                        grid_stats.minval,
+                        grid_stats.var_vals,
+                     ) 
 
     def dualize_constraints(self):
+        #TODO (Bart): This might be a redundant function, construct_chain should do that.
         if self.uncertain_parameters():
             unc_reductions = []
             if type(self.objective) == Maximize:
@@ -1079,6 +1149,7 @@ class RobustProblem(Problem):
         return super(RobustProblem, self)
 
     def solve(self, solver: Optional[str] = None):
+        #TODO (Bart): Need to invert the data to get the solution to the original problem
         if self.new_prob is not None:
             return self.new_prob.solve(solver=solver)
         elif self.uncertain_parameters():
