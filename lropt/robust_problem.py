@@ -951,7 +951,7 @@ class RobustProblem(Problem):
         init_A=None,
         init_b=None,
         init_alpha=settings.INIT_ALPHA_DEFAULT,
-        test_percentage=settings.TEST_PERCENTAGE,
+        test_percentage=settings.TEST_PERCENTAGE_DEFAULT,
         ys=None, #TODO (Amit): This is not used, can we delete it?
         num_ys=None,
         solver: Optional[str] = None, #TODO (Amit): This is not used, can we delete it?
