@@ -747,6 +747,183 @@ class RobustProblem(Problem):
             return Result(self, prob, df, unc_set.paramT.value,
                           None, mineps[0][0].detach().numpy().copy(), minval, var_vals)
 
+    def rotations(self, angle_list = None, seed=1, init_A=None, init_b=None, init_alpha=-0.01,
+             test_percentage=0.2, scenarios=None, num_scenarios=None, solver: Optional[str] = None):
+        r"""
+        Perform gridsearch to find optimal :math:`\epsilon`-ball around data.
+
+        Parameters
+        -----------
+        epslst : np.array, optional
+            The list of :math:`\epsilon` to iterate over. "Default np.logspace(-3, 1, 20)
+        seed: int
+            The seed to control the train test split. Default 1.
+        solver: optional
+            A solver to perform gradient-based learning
+
+        Returns
+        -------
+        A pandas data frame with information on each :math:`\epsilon` having the following columns:
+            Opt_val: float
+                The objective value of the Robust Problem
+            Loss_val: float
+                The value of the loss function applied to the training data
+            Eval_val: float
+                The value of the loss function applied to the evaluation data
+            Eps: float
+                The epsilon value
+        """
+        # if enforce_dpp is False:
+        #      warnings.warn("should enforce problem is dpp")
+
+        if self.uncertain_parameters():
+            unc_set = self.uncertain_parameters()[0].uncertainty_set
+
+            if unc_set.data is None:
+                raise ValueError("Cannot train without uncertainty set data")
+
+
+            unc_reductions = []
+            if type(self.objective) == Maximize:
+                unc_reductions += [FlipObjective()]
+            unc_reductions += [RemoveUncertainParameters()]
+            newchain = UncertainChain(self, reductions=unc_reductions)
+            prob, inverse_data = newchain.apply(self)
+            if unc_set.paramT is not None:
+                df = pd.DataFrame(columns=["Opt_val", "Eval_val", "Loss_val", "Eps"])
+                if type(unc_set) == MRO:
+                    mro_set = True
+                else:
+                    mro_set = False
+                # setup train and test data
+                train, test = train_test_split(unc_set.data, test_size=int(
+                    unc_set.data.shape[0]*test_percentage), random_state=seed)
+                val_dset = torch.tensor(train, requires_grad=True, dtype=DTYPE)
+                eval_set = torch.tensor(test, requires_grad=True, dtype=DTYPE)
+                # create cvxpylayer
+                cvxpylayer = CvxpyLayer(prob, parameters=prob.parameters(),
+                                        variables=self.variables())
+
+                paramlst = prob.parameters()
+                newlst = {}
+                for scene in range(num_scenarios):
+                    newlst[scene] = []
+                    if not mro_set:
+                        for i in range(len(paramlst[:-2])):
+                            newlst[scene].append(torch.tensor(np.array(scenarios[scene][i]).astype(
+                                float)))
+                        newlst[scene].append(0)
+                        newlst[scene].append(0)
+                    else:
+                        for i in range(len(paramlst[:-1])):
+                            newlst[scene].append(torch.tensor(np.array(scenarios[scene][i]).astype(
+                                float)))
+                        newlst[scene].append(0)
+                minval = 9999999
+                var_vals = 0
+
+                if init_A is not None:
+                    init = torch.tensor(init_A, requires_grad=True, dtype=DTYPE)
+                else:
+                    init = torch.tensor(np.eye(train.shape[1]), requires_grad=True,
+                                        dtype=DTYPE)
+                if init_b is not None:
+                    init_bval = torch.tensor(init_b, requires_grad=True,
+                                             dtype=DTYPE)
+                else:
+                    init_bval = torch.tensor(-np.mean(train, axis=0), requires_grad=True,
+                                             dtype=DTYPE)
+
+                for angle in angle_list:
+                    theta = np.radians(angle)
+                    c, s = np.cos(theta), np.sin(theta)
+                    rotation = torch.tensor(np.array(((c, -s), (s, c))))
+                    eps_tch1 = torch.tensor([[1]], requires_grad=True, dtype=DTYPE)
+                    totloss = 0
+                    totevalloss = []
+                    optval = []
+                    testval = []
+                    test_vio = []
+                    train_vio = []
+                    violation_val = []
+                    violation_train = []
+
+                    for scene in range(num_scenarios):
+                        if not mro_set:
+                            newlst[scene][-1] = eps_tch1[0][0]*init@rotation@torch.linalg.inv(init)@init_bval
+                            newlst[scene][-2] = eps_tch1[0][0]*init@rotation
+                            paramT_tch = eps_tch1[0][0]*init@rotation
+                        else:
+                            if unc_set._uniqueA:
+                                if init_A is None or (init_A is not None and init_A.shape[0] !=
+                                                      (unc_set._K*unc_set._m)):
+                                    paramT_tch = eps_tch1[0][0]*init
+                                    paramT_tch = paramT_tch.repeat(unc_set._K, 1)
+                                else:
+                                    paramT_tch = eps_tch1[0][0]*init
+                            else:
+                                paramT_tch = eps_tch1[0][0]*init
+                            newlst[scene][-1] = paramT_tch
+                        var_values = cvxpylayer(*newlst[scene],
+                                                solver_args=LAYER_SOLVER)
+                        temploss, obj, violations,cvar_update = unc_set.loss(
+                            *var_values, *newlst[scene][:-2], alpha = torch.tensor(
+                            init_alpha), data = val_dset)
+                        evalloss, obj2, violations2, var_vio = unc_set.loss(
+                            *var_values, *newlst[scene][:-2], alpha = torch.tensor(
+                            init_alpha), data = eval_set)
+                        totloss += temploss.item()
+                        totevalloss.append(evalloss.item())
+                        optval.append(obj.item())
+                        testval.append(obj2.item())
+                        test_vio.append(violations2.item())
+                        train_vio.append(violations.item())
+                        violation_val.append(var_vio.item())
+                        violation_train.append(cvar_update.item())
+                    totloss = totloss/num_scenarios
+                    if totloss <= minval:
+                        minval = temploss
+                        mineps = eps_tch1.clone()
+                        minT = paramT_tch.clone()
+                        var_vals = var_values
+                    coverage = 0
+                    for datind in range(val_dset.shape[0]):
+                        coverage += torch.where(torch.norm(paramT_tch@val_dset[datind] +eps_tch1[0][0]*init@rotation@torch.linalg.inv(init)@init_bval)<= 1, 1, 0 )
+                    coverage2 = 0
+                    for datind in range(eval_set.shape[0]):
+                        coverage2 += torch.where(torch.norm(paramT_tch@eval_set[datind] + eps_tch1[0][0]*init@rotation@torch.linalg.inv(init)@init_bval)<= 1, 1, 0 )
+                    newrow = pd.Series(
+                        {"Loss_val": totloss,
+                         "Eval_val": totevalloss,
+                         "Opt_val": optval,
+                         "Test_val": testval,
+                         "Violations": test_vio,
+                         "Violations_train": train_vio,
+                         "Violation_val": violation_val,
+                         "Violation_train": violation_train,
+                        "Angle": angle,
+                        "coverage_train": coverage.detach().numpy().item()/val_dset.shape[0],
+                        "coverage_test": coverage2.detach().numpy().item()/eval_set.shape[0]})
+                    df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
+
+                self._trained = True
+                unc_set._trained = True
+
+                if not mro_set:
+                    unc_set.paramT.value = (mineps*init).detach().numpy().copy()
+                    unc_set.paramb.value = (
+                        mineps[0]*init_bval).detach().numpy().copy()
+                else:
+                    unc_set.paramT.value = minT.detach().numpy().copy()
+                self.new_prob = prob
+        if not mro_set:
+            return Result(self, prob, df, unc_set.paramT.value,
+                          unc_set.paramb.value, mineps[0][0].detach().numpy().copy(),
+                          minval, var_vals)
+        else:
+            return Result(self, prob, df, unc_set.paramT.value,
+                          None, mineps[0][0].detach().numpy().copy(), minval, var_vals)
+        
     def dualize_constraints(self):
         if self.uncertain_parameters():
             unc_reductions = []
