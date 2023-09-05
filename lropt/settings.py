@@ -59,15 +59,24 @@ ETA_LAGRANGIAN_DEFAULT      = 0.05
 KAPPA_LAGRANGIAN_DEFAULT    = -0.05
 
 
-#Train constants
+#Train and grid constants
+EPS_DEFAULT                 = False
+FIXB_DEFAULT                = False
 NUM_ITER_DEFAULT            = 45
 LR_DEFAULT                  = 0.0001
+SCHEDULER_DEFAULT           = True
 MOMENTUM_DEFAULT            = 0.8
 OPT_DEFAULT                 = SGD
+INIT_EPS_DEFAULT            = None
+INIT_A_DEFAULT              = None
+INIT_B_DEFAULT              = None
+SAVE_HISTORY_DEFAULT        = False
 SEED_DEFAULT                = 1
 INIT_LAM_DEFAULT            = 0.0
 INIT_ALPHA_DEFAULT          = -0.01
 KAPPA_DEFAULT               = -0.015
 TEST_PERCENTAGE_DEFAULT     = 0.2
-STEP_Y_DEFAULT              = 0.1
+STEP_LAM_DEFAULT            = 0.1
 BATCH_PERCENTAGE_DEFAULT    = 0.2
+
+NUM_YS_DEFAULT              = None
