@@ -61,8 +61,8 @@ class TrainLoopStats():
         self.violation_test = __value_init__(self)
         self.violation_train = __value_init__(self)
 
-    def update_stats(self, temp_lagrangian, num_ys, obj_test, prob_violation_train, prob_violation_test,
-                     var_vio, train_constraint):
+    def update_stats(self, temp_lagrangian, num_ys, obj_test, prob_violation_train,
+                     prob_violation_test, var_vio, train_constraint):
         """
         This function updates the statistics after each training iteration
         """
@@ -257,7 +257,8 @@ class RobustProblem(Problem):
         return H
 
     def evaluation_metric(self, vars, y_params_mat, u_params_mat):
-        if (self.eval is None): return 0
+        if (self.eval is None):
+            return 0
         
         J = len(y_params_mat)
         N = len(u_params_mat)
@@ -460,7 +461,8 @@ class RobustProblem(Problem):
             :math:`A` will be initialized as the inverse square root of the
             covariance of the data, and b will be initialized as :math:`\bar{d}`.
         init_A
-            The given initiation for the reshaping matrix A. If none is passed, it will be initiated as the covarience matrix of the provided data. 
+            The given initiation for the reshaping matrix A.
+            If none is passed, it will be initiated as the covarience matrix of the provided data.
 
         Returns:
 
@@ -798,7 +800,7 @@ class RobustProblem(Problem):
         eps : bool, optional
            If True, train only epsilon, where :math:`A = \epsilon I, \
            b = \epsilon \bar{d}`, where :math:`\bar{d}` is the centroid of the
-           training data. Default False.
+           training data. 
         num_iter : int, optional
             The total number of gradient steps performed.
         lr : float, optional
@@ -812,26 +814,28 @@ class RobustProblem(Problem):
             :math:`A` will be initialized as the inverse square root of the
             covariance of the data, and b will be initialized as :math:`\bar{d}`.
         init_A : numpy array, optional
-            Initialization for the reshaping matrix, if passed. If not passed, :math:`A` will be initialized as the inverse square root of the
-            covariance of the data. Default None. 
+            Initialization for the reshaping matrix, if passed.
+            If not passed, :math:`A` will be initialized as the inverse square root of the
+            covariance of the data. 
         init_b : numpy array, optional
-            Initialization for the relocation vector, if passed. If not passed, b will be initialized as :math:`\bar{d}`. Default None. 
+            Initialization for the relocation vector, if passed.
+            If not passed, b will be initialized as :math:`\bar{d}`.
         init_alpha : float, optional
-            The initial alpha value for the cvar constraint in the outer level problem. Default -0.01.
+            The initial alpha value for the cvar constraint in the outer level problem.
         init_lam : float, optional
-            The initial lambda value for the outer level lagrangian function. Default 0.
+            The initial lambda value for the outer level lagrangian function.
         kappa : float, optional
-            The target value for the outer level cvar constraint. Default -0.015.
+            The target value for the outer level cvar constraint.
         schedular : bool, optional
             Flag for whether or not to decrease the learning rate on plateau of the derivatives. 
         test_percentage : float, optional
-            The percentage of data to use in the testing set. Default 0.2.
+            The percentage of data to use in the testing set. 
         seed : int, optional
             The seed to control the random state of the train-test data split.
         step_lam : float, optional
-            The step size for the lambda value updates in the outer level problem. Default 0.1. 
+            The step size for the lambda value updates in the outer level problem. 
         batch_percentage : float, optional
-            The percentage of data to use in each training step. Default 0.2.
+            The percentage of data to use in each training step.
         Returns:
         A pandas data frame with information on each :math:r`\epsilon` having the following columns:
             Test_val: float
@@ -912,7 +916,8 @@ class RobustProblem(Problem):
             #TODO (Bart): We need to batch over y's.
             #TODO (Bart): Wrap the inner part of the training loop with a function.
             for sample in range(num_ys):
-                #TODO (Bart): No need to recreate the torches for every iteration - repopulate them (for MRO)
+                #TODO (Bart): No need to recreate the torches for every iteration -
+                # repopulate them (for MRO)
                 #TODO (Bart): the logic should be inside the function.
                 if not mro_set:
                     y_batch[sample][-1] = b_tch
@@ -934,36 +939,56 @@ class RobustProblem(Problem):
 
                 #TODO (Bart): batch over the U dataset
                 #TODO (Bart): We should divide train_stats to train_status and evaluation_stats
-                #TODO (Bart): No need for obj and prob_violation_train in the training, only in the evluation that happens every 100 iterations or so
+                #TODO (Bart): No need for obj and prob_violation_train in the training,
+                # only in the evluation that happens every 100 iterations or so
                 # Training set:
                 y_params_mat = [y_batch[sample][:-2]]
-                obj = self.evaluation_metric(var_values, y_params_mat, self._udata_to_lst(train_set[random_int]))
-                prob_violation_train = self.prob_constr_violation(var_values, y_params_mat, self._udata_to_lst(train_set[random_int]))
-                temp_lagrangian, train_constraint = self.lagrangian(var_values, y_params_mat, self._udata_to_lst(train_set[random_int]), alpha, lam, kappa=kappa)
+                obj = self.evaluation_metric(var_values, y_params_mat,
+                                             self._udata_to_lst(train_set[random_int]))
+                prob_violation_train = self.prob_constr_violation(
+                    var_values,
+                    y_params_mat,
+                    self._udata_to_lst(train_set[random_int]))
+                temp_lagrangian, train_constraint = self.lagrangian(
+                    var_values,
+                    y_params_mat,
+                    self._udata_to_lst(train_set[random_int]),
+                    alpha,
+                    lam,
+                    kappa=kappa)
                 
                 # Testing set:
-                #TODO (Bart): This should not happen in every training iteration. (every 100 iteration ? evaluation frequency)
+                #TODO (Bart): This should not happen in every training iteration.
+                # (every 100 iteration ? evaluation frequency)
                 #TODO (Bart): Need to evaluate obj_validation only here
                 #TODO (Bart): no_grad for evaluation
                 #TODO (Amit): save the test-related stuff in a different dataframe.
-                obj_test = self.evaluation_metric(var_values, y_params_mat, self._udata_to_lst(test_set))
-                prob_violation_test = self.prob_constr_violation(var_values, y_params_mat, self._udata_to_lst(test_set))
-                _, var_vio = self.lagrangian(var_values, y_params_mat, self._udata_to_lst(test_set), alpha, lam, kappa=kappa)
+                obj_test = self.evaluation_metric(var_values, y_params_mat,
+                                                  self._udata_to_lst(test_set))
+                prob_violation_test = self.prob_constr_violation(var_values, y_params_mat,
+                                                                 self._udata_to_lst(test_set))
+                _, var_vio = self.lagrangian(var_values, y_params_mat,
+                                             self._udata_to_lst(test_set), alpha, lam, kappa=kappa)
                 # Update parameters for the next y
-                #TODO (Bart): Also take this outside the training loop (temp lagrangian - store the average instead)
+                #TODO (Bart): Also take this outside the training loop
+                # (temp lagrangian - store the average instead)
                 lam_list[sample, :] = train_constraint.detach()
-                #TODO (Bart): num_ys and num_us should be stored, not passed (rename to batch_size_y and batch_size_u)
-                #TODO (Bart): When we use batches, then we don't need to keep track of the length of the tensors - just average over them.
+                #TODO (Bart): num_ys and num_us should be stored, not passed
+                # (rename to batch_size_y and batch_size_u)
+                #TODO (Bart): When we use batches, then we don't need to keep track of
+                # the length of the tensors - just average over them.
                 #TODO (Amit): I will use self.num_ys
                 train_stats.update_stats(temp_lagrangian, num_ys, obj_test,
-                                         prob_violation_train, prob_violation_test, var_vio, train_constraint)
+                                         prob_violation_train, prob_violation_test,
+                                         var_vio, train_constraint)
 
             
             lam = torch.maximum(lam + step_lam*(torch.mean(lam_list, axis=0)),
                                 torch.zeros(self.num_g, dtype=float))
             train_stats.tot_lagrangian.backward()
 
-            #TODO (Bart): This is another statistic that does not need to be calculated every iteration.
+            #TODO (Bart): This is another statistic that does not need to be
+            # calculated every iteration.
             # Should merge it with the test set evaluation from the previous block
             # calculate statistics over all y
             #TODO (Amit): Irina, can we use the _calc_coverage function?
@@ -994,7 +1019,8 @@ class RobustProblem(Problem):
         return_b_value = unc_set.b.value if mro_set else None
         return_b_history = b_history if mro_set else None
         return Result(self, self.new_prob, df, unc_set.a.value, return_b_value,
-                      return_eps, obj.item(), var_values, a_history=a_history, b_history=return_b_history)
+                      return_eps, obj.item(), var_values, a_history=a_history,
+                      b_history=return_b_history)
 
     def grid(
         self,
@@ -1070,7 +1096,8 @@ class RobustProblem(Problem):
                 )
             # TODO (Amit): Why do we always append 0? Is this a mistake?
             # It looks very similar to _gen_y_batch, and I wonder if they should be the same?
-            # Response (Irina): Appending 0 is to make space for a and b. There should be a better way to do it. Yes, this is the same as gen new lst
+            # Response (Irina): Appending 0 is to make space for a and b.
+            # There should be a better way to do it. Yes, this is the same as gen new lst
             y_batch[sample].append(0)
             if not mro_set:
                 y_batch[sample].append(0)
@@ -1094,14 +1121,19 @@ class RobustProblem(Problem):
 
         # TODO (Amit): What is this 1000? (numbers have no business inside a function)
         # There's no training so there shouldn't be a lambda here.
-        # Response (Irina): We have a lambda here because we still use the same evaluation functions as before, which needs a lambda. Though, we should only be interested in returning the eval value (out of sample objective with respect to the test set) and not the lagrangian value, so the value of lambda is inconsequential.
+        # Response (Irina): We have a lambda here because we still use the same evaluation
+        # functions as before, which needs a lambda. Though, we should only be interested in
+        # returning the eval value (out of sample objective with respect to the test set) and
+        # not the lagrangian value, so the value of lambda is inconsequential.
 
         lam = 1000 * torch.ones(self.num_g, dtype=float)
 
         for init_eps in epslst:
             # TODO (Amit): I am a bit confused. I am not sure if _init_torches that is used in train
             # implemenets the same logic as in the commented block above.
-            # Response (Irina): It should be the same logic as in train. I think this part was simplified (did not have the covariance part for passing None, as the current use cases always involved passing initA and initb).
+            # Response (Irina): It should be the same logic as in train. I think this part was
+            # simplified (did not have the covariance part for passing None, as the current use
+            # cases always involved passing initA and initb).
             # TODO (Amit): #Is this call correct? There are more conditions in this function
             eps_tch = self._gen_eps_tch(init_eps, unc_set, mro_set)
             # TODO (Amit): Why is MRO case not used here?
@@ -1126,9 +1158,11 @@ class RobustProblem(Problem):
 
                 # TODO (Bart): Is there a need to do lagrangian here? There's no training.
                 # TODO (Amit): There are some unused variables here. Please correct/delete.
-                # Response (Irina): We don't need to do the lagrangian, but we do want the value and probability of the violations, and the test set evaluation value.
+                # Response (Irina): We don't need to do the lagrangian, but we do want the value
+                # and probability of the violations, and the test set evaluation value.
                 y_params_mat = [y_batch[sample][:-2]]
-                prob_violation_train = self.prob_constr_violation(var_values, y_params_mat, self._udata_to_lst(train_set))
+                prob_violation_train = self.prob_constr_violation(var_values, y_params_mat,
+                                                                  self._udata_to_lst(train_set))
                 temp_lagrangian, train_constraint = self.lagrangian(
                     var_values,
                     y_params_mat,
@@ -1141,8 +1175,10 @@ class RobustProblem(Problem):
                 #     *var_values, *y_batch[sample][:-2], alpha = torch.tensor(
                 #     init_alpha), data = train_set)
 
-                obj_test = self.evaluation_metric(var_values, y_params_mat, self._udata_to_lst(test_set))
-                prob_violation_test = self.prob_constr_violation(var_values, y_params_mat, self._udata_to_lst(test_set))
+                obj_test = self.evaluation_metric(var_values, y_params_mat,
+                                                  self._udata_to_lst(test_set))
+                prob_violation_test = self.prob_constr_violation(var_values, y_params_mat,
+                                                                 self._udata_to_lst(test_set))
                 _, var_vio = self.lagrangian(
                     var_values,
                     y_params_mat,
@@ -1155,7 +1191,8 @@ class RobustProblem(Problem):
                 #     init_alpha), data = test_set)
 
                 train_stats.update_stats(temp_lagrangian, num_ys, obj_test,
-                                         prob_violation_train, prob_violation_test, var_vio, train_constraint)
+                                         prob_violation_train, prob_violation_test,
+                                         var_vio, train_constraint)
             grid_stats.update(train_stats, temp_lagrangian,
                               eps_tch, a_tch, var_values)
 
@@ -1164,7 +1201,8 @@ class RobustProblem(Problem):
             # TODO (Amit): Why do we sometimes use validation/evaluation/train/test?
             # Can we come up with consistent names?
             # TODO (Bart): why train_set and test_set? either dset or set.
-            # Response (Irina): Yes, we should use train_dset and test_dset everywhere. We should not use validation/evaluation.
+            # Response (Irina): Yes, we should use train_dset and test_dset everywhere.
+            # We should not use validation/evaluation.
             # What should be the proper change then?
 
             coverage_test = self._calc_coverage(
@@ -1180,7 +1218,11 @@ class RobustProblem(Problem):
         if not mro_set:
             # TODO (Amit): Irina, can we go over these assignments and see if we can use
             # previously calculated torches? (I initialized to None to pass tests)
-            # Response (Irina): Perhaps there should be a function that initializes only init and init_bval, instead of init_torches that already combines these with the epsilon values. Then init_torches can call that function to do the combination, and we can also use the init and init_bval here.
+            # Response (Irina): Perhaps there should be a function that initializes only
+            # init and init_bval,
+            # instead of init_torches that already combines these with the epsilon values.
+            # Then init_torches can call that function to do the combination,
+            # and we can also use the init and init_bval here.
             init = None  # TODO (Amit): TEMPORARY ONLY, REMOVE
             init_bval = None  # TODO (Amit): TEMPORARY ONLY, REMOVE
             unc_set.a.value = (
