@@ -86,12 +86,12 @@ class Uncertain_Canonicalization(Reduction):
                                 element_shape)
                             canon_constraints += aux_constr + [canon_constr]
 
-                            if type(unc_params[0].uncertainty_set) == Budget:
-                                canon_constraints += [lmda[0] == new_lmda[0],
-                                                      lmda[1] == new_lmda[1]]
+                            # if type(unc_params[0].uncertainty_set) == Budget:
+                            #     canon_constraints += [lmda[0] == new_lmda[0],
+                            #                           lmda[1] == new_lmda[1]]
 
-                            elif not type(unc_params[0].uncertainty_set) == Polyhedral:
-                                canon_constraints += [lmda == new_lmda]
+                            # elif not type(unc_params[0].uncertainty_set) == Polyhedral:
+                            #     canon_constraints += [lmda == new_lmda]
                     else:
                         canon_constr, aux_constr, lmda, sval = self.remove_uncertainty_mro(
                             unc_lst[0], unc_params[0], std_lst[0], element_shape)
@@ -102,7 +102,7 @@ class Uncertain_Canonicalization(Reduction):
                                 self.remove_uncertainty_mro(unc_lst[new_cons_idx], unc_params[0],
                                                             std_lst[new_cons_idx], element_shape)
                             canon_constraints += aux_constr
-                            canon_constraints += [lmda == new_lmda]
+                            # canon_constraints += [lmda == new_lmda]
                             canon_constraints += [sval == new_sval]
 
                 else:
