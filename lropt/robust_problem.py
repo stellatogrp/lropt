@@ -80,7 +80,7 @@ class TrainLoopStats():
             self.violation_test += var_vio.item()
             self.violation_train += train_constraint.item()
 
-    #TODO (Amit): Check why train_set is not used
+    # TODO (Amit): Check why train_set is not used
     def generate_row(self, num_ys, a_tch, lam, alpha, coverage_test,
                      train_set, test_set, eps_tch):
         """
@@ -259,7 +259,7 @@ class RobustProblem(Problem):
     def evaluation_metric(self, vars, y_params_mat, u_params_mat):
         if (self.eval is None):
             return 0
-        
+
         J = len(y_params_mat)
         N = len(u_params_mat)
 
@@ -293,7 +293,7 @@ class RobustProblem(Problem):
         return u_params_mat
 
     def lagrangian(self, vars, y_params_mat, u_params_mat, alpha, lam,
-                 eta=settings.ETA_LAGRANGIAN_DEFAULT, kappa=settings.KAPPA_LAGRANGIAN_DEFAULT):
+                   eta=settings.ETA_LAGRANGIAN_DEFAULT, kappa=settings.KAPPA_LAGRANGIAN_DEFAULT):
         F = self.train_objective(vars, y_params_mat, u_params_mat)
         H = self.train_constraint(
             vars, y_params_mat, u_params_mat, alpha, eta, kappa)
@@ -505,7 +505,7 @@ class RobustProblem(Problem):
             else:
                 b_tch_data = -self._init@np.mean(train_set, axis=0)
             b_tch = torch.tensor(b_tch_data, requires_grad=self.train_flag,
-                                      dtype=settings.DTYPE)
+                                 dtype=settings.DTYPE)
             b_tch = eps_tch*b_tch if eps else b_tch
             a_tch = init_tensor
             if eps:
@@ -519,7 +519,7 @@ class RobustProblem(Problem):
 
         elif case == settings.MRO_CASE.DIFF_A_INIT:
             a_tch = eps_tch[0]*torch.tensor(init_A[0:unc_set._m, 0:unc_set._m],
-                                                 dtype=settings.DTYPE)
+                                            dtype=settings.DTYPE)
             for k_ind in range(1, unc_set._K):
                 a_tch = torch.vstack(
                     (a_tch, eps_tch[k_ind] *
@@ -713,6 +713,7 @@ class RobustProblem(Problem):
         if (not eps) or (not mro_set):
             return case
 
+        # Irina: uniqueA and not eps - goes to sameA
         elif unc_set._uniqueA and eps:
             if init_A is None or init_A.shape[0] != (unc_set._K*unc_set._m):
                 case = settings.MRO_CASE.DIFF_A_UNINIT
@@ -763,7 +764,7 @@ class RobustProblem(Problem):
         for datind in range(dset.shape[0]):
             coverage += torch.where(
                 torch.norm(a_tch @ dset[datind] +
-                           eps_tch[0][0] * b_tch)
+                           eps_tch * b_tch)
                 <= 1,
                 1,
                 0,
@@ -786,11 +787,11 @@ class RobustProblem(Problem):
         seed=settings.SEED_DEFAULT,
         init_lam=settings.INIT_LAM_DEFAULT,
         init_alpha=settings.INIT_ALPHA_DEFAULT,
-        kappa=settings.KAPPA_DEFAULT, # (originall target_cvar)
+        kappa=settings.KAPPA_DEFAULT,  # (originall target_cvar)
         test_percentage=settings.TEST_PERCENTAGE_DEFAULT,
         step_lam=settings.STEP_LAM_DEFAULT,
         batch_percentage=settings.BATCH_PERCENTAGE_DEFAULT,
-        solver_args = settings.LAYER_SOLVER,
+        solver_args=settings.LAYER_SOLVER,
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. lagrangian metric
@@ -882,14 +883,14 @@ class RobustProblem(Problem):
         eps_tch = self._gen_eps_tch(
             self, init_eps, unc_set, mro_set) if eps else None
         a_tch, b_tch, alpha, _ = self._init_torches(init_eps, init_A, init_b,
-                                                              init_alpha, train_set, eps_tch,
-                                                              mro_set, unc_set)
+                                                    init_alpha, train_set, eps_tch,
+                                                    mro_set, unc_set)
         if not eps:
             self._update_iters(save_history, a_history, b_history,
                                a_tch, b_tch, mro_set)
         #variables = [a_tch, b_tch, alpha]
         a_tch, variables = self._set_train_varaibles(fixb, mro_set, init_A, unc_set, alpha,
-                                                          a_tch, b_tch, eps_tch)
+                                                     a_tch, b_tch, eps_tch)
         opt = settings.OPTIMIZERS[optimizer](
             variables, lr=lr, momentum=momentum)
         scheduler = None
@@ -913,22 +914,22 @@ class RobustProblem(Problem):
             # Index to select what data the SGD takes
             random_int = np.random.randint(0, train_set.shape[0],
                                            int(train_set.shape[0]*batch_percentage))
-            #TODO (Bart): We need to batch over y's.
-            #TODO (Bart): Wrap the inner part of the training loop with a function.
+            # TODO (Bart): We need to batch over y's.
+            # TODO (Bart): Wrap the inner part of the training loop with a function.
             for sample in range(num_ys):
-                #TODO (Bart): No need to recreate the torches for every iteration -
+                # TODO (Bart): No need to recreate the torches for every iteration -
                 # repopulate them (for MRO)
-                #TODO (Bart): the logic should be inside the function.
+                # TODO (Bart): the logic should be inside the function.
                 if not mro_set:
                     y_batch[sample][-1] = b_tch
                     y_batch[sample][-2] = a_tch
                 else:
                     a_tch, _, _, _ = self._init_torches(init_eps, init_A, init_b,
-                                                             init_alpha, train_set,
-                                                             eps_tch, mro_set, unc_set)
+                                                        init_alpha, train_set,
+                                                        eps_tch, mro_set, unc_set)
                     y_batch[sample][-1] = a_tch
                 # Solve the problem for specific y, returns the variables (x)
-                #TODO (Bart): We should batch over y's instead of giving a single y (sample).
+                # TODO (Bart): We should batch over y's instead of giving a single y (sample).
                 var_values = cvxpylayer(*y_batch[sample],
                                         solver_args=solver_args)
 
@@ -937,9 +938,9 @@ class RobustProblem(Problem):
                 # train_constraint      - Amount of constraint violation (H(z))
                 # prob_violation_train  - Probability of violation
 
-                #TODO (Bart): batch over the U dataset
-                #TODO (Bart): We should divide train_stats to train_status and evaluation_stats
-                #TODO (Bart): No need for obj and prob_violation_train in the training,
+                # TODO (Bart): batch over the U dataset
+                # TODO (Bart): We should divide train_stats to train_status and evaluation_stats
+                # TODO (Bart): No need for obj and prob_violation_train in the training,
                 # only in the evluation that happens every 100 iterations or so
                 # Training set:
                 y_params_mat = [y_batch[sample][:-2]]
@@ -956,13 +957,13 @@ class RobustProblem(Problem):
                     alpha,
                     lam,
                     kappa=kappa)
-                
+
                 # Testing set:
-                #TODO (Bart): This should not happen in every training iteration.
+                # TODO (Bart): This should not happen in every training iteration.
                 # (every 100 iteration ? evaluation frequency)
-                #TODO (Bart): Need to evaluate obj_validation only here
-                #TODO (Bart): no_grad for evaluation
-                #TODO (Amit): save the test-related stuff in a different dataframe.
+                # TODO (Bart): Need to evaluate obj_validation only here
+                # TODO (Bart): no_grad for evaluation
+                # TODO (Amit): save the test-related stuff in a different dataframe.
                 obj_test = self.evaluation_metric(var_values, y_params_mat,
                                                   self._udata_to_lst(test_set))
                 prob_violation_test = self.prob_constr_violation(var_values, y_params_mat,
@@ -970,32 +971,33 @@ class RobustProblem(Problem):
                 _, var_vio = self.lagrangian(var_values, y_params_mat,
                                              self._udata_to_lst(test_set), alpha, lam, kappa=kappa)
                 # Update parameters for the next y
-                #TODO (Bart): Also take this outside the training loop
+                # TODO (Bart): Also take this outside the training loop
                 # (temp lagrangian - store the average instead)
                 lam_list[sample, :] = train_constraint.detach()
-                #TODO (Bart): num_ys and num_us should be stored, not passed
+                # TODO (Bart): num_ys and num_us should be stored, not passed
                 # (rename to batch_size_y and batch_size_u)
-                #TODO (Bart): When we use batches, then we don't need to keep track of
+                # TODO (Bart): When we use batches, then we don't need to keep track of
                 # the length of the tensors - just average over them.
-                #TODO (Amit): I will use self.num_ys
+                # TODO (Amit): I will use self.num_ys
                 train_stats.update_stats(temp_lagrangian, num_ys, obj_test,
                                          prob_violation_train, prob_violation_test,
                                          var_vio, train_constraint)
 
-            
             lam = torch.maximum(lam + step_lam*(torch.mean(lam_list, axis=0)),
                                 torch.zeros(self.num_g, dtype=float))
             train_stats.tot_lagrangian.backward()
 
-            #TODO (Bart): This is another statistic that does not need to be
+            # TODO (Bart): This is another statistic that does not need to be
             # calculated every iteration.
             # Should merge it with the test set evaluation from the previous block
             # calculate statistics over all y
-            #TODO (Amit): Irina, can we use the _calc_coverage function?
-            coverage_test = 0
-            for datind in range(test_set.shape[0]):
-                coverage_test += torch.where(torch.norm(a_tch@test_set[datind] + b_tch) <= 1,
-                                         1, 0)
+            # TODO (Amit): Irina, can we use the _calc_coverage function?
+            coverage_test = self._calc_coverage(
+                self, test_set, a_tch, 1, b_tch)
+            # coverage_test = 0
+            # for datind in range(test_set.shape[0]):
+            #     coverage_test += torch.where(torch.norm(a_tch@test_set[datind] + b_tch) <= 1,
+            #                                  1, 0)
 
             # BEFORE UPDTATING PANDAS DATAFRAME
             new_row = train_stats.generate_row(num_ys, a_tch, lam, alpha,
@@ -1089,7 +1091,8 @@ class RobustProblem(Problem):
             for i in range(len(y_parameters)):
                 y_batch[sample].append(
                     torch.tensor(
-                        np.array(y_parameters[i].data[sample, :]).astype(float),
+                        np.array(y_parameters[i].data[sample, :]).astype(
+                            float),
                         requires_grad=self.train_flag,
                         dtype=settings.DTYPE,
                     )
@@ -1128,6 +1131,11 @@ class RobustProblem(Problem):
 
         lam = 1000 * torch.ones(self.num_g, dtype=float)
 
+        # Irina: I took this out of the loop
+        eps_tch = self._gen_eps_tch(1, unc_set, False)
+        a_tch, b_tch, alpha, _ = self._init_torches(1, init_A, init_b,
+                                                    init_alpha, train_set, eps_tch,
+                                                    False, unc_set)
         for init_eps in epslst:
             # TODO (Amit): I am a bit confused. I am not sure if _init_torches that is used in train
             # implemenets the same logic as in the commented block above.
@@ -1135,23 +1143,40 @@ class RobustProblem(Problem):
             # simplified (did not have the covariance part for passing None, as the current use
             # cases always involved passing initA and initb).
             # TODO (Amit): #Is this call correct? There are more conditions in this function
-            eps_tch = self._gen_eps_tch(init_eps, unc_set, mro_set)
+            eps_tch = torch.tensor(
+                [[1/init_eps]], requires_grad=True, dtype=settings.DTYPE)
+            #eps_tch = self._gen_eps_tch(init_eps, unc_set, False)
             # TODO (Amit): Why is MRO case not used here?
-            a_tch, b_tch, alpha, case = self._init_torches(init_eps, init_A, init_b,
-                                                                     init_alpha, train_set, eps_tch,
-                                                                     mro_set, unc_set)
 
             train_stats = TrainLoopStats(
                 step_num=np.NAN, train_flag=self.train_flag)
+            # Irina: I went back to the old code, which is simpler and slightly different from gen_init
             for sample in range(num_ys):
                 if not mro_set:
-                    y_batch[sample][-1] = b_tch
-                    y_batch[sample][-2] = a_tch
+                    y_batch[sample][-1] = eps_tch[0][0]*a_tch
+                    y_batch[sample][-2] = eps_tch[0][0]*b_tch
+                    a_tch = eps_tch[0][0]*a_tch
                 else:
-                    a_tch, _, _, _ = self._init_torches(init_eps, init_A, init_b,
-                                                             init_alpha, train_set,
-                                                             eps_tch, mro_set, unc_set)
+                    if unc_set._uniqueA:
+                        if init_A is None or (init_A is not None and init_A.shape[0] !=
+                                              (unc_set._K*unc_set._m)):
+                            a_tch = eps_tch[0][0]*a_tch
+                            a_tch = a_tch.repeat(unc_set._K, 1)
+                        else:
+                            a_tch = eps_tch[0][0]*a_tch
+                    else:
+                        a_tch = eps_tch[0][0]*a_tch
+
                     y_batch[sample][-1] = a_tch
+
+                # if not mro_set:
+                #     y_batch[sample][-1] = eps_tch*b_tch
+                #     y_batch[sample][-2] = eps_tch*a_tch
+                # else:
+                #     a_tch, _, _, _ = self._init_torches(init_eps, init_A, init_b,
+                #                                         init_alpha, train_set,
+                #                                         eps_tch, mro_set, unc_set)
+                #     y_batch[sample][-1] = a_tch
 
                 var_values = cvxpylayer(
                     *y_batch[sample], solver_args=solver_args)
@@ -1206,7 +1231,7 @@ class RobustProblem(Problem):
             # What should be the proper change then?
 
             coverage_test = self._calc_coverage(
-                self, test_set, a_tch, eps_tch, b_tch)
+                self, test_set, a_tch, eps_tch[0][0], b_tch)
 
             new_row = train_stats.generate_row(num_ys, a_tch, lam, alpha, coverage_test,
                                                train_set, test_set, eps_tch)
