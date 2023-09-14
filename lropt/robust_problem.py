@@ -351,9 +351,9 @@ class RobustProblem(Problem):
                              "A_norm": np.linalg.norm(paramT_tch.detach().numpy().copy()),
                              "lam": curlam,
                              "alpha": alpha.item(),
-                             "alphagrad": alpha.grad,
-                             "dfnorm": np.linalg.norm(paramT_tch.grad),
-                             "gradnorm": paramT_tch.grad,
+                             "alphagrad": alpha.grad.detach().numpy().copy(),
+                             "dfnorm": np.linalg.norm(paramT_tch.grad.detach().numpy().copy()),
+                             "gradnorm": paramT_tch.grad.detach().numpy().copy(),
                              "coverage_train": coverage.detach().numpy().item()/val_dset.shape[0],
                              "coverage_test": coverage2.detach().numpy().item()/eval_set.shape[0]}
                         )
