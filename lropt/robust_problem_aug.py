@@ -396,6 +396,12 @@ class RobustProblem(Problem):
                             violation_train += cvar_update.item()
                         curlam = np.maximum(curlam + mu*(np.mean(lam)), 0)
                         mu = mu*mu_multiplier
+                        coverage = 0
+                        for datind in range(val_dset.shape[0]):
+                            coverage += torch.where(torch.norm(paramT_tch@val_dset[datind] + paramb_tch)<= 1, 1, 0 )
+                        coverage2 = 0
+                        for datind in range(eval_set.shape[0]):
+                            coverage2 += torch.where(torch.norm(paramT_tch@eval_set[datind] + paramb_tch)<= 1, 1, 0 )
                         newrow = pd.Series(
                             {"step": steps,
                              "Loss_val": totloss.item(),
@@ -410,9 +416,10 @@ class RobustProblem(Problem):
                              "mu": mu,
                              "lam": curlam,
                              "alpha": alpha.item(),
-                             "alphagrad": alpha.grad,
-                             "dfnorm": np.linalg.norm(paramT_tch.grad),
-                             "gradnorm": paramT_tch.grad}
+                             "alphagrad": alpha.grad.detach().numpy().copy(),
+                             "dfnorm": np.linalg.norm(paramT_tch.grad.detach().numpy().copy()),
+                             "gradnorm": paramT_tch.grad.detach().numpy().copy(),"coverage_train": coverage.detach().numpy().item()/val_dset.shape[0],
+                             "coverage_test": coverage2.detach().numpy().item()/eval_set.shape[0]}
                         )
                         df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
 
@@ -560,6 +567,12 @@ class RobustProblem(Problem):
                         mu = mu*mu_multiplier
                         totloss = totloss/num_scenarios
                         totloss.backward()
+                        coverage = 0
+                        for datind in range(val_dset.shape[0]):
+                            coverage += torch.where(torch.norm(eps_tch*init@val_dset[datind] + eps_tch*init_bval)<= 1, 1, 0 )
+                        coverage2 = 0
+                        for datind in range(eval_set.shape[0]):
+                            coverage2 += torch.where(torch.norm(eps_tch*init@eval_set[datind] + eps_tch*init_bval)<= 1, 1, 0 )
                         newrow = pd.Series(
                             {"step": steps,
                              "Loss_val": totloss.item(),
@@ -575,9 +588,10 @@ class RobustProblem(Problem):
                              "mu": mu,
                              "lam": curlam,
                              "alpha": alpha.item(),
-                             "alphagrad": alpha.grad,
+                             "alphagrad": alpha.grad.detach().numpy().copy(),
                              "dfnorm": np.linalg.norm(eps_tch.grad),
-                             "gradnorm": eps_tch.grad})
+                             "gradnorm": eps_tch.grad.detach().numpy().copy(),"coverage_train": coverage.detach().numpy().item()/val_dset.shape[0],
+                             "coverage_test": coverage2.detach().numpy().item()/eval_set.shape[0]})
                         df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
 
                         if save_iters:
@@ -754,6 +768,12 @@ class RobustProblem(Problem):
                         mineps = eps_tch1.clone()
                         minT = paramT_tch.clone()
                         var_vals = var_values
+                    coverage = 0
+                    for datind in range(val_dset.shape[0]):
+                        coverage += torch.where(torch.norm(paramT_tch@val_dset[datind] + eps_tch1[0][0]*init_bval)<= 1, 1, 0 )
+                    coverage2 = 0
+                    for datind in range(eval_set.shape[0]):
+                        coverage2 += torch.where(torch.norm(paramT_tch@eval_set[datind] + eps_tch1[0][0]*init_bval)<= 1, 1, 0 )
                     newrow = pd.Series(
                         {"Loss_val": totloss,
                          "Eval_val": totevalloss,
@@ -763,7 +783,8 @@ class RobustProblem(Problem):
                          "Violations_train": train_vio,
                          "Violation_val": violation_val,
                          "Violation_train": violation_train,
-                            "Eps": 1/eps_tch1[0][0].detach().numpy().copy()
+                            "Eps": 1/eps_tch1[0][0].detach().numpy().copy(),"coverage_train": coverage.detach().numpy().item()/val_dset.shape[0],
+                        "coverage_test": coverage2.detach().numpy().item()/eval_set.shape[0]
                          })
                     df = pd.concat([df, newrow.to_frame().T], ignore_index=True)
 

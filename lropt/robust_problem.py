@@ -330,7 +330,7 @@ class RobustProblem(Problem):
                             train_vio += violations.item()
                             violation_val += var_vio.item()
                             violation_train += cvar_update.item()
-                        curlam = np.maximum(curlam + step_y*np.mean(lam), -1000)
+                        curlam = np.maximum(curlam + step_y*np.mean(lam), 0)
                         totloss.backward()
                         coverage = 0
                         for datind in range(val_dset.shape[0]):
@@ -504,7 +504,7 @@ class RobustProblem(Problem):
                             train_vio += violations.item()
                             violation_val += var_vio.item()
                             violation_train += cvar_update.item()
-                        curlam = np.maximum(curlam + step_y*np.mean(lam), -1000)
+                        curlam = np.maximum(curlam + step_y*np.mean(lam), 0)
                         totloss = totloss/num_scenarios
                         totloss.backward()
                         coverage = 0
