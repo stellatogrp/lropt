@@ -914,7 +914,7 @@ class RobustProblem(Problem):
         # lam_list = init_lam * torch.ones((num_ys, self.num_g), dtype=float)
         lam = init_lam * torch.ones(self.num_g, dtype=float)
 
-        # step is the number of iterations
+        # use multiple initial points and training. pick lowest eval loss
         for step_num in range(num_iter):
             train_stats = TrainLoopStats(
                 step_num=step_num, train_flag=self.train_flag)
@@ -945,11 +945,13 @@ class RobustProblem(Problem):
                 alpha,
                 lam,
                 kappa=kappa)
+            # do every 100 or less steps, evaluate over all test data (with nograd)
             obj_test = self.evaluation_metric(var_values, y_batch, test_tch)
             prob_violation_test = self.prob_constr_violation(
                 var_values, y_batch, test_tch)
             _, var_vio = self.lagrangian(
                 var_values, y_batch, test_tch, alpha, lam, kappa=kappa)
+
             train_stats.update_stats(temp_lagrangian, obj_test,
                                      prob_violation_train, prob_violation_test,
                                      var_vio, train_constraint_value)
