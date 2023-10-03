@@ -1142,6 +1142,7 @@ class RobustProblem(Problem):
             self,
             self.new_prob,
             df,
+            None,
             unc_set.a.value,
             b_value,
             grid_stats.mineps.detach().numpy().copy(),
