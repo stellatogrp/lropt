@@ -53,7 +53,9 @@ class Budget(UncertaintySet):
             dat_shape = data.shape[1]
             a = Parameter((dat_shape, dat_shape))
             b = Parameter(dat_shape)
-
+        else:
+            a = None
+            b = None
         self.affine_transform_temp = None
         self.affine_transform = None
         self._a1 = a1

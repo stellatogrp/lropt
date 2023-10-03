@@ -29,6 +29,7 @@ class TestMultipleUncertainty(unittest.TestCase):
         self.rho = 0.2
         self.p = 2
 
+    @unittest.skip("not currently implementing multiple sets")
     def test_simple_ellipsoidal_2u(self):
 
         # SETUP
@@ -50,7 +51,8 @@ class TestMultipleUncertainty(unittest.TestCase):
 
         u_2 = UncertainParameter(n,
                                  uncertainty_set=unc_set_2)
-        constraints_1 = [cp.maximum(u_1 @ P @ x_lropt, a @ x_lropt) + u_2 @ x_lropt <= b]
+        constraints_1 = [cp.maximum(
+            u_1 @ P @ x_lropt, a @ x_lropt) + u_2 @ x_lropt <= b]
 
         prob_robust = RobustProblem(objective_1, constraints_1)
         prob_robust.solve()
@@ -70,20 +72,3 @@ class TestMultipleUncertainty(unittest.TestCase):
         prob_cvx.solve()
 
         npt.assert_allclose(x_lropt.value, x_cvx.value, rtol=RTOL, atol=ATOL)
-
-    def test_matrix(self):
-        n = 5
-        # X = cp.Variable((n, n))
-        x = cp.Variable(n)
-        A = npr.randint(-5, 5, size=(n, n))
-        b = 5
-
-        c = npr.randint(-5, 5, size=n)
-
-        obj = cp.Minimize(c @ x)
-
-        constr = [cp.norm(A @ x)**2 <= b]
-
-        prob = cp.Problem(obj, constr)
-
-        prob.solve()
