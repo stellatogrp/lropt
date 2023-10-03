@@ -132,10 +132,10 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         init_bvaln = -initn@np.mean(train, axis=0)
 
         # Train A and b
-        result1 = prob.train(lr=0.001, num_iter=300, momentum=0.8, optimizer="SGD", seed=s,
-                             init_A=initn, init_b=init_bvaln, init_lam=1, step_lam=0.01, fixb=False)
-
-        df1 = result1.df
+        result1 = prob.train(lr=0.001, num_iter=300, momentum=0.8, optimizer="SGD",
+                             seed=s, init_A=initn, init_b=init_bvaln, init_lam=1, step_lam=0.01)
+        df_train = result1.df
+        df_test = result1.df_test
         A_fin = result1.A
         b_fin = result1.b
         timefin = time.time()
@@ -148,7 +148,6 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # result5 = prob.grid(epslst=np.linspace(0.01, 3, 500), init_A=A_fin, init_b=b_fin, seed=s,
         #                     init_alpha=0., test_percentage=test_p, scenarios=scenarios, num_scenarios=num_scenarios)
         # dfgrid2 = result5.df
-
         pass
 
 

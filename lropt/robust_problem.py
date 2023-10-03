@@ -51,18 +51,18 @@ class TrainLoopStats():
             """
             This is an internal function that either initiates a tensor or a list
             """
-            return [] if not self.train_flag else torch.tensor(0., dtype=float)
+            return [] if not self.train_flag else torch.tensor(0., dtype=settings.DTYPE)
         self.step_num = step_num
         self.train_flag = train_flag
         self.tot_lagrangian = __value_init__(self)
         self.testval = __value_init__(self)
+        self.trainval = __value_init__(self)
         self.prob_violation_test = __value_init__(self)
         self.prob_violation_train = __value_init__(self)
         self.violation_test = __value_init__(self)
         self.violation_train = __value_init__(self)
 
-    def update_stats(self, temp_lagrangian, obj_test, prob_violation_train,
-                     prob_violation_test, var_vio, train_constraint):
+    def update_train_stats(self, temp_lagrangian, obj, prob_violation_train, train_constraint):
         """
         This function updates the statistics after each training iteration
         """
@@ -74,39 +74,62 @@ class TrainLoopStats():
         #     self.violation_test.append(var_vio.item())
         #     self.violation_train.append(train_constraint.item())
         # else:  # if self.train_flag
-        self.testval = obj_test.item()
-        self.prob_violation_test = prob_violation_test.item()
+        self.trainval = obj.item()
         self.prob_violation_train = prob_violation_train.item()
-        self.violation_test = var_vio.item()
         self.violation_train = train_constraint.item()
 
+    def update_test_stats(self, obj_test, prob_violation_test, var_vio):
+        """
+        This function updates the statistics after each training iteration
+        """
+        # if not self.train_flag:
+        #     self.testval.append(obj_test.item())
+        #     self.prob_violation_test.append(prob_violation_test.item())
+        #     self.prob_violation_train.append(prob_violation_train.item())
+        #     self.violation_test.append(var_vio.item())
+        #     self.violation_train.append(train_constraint.item())
+        # else:  # if self.train_flag
+        self.testval = obj_test.item()
+        self.prob_violation_test = prob_violation_test.item()
+        self.violation_test = var_vio.item()
+
     # TODO (Amit): Check why train_set is not used
-    def generate_row(self, calc_coverage, a_tch, b_tch, lam, alpha, test_tch, eps_tch):
+    def generate_train_row(self, a_tch, lam, alpha):
+        """
+        This function generates a new row with the statistics
+        """
+        row_dict = {
+            "Lagrangian_val":   self.tot_lagrangian.item(),
+            "Train_val":         self.trainval,
+            "Probability_violations_train": self.prob_violation_train,
+            "Violation_train":  self.violation_train,
+        }
+        row_dict["step"] = self.step_num,
+        row_dict["A_norm"] = np.linalg.norm(
+            a_tch.detach().numpy().copy()),
+        row_dict["lam_list"] = lam.detach().numpy().copy(),
+        row_dict["alpha"] = alpha.item(),
+        row_dict["alphagrad"] = alpha.grad,
+        row_dict["dfnorm"] = np.linalg.norm(a_tch.grad),
+        row_dict["gradnorm"] = a_tch.grad,
+        new_row = pd.Series(row_dict)
+        return new_row
+
+    def generate_test_row(self, calc_coverage, a_tch, b_tch, alpha, test_tch, eps_tch):
         """
         This function generates a new row with the statistics
         """
         coverage_test = calc_coverage(
             test_tch, a_tch, b_tch)
         row_dict = {
-            "Lagrangian_val":   self.tot_lagrangian.item(),
             "Test_val":         self.testval,
             "Probability_violations_test":       self.prob_violation_test,
-            "Probability_violations_train": self.prob_violation_train,
             "Violation_test":   self.violation_test,
-            "Violation_train":  self.violation_train,
             "Coverage_test":    coverage_test.detach().numpy().item()
         }
+        row_dict["step"] = self.step_num,
         if not self.train_flag:
-            row_dict["Eps"] = 1 / eps_tch[0][0].detach().numpy().copy(),
-        else:  # if self.train_flag
-            row_dict["step"] = self.step_num,
-            row_dict["A_norm"] = np.linalg.norm(
-                a_tch.detach().numpy().copy()),
-            row_dict["lam_list"] = lam.detach().numpy().copy(),
-            row_dict["alpha"] = alpha.item(),
-            row_dict["alphagrad"] = alpha.grad,
-            row_dict["dfnorm"] = np.linalg.norm(a_tch.grad),
-            row_dict["gradnorm"] = a_tch.grad,
+            row_dict["Eps"] = 1 / eps_tch[0][0].detach().numpy().copy()
         new_row = pd.Series(row_dict)
         return new_row
 
@@ -120,15 +143,15 @@ class GridStats():
         self.minval = np.float("inf")
         self.var_vals = 0
 
-    def update(self, train_stats, temp_lagrangian, eps_tch, a_tch, var_values):
+    def update(self, train_stats, obj, eps_tch, a_tch, var_values):
         """
         This function updates the best stats in the grid search.
 
         Args:
             train_stats:
                 The train stats
-            temp_lagrangian:
-                Calculated lagrangian
+            obj:
+                Calculated test objective
             eps_tch:
                 Epsilon torch
             a_tch
@@ -136,8 +159,8 @@ class GridStats():
             var_values
                 variance values
         """
-        if train_stats.tot_lagrangian <= self.minval:
-            self.minval = temp_lagrangian
+        if train_stats.testval <= self.minval:
+            self.minval = obj
             self.mineps = eps_tch.clone()
             self.minT = a_tch.clone()
             self.var_vals = var_values
@@ -222,7 +245,7 @@ class RobustProblem(Problem):
                 return (
                     torch.maximum(
                         g(*vars, *y_params, u_params) - alpha,
-                        torch.tensor(0.0, dtype=float,
+                        torch.tensor(0.0, dtype=settings.DTYPE,
                                      requires_grad=self.train_flag),
                     ) / eta)
 
@@ -237,7 +260,7 @@ class RobustProblem(Problem):
         """
         J = len(y_params_mat[0])
         N = len(u_params_mat)
-        init_val = torch.tensor(0.0, dtype=float)
+        init_val = torch.tensor(0.0, dtype=settings.DTYPE)
         for i in range(N):
             for j in range(J):
                 init_val += eval_func(*[valuex[j] for valuex in vars],
@@ -253,7 +276,7 @@ class RobustProblem(Problem):
         num_g = len(self.h)
         J = len(y_params_mat[0])
         N = len(u_params_mat)
-        H = torch.zeros(num_g, dtype=float)
+        H = torch.zeros(num_g, dtype=settings.DTYPE)
         for k, h_k in enumerate(self.h):
             init_val = 0
             for i in range(N):
@@ -274,7 +297,7 @@ class RobustProblem(Problem):
         num_g = len(self.g)
         J = len(y_params_mat[0])
         N = len(u_params_mat)
-        G = torch.zeros((num_g, J, N), dtype=float)
+        G = torch.zeros((num_g, J, N), dtype=settings.DTYPE)
 
         for k, g_k in enumerate(self.g):
             for i in range(N):
@@ -879,8 +902,8 @@ class RobustProblem(Problem):
         self._validate_unc_set_T(unc_set)
 
         mro_set = self._is_mro_set(unc_set)
-        df = pd.DataFrame(columns=["step", "Opt_val", "Eval_val", "Lagrangian_val",
-                                   "Probability_violations_test", "A_norm"])
+        df = pd.DataFrame(columns=["step"])
+        df_test = pd.DataFrame(columns=["step"])
 
         # setup train and test data
         #test_set is not used
@@ -909,11 +932,9 @@ class RobustProblem(Problem):
         # y's and cvxpylayer begin
         y_parameters = self.y_parameters()
         num_ys = self.num_ys
-        # lam_list = init_lam * torch.ones((num_ys, self.num_g), dtype=float)
-        lam = init_lam * torch.ones(self.num_g, dtype=float)
+        lam = init_lam * torch.ones(self.num_g, dtype=settings.DTYPE)
 
         # use multiple initial points and training. pick lowest eval loss
-        # temp_lagrangian = torch.tensor(0., dtype=float, requires_grad=self.train_flag) #DELETE HERE
         for step_num in range(num_iter):
             train_stats = TrainLoopStats(
                 step_num=step_num, train_flag=self.train_flag)
@@ -922,9 +943,7 @@ class RobustProblem(Problem):
             y_batch = self._gen_y_batch(
                 num_ys, y_parameters, y_batch_percentage)
 
-            #y_batch = [torch.zeros((5,4), dtype=float)]
             u_batch = self._udata_to_lst(train_set, u_batch_percentage)
-            #u_batch = [torch.zeros(4, dtype=float) for x in range(64)]
 
             if mro_set:
                 a_tch, _, _, _ = self._init_torches(init_eps, init_A, init_b,
@@ -940,7 +959,6 @@ class RobustProblem(Problem):
             prob_violation_train = self.prob_constr_violation(
                 var_values,
                 y_batch, u_batch)
-            #temp_lagrangian=torch.tensor(0.0, dtype=float, requires_grad=self.train_flag)
             temp_lagrangian, train_constraint_value = self.lagrangian(
                 var_values,
                 y_batch,
@@ -949,27 +967,44 @@ class RobustProblem(Problem):
                 lam,
                 kappa=kappa)
             temp_lagrangian.backward()
-            # do every 100 or less steps, evaluate over all test data (with nograd)
-            obj_test = self.evaluation_metric(var_values, y_batch, test_tch)
-            prob_violation_test = self.prob_constr_violation(
-                var_values, y_batch, test_tch)
-            _, var_vio = self.lagrangian(
-                var_values, y_batch, test_tch, alpha, lam, kappa=kappa)
 
-            # DELETE HERE this doesn't break
-            train_stats.update_stats(temp_lagrangian.detach().numpy().copy(), obj_test,
-                                     prob_violation_train, prob_violation_test,
-                                     var_vio, train_constraint_value)
+            train_stats.update_train_stats(temp_lagrangian.detach().numpy(
+            ).copy(), obj, prob_violation_train, train_constraint_value)
 
             lam = torch.maximum(lam + step_lam*train_constraint_value,
-                                torch.zeros(self.num_g, dtype=float))
+                                torch.zeros(self.num_g, dtype=settings.DTYPE))
 
-            # BEFORE UPDTATING PANDAS DATAFRAME
-            new_row = train_stats.generate_row(
-                self._calc_coverage, a_tch, b_tch, lam, alpha, test_tch, eps_tch)
+            new_row = train_stats.generate_train_row(a_tch, lam, alpha)
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
+
             self._update_iters(save_history, a_history, b_history,
                                a_tch, b_tch, mro_set)
+
+            if step_num % 10 == 0:
+                y_batch = self._gen_y_batch(
+                    num_ys, y_parameters, 1)
+                if mro_set:
+                    var_values = cvxpylayer(*y_batch, a_tch,
+                                            solver_args=solver_args)
+                else:
+                    var_values = cvxpylayer(*y_batch, a_tch, b_tch,
+                                            solver_args=solver_args)
+
+                with torch.no_grad():
+                    obj_test = self.evaluation_metric(
+                        var_values, y_batch, test_tch)
+                    prob_violation_test = self.prob_constr_violation(
+                        var_values, y_batch, test_tch)
+                    _, var_vio = self.lagrangian(
+                        var_values, y_batch, test_tch, alpha, lam, kappa=kappa)
+
+                train_stats.update_test_stats(
+                    obj_test, prob_violation_test, var_vio)
+                new_row = train_stats.generate_test_row(
+                    self._calc_coverage, a_tch, b_tch, alpha, test_tch, eps_tch)
+                df_test = pd.concat(
+                    [df_test, new_row.to_frame().T], ignore_index=True)
+
             if step_num < num_iter - 1:
                 opt.step()
                 opt.zero_grad()
@@ -986,7 +1021,7 @@ class RobustProblem(Problem):
         return_eps = eps_tch.detach().numpy().copy() if eps else 1
         return_b_value = unc_set.b.value if not mro_set else None
         return_b_history = b_history if not mro_set else None
-        return Result(self, self.new_prob, df, unc_set.a.value, return_b_value,
+        return Result(self, self.new_prob, df, df_test, unc_set.a.value, return_b_value,
                       return_eps, obj.item(), var_values, a_history=a_history,
                       b_history=return_b_history)
 
@@ -1034,7 +1069,7 @@ class RobustProblem(Problem):
 
         self._validate_unc_set_T(unc_set)
         df = pd.DataFrame(
-            columns=["Opt_val", "Eval_val", "Lagrangian_val", "Eps"])
+            columns=["Eps"])
         mro_set = self._is_mro_set(unc_set)
 
         # setup train and test data
@@ -1052,7 +1087,7 @@ class RobustProblem(Problem):
         y_batch = self._gen_y_batch(num_ys, y_parameters, 1)
         grid_stats = GridStats()
 
-        lam = 1000 * torch.ones(self.num_g, dtype=float)
+        lam = 1000 * torch.ones(self.num_g, dtype=settings.DTYPE)
         # initialize torches
         eps_tch = self._gen_eps_tch(1, unc_set, False)
         a_tch_init, b_tch_init, alpha, _ = self._init_torches(1, init_A, init_b,
@@ -1070,35 +1105,26 @@ class RobustProblem(Problem):
 
             train_stats = TrainLoopStats(
                 step_num=np.NAN, train_flag=self.train_flag)
+            with torch.no_grad():
+                obj_test = self.evaluation_metric(
+                    var_values, y_batch, test_tch)
+                prob_violation_test = self.prob_constr_violation(
+                    var_values, y_batch, test_tch)
+                _, var_vio = self.lagrangian(
+                    var_values,
+                    y_batch,
+                    test_tch,
+                    alpha,
+                    lam,
+                )
 
-            prob_violation_train = self.prob_constr_violation(
-                var_values, y_batch, train_tch)
-            temp_lagrangian, train_constraint_value = self.lagrangian(
-                var_values,
-                y_batch,
-                train_tch,
-                alpha,
-                lam,
-            )
-            obj_test = self.evaluation_metric(var_values, y_batch, test_tch)
-            prob_violation_test = self.prob_constr_violation(
-                var_values, y_batch, test_tch)
-            _, var_vio = self.lagrangian(
-                var_values,
-                y_batch,
-                test_tch,
-                alpha,
-                lam,
-            )
-
-            train_stats.update_stats(temp_lagrangian, obj_test,
-                                     prob_violation_train, prob_violation_test,
-                                     var_vio, train_constraint_value)
-            grid_stats.update(train_stats, temp_lagrangian,
+            train_stats.update_test_stats(obj_test, prob_violation_test,
+                                          var_vio)
+            grid_stats.update(train_stats, obj_test,
                               eps_tch, eps_tch*a_tch_init, var_values)
 
-            new_row = train_stats.generate_row(
-                self._calc_coverage, eps_tch*a_tch_init, eps_tch*b_tch_init, lam, alpha, test_tch, eps_tch)
+            new_row = train_stats.generate_test_row(
+                self._calc_coverage, eps_tch*a_tch_init, eps_tch*b_tch_init,  alpha, test_tch, eps_tch)
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
         self._trained = True
@@ -1155,10 +1181,11 @@ class RobustProblem(Problem):
 
 
 class Result(ABC):
-    def __init__(self, prob, probnew, df, T, b, eps, obj, x, a_history=None, b_history=None):
+    def __init__(self, prob, probnew, df, df_test, T, b, eps, obj, x, a_history=None, b_history=None):
         self._reform_problem = probnew
         self._problem = prob
         self._df = df
+        self._df_test = df_test
         self._A = T
         self._b = b
         self._obj = obj
@@ -1174,6 +1201,10 @@ class Result(ABC):
     @property
     def df(self):
         return self._df
+
+    @property
+    def df_test(self):
+        return self._df_test
 
     @property
     def reform_problem(self):
