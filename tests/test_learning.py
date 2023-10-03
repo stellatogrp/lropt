@@ -59,11 +59,22 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         constraints = [x @ (u + y) <= c, cp.norm(x) <= 2*c]
 
         def f_tch(x,y,u):
+            #x is a tensor that represents the cp.Variable x.
             return a_tch @ x
         def g_tch(x,y,u):
+            #x,y,u are tensors that represent the cp.Variable x and cp.Parameter y and u.
+            #The cp.Constant c is converted to a tensor
             return x @ u + x @ y - c_tch
 
         prob = RobustProblem(objective, constraints,
                              objective_torch=f_tch, constraints_torch=[g_tch])
         prob.train(lr = 0.001, num_iter=2, momentum = 0.8, optimizer = "SGD")
         # prob.solve()
+
+
+"""
+def foo(*vars):
+    if constant:
+        convert_to_tensor
+    return function #s.t. the inputs are tensors corresponding to cp.Variables and cp.Paramters, and does the same logic as the cp.Expressions
+"""

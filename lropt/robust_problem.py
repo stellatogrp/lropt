@@ -86,7 +86,7 @@ class TrainLoopStats():
         This function generates a new row with the statistics
         """
         coverage_test = calc_coverage(
-            self, test_tch, a_tch, b_tch)
+            test_tch, a_tch, b_tch)
         row_dict = {
             "Lagrangian_val":   self.tot_lagrangian.item(),
             "Test_val":         self.testval,
@@ -218,59 +218,66 @@ class RobustProblem(Problem):
                 raise ValueError(
                     "incorrect number of user's pytorch function arguments")
 
-            def hg(vars, y_params, u_params, alpha, eta, kappa):
+            def hg(vars, y_params, u_params, alpha, eta):
                 return (
                     torch.maximum(
                         g(*vars, *y_params, u_params) - alpha,
-                        torch.tensor(0.0),
-                    ) / eta + alpha - kappa)
+                        torch.tensor(0.0, dtype=float,requires_grad=self.train_flag),
+                    ) / eta)
 
             h_funcs.append(hg)
 
         l_func = f_tch
         return l_func, h_funcs, len(h_funcs)
 
-    def train_objective(self, vars, y_params_mat, u_params_mat):
+    def _eval_input(self, eval_func, vars, y_params_mat, u_params_mat, *args):
+        """
+        This function takes decision varaibles, y's, and u's, evaluates them and averages them on a given function.
+        """
         J = len(y_params_mat[0])
         N = len(u_params_mat)
-
-        sum = torch.tensor(0.0, dtype=float)
+        init_val = torch.tensor(0.0, dtype=float)
         for i in range(N):
             for j in range(J):
-                sum += self.l(*[valuex[i] for valuex in vars],
-                              *[valuey[j] for valuey in y_params_mat], u_params_mat[i])
-        expectation = sum / (J * N)
-        return expectation
+                init_val += eval_func(*[valuex[j] for valuex in vars],
+                              *[valuey[j] for valuey in y_params_mat], u_params_mat[i], *args)
+        
+        init_val /= (J*N)
+        return init_val
+    
+    def train_objective(self, vars, y_params_mat, u_params_mat):
+        return self._eval_input(eval_func=self.l, vars=vars, y_params_mat=y_params_mat, u_params_mat=u_params_mat)
 
     def train_constraint(self, vars, y_params_mat, u_params_mat, alpha, eta, kappa):
+        num_g = len(self.h)
         J = len(y_params_mat[0])
         N = len(u_params_mat)
-
-        num_g = len(self.h)
         H = torch.zeros(num_g, dtype=float)
         for k, h_k in enumerate(self.h):
-            sum = torch.tensor(0.0, dtype=float)
+            #h_k_expectation = self._eval_input(h_k, vars, y_params_mat, u_params_mat, alpha, eta, kappa)
+            #init_val = torch.tensor(0.0, dtype=float)
+            init_val = 0
             for i in range(N):
                 for j in range(J):
-                    sum += h_k([valuex[i] for valuex in vars], [valuey[j] for valuey in y_params_mat],
-                               u_params_mat[i], alpha, eta, kappa)
-            h_k_expectation = sum / (J * N)
+                    valuex = vars[0]
+                    valuey = y_params_mat[0]
+                    init_val  += h_k([valuex[0]],
+                                    [valuey[0]], u_params_mat[i],alpha, eta)
+                    # init_val += torch.maximum(
+                    #     self.g[0](*[valuex[j] for valuex in vars], *[valuey[j] for valuey in y_params_mat], u_params_mat[i]) - alpha,
+                    #     torch.tensor(0.0, dtype=float,requires_grad=self.train_flag),
+                    # ) / eta
+                    #init_val += h_k([valuex[j] for valuex in vars],
+                    #                [valuey[j] for valuey in y_params_mat], u_params_mat[i],alpha, eta)
+            init_val /= (J*N)
+            h_k_expectation = init_val + alpha - kappa
             H[k] = h_k_expectation
         return H
 
     def evaluation_metric(self, vars, y_params_mat, u_params_mat):
         if (self.eval is None):
             return 0
-
-        J = len(y_params_mat[0])
-        N = len(u_params_mat)
-
-        sum = torch.tensor(0.0, dtype=float)
-        for i in range(N):
-            for j in range(J):
-                sum += self.eval(*[valuex[i] for valuex in vars],
-                                 *[valuey[j] for valuey in y_params_mat], u_params_mat[i])
-        return sum / (J * N)
+        return self._eval_input(eval_func=self.eval, vars=vars, y_params_mat=y_params_mat, u_params_mat=u_params_mat)
 
     def prob_constr_violation(self, vars, y_params_mat, u_params_mat):
         num_g = len(self.g)
@@ -281,7 +288,7 @@ class RobustProblem(Problem):
         for k, g_k in enumerate(self.g):
             for i in range(N):
                 for j in range(J):
-                    G[k, j, i] = g_k(*[valuex[i] for valuex in vars],
+                    G[k, j, i] = g_k(*[valuex[j] for valuex in vars],
                                      *[valuey[j] for valuey in y_params_mat], u_params_mat[i])
 
         g_max = torch.max(G, dim=0)[0]
@@ -297,13 +304,14 @@ class RobustProblem(Problem):
         # for i in range(num_instances):
         #     u_params_mat.append([data[i, :]])
         # return u_params_mat
-        return data[random_int]
+        return torch.tensor(data[random_int],requires_grad=self.train_flag, dtype=settings.DTYPE)
 
     def lagrangian(self, vars, y_params_mat, u_params_mat, alpha, lam,
                    eta=settings.ETA_LAGRANGIAN_DEFAULT, kappa=settings.KAPPA_LAGRANGIAN_DEFAULT):
         F = self.train_objective(vars, y_params_mat, u_params_mat)
         H = self.train_constraint(
             vars, y_params_mat, u_params_mat, alpha, eta, kappa)
+        H_zero=torch.tensor([0.], dtype=float, requires_grad=self.train_flag) #DELETE HERE
         return F + lam @ H, H
 
     # create function for only remove_uncertain reduction
@@ -915,6 +923,7 @@ class RobustProblem(Problem):
         lam = init_lam * torch.ones(self.num_g, dtype=float)
 
         # use multiple initial points and training. pick lowest eval loss
+        #temp_lagrangian = torch.tensor(0., dtype=float, requires_grad=self.train_flag) #DELETE HERE
         for step_num in range(num_iter):
             train_stats = TrainLoopStats(
                 step_num=step_num, train_flag=self.train_flag)
@@ -922,7 +931,10 @@ class RobustProblem(Problem):
             # generate batched y and u
             y_batch = self._gen_y_batch(
                 num_ys, y_parameters, y_batch_percentage)
-            u_batch = self._udata_to_lst(train_tch, u_batch_percentage)
+            
+            #y_batch = [torch.zeros((5,4), dtype=float)]
+            u_batch = self._udata_to_lst(train_set, u_batch_percentage)
+            #u_batch = [torch.zeros(4, dtype=float) for x in range(64)]
 
             if mro_set:
                 a_tch, _, _, _ = self._init_torches(init_eps, init_A, init_b,
@@ -938,6 +950,7 @@ class RobustProblem(Problem):
             prob_violation_train = self.prob_constr_violation(
                 var_values,
                 y_batch, u_batch)
+            temp_lagrangian=torch.tensor(0.0, dtype=float, requires_grad=self.train_flag)
             temp_lagrangian, train_constraint_value = self.lagrangian(
                 var_values,
                 y_batch,
@@ -945,6 +958,7 @@ class RobustProblem(Problem):
                 alpha,
                 lam,
                 kappa=kappa)
+            temp_lagrangian.backward()
             # do every 100 or less steps, evaluate over all test data (with nograd)
             obj_test = self.evaluation_metric(var_values, y_batch, test_tch)
             prob_violation_test = self.prob_constr_violation(
@@ -952,13 +966,14 @@ class RobustProblem(Problem):
             _, var_vio = self.lagrangian(
                 var_values, y_batch, test_tch, alpha, lam, kappa=kappa)
 
-            train_stats.update_stats(temp_lagrangian, obj_test,
+            #DELETE HERE this doesn't break
+            train_stats.update_stats(temp_lagrangian.detach().numpy().copy(), obj_test,
                                      prob_violation_train, prob_violation_test,
                                      var_vio, train_constraint_value)
 
             lam = torch.maximum(lam + step_lam*train_constraint_value,
                                 torch.zeros(self.num_g, dtype=float))
-            train_stats.tot_lagrangian.backward()
+            
 
             # BEFORE UPDTATING PANDAS DATAFRAME
             new_row = train_stats.generate_row(
@@ -970,7 +985,7 @@ class RobustProblem(Problem):
                 opt.step()
                 opt.zero_grad()
                 if scheduler:
-                    scheduler_.step(train_stats.tot_lagrangian)
+                    scheduler_.step(temp_lagrangian) #DELETE HERE this doesn't break
 
         self._trained = True
         unc_set._trained = True
@@ -1055,7 +1070,7 @@ class RobustProblem(Problem):
                                                               False, unc_set)
         for init_eps in epslst:
             eps_tch = torch.tensor(
-                1/init_eps, requires_grad=True, dtype=settings.DTYPE)
+                1/init_eps, requires_grad=self.train_flag, dtype=settings.DTYPE)
             if mro_set:
                 var_values = cvxpylayer(*y_batch, eps_tch*a_tch_init,
                                         solver_args=solver_args)

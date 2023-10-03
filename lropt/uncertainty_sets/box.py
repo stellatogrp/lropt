@@ -36,10 +36,10 @@ class Box(Norm):
     """
 
     def __init__(self, rho=1.,
-                 A=None, b=None,
+                 a=None, b=None,
                  data=None, loss=None):
 
         super(Box, self).__init__(
             p=np.inf,
             rho=rho,
-            A=A, b=b, data=data, loss=loss)
+            a=a, b=b, data=data, loss=loss)

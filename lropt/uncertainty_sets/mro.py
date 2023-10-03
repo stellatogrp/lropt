@@ -15,7 +15,7 @@ class MRO(UncertaintySet):
     """
 
     def __init__(self, K=1, rho=1, data=None, power=1, p=2,
-                 A=None, train=True, loss=None, uniqueA=False):
+                 a=None, train=True, loss=None, uniqueA=False):
 
         if train and loss is None:
             raise ValueError("You must provide a loss function")
@@ -47,7 +47,7 @@ class MRO(UncertaintySet):
 
         if train:
             if self._uniqueA:
-                paramT = Parameter((K*self._m, self._m))
+                a = Parameter((K*self._m, self._m))
                 dat = data[kmeans.labels_ == 0]
                 if dat.shape[0] <= 2:
                     initnew = sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))
@@ -63,15 +63,13 @@ class MRO(UncertaintySet):
                                              sc.linalg.sqrtm(sc.linalg.inv(np.cov(dat.T)))))
                 self._initA = initnew
             else:
-                paramT = Parameter((self._m, self._m))
+                a = Parameter((self._m, self._m))
         else:
-            if A is not None:
-                paramT = A
-                if self._uniqueA and A.shape[0] != (K*self._m):
-                    raise ValueError("A must be of dimension (K*m, m)")
-            else:
-                paramT = None
-        self._paramT = paramT
+            if a is not None:
+                if self._uniqueA and a.shape[0] != (K*self._m):
+                    raise ValueError("a must be of dimension (K*m, m)")
+        
+        self._a = a
         self._lam = None
 
     @property
@@ -91,8 +89,8 @@ class MRO(UncertaintySet):
         return self._loss
 
     @property
-    def paramT(self):
-        return self._paramT
+    def a(self):
+        return self._a
 
     @property
     def N(self):
@@ -207,30 +205,30 @@ class MRO(UncertaintySet):
             return -sval[k_ind], constr, lmbda, sval
         else:
             ushape = var.shape[1]  # shape of uncertainty
-            if (self._train or (self.paramT is not None)) and not self._uniqueA:
+            if (self._train or (self.a is not None)) and not self._uniqueA:
                 if shape == 1:
                     newvar = Variable(ushape)  # gamma aux variable
                     constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
-                    constr += [self.paramT.T@newvar == var[0]]
+                    constr += [self.a.T@newvar == var[0]]
                     constr += [lmbda >= 0]
-                    return newvar@(self.paramT@self.Dbar[k_ind])-sval[k_ind], constr, lmbda, sval
+                    return newvar@(self.a@self.Dbar[k_ind])-sval[k_ind], constr, lmbda, sval
                 else:
                     constr = []
                     newvar = Variable((shape, ushape))
                     constr += [lmbda >= 0]
                     for ind in range(shape):
                         constr += [norm(newvar[ind], p=self.dual_norm()) <= lmbda[ind]]
-                        constr += [self.paramT.T@newvar[ind] == var[ind]]
+                        constr += [self.a.T@newvar[ind] == var[ind]]
 
-                    return newvar@(self.paramT@self.Dbar[k_ind])-sval[k_ind], constr, lmbda, sval
-            elif self._train or (self.paramT is not None):
+                    return newvar@(self.a@self.Dbar[k_ind])-sval[k_ind], constr, lmbda, sval
+            elif self._train or (self.a is not None):
                 if shape == 1:
                     newvar = Variable(ushape)  # gamma aux variable
                     constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
                     constr += \
-                        [self.paramT[k_ind*self._m:(k_ind+1)*self._m, 0:self._m].T@newvar == var[0]]
+                        [self.a[k_ind*self._m:(k_ind+1)*self._m, 0:self._m].T@newvar == var[0]]
                     constr += [lmbda >= 0]
-                    return newvar@(self.paramT[k_ind*self._m:(k_ind+1) *
+                    return newvar@(self.a[k_ind*self._m:(k_ind+1) *
                                                self._m, 0:self._m]@self.Dbar[k_ind]) -\
                         sval[k_ind], constr, lmbda, sval
                 else:
@@ -239,10 +237,10 @@ class MRO(UncertaintySet):
                     constr += [lmbda >= 0]
                     for ind in range(shape):
                         constr += [norm(newvar[ind], p=self.dual_norm()) <= lmbda[ind]]
-                        constr += [self.paramT[k_ind*self._m:(k_ind+1) *
+                        constr += [self.a[k_ind*self._m:(k_ind+1) *
                                                self._m, 0:self._m].T@newvar[ind] == var[ind]]
 
-                    return newvar@(self.paramT[k_ind*self._m:(k_ind+1) *
+                    return newvar@(self.a[k_ind*self._m:(k_ind+1) *
                                                self._m, 0:self._m]@self.Dbar[k_ind]) -\
                         sval[k_ind], constr, lmbda, sval
             else:

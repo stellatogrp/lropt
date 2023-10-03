@@ -40,7 +40,7 @@ class Norm(UncertaintySet):
     """
 
     def __init__(self, p=2, rho=1.,
-                 A=None, b=None, data=None, loss=None):
+                 a=None, b=None, data=None, loss=None):
         if rho <= 0:
             raise ValueError("Rho value must be positive.")
         if p < 0.:
@@ -48,18 +48,9 @@ class Norm(UncertaintySet):
 
         if data is not None:
             dat_shape = data.shape[1]
-            paramT = ShapeParameter((dat_shape, dat_shape))
-            paramb = ShapeParameter(dat_shape)
+            a = ShapeParameter((dat_shape, dat_shape))
+            b = ShapeParameter(dat_shape)
 
-        else:
-            if A is not None:
-                paramT = A
-            else:
-                paramT = None
-            if b is not None:
-                paramb = b
-            else:
-                paramb = None
 
         self.affine_transform_temp = None
         self.affine_transform = None
@@ -67,8 +58,8 @@ class Norm(UncertaintySet):
         self._p = p
         self._rho = rho
         self._data = data
-        self._paramT = paramT
-        self._paramb = paramb
+        self._a = a
+        self._b = b
         self._trained = False
         self._loss = loss
 
@@ -81,12 +72,12 @@ class Norm(UncertaintySet):
         return self._rho
 
     @property
-    def paramT(self):
-        return self._paramT
+    def a(self):
+        return self._a
 
     @property
-    def paramb(self):
-        return self._paramb
+    def b(self):
+        return self._b
 
     @property
     def data(self):
@@ -127,13 +118,10 @@ class Norm(UncertaintySet):
             self.affine_transform_temp = self.affine_transform.copy()
         else:
             self.affine_transform_temp = None
-        # TODO: Make A and b parameters
 
         return new_expr, new_constraints
 
     def isolated_unc(self, i, var, num_constr):
-        # import ipdb
-        # ipdb.set_trace()
         trans = self.affine_transform_temp
         new_expr = 0
         if i == 0:
@@ -170,24 +158,22 @@ class Norm(UncertaintySet):
         return new_expr, new_constraints
 
     def conjugate(self, var, shape, k_ind=0):
-        # import ipdb
-        # ipdb.set_trace()
         if not isinstance(var, Variable):
             lmbda = Variable(shape)
             constr = [lmbda >= 0]
             return self.rho*lmbda, constr, lmbda
         else:
             ushape = var.shape[1]  # shape of uncertainty
-            if self.paramb is None:
-                self._paramb = np.zeros(ushape)
-            if self.data is not None or self.paramT is not None:
+            if self.b is None:
+                self._b = np.zeros(ushape)
+            if self.data is not None or self.a is not None:
                 if shape == 1:
                     newvar = Variable(ushape)  # gamma aux variable
                     lmbda = Variable()
                     constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
-                    constr += [self.paramT.T@newvar == var[0]]
+                    constr += [self.a.T@newvar == var[0]]
                     constr += [lmbda >= 0]
-                    return self.rho * lmbda - newvar@self.paramb, constr, lmbda
+                    return self.rho * lmbda - newvar@self.b, constr, lmbda
                 else:
                     constr = []
                     lmbda = Variable(shape)
@@ -195,19 +181,19 @@ class Norm(UncertaintySet):
                     constr += [lmbda >= 0]
                     for ind in range(shape):
                         constr += [norm(newvar[ind], p=self.dual_norm()) <= lmbda[ind]]
-                        constr += [self.paramT.T@newvar[ind] == var[ind]]
+                        constr += [self.a.T@newvar[ind] == var[ind]]
 
-                    return self.rho * lmbda - newvar@self.paramb, constr, lmbda
+                    return self.rho * lmbda - newvar@self.b, constr, lmbda
             else:
                 if shape == 1:
                     lmbda = Variable()
                     constr = [norm(var[0], p=self.dual_norm()) <= lmbda]
                     constr += [lmbda >= 0]
-                    return self.rho * lmbda - var[0]@self.paramb, constr, lmbda
+                    return self.rho * lmbda - var[0]@self.b, constr, lmbda
                 else:
                     constr = []
                     lmbda = Variable(shape)
                     constr += [lmbda >= 0]
                     for ind in range(shape):
                         constr += [norm(var[ind], p=self.dual_norm()) <= lmbda[ind]]
-                    return self.rho * lmbda - var@self.paramb, constr, lmbda
+                    return self.rho * lmbda - var@self.b, constr, lmbda
