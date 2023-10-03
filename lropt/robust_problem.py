@@ -222,7 +222,8 @@ class RobustProblem(Problem):
                 return (
                     torch.maximum(
                         g(*vars, *y_params, u_params) - alpha,
-                        torch.tensor(0.0, dtype=float,requires_grad=self.train_flag),
+                        torch.tensor(0.0, dtype=float,
+                                     requires_grad=self.train_flag),
                     ) / eta)
 
             h_funcs.append(hg)
@@ -240,11 +241,11 @@ class RobustProblem(Problem):
         for i in range(N):
             for j in range(J):
                 init_val += eval_func(*[valuex[j] for valuex in vars],
-                              *[valuey[j] for valuey in y_params_mat], u_params_mat[i], *args)
-        
+                                      *[valuey[j] for valuey in y_params_mat], u_params_mat[i], *args)
+
         init_val /= (J*N)
         return init_val
-    
+
     def train_objective(self, vars, y_params_mat, u_params_mat):
         return self._eval_input(eval_func=self.l, vars=vars, y_params_mat=y_params_mat, u_params_mat=u_params_mat)
 
@@ -258,7 +259,7 @@ class RobustProblem(Problem):
             for i in range(N):
                 for j in range(J):
                     init_val += h_k([valuex[j] for valuex in vars],
-                                   [valuey[j] for valuey in y_params_mat], u_params_mat[i],alpha, eta)
+                                    [valuey[j] for valuey in y_params_mat], u_params_mat[i], alpha, eta)
             init_val /= (J*N)
             h_k_expectation = init_val + alpha - kappa
             H[k] = h_k_expectation
@@ -294,7 +295,7 @@ class RobustProblem(Problem):
         # for i in range(num_instances):
         #     u_params_mat.append([data[i, :]])
         # return u_params_mat
-        return torch.tensor(data[random_int],requires_grad=self.train_flag, dtype=settings.DTYPE)
+        return torch.tensor(data[random_int], requires_grad=self.train_flag, dtype=settings.DTYPE)
 
     def lagrangian(self, vars, y_params_mat, u_params_mat, alpha, lam,
                    eta=settings.ETA_LAGRANGIAN_DEFAULT, kappa=settings.KAPPA_LAGRANGIAN_DEFAULT):
@@ -912,7 +913,7 @@ class RobustProblem(Problem):
         lam = init_lam * torch.ones(self.num_g, dtype=float)
 
         # use multiple initial points and training. pick lowest eval loss
-        #temp_lagrangian = torch.tensor(0., dtype=float, requires_grad=self.train_flag) #DELETE HERE
+        # temp_lagrangian = torch.tensor(0., dtype=float, requires_grad=self.train_flag) #DELETE HERE
         for step_num in range(num_iter):
             train_stats = TrainLoopStats(
                 step_num=step_num, train_flag=self.train_flag)
@@ -920,7 +921,7 @@ class RobustProblem(Problem):
             # generate batched y and u
             y_batch = self._gen_y_batch(
                 num_ys, y_parameters, y_batch_percentage)
-            
+
             #y_batch = [torch.zeros((5,4), dtype=float)]
             u_batch = self._udata_to_lst(train_set, u_batch_percentage)
             #u_batch = [torch.zeros(4, dtype=float) for x in range(64)]
@@ -955,14 +956,13 @@ class RobustProblem(Problem):
             _, var_vio = self.lagrangian(
                 var_values, y_batch, test_tch, alpha, lam, kappa=kappa)
 
-            #DELETE HERE this doesn't break
+            # DELETE HERE this doesn't break
             train_stats.update_stats(temp_lagrangian.detach().numpy().copy(), obj_test,
                                      prob_violation_train, prob_violation_test,
                                      var_vio, train_constraint_value)
 
             lam = torch.maximum(lam + step_lam*train_constraint_value,
                                 torch.zeros(self.num_g, dtype=float))
-            
 
             # BEFORE UPDTATING PANDAS DATAFRAME
             new_row = train_stats.generate_row(
@@ -974,7 +974,8 @@ class RobustProblem(Problem):
                 opt.step()
                 opt.zero_grad()
                 if scheduler:
-                    scheduler_.step(temp_lagrangian) #DELETE HERE this doesn't break
+                    # DELETE HERE this doesn't break
+                    scheduler_.step(temp_lagrangian)
 
         self._trained = True
         unc_set._trained = True
@@ -983,8 +984,8 @@ class RobustProblem(Problem):
             unc_set.b.value = b_tch.detach().numpy().copy()
 
         return_eps = eps_tch.detach().numpy().copy() if eps else 1
-        return_b_value = unc_set.b.value if mro_set else None
-        return_b_history = b_history if mro_set else None
+        return_b_value = unc_set.b.value if not mro_set else None
+        return_b_history = b_history if not mro_set else None
         return Result(self, self.new_prob, df, unc_set.a.value, return_b_value,
                       return_eps, obj.item(), var_values, a_history=a_history,
                       b_history=return_b_history)
