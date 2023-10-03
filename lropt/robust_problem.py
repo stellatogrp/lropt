@@ -254,21 +254,11 @@ class RobustProblem(Problem):
         N = len(u_params_mat)
         H = torch.zeros(num_g, dtype=float)
         for k, h_k in enumerate(self.h):
-            #h_k_expectation = self._eval_input(h_k, vars, y_params_mat, u_params_mat, alpha, eta, kappa)
-            #init_val = torch.tensor(0.0, dtype=float)
             init_val = 0
             for i in range(N):
                 for j in range(J):
-                    valuex = vars[0]
-                    valuey = y_params_mat[0]
-                    init_val  += h_k([valuex[0]],
-                                    [valuey[0]], u_params_mat[i],alpha, eta)
-                    # init_val += torch.maximum(
-                    #     self.g[0](*[valuex[j] for valuex in vars], *[valuey[j] for valuey in y_params_mat], u_params_mat[i]) - alpha,
-                    #     torch.tensor(0.0, dtype=float,requires_grad=self.train_flag),
-                    # ) / eta
-                    #init_val += h_k([valuex[j] for valuex in vars],
-                    #                [valuey[j] for valuey in y_params_mat], u_params_mat[i],alpha, eta)
+                    init_val += h_k([valuex[j] for valuex in vars],
+                                   [valuey[j] for valuey in y_params_mat], u_params_mat[i],alpha, eta)
             init_val /= (J*N)
             h_k_expectation = init_val + alpha - kappa
             H[k] = h_k_expectation
@@ -311,8 +301,7 @@ class RobustProblem(Problem):
         F = self.train_objective(vars, y_params_mat, u_params_mat)
         H = self.train_constraint(
             vars, y_params_mat, u_params_mat, alpha, eta, kappa)
-        H_zero=torch.tensor([0.], dtype=float, requires_grad=self.train_flag) #DELETE HERE
-        return F + lam @ H, H
+        return F + lam @ H, H.detach()
 
     # create function for only remove_uncertain reduction
     def _construct_chain(
@@ -950,7 +939,7 @@ class RobustProblem(Problem):
             prob_violation_train = self.prob_constr_violation(
                 var_values,
                 y_batch, u_batch)
-            temp_lagrangian=torch.tensor(0.0, dtype=float, requires_grad=self.train_flag)
+            #temp_lagrangian=torch.tensor(0.0, dtype=float, requires_grad=self.train_flag)
             temp_lagrangian, train_constraint_value = self.lagrangian(
                 var_values,
                 y_batch,
