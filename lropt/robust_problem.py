@@ -254,23 +254,43 @@ class RobustProblem(Problem):
         l_func = f_tch
         return l_func, h_funcs, len(h_funcs)
 
-    def _eval_input(self, eval_func, vars, y_params_mat, u_params_mat, *args):
+    def _eval_input(self, eval_func, vars, y_params_mat, u_params_mat, star_flag, *args):
         """
-        This function takes decision varaibles, y's, and u's, evaluates them and averages them on a given function.
+        This function takes decision varaibles, y's, and u's,
+            evaluates them and averages them on a given function.
+
+        Args:
+            eval_func:
+                The function used for evaluation.
+            vars:
+                Contains all the variables we optimize over (J in total)
+            y_params_mat:  
+                Contains all the y's (J in total)
+            u_params_mat:
+                Contains all the u data points (N in total)
+            star_flag:
+                If True, will expand vars and y_params_mat
+
+        Returns:
+            The average among all evaluated J x N pairs
         """
         J = len(y_params_mat[0])
-        N = len(u_params_mat)
-        init_val = torch.tensor(0.0, dtype=settings.DTYPE)
-        for i in range(N):
-            for j in range(J):
+        init_val = 0
+        
+        for j in range(J):
+            if star_flag:
                 init_val += eval_func(*[valuex[j] for valuex in vars],
-                                      *[valuey[j] for valuey in y_params_mat], u_params_mat[i], *args)
-
-        init_val /= (J*N)
-        return init_val
+                                        *[valuey[j] for valuey in y_params_mat], u_params_mat, *args)
+            else:
+                init_val += eval_func([valuex[j] for valuex in vars],
+                                        [valuey[j] for valuey in y_params_mat], u_params_mat, *args)
+                                    
+        init_val /= J
+        return init_val.mean()
 
     def train_objective(self, vars, y_params_mat, u_params_mat):
-        return self._eval_input(eval_func=self.l, vars=vars, y_params_mat=y_params_mat, u_params_mat=u_params_mat)
+        return self._eval_input(eval_func=self.l, vars=vars, y_params_mat=y_params_mat,
+                                u_params_mat=u_params_mat, star_flag=True)
 
     def train_constraint(self, vars, y_params_mat, u_params_mat, alpha, eta, kappa):
         num_g = len(self.h)
@@ -278,12 +298,7 @@ class RobustProblem(Problem):
         N = len(u_params_mat)
         H = torch.zeros(num_g, dtype=settings.DTYPE)
         for k, h_k in enumerate(self.h):
-            init_val = 0
-            for i in range(N):
-                for j in range(J):
-                    init_val += h_k([valuex[j] for valuex in vars],
-                                    [valuey[j] for valuey in y_params_mat], u_params_mat[i], alpha, eta)
-            init_val /= (J*N)
+            init_val = self._eval_input(h_k, vars, y_params_mat, u_params_mat, False, alpha, eta)
             h_k_expectation = init_val + alpha - kappa
             H[k] = h_k_expectation
         return H
@@ -291,7 +306,8 @@ class RobustProblem(Problem):
     def evaluation_metric(self, vars, y_params_mat, u_params_mat):
         if (self.eval is None):
             return 0
-        return self._eval_input(eval_func=self.eval, vars=vars, y_params_mat=y_params_mat, u_params_mat=u_params_mat)
+        return self._eval_input(eval_func=self.eval, vars=vars, y_params_mat=y_params_mat,
+                                u_params_mat=u_params_mat, star_flag=True)
 
     def prob_constr_violation(self, vars, y_params_mat, u_params_mat):
         num_g = len(self.g)
@@ -686,7 +702,8 @@ class RobustProblem(Problem):
         y_tchs = []
         for i in range(len(y_parameters)):
             y_tchs.append(torch.tensor(
-                y_parameters[i].data[random_int], requires_grad=self.train_flag, dtype=settings.DTYPE))
+                y_parameters[i].data[random_int], requires_grad=self.train_flag,
+                dtype=settings.DTYPE))
         return y_tchs
 
     def _gen_eps_tch(self, init_eps, unc_set, mro_set):
@@ -980,6 +997,7 @@ class RobustProblem(Problem):
             self._update_iters(save_history, a_history, b_history,
                                a_tch, b_tch, mro_set)
 
+            #TODO (Amit): 10 should probably be an input or a constant. 10 is also a bit small.
             if step_num % 10 == 0:
                 y_batch = self._gen_y_batch(
                     num_ys, y_parameters, 1)
@@ -1124,7 +1142,8 @@ class RobustProblem(Problem):
                               eps_tch, eps_tch*a_tch_init, var_values)
 
             new_row = train_stats.generate_test_row(
-                self._calc_coverage, eps_tch*a_tch_init, eps_tch*b_tch_init,  alpha, test_tch, eps_tch)
+                self._calc_coverage, eps_tch*a_tch_init, eps_tch*b_tch_init,  alpha, test_tch,
+                eps_tch)
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
         self._trained = True
@@ -1182,7 +1201,8 @@ class RobustProblem(Problem):
 
 
 class Result(ABC):
-    def __init__(self, prob, probnew, df, df_test, T, b, eps, obj, x, a_history=None, b_history=None):
+    def __init__(self, prob, probnew, df, df_test, T, b, eps, obj, x, a_history=None,
+                 b_history=None):
         self._reform_problem = probnew
         self._problem = prob
         self._df = df

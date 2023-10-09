@@ -1,18 +1,19 @@
-import unittest
 import time
+import unittest
+
 import cvxpy as cp
-import scipy as sc
 
 # import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random as npr
+import scipy as sc
 import torch
+from sklearn.model_selection import train_test_split
 
 from lropt.parameter import Parameter
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
-from sklearn.model_selection import train_test_split
 
 # import numpy.testing as npt
 
@@ -78,7 +79,6 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
     def test_portfolio_intro(self):
         timestart = time.time()
         n = 2
-        N = 300
         seed = 15
         np.random.seed(seed)
         dist = (np.array([25, 10, 60, 50, 40, 30, 30, 20,
@@ -102,10 +102,10 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         def g_tch(t, x, y, u):
             # x,y,u are tensors that represent the cp.Variable x and cp.Parameter y and u.
             # The cp.Constant c is converted to a tensor
-            return -x @ u - t
+            return -x @ u.T - t
 
         def eval_tch(t, x, y, u):
-            return -x @ u
+            return -x @ u.T
 
         data = gen_demand_intro(600, seed=15)
         u = UncertainParameter(n,
@@ -116,30 +116,25 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         t = cp.Variable()
 
         objective = cp.Minimize(t + 0.2*cp.norm(x - y, 1))
-        constraints = [-x@u <= t, cp.sum(x) == 1, x >= 0]
+        constraints = [-x@u.T <= t, cp.sum(x) == 1, x >= 0]
 
         prob = RobustProblem(objective, constraints, objective_torch=f_tch, constraints_torch=[
                              g_tch], eval_torch=eval_tch)
-        target = -0.05
         test_p = 0.1
         s = 5
         train, test = train_test_split(data, test_size=int(
             data.shape[0]*test_p), random_state=s)
         init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
-        init_bval = -init@np.mean(train, axis=0)
+        -init@np.mean(train, axis=0)
         np.random.seed(15)
         initn = np.random.rand(n, n)
         init_bvaln = -initn@np.mean(train, axis=0)
 
         # Train A and b
-        result1 = prob.train(lr=0.001, num_iter=300, momentum=0.8, optimizer="SGD",
+        prob.train(lr=0.001, num_iter=300, momentum=0.8, optimizer="SGD",
                              seed=s, init_A=initn, init_b=init_bvaln, init_lam=1, step_lam=0.01)
-        df_train = result1.df
-        df_test = result1.df_test
-        A_fin = result1.A
-        b_fin = result1.b
         timefin = time.time()
-        time_elapsed = timefin - timestart
+        timefin - timestart
         # # Grid search epsilon
         # result4 = prob.grid(epslst=np.linspace(0.01, 3, 500), init_A=init, init_b=init_bval, seed=s,
         #                     init_alpha=0., test_percentage=test_p)
