@@ -10,9 +10,7 @@ from lropt.remove_uncertain.atom_canonicalizers.mul_canon import mul_canon_trans
 from lropt.uncertain import UncertainParameter
 from lropt.uncertain_canon.remove_constant import REMOVE_CONSTANT_METHODS as rm_const_methods
 from lropt.uncertain_canon.separate_uncertainty import SEPARATION_METHODS as sep_methods
-from lropt.uncertainty_sets.budget import Budget
 from lropt.uncertainty_sets.mro import MRO
-from lropt.uncertainty_sets.polyhedral import Polyhedral
 from lropt.utils import unique_list
 
 
