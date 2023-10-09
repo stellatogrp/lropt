@@ -54,22 +54,22 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         x = cp.Variable(n)
         # z = cp.Variable(n)
 
-        objective = cp.Maximize(a @ x)
+        objective = cp.Maximize(a @ x.T)
 
         # y_tch = torch.tensor(y, dtype = float)
         a_tch = torch.tensor(a, dtype=float)
         c_tch = torch.tensor(c, dtype=float)
 
-        constraints = [x @ (u + y) <= c, cp.norm(x) <= 2*c]
+        constraints = [x @ (u + y).T <= c, cp.norm(x) <= 2*c]
 
         def f_tch(x, y, u):
             # x is a tensor that represents the cp.Variable x.
-            return a_tch @ x
+            return a_tch @ x.T
 
         def g_tch(x, y, u):
             # x,y,u are tensors that represent the cp.Variable x and cp.Parameter y and u.
             # The cp.Constant c is converted to a tensor
-            return x @ u + x @ y - c_tch
+            return x @ u.T + x @ y.T - c_tch
 
         prob = RobustProblem(objective, constraints,
                              objective_torch=f_tch, constraints_torch=[g_tch])
