@@ -280,10 +280,12 @@ class RobustProblem(Problem):
         for j in range(J):
             if star_flag:
                 init_val += eval_func(*[valuex[j] for valuex in vars],
-                                        *[valuey[j] for valuey in y_params_mat], u_params_mat, *args)
+                                        *[valuey[j] for valuey in y_params_mat], u_params_mat,
+                                        *args)
             else:
                 init_val += eval_func([valuex[j] for valuex in vars],
-                                        [valuey[j] for valuey in y_params_mat], u_params_mat, *args)
+                                        [valuey[j] for valuey in y_params_mat], u_params_mat,
+                                        *args)
                                     
         init_val /= J
         return init_val.mean()
@@ -294,8 +296,6 @@ class RobustProblem(Problem):
 
     def train_constraint(self, vars, y_params_mat, u_params_mat, alpha, eta, kappa):
         num_g = len(self.h)
-        J = len(y_params_mat[0])
-        N = len(u_params_mat)
         H = torch.zeros(num_g, dtype=settings.DTYPE)
         for k, h_k in enumerate(self.h):
             init_val = self._eval_input(h_k, vars, y_params_mat, u_params_mat, False, alpha, eta)

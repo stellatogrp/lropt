@@ -136,19 +136,13 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         timefin = time.time()
         timefin - timestart
         # # Grid search epsilon
-        # result4 = prob.grid(epslst=np.linspace(0.01, 3, 500), init_A=init, init_b=init_bval, seed=s,
+        # result4 = prob.grid(epslst=np.linspace(0.01, 3, 500), init_A=init,
+        #                     init_b=init_bval, seed=s,
         #                     init_alpha=0., test_percentage=test_p)
         # dfgrid = result4.df
 
         # result5 = prob.grid(epslst=np.linspace(0.01, 3, 500), init_A=A_fin, init_b=b_fin, seed=s,
-        #                     init_alpha=0., test_percentage=test_p, scenarios=scenarios, num_scenarios=num_scenarios)
+        #                     init_alpha=0., test_percentage=test_p,
+        #                     scenarios=scenarios, num_scenarios=num_scenarios)
         # dfgrid2 = result5.df
         pass
-
-
-"""
-def foo(*vars):
-    if constant:
-        convert_to_tensor
-    return function #s.t. the inputs are tensors corresponding to cp.Variables and cp.Paramters, and does the same logic as the cp.Expressions
-"""
