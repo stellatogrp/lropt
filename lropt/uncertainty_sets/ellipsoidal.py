@@ -34,9 +34,9 @@ class Ellipsoidal(Norm):
 
     def __init__(self, rho=1., p=2,
                  A=None, b=None,
-                 data=None, loss=None):
+                 data=None, loss=None, c=None, d=None):
 
         super(Ellipsoidal, self).__init__(
             p=p,
             rho=rho,
-            A=A, b=b, data=data, loss=loss)
+            A=A, b=b, data=data, loss=loss, c=c, d = d)

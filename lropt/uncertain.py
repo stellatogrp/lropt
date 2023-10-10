@@ -22,9 +22,9 @@ class UncertainParameter(cp.Parameter):
         """Remove isolated uncertainty"""
         return self.uncertainty_set.isolated_unc(i, var, num_constr)
 
-    def conjugate(self, var, shape, k_ind):
+    def conjugate(self, var, supp_var, shape, k_ind):
         """Reformulate uncertainty set"""
-        return self.uncertainty_set.conjugate(var, shape, k_ind)
+        return self.uncertainty_set.conjugate(var, supp_var, shape, k_ind)
 
     def __repr__(self):
         """String to recreate the object.
