@@ -40,7 +40,7 @@ class Norm(UncertaintySet):
     """
 
     def __init__(self, p=2, rho=1.,
-                 a=None, b=None, data=None, loss=None):
+                 a=None, b=None, c=None, d=None, data=None, loss=None):
         if rho <= 0:
             raise ValueError("Rho value must be positive.")
         if p < 0.:
@@ -50,7 +50,6 @@ class Norm(UncertaintySet):
             dat_shape = data.shape[1]
             a = ShapeParameter((dat_shape, dat_shape))
             b = ShapeParameter(dat_shape)
-
 
         self.affine_transform_temp = None
         self.affine_transform = None
@@ -62,6 +61,9 @@ class Norm(UncertaintySet):
         self._b = b
         self._trained = False
         self._loss = loss
+        self._c = c
+        self._d = d
+        self._define_support = False
 
     @property
     def p(self):
@@ -92,6 +94,8 @@ class Norm(UncertaintySet):
         return self._trained
 
     def dual_norm(self):
+        if self.p == 1:
+            return np.inf
         return 1. + 1. / (self.p - 1.)
 
     def canonicalize(self, x, var):
@@ -157,7 +161,19 @@ class Norm(UncertaintySet):
                 self.affine_transform_temp = None
         return new_expr, new_constraints
 
-    def conjugate(self, var, shape, k_ind=0):
+    def conjugate(self, var, supp_var, shape, k_ind=0):
+        if not self._define_support:
+            if self._c is None:
+                if not isinstance(var, Variable):
+                    self._c = np.zeros((var, var))
+                else:
+                    self._c = np.zeros((var.shape[1], var.shape[1]))
+            if self._d is None:
+                if not isinstance(var, Variable):
+                    self._d = np.zeros(var)
+                else:
+                    self._d = np.zeros(var.shape[1])
+            self._define_support = True
         if not isinstance(var, Variable):
             lmbda = Variable(shape)
             constr = [lmbda >= 0]
@@ -170,30 +186,43 @@ class Norm(UncertaintySet):
                 if shape == 1:
                     newvar = Variable(ushape)  # gamma aux variable
                     lmbda = Variable()
+                    supp_newvar = Variable(len(self._d))
                     constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
                     constr += [self.a.T@newvar == var[0]]
                     constr += [lmbda >= 0]
-                    return self.rho * lmbda - newvar@self.b, constr, lmbda
+                    constr += [self._c.T@supp_newvar == supp_var[0]]
+                    constr += [supp_newvar >= 0]
+                    return self.rho * lmbda + self._d@supp_newvar - newvar@self.b, constr, lmbda
                 else:
                     constr = []
                     lmbda = Variable(shape)
                     newvar = Variable((shape, ushape))
                     constr += [lmbda >= 0]
+                    supp_newvar = Variable((shape, len(self._d)))
+                    constr += [supp_newvar >= 0]
                     for ind in range(shape):
-                        constr += [norm(newvar[ind], p=self.dual_norm()) <= lmbda[ind]]
+                        constr += [norm(newvar[ind],
+                                        p=self.dual_norm()) <= lmbda[ind]]
                         constr += [self.a.T@newvar[ind] == var[ind]]
-
-                    return self.rho * lmbda - newvar@self.b, constr, lmbda
+                        constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
+                    return self.rho * lmbda + supp_newvar@self._d - newvar@self.b, constr, lmbda
             else:
                 if shape == 1:
                     lmbda = Variable()
+                    supp_newvar = Variable(len(self._d))
                     constr = [norm(var[0], p=self.dual_norm()) <= lmbda]
                     constr += [lmbda >= 0]
-                    return self.rho * lmbda - var[0]@self.b, constr, lmbda
+                    constr += [self._c.T@supp_newvar == supp_var[0]]
+                    constr += [supp_newvar >= 0]
+                    return self.rho * lmbda + self._d@supp_newvar - var[0]@self.b, constr, lmbda
                 else:
                     constr = []
                     lmbda = Variable(shape)
                     constr += [lmbda >= 0]
+                    supp_newvar = Variable((shape, len(self._d)))
+                    constr += [supp_newvar >= 0]
                     for ind in range(shape):
-                        constr += [norm(var[ind], p=self.dual_norm()) <= lmbda[ind]]
-                    return self.rho * lmbda - var@self.b, constr, lmbda
+                        constr += [norm(var[ind], p=self.dual_norm())
+                                   <= lmbda[ind]]
+                        constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
+                    return self.rho * lmbda + supp_newvar@self._d - var@self.b, constr, lmbda

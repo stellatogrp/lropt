@@ -215,18 +215,20 @@ class Uncertain_Canonicalization(Reduction):
                     z_cons += z[ind]
 
             z_unc = Variable((num_constr, u_shape))
+            supp_cons = Variable((num_constr, u_shape))
             if has_isolated == 1:
                 for idx in range(num_constr):
-                    aux_constraint += [z_cons + z_new_cons[idx] == -z_unc[idx]]
+                    aux_constraint += [z_cons + supp_cons[idx] +
+                                       z_new_cons[idx] == -z_unc[idx]]
             else:
-                aux_constraint += [z_cons == -z_unc[0]]
+                aux_constraint += [z_cons + supp_cons[0] == -z_unc[0]]
             new_expr, new_constraint, lmbda = uvar.conjugate(
-                z_unc, num_constr, k_ind=0)
+                z_unc, supp_cons, num_constr, k_ind=0)
             aux_expr = aux_expr + new_expr
             aux_constraint = aux_constraint + new_constraint
         else:
             aux_expr, aux_constraint, lmbda = uvar.conjugate(
-                u_shape, num_constr, k_ind=0)
+                u_shape, 0, num_constr, k_ind=0)
         for expr in std_lst:
             aux_expr = aux_expr + expr
         return aux_expr <= 0, aux_constraint, lmbda
@@ -278,15 +280,18 @@ class Uncertain_Canonicalization(Reduction):
                     z_cons += z[ind]
 
             z_unc = {}
+            supp_cons = {}
             for k_ind in range(uvar.uncertainty_set._K):
                 z_unc[k_ind] = Variable((num_constr, u_shape))
+                supp_cons[k_ind] = Variable((num_constr, u_shape))
                 if has_isolated == 1:
                     for idx in range(num_constr):
-                        aux_constraint += [z_cons +
+                        aux_constraint += [z_cons + supp_cons[k_ind][idx] +
                                            z_new_cons[idx] == -z_unc[k_ind][idx]]
                 else:
-                    aux_constraint += [z_cons == -z_unc[k_ind][0]]
-                new_expr, new_constraint, lmbda, sval = uvar.conjugate(z_unc[k_ind], num_constr,
+                    aux_constraint += [z_cons +
+                                       supp_cons[k_ind][0] == -z_unc[k_ind][0]]
+                new_expr, new_constraint, lmbda, sval = uvar.conjugate(z_unc[k_ind], supp_cons[k_ind], num_constr,
                                                                        k_ind)
                 cur_expr = aux_expr + new_expr
                 for expr in std_lst:
@@ -298,7 +303,7 @@ class Uncertain_Canonicalization(Reduction):
             aux_constraint = []
             for k_ind in range(uvar.uncertainty_set._K):
                 aux_expr, new_constraint, lmbda, sval = uvar.conjugate(
-                    u_shape, num_constr, k_ind)
+                    u_shape, 0, num_constr, k_ind)
                 cur_expr = aux_expr
                 for expr in std_lst:
                     cur_expr = cur_expr + expr
