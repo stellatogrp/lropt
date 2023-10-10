@@ -131,10 +131,12 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         init_bvaln = -initn@np.mean(train, axis=0)
 
         # Train A and b
-        prob.train(lr=0.001, num_iter=300, momentum=0.8, optimizer="SGD",
-                             seed=s, init_A=initn, init_b=init_bvaln, init_lam=1, step_lam=0.01)
+        result = prob.train(lr=0.001, num_iter=300, momentum=0.8, optimizer="SGD",
+                            seed=s, init_A=initn, init_b=init_bvaln, init_lam=1, init_mu=1, mu_multiplier=1.01)
         timefin = time.time()
         timefin - timestart
+        df = result.df
+        print(df)
         # # Grid search epsilon
         # result4 = prob.grid(epslst=np.linspace(0.01, 3, 500), init_A=init,
         #                     init_b=init_bval, seed=s,

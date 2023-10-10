@@ -840,6 +840,8 @@ class RobustProblem(Problem):
         mu_multiplier=settings.MU_MULTIPLIER_DEFAULT,
         init_alpha=settings.INIT_ALPHA_DEFAULT,
         kappa=settings.KAPPA_DEFAULT,  # (originall target_cvar)
+        random_init=settings.RANDOM_INIT_DEFAULT,
+        num_random_init=settings.NUM_RANDOM_INIT_DEFAULT,
         test_percentage=settings.TEST_PERCENTAGE_DEFAULT,
         step_lam=settings.STEP_LAM_DEFAULT,
         u_batch_percentage=settings.U_BATCH_PERCENTAGE_DEFAULT,
@@ -914,130 +916,130 @@ class RobustProblem(Problem):
 
         # Validity checks and initializations
         self.train_flag = True
-        a_history = []
-        b_history = []
+        
         self._validate_uncertain_parameters()
 
         unc_set = self._get_unc_set()
         self._canonize_problem()
         self._validate_unc_set_T(unc_set)
-
+        train_set, _, train_tch, test_tch = self._split_dataset(
+            unc_set, test_percentage, seed)
         mro_set = self._is_mro_set(unc_set)
         df = pd.DataFrame(columns=["step"])
         df_test = pd.DataFrame(columns=["step"])
 
-        # setup train and test data
-        #test_set is not used
-        train_set, _, train_tch, test_tch = self._split_dataset(
-            unc_set, test_percentage, seed)
-
         cvxpylayer = CvxpyLayer(self.new_prob, parameters=self.y_parameters()
                                 + self.shape_parameters(self.new_prob), variables=self.variables())
-        eps_tch = self._gen_eps_tch(
-            self, init_eps, unc_set, mro_set) if eps else None
-        a_tch, b_tch, alpha, _ = self._init_torches(init_eps, init_A, init_b,
-                                                    init_alpha, train_set, eps_tch,
-                                                    mro_set, unc_set)
-        if not eps:
-            self._update_iters(save_history, a_history, b_history,
-                               a_tch, b_tch, mro_set)
+        num_random_init = num_random_init if random_init else 1
 
-        variables = self._set_train_variables(fixb, mro_set, alpha,
-                                              a_tch, b_tch, eps_tch)
-        opt = settings.OPTIMIZERS[optimizer](
-            variables, lr=lr, momentum=momentum)
-        if scheduler:
-            scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                opt, patience=settings.PATIENCE)
+        for init_num in range(num_random_init):
+            a_history = []
+            b_history = []
+            eps_tch = self._gen_eps_tch(
+                self, init_eps, unc_set, mro_set) if eps else None
+            a_tch, b_tch, alpha, _ = self._init_torches(init_eps, init_A, init_b,
+                                                        init_alpha, train_set, eps_tch,
+                                                        mro_set, unc_set)
+            if not eps:
+                self._update_iters(save_history, a_history, b_history,
+                                a_tch, b_tch, mro_set)
 
-        # y's and cvxpylayer begin
-        y_parameters = self.y_parameters()
-        num_ys = self.num_ys
-        lam = init_lam * torch.ones(self.num_g, dtype=settings.DTYPE)
-        mu = init_mu
-        # use multiple initial points and training. pick lowest eval loss
-        for step_num in range(num_iter):
-            train_stats = TrainLoopStats(
-                step_num=step_num, train_flag=self.train_flag)
+            variables = self._set_train_variables(fixb, mro_set, alpha,
+                                                a_tch, b_tch, eps_tch)
+            opt = settings.OPTIMIZERS[optimizer](
+                variables, lr=lr, momentum=momentum)
+            if scheduler:
+                scheduler_ = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                    opt, patience=settings.PATIENCE)
 
-            # generate batched y and u
-            y_batch = self._gen_y_batch(
-                num_ys, y_parameters, y_batch_percentage)
+            # y's and cvxpylayer begin
+            y_parameters = self.y_parameters()
+            num_ys = self.num_ys
+            lam = init_lam * torch.ones(self.num_g, dtype=settings.DTYPE)
+            mu = init_mu
+            # use multiple initial points and training. pick lowest eval loss
+            for step_num in range(num_iter):
+                train_stats = TrainLoopStats(
+                    step_num=step_num, train_flag=self.train_flag)
 
-            u_batch = self._udata_to_lst(train_set, u_batch_percentage)
-
-            if mro_set:
-                a_tch, _, _, _ = self._init_torches(init_eps, init_A, init_b,
-                                                    init_alpha, train_set,
-                                                    eps_tch, mro_set, unc_set)
-                var_values = cvxpylayer(*y_batch, a_tch,
-                                        solver_args=solver_args)
-            else:
-                var_values = cvxpylayer(*y_batch, a_tch, b_tch,
-                                        solver_args=solver_args)
-
-            obj = self.evaluation_metric(var_values, y_batch, u_batch)
-            prob_violation_train = self.prob_constr_violation(
-                var_values,
-                y_batch, u_batch)
-            temp_lagrangian, train_constraint_value = self.lagrangian(
-                var_values,
-                y_batch,
-                u_batch,
-                alpha,
-                lam,
-                mu,
-                kappa=kappa)
-            temp_lagrangian.backward()
-
-            train_stats.update_train_stats(temp_lagrangian.detach().numpy(
-            ).copy(), obj, prob_violation_train, train_constraint_value)
-
-            # lam = torch.maximum(lam + step_lam*train_constraint_value,
-            #                    torch.zeros(self.num_g, dtype=settings.DTYPE))
-            lam = lam + torch.minimum(mu*train_constraint_value,
-                                      10*torch.ones(self.num_g, dtype=settings.DTYPE))
-
-            new_row = train_stats.generate_train_row(a_tch, lam, alpha)
-            df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
-
-            self._update_iters(save_history, a_history, b_history,
-                               a_tch, b_tch, mro_set)
-
-            # TODO (Amit): 10 should probably be an input or a constant. 10 is also a bit small.
-            if step_num % 10 == 0:
+                # generate batched y and u
                 y_batch = self._gen_y_batch(
-                    num_ys, y_parameters, 1)
+                    num_ys, y_parameters, y_batch_percentage)
+
+                u_batch = self._udata_to_lst(train_set, u_batch_percentage)
+
                 if mro_set:
+                    a_tch, _, _, _ = self._init_torches(init_eps, init_A, init_b,
+                                                        init_alpha, train_set,
+                                                        eps_tch, mro_set, unc_set)
                     var_values = cvxpylayer(*y_batch, a_tch,
                                             solver_args=solver_args)
                 else:
                     var_values = cvxpylayer(*y_batch, a_tch, b_tch,
                                             solver_args=solver_args)
 
-                with torch.no_grad():
-                    obj_test = self.evaluation_metric(
-                        var_values, y_batch, test_tch)
-                    prob_violation_test = self.prob_constr_violation(
-                        var_values, y_batch, test_tch)
-                    _, var_vio = self.lagrangian(
-                        var_values, y_batch, test_tch, alpha, lam, mu, kappa=kappa)
+                obj = self.evaluation_metric(var_values, y_batch, u_batch)
+                prob_violation_train = self.prob_constr_violation(
+                    var_values,
+                    y_batch, u_batch)
+                temp_lagrangian, train_constraint_value = self.lagrangian(
+                    var_values,
+                    y_batch,
+                    u_batch,
+                    alpha,
+                    lam,
+                    mu,
+                    kappa=kappa)
+                temp_lagrangian.backward()
 
-                train_stats.update_test_stats(
-                    obj_test, prob_violation_test, var_vio)
-                new_row = train_stats.generate_test_row(
-                    self._calc_coverage, a_tch, b_tch, alpha, test_tch, eps_tch)
-                df_test = pd.concat(
-                    [df_test, new_row.to_frame().T], ignore_index=True)
-                
-                mu = mu_multiplier*mu
+                train_stats.update_train_stats(temp_lagrangian.detach().numpy(
+                ).copy(), obj, prob_violation_train, train_constraint_value)
 
-            if step_num < num_iter - 1:
-                opt.step()
-                opt.zero_grad()
-                if scheduler:
-                    # DELETE HERE this doesn't break
-                    scheduler_.step(temp_lagrangian)
+                # lam = torch.maximum(lam + step_lam*train_constraint_value,
+                #                    torch.zeros(self.num_g, dtype=settings.DTYPE))
+                lam = lam + torch.minimum(mu*train_constraint_value,
+                                        10*torch.ones(self.num_g, dtype=settings.DTYPE))
+
+                new_row = train_stats.generate_train_row(a_tch, lam, alpha)
+                df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
+
+                self._update_iters(save_history, a_history, b_history,
+                                a_tch, b_tch, mro_set)
+
+                # TODO (Amit): 10 should probably be an input or a constant. 10 is also a bit small.
+                if step_num % 10 == 0:
+                    y_batch = self._gen_y_batch(
+                        num_ys, y_parameters, 1)
+                    if mro_set:
+                        var_values = cvxpylayer(*y_batch, a_tch,
+                                                solver_args=solver_args)
+                    else:
+                        var_values = cvxpylayer(*y_batch, a_tch, b_tch,
+                                                solver_args=solver_args)
+
+                    with torch.no_grad():
+                        obj_test = self.evaluation_metric(
+                            var_values, y_batch, test_tch)
+                        prob_violation_test = self.prob_constr_violation(
+                            var_values, y_batch, test_tch)
+                        _, var_vio = self.lagrangian(
+                            var_values, y_batch, test_tch, alpha, lam, mu, kappa=kappa)
+
+                    train_stats.update_test_stats(
+                        obj_test, prob_violation_test, var_vio)
+                    new_row = train_stats.generate_test_row(
+                        self._calc_coverage, a_tch, b_tch, alpha, test_tch, eps_tch)
+                    df_test = pd.concat(
+                        [df_test, new_row.to_frame().T], ignore_index=True)
+
+                    mu = mu_multiplier*mu
+
+                if step_num < num_iter - 1:
+                    opt.step()
+                    opt.zero_grad()
+                    if scheduler:
+                        # DELETE HERE this doesn't break
+                        scheduler_.step(temp_lagrangian)
 
         self._trained = True
         unc_set._trained = True
