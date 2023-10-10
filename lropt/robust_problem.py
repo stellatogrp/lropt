@@ -276,17 +276,19 @@ class RobustProblem(Problem):
         """
         J = len(y_params_mat[0])
         init_val = 0
-        
+
         for j in range(J):
             if star_flag:
                 init_val += eval_func(*[valuex[j] for valuex in vars],
-                                        *[valuey[j] for valuey in y_params_mat], u_params_mat,
-                                        *args)
+                                      *[valuey[j]
+                                          for valuey in y_params_mat], u_params_mat,
+                                      *args)
             else:
                 init_val += eval_func([valuex[j] for valuex in vars],
-                                        [valuey[j] for valuey in y_params_mat], u_params_mat,
-                                        *args)
-                                    
+                                      [valuey[j]
+                                          for valuey in y_params_mat], u_params_mat,
+                                      *args)
+
         init_val /= J
         return init_val.mean()
 
@@ -298,7 +300,8 @@ class RobustProblem(Problem):
         num_g = len(self.h)
         H = torch.zeros(num_g, dtype=settings.DTYPE)
         for k, h_k in enumerate(self.h):
-            init_val = self._eval_input(h_k, vars, y_params_mat, u_params_mat, False, alpha, eta)
+            init_val = self._eval_input(
+                h_k, vars, y_params_mat, u_params_mat, False, alpha, eta)
             h_k_expectation = init_val + alpha - kappa
             H[k] = h_k_expectation
         return H
@@ -336,12 +339,11 @@ class RobustProblem(Problem):
         # return u_params_mat
         return torch.tensor(data[random_int], requires_grad=self.train_flag, dtype=settings.DTYPE)
 
-    def lagrangian(self, vars, y_params_mat, u_params_mat, alpha, lam,
-                   eta=settings.ETA_LAGRANGIAN_DEFAULT, kappa=settings.KAPPA_LAGRANGIAN_DEFAULT):
+    def lagrangian(self, vars, y_params_mat, u_params_mat, alpha, lam, mu, eta=settings.ETA_LAGRANGIAN_DEFAULT, kappa=settings.KAPPA_LAGRANGIAN_DEFAULT):
         F = self.train_objective(vars, y_params_mat, u_params_mat)
         H = self.train_constraint(
             vars, y_params_mat, u_params_mat, alpha, eta, kappa)
-        return F + lam @ H, H.detach()
+        return F + lam @ H + (mu/2)*(H**2), H.detach()
 
     # create function for only remove_uncertain reduction
     def _construct_chain(
@@ -834,6 +836,8 @@ class RobustProblem(Problem):
         save_history=settings.SAVE_HISTORY_DEFAULT,
         seed=settings.SEED_DEFAULT,
         init_lam=settings.INIT_LAM_DEFAULT,
+        init_mu=settings.INIT_MU_DEFAULT,
+        mu_multiplier=settings.MU_MULTIPLIER_DEFAULT,
         init_alpha=settings.INIT_ALPHA_DEFAULT,
         kappa=settings.KAPPA_DEFAULT,  # (originall target_cvar)
         test_percentage=settings.TEST_PERCENTAGE_DEFAULT,
@@ -950,7 +954,7 @@ class RobustProblem(Problem):
         y_parameters = self.y_parameters()
         num_ys = self.num_ys
         lam = init_lam * torch.ones(self.num_g, dtype=settings.DTYPE)
-
+        mu = init_mu
         # use multiple initial points and training. pick lowest eval loss
         for step_num in range(num_iter):
             train_stats = TrainLoopStats(
@@ -982,14 +986,17 @@ class RobustProblem(Problem):
                 u_batch,
                 alpha,
                 lam,
+                mu,
                 kappa=kappa)
             temp_lagrangian.backward()
 
             train_stats.update_train_stats(temp_lagrangian.detach().numpy(
             ).copy(), obj, prob_violation_train, train_constraint_value)
 
-            lam = torch.maximum(lam + step_lam*train_constraint_value,
-                                torch.zeros(self.num_g, dtype=settings.DTYPE))
+            # lam = torch.maximum(lam + step_lam*train_constraint_value,
+            #                    torch.zeros(self.num_g, dtype=settings.DTYPE))
+            lam = lam + torch.minimum(mu*train_constraint_value,
+                                      10*torch.ones(self.num_g, dtype=settings.DTYPE))
 
             new_row = train_stats.generate_train_row(a_tch, lam, alpha)
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
@@ -997,7 +1004,7 @@ class RobustProblem(Problem):
             self._update_iters(save_history, a_history, b_history,
                                a_tch, b_tch, mro_set)
 
-            #TODO (Amit): 10 should probably be an input or a constant. 10 is also a bit small.
+            # TODO (Amit): 10 should probably be an input or a constant. 10 is also a bit small.
             if step_num % 10 == 0:
                 y_batch = self._gen_y_batch(
                     num_ys, y_parameters, 1)
@@ -1014,7 +1021,7 @@ class RobustProblem(Problem):
                     prob_violation_test = self.prob_constr_violation(
                         var_values, y_batch, test_tch)
                     _, var_vio = self.lagrangian(
-                        var_values, y_batch, test_tch, alpha, lam, kappa=kappa)
+                        var_values, y_batch, test_tch, alpha, lam, mu, kappa=kappa)
 
                 train_stats.update_test_stats(
                     obj_test, prob_violation_test, var_vio)
@@ -1022,6 +1029,8 @@ class RobustProblem(Problem):
                     self._calc_coverage, a_tch, b_tch, alpha, test_tch, eps_tch)
                 df_test = pd.concat(
                     [df_test, new_row.to_frame().T], ignore_index=True)
+                
+                mu = mu_multiplier*mu
 
             if step_num < num_iter - 1:
                 opt.step()
@@ -1134,6 +1143,7 @@ class RobustProblem(Problem):
                     test_tch,
                     alpha,
                     lam,
+                    1
                 )
 
             train_stats.update_test_stats(obj_test, prob_violation_test,
