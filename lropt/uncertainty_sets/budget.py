@@ -42,7 +42,8 @@ class Budget(UncertaintySet):
     """
 
     def __init__(self, rho1=1., rho2=1.,
-                 a1=None, a2=None, b1=None, b2=None, c=None, d=None, data=None, loss=None, train_box=True):
+                 a1=None, a2=None, b1=None, b2=None, c=None, d=None, data=None, loss=None,
+                 train_box=True):
         if rho2 <= 0 or rho1 <= 0:
             raise ValueError("Rho values must be positive.")
 
@@ -204,7 +205,7 @@ class Budget(UncertaintySet):
                 constr += [lmbda1 >= 0, lmbda2 >= 0]
                 constr += [self._c.T@supp_newvar == supp_var[0]]
                 constr += [supp_newvar >= 0]
-                return self.rho1 * lmbda1 + self._d@supp_newvar + self.rho2 * lmbda2 - newvar*self.b, \
+                return self.rho1*lmbda1 + self._d@supp_newvar + self.rho2*lmbda2 - newvar*self.b, \
                     constr, (lmbda1, lmbda2)
             else:
                 lmbda1 = Variable(shape)
@@ -218,7 +219,7 @@ class Budget(UncertaintySet):
                     constr += [norm(newvar2[ind], p=np.inf) <= lmbda2[ind]]
                     constr += [self.a.T@newvar[ind] == newvar1[ind]]
                     constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-                return self.rho1 * lmbda1 + supp_newvar@self._d + self.rho2 * lmbda2 - newvar@self.b, \
+                return self.rho1*lmbda1 + supp_newvar@self._d + self.rho2*lmbda2 - newvar@self.b, \
                     constr, (lmbda1, lmbda2)
         elif self.data is not None and not self.train_box:
             if shape == 1:
@@ -232,7 +233,7 @@ class Budget(UncertaintySet):
                 constr += [lmbda1 >= 0, lmbda2 >= 0]
                 constr += [self._c.T@supp_newvar == supp_var[0]]
                 constr += [supp_newvar >= 0]
-                return self.rho1 * lmbda1 + self._d@supp_newvar + self.rho2 * lmbda2 - newvar*self.b, \
+                return self.rho1*lmbda1 + self._d@supp_newvar + self.rho2*lmbda2 - newvar*self.b, \
                     constr, (lmbda1, lmbda2)
             else:
                 lmbda1 = Variable(shape)
@@ -246,7 +247,7 @@ class Budget(UncertaintySet):
                     constr += [norm(newvar[ind], p=np.inf) <= lmbda2[ind]]
                     constr += [self.a.T@newvar[ind] == newvar2[ind]]
                     constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-                return self.rho1 * lmbda1 + supp_newvar@self._d + self.rho2 * lmbda2 - newvar@self.b, \
+                return self.rho1*lmbda1 + supp_newvar@self._d + self.rho2*lmbda2 - newvar@self.b,\
                     constr, (lmbda1, lmbda2)
         # else:
         #     if shape == 1:

@@ -132,7 +132,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         # Train A and b
         result = prob.train(lr=0.001, num_iter=300, momentum=0.8, optimizer="SGD",
-                            seed=s, init_A=initn, init_b=init_bvaln, init_lam=1, init_mu=1, mu_multiplier=1.01)
+                            seed=s, init_A=initn, init_b=init_bvaln, init_lam=1, init_mu=1,
+                            mu_multiplier=1.01)
         timefin = time.time()
         timefin - timestart
         df = result.df

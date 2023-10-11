@@ -1,4 +1,5 @@
 from abc import ABC
+from enum import Enum
 from inspect import signature
 from typing import Optional
 
@@ -169,6 +170,8 @@ class GridStats():
 class RobustProblem(Problem):
     """Create a Robust Optimization Problem with uncertain variables"""
 
+    _EVAL_INPUT_CASE = Enum("_EVAL_INPUT_CASE", "MEAN MAX")
+
     def __init__(
         self, objective, constraints, objective_torch=None, constraints_torch=None,
         eval_torch=None, train_flag=True
@@ -254,7 +257,8 @@ class RobustProblem(Problem):
         l_func = f_tch
         return l_func, h_funcs, len(h_funcs)
 
-    def _eval_input(self, eval_func, vars, y_params_mat, u_params_mat, star_flag, *args):
+    def _eval_input(self, eval_func, vars, y_params_mat, u_params_mat, init_val, eval_input_case,
+                    star_flag, *args):
         """
         This function takes decision varaibles, y's, and u's,
             evaluates them and averages them on a given function.
@@ -275,33 +279,43 @@ class RobustProblem(Problem):
             The average among all evaluated J x N pairs
         """
         J = len(y_params_mat[0])
-        init_val = 0
-
+        curr_result = 0
         for j in range(J):
             if star_flag:
-                init_val += eval_func(*[valuex[j] for valuex in vars],
+                curr_result += eval_func(*[valuex[j] for valuex in vars],
                                       *[valuey[j]
                                           for valuey in y_params_mat], u_params_mat,
                                       *args)
             else:
-                init_val += eval_func([valuex[j] for valuex in vars],
+                curr_result += eval_func([valuex[j] for valuex in vars],
                                       [valuey[j]
                                           for valuey in y_params_mat], u_params_mat,
                                       *args)
-
-        init_val /= J
-        return init_val.mean()
+        if eval_input_case==RobustProblem._EVAL_INPUT_CASE.MEAN:
+            init_val += curr_result
+            init_val /= J
+            init_val = init_val.mean()
+        elif eval_input_case==RobustProblem._EVAL_INPUT_CASE.MAX:
+            #We want to see if there's a violation: either 1 from previous iterations,
+            # or new positive value from now
+            curr_result = (curr_result>0).float()
+            init_val += curr_result
+            init_val = (init_val>0).float()
+        return init_val
 
     def train_objective(self, vars, y_params_mat, u_params_mat):
         return self._eval_input(eval_func=self.l, vars=vars, y_params_mat=y_params_mat,
-                                u_params_mat=u_params_mat, star_flag=True)
+                                u_params_mat=u_params_mat, init_val=0,
+                                eval_input_case=RobustProblem._EVAL_INPUT_CASE.MEAN,
+                                star_flag=True)
 
     def train_constraint(self, vars, y_params_mat, u_params_mat, alpha, eta, kappa):
         num_g = len(self.h)
         H = torch.zeros(num_g, dtype=settings.DTYPE)
         for k, h_k in enumerate(self.h):
             init_val = self._eval_input(
-                h_k, vars, y_params_mat, u_params_mat, False, alpha, eta)
+                h_k, vars, y_params_mat, u_params_mat, 0, RobustProblem._EVAL_INPUT_CASE.MEAN,
+                False, alpha, eta)
             h_k_expectation = init_val + alpha - kappa
             H[k] = h_k_expectation
         return H
@@ -310,7 +324,9 @@ class RobustProblem(Problem):
         if (self.eval is None):
             return 0
         return self._eval_input(eval_func=self.eval, vars=vars, y_params_mat=y_params_mat,
-                                u_params_mat=u_params_mat, star_flag=True)
+                                u_params_mat=u_params_mat, init_val=0,
+                                eval_input_case=RobustProblem._EVAL_INPUT_CASE.MEAN,
+                                star_flag=True)
 
     def prob_constr_violation(self, vars, y_params_mat, u_params_mat):
         num_g = len(self.g)
@@ -319,14 +335,17 @@ class RobustProblem(Problem):
         G = torch.zeros((num_g, J, N), dtype=settings.DTYPE)
 
         for k, g_k in enumerate(self.g):
-            for i in range(N):
-                for j in range(J):
-                    G[k, j, i] = g_k(*[valuex[j] for valuex in vars],
-                                     *[valuey[j] for valuey in y_params_mat], u_params_mat[i])
+            G = self._eval_input(eval_func=g_k, vars=vars, y_params_mat=y_params_mat,
+                                 u_params_mat=u_params_mat,init_val=G,
+                                 eval_input_case=RobustProblem._EVAL_INPUT_CASE.MAX,
+                                 star_flag=True)
+            # for j in range(J):
+            #     G[k, j, :] = g_k(*[valuex[j] for valuex in vars],
+            #                         *[valuey[j] for valuey in y_params_mat], u_params_mat)
 
-        g_max = torch.max(G, dim=0)[0]
-        g_max_violate = (g_max > 0).float()
-        return torch.mean(g_max_violate)
+        # g_max = torch.max(G, dim=0)[0]
+        # g_max_violate = (g_max > 0).float()
+        return torch.mean(G)
 
     # helper function for intermediate version
     def _udata_to_lst(self, data, batch_size):
@@ -339,7 +358,8 @@ class RobustProblem(Problem):
         # return u_params_mat
         return torch.tensor(data[random_int], requires_grad=self.train_flag, dtype=settings.DTYPE)
 
-    def lagrangian(self, vars, y_params_mat, u_params_mat, alpha, lam, mu, eta=settings.ETA_LAGRANGIAN_DEFAULT, kappa=settings.KAPPA_LAGRANGIAN_DEFAULT):
+    def lagrangian(self, vars, y_params_mat, u_params_mat, alpha, lam, mu,
+                   eta=settings.ETA_LAGRANGIAN_DEFAULT, kappa=settings.KAPPA_LAGRANGIAN_DEFAULT):
         F = self.train_objective(vars, y_params_mat, u_params_mat)
         H = self.train_constraint(
             vars, y_params_mat, u_params_mat, alpha, eta, kappa)

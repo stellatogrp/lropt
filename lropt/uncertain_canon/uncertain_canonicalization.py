@@ -291,8 +291,8 @@ class Uncertain_Canonicalization(Reduction):
                 else:
                     aux_constraint += [z_cons +
                                        supp_cons[k_ind][0] == -z_unc[k_ind][0]]
-                new_expr, new_constraint, lmbda, sval = uvar.conjugate(z_unc[k_ind], supp_cons[k_ind], num_constr,
-                                                                       k_ind)
+                new_expr, new_constraint, lmbda, sval = uvar.conjugate(
+                    z_unc[k_ind],supp_cons[k_ind], num_constr, k_ind)
                 cur_expr = aux_expr + new_expr
                 for expr in std_lst:
                     cur_expr = cur_expr + expr
