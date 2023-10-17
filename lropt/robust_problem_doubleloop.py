@@ -299,8 +299,8 @@ class RobustProblem(Problem):
                     lam = np.ones(num_scenarios)*init_lam
                     curlam = init_lam
                     mu = init_mu
-                    bestvio = 999
                     for steps in range(step):
+
                         totloss = 0
                         totevalloss = 0
                         optval = 0
@@ -308,7 +308,68 @@ class RobustProblem(Problem):
                         test_vio = 0
                         train_vio = 0
                         violation_val = 0
-                        violation_train = 0         
+                        violation_train = 0
+                        totdloss = 0
+                        totuloss = 0
+                        totvloss = 0
+                        random_int = np.random.randint(0, val_dset.shape[0],
+                                                       int(val_dset.shape[0]/10))
+                        for scene in range(num_scenarios):
+                            if not mro_set:
+                                newlst[scene][-1] = paramb_tch
+                                newlst[scene][-2] = paramT_tch
+                            else:
+                                newlst[scene][-1] = paramT_tch
+                            var_values = cvxpylayer(*newlst[scene],
+                                                    solver_args=LAYER_SOLVER)
+                            temploss, obj, violations, cvar_update = unc_set.loss(
+                                *var_values, *newlst[scene][:-2], alpha, val_dset, mu, curlam,
+                                target=target_cvar)
+                            uloss, _, _, _ = unc_set.loss(
+                                *var_values, *newlst[scene][:-2], alpha, val_dset[random_int], mu,
+                                curlam, target=target_cvar)
+                            totdloss = totdloss + temploss/num_scenarios
+                            totuloss = totuloss + uloss/num_scenarios
+                        backuptotdloss = totdloss.detach().clone()
+                        totdloss.backward(retain_graph=True)
+                        totdloss = backuptotdloss
+                        opt.step()
+                        opt.zero_grad()
+                        if scheduler:
+                            scheduler_.step(totdloss)
+                        tot_inner_step = np.random.randint(0, max_inner_iter)
+                        for inner_step in range(tot_inner_step-1):
+                            totvloss = 0
+                            newuloss = 0
+                            for scene in range(num_scenarios):
+                                if not mro_set:
+                                    newlst[scene][-1] = paramb_tch
+                                    newlst[scene][-2] = paramT_tch
+                                else:
+                                    newlst[scene][-1] = paramT_tch
+                                var_values = cvxpylayer(*newlst[scene],
+                                                        solver_args=LAYER_SOLVER)
+                                vloss, _, _, _ = unc_set.loss(
+                                    *var_values, *newlst[scene][:-2], alpha, val_dset[random_int],
+                                    mu, curlam,
+                                    target=target_cvar)
+                                random_int = np.random.randint(0, val_dset.shape[0],
+                                                               int(val_dset.shape[0]/10))
+                                uloss, _, _, _ = unc_set.loss(
+                                    *var_values, *newlst[scene][:-2], alpha, val_dset[random_int],
+                                    mu, curlam, target=target_cvar)
+                                totvloss = totvloss + vloss/num_scenarios
+                                newuloss = newuloss + uloss/num_scenarios
+                            totdloss = totvloss + (1-0.01)*(totdloss - totuloss)
+                            backuptotdloss = totdloss.detach().clone()
+                            totdloss.backward(retain_graph=True)
+                            totdloss = backuptotdloss
+                            totuloss = newuloss.detach().clone()
+                            if inner_step < tot_inner_step-2:
+                                opt.step()
+                                opt.zero_grad()
+                                if scheduler:
+                                    scheduler_.step(totdloss)
                         # update lagrange multipliers
                         for scene in range(num_scenarios):
                             if not mro_set:
@@ -333,12 +394,8 @@ class RobustProblem(Problem):
                             train_vio += violations.item()
                             violation_val += var_vio.item()
                             violation_train += cvar_update.item()
-                        if np.mean(lam) <= 0.95*bestvio:
-                            bestvio = np.mean(lam)
-                            curlam = curlam + mu*(np.mean(lam))
-                        else:
-                            mu = mu*mu_multiplier
-                        totloss.backward()
+                        curlam = np.maximum(curlam + mu*(np.mean(lam)), 0)
+                        mu = mu*mu_multiplier
                         coverage = 0
                         for datind in range(val_dset.shape[0]):
                             coverage += torch.where(torch.norm(paramT_tch@val_dset[datind] + paramb_tch)<= 1, 1, 0 )
@@ -359,9 +416,9 @@ class RobustProblem(Problem):
                              "mu": mu,
                              "lam": curlam,
                              "alpha": alpha.item(),
-                             "alphagrad": alpha.grad.detach().numpy().copy(),
-                             "dfnorm": np.linalg.norm(paramT_tch.grad.detach().numpy().copy()),
-                             "gradnorm": paramT_tch.grad.detach().numpy().copy(),
+                            #  "alphagrad": alpha.grad.detach().numpy().copy(),
+                            #  "dfnorm": np.linalg.norm(paramT_tch.grad.detach().numpy().copy()),
+                            #  "gradnorm": paramT_tch.grad.detach().numpy().copy(),
                              "coverage_train": coverage.detach().numpy().item()/val_dset.shape[0],
                              "coverage_test": coverage2.detach().numpy().item()/eval_set.shape[0]}
                         )
@@ -372,11 +429,7 @@ class RobustProblem(Problem):
                             if not mro_set:
                                 b_iter.append(paramb_tch.detach().numpy().copy())
 
-                        if steps < step - 1:
-                            opt.step()
-                            opt.zero_grad()
-                            if scheduler:
-                                scheduler_.step(totloss)
+
 
                     self._trained = True
                     unc_set._trained = True
