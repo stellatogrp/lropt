@@ -283,24 +283,24 @@ class RobustProblem(Problem):
         for j in range(J):
             if star_flag:
                 curr_result += eval_func(*[valuex[j] for valuex in vars],
-                                      *[valuey[j]
-                                          for valuey in y_params_mat], u_params_mat,
-                                      *args)
+                                         *[valuey[j]
+                                           for valuey in y_params_mat], u_params_mat,
+                                         *args)
             else:
                 curr_result += eval_func([valuex[j] for valuex in vars],
-                                      [valuey[j]
+                                         [valuey[j]
                                           for valuey in y_params_mat], u_params_mat,
-                                      *args)
-        if eval_input_case==RobustProblem._EVAL_INPUT_CASE.MEAN:
+                                         *args)
+        if eval_input_case == RobustProblem._EVAL_INPUT_CASE.MEAN:
             init_val += curr_result
             init_val /= J
             init_val = init_val.mean()
-        elif eval_input_case==RobustProblem._EVAL_INPUT_CASE.MAX:
-            #We want to see if there's a violation: either 1 from previous iterations,
+        elif eval_input_case == RobustProblem._EVAL_INPUT_CASE.MAX:
+            # We want to see if there's a violation: either 1 from previous iterations,
             # or new positive value from now
-            curr_result = (curr_result>0).float()
+            curr_result = (curr_result > 0).float()
             init_val += curr_result
-            init_val = (init_val>0).float()
+            init_val = (init_val > 0).float()
         return init_val
 
     def train_objective(self, vars, y_params_mat, u_params_mat):
@@ -336,7 +336,7 @@ class RobustProblem(Problem):
 
         for k, g_k in enumerate(self.g):
             G = self._eval_input(eval_func=g_k, vars=vars, y_params_mat=y_params_mat,
-                                 u_params_mat=u_params_mat,init_val=G,
+                                 u_params_mat=u_params_mat, init_val=G,
                                  eval_input_case=RobustProblem._EVAL_INPUT_CASE.MAX,
                                  star_flag=True)
             # for j in range(J):
@@ -862,6 +862,7 @@ class RobustProblem(Problem):
         kappa=settings.KAPPA_DEFAULT,  # (originall target_cvar)
         random_init=settings.RANDOM_INIT_DEFAULT,
         num_random_init=settings.NUM_RANDOM_INIT_DEFAULT,
+        test_frequency=settings.TEST_FREQUENCY_DEFAULT,
         test_percentage=settings.TEST_PERCENTAGE_DEFAULT,
         step_lam=settings.STEP_LAM_DEFAULT,
         u_batch_percentage=settings.U_BATCH_PERCENTAGE_DEFAULT,
@@ -936,7 +937,7 @@ class RobustProblem(Problem):
 
         # Validity checks and initializations
         self.train_flag = True
-        
+
         self._validate_uncertain_parameters()
 
         unc_set = self._get_unc_set()
@@ -944,28 +945,38 @@ class RobustProblem(Problem):
         self._validate_unc_set_T(unc_set)
         train_set, _, train_tch, test_tch = self._split_dataset(
             unc_set, test_percentage, seed)
+        u_size = train_set.shape[1]
         mro_set = self._is_mro_set(unc_set)
-        df = pd.DataFrame(columns=["step"])
-        df_test = pd.DataFrame(columns=["step"])
-
+        df = {}
+        df_test = {}
+        a_history = {}
+        b_history = {}
+        param_vals = {}
+        fin_val = []
         cvxpylayer = CvxpyLayer(self.new_prob, parameters=self.y_parameters()
                                 + self.shape_parameters(self.new_prob), variables=self.variables())
         num_random_init = num_random_init if random_init else 1
 
         for init_num in range(num_random_init):
-            a_history = []
-            b_history = []
+            np.random.seed(seed+init_num)
+            init_A = np.random.rand(u_size, u_size)
+            init_b = -init_A@np.mean(train_set, axis=0)
+            a_history[init_num] = []
+            b_history[init_num] = []
+            df[init_num] = pd.DataFrame(columns=["step"])
+            df_test[init_num] = pd.DataFrame(columns=["step"])
+
             eps_tch = self._gen_eps_tch(
                 self, init_eps, unc_set, mro_set) if eps else None
             a_tch, b_tch, alpha, _ = self._init_torches(init_eps, init_A, init_b,
                                                         init_alpha, train_set, eps_tch,
                                                         mro_set, unc_set)
             if not eps:
-                self._update_iters(save_history, a_history, b_history,
-                                a_tch, b_tch, mro_set)
+                self._update_iters(save_history, a_history[init_num], b_history[init_num],
+                                   a_tch, b_tch, mro_set)
 
             variables = self._set_train_variables(fixb, mro_set, alpha,
-                                                a_tch, b_tch, eps_tch)
+                                                  a_tch, b_tch, eps_tch)
             opt = settings.OPTIMIZERS[optimizer](
                 variables, lr=lr, momentum=momentum)
             if scheduler:
@@ -1018,16 +1029,16 @@ class RobustProblem(Problem):
                 # lam = torch.maximum(lam + step_lam*train_constraint_value,
                 #                    torch.zeros(self.num_g, dtype=settings.DTYPE))
                 lam = lam + torch.minimum(mu*train_constraint_value,
-                                        10*torch.ones(self.num_g, dtype=settings.DTYPE))
+                                          10*torch.ones(self.num_g, dtype=settings.DTYPE))
 
                 new_row = train_stats.generate_train_row(a_tch, lam, alpha)
-                df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
+                df[init_num] = pd.concat(
+                    [df[init_num], new_row.to_frame().T], ignore_index=True)
 
-                self._update_iters(save_history, a_history, b_history,
-                                a_tch, b_tch, mro_set)
+                self._update_iters(save_history, a_history[init_num], b_history[init_num],
+                                   a_tch, b_tch, mro_set)
 
-                # TODO (Amit): 10 should probably be an input or a constant. 10 is also a bit small.
-                if step_num % 10 == 0:
+                if step_num % test_frequency == 0:
                     y_batch = self._gen_y_batch(
                         num_ys, y_parameters, 1)
                     if mro_set:
@@ -1049,8 +1060,8 @@ class RobustProblem(Problem):
                         obj_test, prob_violation_test, var_vio)
                     new_row = train_stats.generate_test_row(
                         self._calc_coverage, a_tch, b_tch, alpha, test_tch, eps_tch)
-                    df_test = pd.concat(
-                        [df_test, new_row.to_frame().T], ignore_index=True)
+                    df_test[init_num] = pd.concat(
+                        [df_test[init_num], new_row.to_frame().T], ignore_index=True)
 
                     mu = mu_multiplier*mu
 
@@ -1060,18 +1071,24 @@ class RobustProblem(Problem):
                     if scheduler:
                         # DELETE HERE this doesn't break
                         scheduler_.step(temp_lagrangian)
+            fin_val.append(obj_test.item())
+            a_val = a_tch.detach().numpy().copy()
+            b_val = b_tch.detach().numpy().copy() if not mro_set else 0
+            eps_val = eps_tch.detach().numpy().copy() if eps else 1
+            param_vals[init_num] = (a_val, b_val, eps_val)
 
+        index_chosen = np.argmin(np.array(fin_val))
         self._trained = True
         unc_set._trained = True
-        unc_set.a.value = a_tch.detach().numpy().copy()
+        unc_set.a.value = param_vals[index_chosen][0]
         if not mro_set:
-            unc_set.b.value = b_tch.detach().numpy().copy()
+            unc_set.b.value = param_vals[index_chosen][1]
 
-        return_eps = eps_tch.detach().numpy().copy() if eps else 1
+        return_eps = param_vals[index_chosen][2]
         return_b_value = unc_set.b.value if not mro_set else None
-        return_b_history = b_history if not mro_set else None
-        return Result(self, self.new_prob, df, df_test, unc_set.a.value, return_b_value,
-                      return_eps, obj.item(), var_values, a_history=a_history,
+        return_b_history = b_history[index_chosen] if not mro_set else None
+        return Result(self, self.new_prob, df[index_chosen], df_test[index_chosen], unc_set.a.value, return_b_value,
+                      return_eps, obj.item(), var_values, a_history=a_history[index_chosen],
                       b_history=return_b_history)
 
     def grid(
