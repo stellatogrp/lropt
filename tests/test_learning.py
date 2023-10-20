@@ -91,8 +91,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
             np.random.seed(seed)
             sig = np.array([[0.3, -0.4], [-0.5, 0.1]])
             mu = np.array((0.3, 0.3))
-            norms = np.random.multivariate_normal(mu, sig, N)
-            d_train = np.exp(norms)
+            d_train = np.random.multivariate_normal(mu, sig, N)
+            # d_train = np.exp(d_train)
             return d_train
 
         def f_tch(t, x, y, u):
@@ -105,7 +105,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
             return -x @ u.T - t
 
         def eval_tch(t, x, y, u):
-            return -x @ u.T
+            return -x @ u.T + 0.2*torch.linalg.vector_norm(x-y, 1)
 
         data = gen_demand_intro(600, seed=15)
         u = UncertainParameter(n,
@@ -125,27 +125,27 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         train, test = train_test_split(data, test_size=int(
             data.shape[0]*test_p), random_state=s)
         init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
-        -init@np.mean(train, axis=0)
+        init_bval = -init@np.mean(train, axis=0)
         np.random.seed(15)
-        initn = np.random.rand(n, n)
-        init_bvaln = -initn@np.mean(train, axis=0)
+        initn = np.random.rand(n, n) + 0.1*init + 0.5*np.eye(n)
+        init_bvaln = -initn@(np.mean(train, axis=0) - 0.3*np.ones(n))
 
         # Train A and b
-        result = prob.train(lr=0.001, num_iter=300, momentum=0.8, optimizer="SGD",
-                            seed=s, init_A=initn, init_b=init_bvaln, init_lam=1, init_mu=1,
-                            mu_multiplier=1.01)
+        result = prob.train(lr=0.01, num_iter=500, momentum=0.8, optimizer="SGD",
+                            seed=s, init_A=initn, init_b=init_bvaln, init_lam=0.5, init_mu=0.01,
+                            mu_multiplier=1.001, init_alpha=0., test_percentage=test_p, kappa=-0.01)
         timefin = time.time()
         timefin - timestart
         df = result.df
         print(df)
-        # # Grid search epsilon
-        # result4 = prob.grid(epslst=np.linspace(0.01, 3, 500), init_A=init,
-        #                     init_b=init_bval, seed=s,
-        #                     init_alpha=0., test_percentage=test_p)
-        # dfgrid = result4.df
+        # Grid search epsilon
+        result4 = prob.grid(epslst=np.linspace(0.01, 5, 400), init_A=init,
+                            init_b=init_bval, seed=s,
+                            init_alpha=0., test_percentage=test_p)
+        dfgrid = result4.df
 
-        # result5 = prob.grid(epslst=np.linspace(0.01, 3, 500), init_A=A_fin, init_b=b_fin, seed=s,
-        #                     init_alpha=0., test_percentage=test_p,
-        #                     scenarios=scenarios, num_scenarios=num_scenarios)
-        # dfgrid2 = result5.df
+        result5 = prob.grid(epslst=np.linspace(0.01, 5, 400), init_A=result.A, init_b=result.b, seed=s,
+                            init_alpha=0., test_percentage=test_p)
+        dfgrid2 = result5.df
+        print(dfgrid, dfgrid2)
         pass
