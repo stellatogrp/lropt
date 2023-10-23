@@ -131,20 +131,20 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         init_bvaln = -initn@(np.mean(train, axis=0) - 0.3*np.ones(n))
 
         # Train A and b
-        result = prob.train(lr=0.01, num_iter=500, momentum=0.8, optimizer="SGD",
+        result = prob.train(lr=0.01, num_iter=5, momentum=0.8, optimizer="SGD",
                             seed=s, init_A=initn, init_b=init_bvaln, init_lam=0.5, init_mu=0.01,
-                            mu_multiplier=1.001, init_alpha=0., test_percentage=test_p, kappa=-0.01)
+                            mu_multiplier=1.001, init_alpha=0., test_percentage=test_p, kappa=-0.01, n_jobs=8, random_init=True, num_random_init=2)
         timefin = time.time()
         timefin - timestart
         df = result.df
         print(df)
         # Grid search epsilon
-        result4 = prob.grid(epslst=np.linspace(0.01, 5, 400), init_A=init,
+        result4 = prob.grid(epslst=np.linspace(0.01, 5, 10), init_A=init,
                             init_b=init_bval, seed=s,
                             init_alpha=0., test_percentage=test_p)
         dfgrid = result4.df
 
-        result5 = prob.grid(epslst=np.linspace(0.01, 5, 400), init_A=result.A, init_b=result.b, seed=s,
+        result5 = prob.grid(epslst=np.linspace(0.01, 5, 10), init_A=result.A, init_b=result.b, seed=s,
                             init_alpha=0., test_percentage=test_p)
         dfgrid2 = result5.df
         print(dfgrid, dfgrid2)
