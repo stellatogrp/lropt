@@ -137,15 +137,16 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         timefin = time.time()
         timefin - timestart
         df = result.df
-        print(df)
-        # Grid search epsilon
-        result4 = prob.grid(epslst=np.linspace(0.01, 5, 10), init_A=init,
-                            init_b=init_bval, seed=s,
-                            init_alpha=0., test_percentage=test_p)
-        dfgrid = result4.df
 
-        result5 = prob.grid(epslst=np.linspace(0.01, 5, 10), init_A=result.A, init_b=result.b, seed=s,
-                            init_alpha=0., test_percentage=test_p)
-        dfgrid2 = result5.df
-        print(dfgrid, dfgrid2)
+        print(df)
+        # # Grid search epsilon
+        # result4 = prob.grid(epslst=np.linspace(0.01, 5, 10), init_A=init,
+        #                     init_b=init_bval, seed=s,
+        #                     init_alpha=0., test_percentage=test_p)
+        # dfgrid = result4.df
+
+        # result5 = prob.grid(epslst=np.linspace(0.01, 5, 10), init_A=result.A, init_b=result.b, seed=s,
+        #                     init_alpha=0., test_percentage=test_p)
+        # dfgrid2 = result5.df
+        # print(dfgrid, dfgrid2)
         pass

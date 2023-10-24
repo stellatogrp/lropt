@@ -17,7 +17,7 @@ from tests.settings import TESTS_RTOL as RTOL
 
 class TestBudgetUncertainty(unittest.TestCase):
 
-    def test_budget_2(self):
+    def test_budget(self):
         m = 5
 
         budget_u = UncertainParameter(m, uncertainty_set=Budget(rho1=2., rho2=1., a1=np.eye(m),

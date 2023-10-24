@@ -116,7 +116,7 @@ class TestBoxUncertainty(unittest.TestCase):
         prob.solve(solver=SOLVER)
         npt.assert_allclose(x.value, 0.5, rtol=RTOL, atol=ATOL)
 
-    def test_mat_multiply(self):
+    def test_box_matrix_transform(self):
         n = 5
         x = cp.Variable(n)
         c = np.ones(n)
@@ -132,21 +132,13 @@ class TestBoxUncertainty(unittest.TestCase):
         prob = RobustProblem(objective, constraints)
         prob.solve(solver=SOLVER)
 
-    def test_box_std(self):
-        n = 5
-        x = cp.Variable(n)
-        c = np.ones(n)
-        A_unc = np.eye(n)
-        b_unc = 3*np.ones(n)
-
-        objective = cp.Minimize(c @ x)
-        u = UncertainParameter(n,
-                               uncertainty_set=Box(rho=2.))
-
-        constraints = [0 <= x, x <= 10,
-                       2 * ((A_unc @ u + b_unc) @ x)*-1 <= 2]
-        prob = RobustProblem(objective, constraints)
-        prob.solve(solver=SOLVER)
+        x_cvx = cp.Variable(n)
+        constraints = [(-2*b_unc) @ x_cvx + 2 *
+                       cp.norm(-2*A_unc.T @ x_cvx, p=1) <= 2]
+        constraints += [x_cvx >= 0, x_cvx <= 10]
+        prob_cvxpy_box = cp.Problem(cp.Minimize(c@x_cvx), constraints)
+        prob_cvxpy_box.solve()
+        np.testing.assert_allclose(x.value, x_cvx.value, rtol=RTOL, atol=ATOL)
 
     # @pytest.mark.skip(reason="Need to add quad")
     def test_isolate_scalar(self):
@@ -201,7 +193,8 @@ class TestBoxUncertainty(unittest.TestCase):
         objective = cp.Minimize(-c@x)
 
         # formulate constraints
-        constraints = [(P@(A @ box_u + b)) @ x - 2*(A @ box_u + b)@x <= 10, x >= 0, x <= 1]
+        constraints = [(P@(A @ box_u + b)) @ x - 2 *
+                       (A @ box_u + b)@x <= 10, x >= 0, x <= 1]
 
         # formulate Robust Problem
         prob_robust = RobustProblem(objective, constraints)
@@ -226,33 +219,3 @@ class TestBoxUncertainty(unittest.TestCase):
         prob_cvxpy.solve()
 
         npt.assert_allclose(x.value, x_cvx.value, rtol=RTOL, atol=ATOL)
-
-    def test_budget(self):
-        m = 5
-        budget_u = UncertainParameter(m,
-                                      uncertainty_set=Budget(rho1=2.,
-                                                             rho2=1.))
-        n = 5
-        # formulate cvxpy variable
-        x = cp.Variable(n)
-
-        # formulate problem constants
-        P = 3. * np.eye(m)[:n, :]
-        P1 = 3*np.random.rand(n, m)
-        a = 0.1 * np.random.rand(n)
-        c = np.random.rand(n)
-
-        # formulate objective
-        objective = cp.Minimize(c@x)
-
-        # formulate constraints
-        constraints = [(P@budget_u + a) @ x <= 10]
-        constraints += [x >= P1@budget_u]
-
-        # formulate Robust Problem
-        prob_robust = RobustProblem(objective, constraints)
-
-        # solve
-        prob_robust.solve()
-
-        print("LROPT objective value: ", prob_robust.objective.value, "\nLROPT x: ", x.value)

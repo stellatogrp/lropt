@@ -7,6 +7,9 @@ from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.box import Box
 
+from tests.settings import TESTS_ATOL as ATOL
+from tests.settings import TESTS_RTOL as RTOL
+
 
 def generate_data(n, N):
     """Generate synthetic portfolio data."""
@@ -47,16 +50,22 @@ class TestPortfolio(unittest.TestCase):
         b = r_bar
 
         r = UncertainParameter(n, uncertainty_set=Box(rho=1.2))
-
+        t = cp.Variable()  # Hack to add the objective
         x = cp.Variable(n)
+        objective = cp.Minimize(t)
+
         constraints = [cp.sum(x) == 1,
                        x >= 0]
+        constraints += [(A @ r + b) @ x <= t]
 
-        t = cp.Variable()  # Hack to add the objective
-        constraints += [(A @ r + b) @ x <= -t]
-
-        objective = cp.Maximize(t)
         problem = RobustProblem(objective, constraints)
         problem.solve()
 
-        print(x.value)
+        x_cvx = cp.Variable(n)
+        t_cvx = cp.Variable()
+        constraints = [b @ x_cvx + 1.2 * cp.norm(A.T @ x_cvx, p=1) <= t_cvx]
+        constraints += [cp.sum(x_cvx) == 1, x_cvx >= 0]
+        prob_cvxpy_box = cp.Problem(cp.Minimize(t_cvx), constraints)
+        prob_cvxpy_box.solve()
+
+        np.testing.assert_allclose(x.value, x_cvx.value, rtol=RTOL, atol=ATOL)
