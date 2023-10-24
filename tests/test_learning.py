@@ -15,11 +15,11 @@ from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
 
-# import numpy.testing as npt
+import numpy.testing as npt
 
 # from tests.settings import SOLVER
-# from tests.settings import TESTS_ATOL as ATOL
-# from tests.settings import TESTS_RTOL as RTOL
+from tests.settings import TESTS_ATOL as ATOL
+from tests.settings import TESTS_RTOL as RTOL
 
 # import pandas as pd
 # import torch
@@ -137,6 +137,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         timefin = time.time()
         timefin - timestart
         df = result.df
+        npt.assert_allclose(np.array(
+            result.df["Violations_train"])[-1], 0.3232121866605832, rtol=RTOL, atol=ATOL)
 
         print(df)
         # # Grid search epsilon

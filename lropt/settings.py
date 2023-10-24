@@ -5,7 +5,7 @@ import torch
 
 # General constants
 EPS_LST_DEFAULT = np.logspace(-3, 1, 20)
-LAYER_SOLVER = {'solve_method': "ECOS"}
+LAYER_SOLVER = {'solve_method': "Clarabel"}
 DTYPE = torch.double
 PATIENCE = 5  # TODO (Amit): This parameter is not clear to me
 
