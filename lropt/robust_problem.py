@@ -17,7 +17,7 @@ from cvxpy.problems.objective import Maximize
 from abc import ABC
 from enum import Enum
 from inspect import signature
-from joblib import Parallel, delayed
+# from joblib import Parallel, delayed
 from pathos.multiprocessing import ProcessingPool as Pool
 from functools import partial
 from tqdm import tqdm
