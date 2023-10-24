@@ -1,19 +1,12 @@
 import unittest
-
 import cvxpy as cp
 import numpy as np
-import scipy as sc
-from sklearn import datasets
 import numpy.testing as npt
 import numpy.random as npr
-
-
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
-from lropt.uncertain_atoms.quad_form import quad_form
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
 from lropt.uncertainty_sets.mro import MRO
-from tests.settings import SOLVER
 from tests.settings import TESTS_ATOL as ATOL
 from tests.settings import TESTS_RTOL as RTOL
 
@@ -32,7 +25,8 @@ class TestMax(unittest.TestCase):
         # formulate uncertainty set
         n = 5
         u = UncertainParameter(n,
-                               uncertainty_set=Ellipsoidal(p=2, rho=1, b=-np.mean(self.data, axis=0)))
+                               uncertainty_set=Ellipsoidal(p=2, rho=1,
+                                                           b=-np.mean(self.data, axis=0)))
         # formulate cvxpy variables
         x_r = cp.Variable(n)
         t = cp.Variable()
@@ -61,7 +55,8 @@ class TestMax(unittest.TestCase):
         # formulate constraints
         constraints = [self.a@x_cvxpy - self.d@x_cvxpy <= t]
         constraints += [self.a@x_cvxpy - 3*self.d @
-                        np.ones(n) + np.mean(self.data, axis=0)@(-3*self.d) + cp.norm(3*self.d, 2) <= t]
+                        np.ones(n) + np.mean(self.data, axis=0)@(-3*self.d)
+                        + cp.norm(3*self.d, 2) <= t]
         constraints += [x_cvxpy >= 0]
 
         # formulate problem
@@ -75,7 +70,8 @@ class TestMax(unittest.TestCase):
         # formulate uncertainty set
         n = 5
         u = UncertainParameter(n,
-                               uncertainty_set=MRO(K=1, data=self.data, p=2,
+                               uncertainty_set=MRO(K=1, data=self.data,
+                                                   p=2,
                                                    rho=1, train=False))
         # formulate cvxpy variables
         x_m = cp.Variable(n)
@@ -106,7 +102,8 @@ class TestMax(unittest.TestCase):
         constraints = [self.a@x_cvxpy - self.d @
                        x_cvxpy + cp.norm(3*self.d, 2) <= t]
         constraints += [self.a@x_cvxpy - 3*self.d @
-                        np.ones(n) + np.mean(self.data, axis=0)@(-3*self.d) + cp.norm(3*self.d, 2) <= t]
+                        np.ones(n) + np.mean(self.data, axis=0)@(-3*self.d)
+                        + cp.norm(3*self.d, 2) <= t]
         constraints += [x_cvxpy >= 0]
 
         # formulate problem

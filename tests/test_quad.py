@@ -1,18 +1,13 @@
 import unittest
-
 import cvxpy as cp
 import numpy as np
 import scipy as sc
 from sklearn import datasets
 import numpy.testing as npt
-
-
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertain_atoms.quad_form import quad_form
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
-from lropt.uncertainty_sets.mro import MRO
-from tests.settings import SOLVER
 from tests.settings import TESTS_ATOL as ATOL
 from tests.settings import TESTS_RTOL as RTOL
 

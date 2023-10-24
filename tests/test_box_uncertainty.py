@@ -7,7 +7,6 @@ import numpy.testing as npt
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.box import Box
-from lropt.uncertainty_sets.budget import Budget
 from lropt.uncertainty_sets.polyhedral import Polyhedral
 from tests.settings import SOLVER
 from tests.settings import TESTS_ATOL as ATOL

@@ -229,7 +229,9 @@ class MRO(UncertaintySet):
                     constr += [lmbda >= 0]
                     constr += [self._c.T@supp_newvar == supp_var[0]]
                     constr += [supp_newvar >= 0]
-                    return newvar@(self.a@self.Dbar[k_ind]) + self._d@supp_newvar - sval[k_ind], constr, lmbda, sval
+                    return newvar@(self.a@self.Dbar[k_ind]) \
+                        + self._d@supp_newvar - sval[k_ind], constr, \
+                        lmbda, sval
                 else:
                     constr = []
                     newvar = Variable((shape, ushape))
@@ -241,7 +243,8 @@ class MRO(UncertaintySet):
                                         p=self.dual_norm()) <= lmbda[ind]]
                         constr += [self.a.T@newvar[ind] == var[ind]]
                         constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-                    return newvar@(self.a@self.Dbar[k_ind]) + supp_newvar@self._d-sval[k_ind], constr, lmbda, sval
+                    return newvar@(self.a@self.Dbar[k_ind]) \
+                        + supp_newvar@self._d-sval[k_ind], constr, lmbda, sval
             elif self._train or (self.a is not None):
                 if shape == 1:
                     newvar = Variable(ushape)  # gamma aux variable
@@ -266,7 +269,8 @@ class MRO(UncertaintySet):
                         constr += [norm(newvar[ind],
                                         p=self.dual_norm()) <= lmbda[ind]]
                         constr += [self.a[k_ind*self._m:(k_ind+1) *
-                                          self._m, 0:self._m].T@newvar[ind] == var[ind]]
+                                          self._m, 0:self._m].T@newvar[ind]
+                                   == var[ind]]
                         constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
                     return newvar@(self.a[k_ind*self._m:(k_ind+1) *
                                           self._m, 0:self._m]@self.Dbar[k_ind]) -\

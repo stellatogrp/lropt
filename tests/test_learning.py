@@ -1,26 +1,20 @@
 import time
 import unittest
-
 import cvxpy as cp
-
 # import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random as npr
 import scipy as sc
 import torch
 from sklearn.model_selection import train_test_split
-
 from lropt.parameter import Parameter
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
-
 import numpy.testing as npt
-
 # from tests.settings import SOLVER
 from tests.settings import TESTS_ATOL as ATOL
 from tests.settings import TESTS_RTOL as RTOL
-
 # import pandas as pd
 # import torch
 
@@ -100,7 +94,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
             return t + 0.2*torch.linalg.vector_norm(x-y, 1)
 
         def g_tch(t, x, y, u):
-            # x,y,u are tensors that represent the cp.Variable x and cp.Parameter y and u.
+            # x,y,u are tensors that represent the cp.Variable x and
+            # cp.Parameter y and u.
             # The cp.Constant c is converted to a tensor
             return -x @ u.T - t
 
@@ -118,8 +113,10 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         objective = cp.Minimize(t + 0.2*cp.norm(x - y, 1))
         constraints = [-x@u.T <= t, cp.sum(x) == 1, x >= 0]
 
-        prob = RobustProblem(objective, constraints, objective_torch=f_tch, constraints_torch=[
-                             g_tch], eval_torch=eval_tch)
+        prob = RobustProblem(objective, constraints,
+                             objective_torch=f_tch,
+                             constraints_torch=[
+                                 g_tch], eval_torch=eval_tch)
         test_p = 0.1
         s = 5
         train, test = train_test_split(data, test_size=int(
@@ -131,14 +128,18 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         init_bvaln = -initn@(np.mean(train, axis=0) - 0.3*np.ones(n))
 
         # Train A and b
-        result = prob.train(lr=0.01, num_iter=5, momentum=0.8, optimizer="SGD",
-                            seed=s, init_A=initn, init_b=init_bvaln, init_lam=0.5, init_mu=0.01,
-                            mu_multiplier=1.001, init_alpha=0., test_percentage=test_p, kappa=-0.01, n_jobs=8, random_init=True, num_random_init=2)
+        result = prob.train(lr=0.01, num_iter=5, momentum=0.8,
+                            optimizer="SGD",
+                            seed=s, init_A=initn, init_b=init_bvaln,
+                            init_lam=0.5, init_mu=0.01,
+                            mu_multiplier=1.001, init_alpha=0., test_percentage=test_p, kappa=-0.01,
+                            n_jobs=8, random_init=True, num_random_init=2)
         timefin = time.time()
         timefin - timestart
         df = result.df
         npt.assert_allclose(np.array(
-            result.df["Violations_train"])[-1], 0.3232121866605832, rtol=RTOL, atol=ATOL)
+            result.df["Violations_train"])[-1], 0.3232121866605832,
+            rtol=RTOL, atol=ATOL)
 
         print(df)
         # # Grid search epsilon

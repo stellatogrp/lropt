@@ -20,7 +20,7 @@ from inspect import signature
 # from joblib import Parallel, delayed
 from pathos.multiprocessing import ProcessingPool as Pool
 from functools import partial
-from tqdm import tqdm
+# from tqdm import tqdm
 from typing import Optional
 
 import numpy as np
