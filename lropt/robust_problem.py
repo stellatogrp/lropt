@@ -6,6 +6,7 @@ from lropt.shape_parameter import ShapeParameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lropt.parameter import Parameter
 import lropt.settings as settings
+import lropt.utils as utils
 from sklearn.model_selection import train_test_split
 from cvxpylayers.torch import CvxpyLayer
 from cvxpy.reductions.solvers.solving_chain import SolvingChain, construct_solving_chain
@@ -1029,7 +1030,8 @@ class RobustProblem(Problem):
         n_jobs=settings.N_JOBS,
         quantiles=settings.QUANTILES,
         lr_step_size = settings.LR_STEP_SIZE,
-        lr_gamma = settings.LR_GAMMA
+        lr_gamma = settings.LR_GAMMA,
+        parallel=True
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. lagrangian metric
@@ -1115,6 +1117,8 @@ class RobustProblem(Problem):
         num_random_init = num_random_init if random_init else 1
         kwargs = {"eps": eps, "init_A": init_A, "init_b": init_b, "init_eps": init_eps, "unc_set": unc_set, "mro_set": mro_set, "random_init": random_init, "seed": seed, "u_size": u_size, "train_set": train_set, "init_alpha": init_alpha, "save_history": save_history, "fixb": fixb, "optimizer": optimizer, "lr": lr, "momentum": momentum,
                   "scheduler_reduce_p": scheduler_reduce_p, "scheduler_steplr": scheduler_steplr, "init_lam": init_lam, "init_mu": init_mu, "num_iter": num_iter, "y_batch_percentage": y_batch_percentage, "u_batch_percentage": u_batch_percentage, "cvxpylayer": cvxpylayer, "solver_args": solver_args, "kappa": kappa, "test_frequency": test_frequency, "test_tch": test_tch, "mu_multiplier": mu_multiplier, "quantiles": quantiles, "lr_step_size":lr_step_size, "lr_gamma":lr_gamma}
+
+        n_jobs = utils.get_n_processes() if parallel else 1
         pool_obj = Pool(processes=n_jobs)
         loop_fn = partial(self._train_loop, **kwargs)
         res = pool_obj.map(loop_fn, range(num_random_init))
