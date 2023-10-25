@@ -271,7 +271,7 @@ class RobustProblem(Problem):
         return l_func, h_funcs, len(h_funcs)
 
     def _eval_input(self, eval_func, vars, y_params_mat, u_params_mat, init_val, eval_input_case,
-                    star_flag, *args):
+                    star_flag, quantiles, *args):
         """
         This function takes decision varaibles, y's, and u's,
             evaluates them and averages them on a given function.
@@ -311,9 +311,10 @@ class RobustProblem(Problem):
         elif eval_input_case == RobustProblem._EVAL_INPUT_CASE.EVALMEAN:
             init_val += curr_result
             init_val /= J
-            init_val_lower = torch.quantile(init_val, 0.25)
+            bot_q, top_q = quantiles
+            init_val_lower = torch.quantile(init_val, bot_q)
             init_val_mean = init_val.mean()
-            init_val_upper = torch.quantile(init_val, 0.75)
+            init_val_upper = torch.quantile(init_val, top_q)
             return (init_val_lower, init_val_mean, init_val_upper)
         elif eval_input_case == RobustProblem._EVAL_INPUT_CASE.MAX:
             # We want to see if there's a violation: either 1 from previous iterations,
@@ -327,7 +328,7 @@ class RobustProblem(Problem):
         return self._eval_input(eval_func=self.l, vars=vars, y_params_mat=y_params_mat,
                                 u_params_mat=u_params_mat, init_val=0,
                                 eval_input_case=RobustProblem._EVAL_INPUT_CASE.MEAN,
-                                star_flag=True)
+                                star_flag=True, quantiles=None)
 
     def train_constraint(self, vars, y_params_mat, u_params_mat, alpha, slack, eta, kappa):
         num_g = len(self.h)
@@ -335,18 +336,18 @@ class RobustProblem(Problem):
         for k, h_k in enumerate(self.h):
             init_val = self._eval_input(
                 h_k, vars, y_params_mat, u_params_mat, 0, RobustProblem._EVAL_INPUT_CASE.MEAN,
-                False, alpha, eta)
+                False, None, alpha, eta)
             h_k_expectation = init_val + alpha - kappa + slack[k]
             H[k] = h_k_expectation
         return H
 
-    def evaluation_metric(self, vars, y_params_mat, u_params_mat):
+    def evaluation_metric(self, vars, y_params_mat, u_params_mat, quantiles):
         if (self.eval is None):
             return 0
         return self._eval_input(eval_func=self.eval, vars=vars, y_params_mat=y_params_mat,
                                 u_params_mat=u_params_mat, init_val=0,
                                 eval_input_case=RobustProblem._EVAL_INPUT_CASE.EVALMEAN,
-                                star_flag=True)
+                                star_flag=True, quantiles=quantiles)
 
     def prob_constr_violation(self, vars, y_params_mat, u_params_mat):
         num_g = len(self.g)
@@ -358,7 +359,7 @@ class RobustProblem(Problem):
             G = self._eval_input(eval_func=g_k, vars=vars, y_params_mat=y_params_mat,
                                  u_params_mat=u_params_mat, init_val=G,
                                  eval_input_case=RobustProblem._EVAL_INPUT_CASE.MAX,
-                                 star_flag=True)
+                                 star_flag=True, quantiles=None)
             # for j in range(J):
             #     G[k, j, :] = g_k(*[valuex[j] for valuex in vars],
             #                         *[valuey[j] for valuey in y_params_mat], u_params_mat)
@@ -859,7 +860,7 @@ class RobustProblem(Problem):
             )
         return coverage/dset.shape[0]
 
-    def _train_loop(self, init_num, eps, init_A, init_b, init_eps, unc_set, mro_set, random_init, seed, u_size, train_set, init_alpha, save_history, fixb, optimizer, lr, momentum, scheduler_reduce_p, scheduler_steplr, init_lam, init_mu, num_iter, y_batch_percentage, u_batch_percentage, cvxpylayer, solver_args, kappa, test_frequency, test_tch, mu_multiplier):
+    def _train_loop(self, init_num, eps, init_A, init_b, init_eps, unc_set, mro_set, random_init, seed, u_size, train_set, init_alpha, save_history, fixb, optimizer, lr, momentum, scheduler_reduce_p, scheduler_steplr, init_lam, init_mu, num_iter, y_batch_percentage, u_batch_percentage, cvxpylayer, solver_args, kappa, test_frequency, test_tch, mu_multiplier, quantiles, lr_step_size, lr_gamma):
         if random_init:
             np.random.seed(seed+init_num)
             init_A = np.random.rand(u_size, u_size)
@@ -891,7 +892,7 @@ class RobustProblem(Problem):
                 opt, patience=settings.PATIENCE)
         if scheduler_steplr:
             scheduler2_ = torch.optim.lr_scheduler.StepLR(
-                opt, step_size=settings.LR_STEP_SIZE, gamma=settings.LR_GAMMA)
+                opt, step_size=lr_step_size, gamma=lr_gamma)
         # y's and cvxpylayer begin
         y_parameters = self.y_parameters()
         num_ys = self.num_ys
@@ -928,7 +929,8 @@ class RobustProblem(Problem):
                 kappa=kappa)
             temp_lagrangian.backward()
             with torch.no_grad():
-                obj = self.evaluation_metric(var_values, y_batch, u_batch)
+                obj = self.evaluation_metric(
+                    var_values, y_batch, u_batch, quantiles)
                 prob_violation_train = self.prob_constr_violation(
                     var_values,
                     y_batch, u_batch)
@@ -961,7 +963,7 @@ class RobustProblem(Problem):
 
                 with torch.no_grad():
                     obj_test = self.evaluation_metric(
-                        var_values, y_batch, test_tch)
+                        var_values, y_batch, test_tch, quantiles)
                     prob_violation_test = self.prob_constr_violation(
                         var_values, y_batch, test_tch)
                     _, var_vio = self.lagrangian(
@@ -1025,6 +1027,9 @@ class RobustProblem(Problem):
         y_batch_percentage=settings.Y_BATCH_PERCENTAGE_DEFAULT,
         solver_args=settings.LAYER_SOLVER,
         n_jobs=settings.N_JOBS,
+        quantiles=settings.QUANTILES,
+        lr_step_size = settings.LR_STEP_SIZE,
+        lr_gamma = settings.LR_GAMMA
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. lagrangian metric
@@ -1109,7 +1114,7 @@ class RobustProblem(Problem):
                                 + self.shape_parameters(self.new_prob), variables=self.variables())
         num_random_init = num_random_init if random_init else 1
         kwargs = {"eps": eps, "init_A": init_A, "init_b": init_b, "init_eps": init_eps, "unc_set": unc_set, "mro_set": mro_set, "random_init": random_init, "seed": seed, "u_size": u_size, "train_set": train_set, "init_alpha": init_alpha, "save_history": save_history, "fixb": fixb, "optimizer": optimizer, "lr": lr, "momentum": momentum,
-                  "scheduler_reduce_p": scheduler_reduce_p, "scheduler_steplr": scheduler_steplr, "init_lam": init_lam, "init_mu": init_mu, "num_iter": num_iter, "y_batch_percentage": y_batch_percentage, "u_batch_percentage": u_batch_percentage, "cvxpylayer": cvxpylayer, "solver_args": solver_args, "kappa": kappa, "test_frequency": test_frequency, "test_tch": test_tch, "mu_multiplier": mu_multiplier}
+                  "scheduler_reduce_p": scheduler_reduce_p, "scheduler_steplr": scheduler_steplr, "init_lam": init_lam, "init_mu": init_mu, "num_iter": num_iter, "y_batch_percentage": y_batch_percentage, "u_batch_percentage": u_batch_percentage, "cvxpylayer": cvxpylayer, "solver_args": solver_args, "kappa": kappa, "test_frequency": test_frequency, "test_tch": test_tch, "mu_multiplier": mu_multiplier, "quantiles": quantiles, "lr_step_size":lr_step_size, "lr_gamma":lr_gamma}
         pool_obj = Pool(processes=n_jobs)
         loop_fn = partial(self._train_loop, **kwargs)
         res = pool_obj.map(loop_fn, range(num_random_init))
@@ -1142,6 +1147,7 @@ class RobustProblem(Problem):
         test_percentage=settings.TEST_PERCENTAGE_DEFAULT,
         num_ys=settings.NUM_YS_DEFAULT,
         solver_args=settings.LAYER_SOLVER,
+        quantiles=settings.QUANTILES
     ):
         r"""
         Perform gridsearch to find optimal :math:`\epsilon`-ball around data.
@@ -1214,7 +1220,7 @@ class RobustProblem(Problem):
                 step_num=np.NAN, train_flag=self.train_flag)
             with torch.no_grad():
                 obj_test = self.evaluation_metric(
-                    var_values, y_batch, test_tch)
+                    var_values, y_batch, test_tch, quantiles)
                 prob_violation_test = self.prob_constr_violation(
                     var_values, y_batch, test_tch)
                 _, var_vio = self.lagrangian(
