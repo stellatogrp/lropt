@@ -987,10 +987,9 @@ class RobustProblem(Problem):
                     if eps:
                         eps_tch = torch.clamp(eps_tch, min=0.001)
                 if scheduler_reduce_p:
-                    # DELETE HERE this doesn't break
                     scheduler1_.step(temp_lagrangian)
                 if scheduler_steplr:
-                    scheduler2_.step(temp_lagrangian)
+                    scheduler2_.step()
         fin_val = obj_test[1].item(
         ) + 10*sum(var_vio.detach().numpy())
         a_val = a_tch.detach().numpy().copy()
