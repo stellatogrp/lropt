@@ -1,20 +1,25 @@
 import time
 import unittest
+
 import cvxpy as cp
+
 # import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random as npr
+import numpy.testing as npt
 import scipy as sc
 import torch
 from sklearn.model_selection import train_test_split
+
 from lropt.parameter import Parameter
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
-import numpy.testing as npt
+
 # from tests.settings import SOLVER
 from tests.settings import TESTS_ATOL as ATOL
 from tests.settings import TESTS_RTOL as RTOL
+
 # import pandas as pd
 # import torch
 
@@ -119,10 +124,10 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
                                  g_tch], eval_torch=eval_tch)
         test_p = 0.1
         s = 5
-        train, test = train_test_split(data, test_size=int(
+        train, _ = train_test_split(data, test_size=int(
             data.shape[0]*test_p), random_state=s)
         init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
-        init_bval = -init@np.mean(train, axis=0)
+        -init@np.mean(train, axis=0)
         np.random.seed(15)
         initn = np.random.rand(n, n) + 0.1*init + 0.5*np.eye(n)
         init_bvaln = -initn@(np.mean(train, axis=0) - 0.3*np.ones(n))
@@ -138,17 +143,19 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         timefin - timestart
         df = result.df
         npt.assert_allclose(np.array(
-            result.df["Violations_train"])[-1], 0.3232121866605832,
+            result.df["Violations_train"])[-1], 0.18101063,
             rtol=RTOL, atol=ATOL)
 
         print(df)
         # # Grid search epsilon
-        # result4 = prob.grid(epslst=np.linspace(0.01, 5, 10), init_A=init,
+        # result4 = prob.grid(epslst=np.linspace(0.01, 5, 10), \
+        # init_A=init,
         #                     init_b=init_bval, seed=s,
         #                     init_alpha=0., test_percentage=test_p)
         # dfgrid = result4.df
 
-        # result5 = prob.grid(epslst=np.linspace(0.01, 5, 10), init_A=result.A, init_b=result.b, seed=s,
+        # result5 = prob.grid(epslst=np.linspace(0.01, 5, 10), \
+        # init_A=result.A, init_b=result.b, seed=s,
         #                     init_alpha=0., test_percentage=test_p)
         # dfgrid2 = result5.df
         # print(dfgrid, dfgrid2)

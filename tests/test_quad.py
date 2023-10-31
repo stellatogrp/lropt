@@ -1,9 +1,11 @@
 import unittest
+
 import cvxpy as cp
 import numpy as np
+import numpy.testing as npt
 import scipy as sc
 from sklearn import datasets
-import numpy.testing as npt
+
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertain_atoms.quad_form import quad_form
@@ -70,5 +72,3 @@ class TestQuad(unittest.TestCase):
 
         # assert x values are equal
         npt.assert_allclose(x_r.value, x_cvxpy.value, rtol=RTOL, atol=ATOL)
-
-    

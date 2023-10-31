@@ -1,8 +1,10 @@
 import unittest
+
 import cvxpy as cp
 import numpy as np
-import numpy.testing as npt
 import numpy.random as npr
+import numpy.testing as npt
+
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal

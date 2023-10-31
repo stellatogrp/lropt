@@ -7,7 +7,6 @@ import torch
 EPS_LST_DEFAULT = np.logspace(-3, 1, 20)
 LAYER_SOLVER = {'solve_method': "Clarabel"}
 DTYPE = torch.double
-PATIENCE = 5  # TODO (Amit): This parameter is not clear to me
 
 """
 Different types of MRO:
@@ -65,7 +64,6 @@ FIXB_DEFAULT = False
 NUM_ITER_DEFAULT = 45
 LR_DEFAULT = 0.0001
 SCHEDULER_STEPLR_DEFAULT = True
-SCHEDULER_REDUCE_P_DEFAULT = False
 MOMENTUM_DEFAULT = 0.8
 OPT_DEFAULT = SGD
 INIT_EPS_DEFAULT = None

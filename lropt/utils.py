@@ -1,6 +1,8 @@
-import os
-import numpy as np
 import multiprocessing
+import os
+
+import numpy as np
+
 
 class UncertaintyError(Exception):
     """Error thrown if the uncertain problem has not been formulated correctly."""

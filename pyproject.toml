@@ -33,7 +33,7 @@ write_to = "lropt/_version.py"
 
 
 [project.optional-dependencies]
-dev = ["pytest", "pre-commit", "ruff", "ruff-lsp", 
+dev = ["pytest", "pre-commit", "ruff", "ruff-lsp",
        "sphinx", "furo", "nbsphinx", "ipython",
        "matplotlib", "jupyterlab"]
 

@@ -282,7 +282,8 @@ class MRO(UncertaintySet):
                     constr += [lmbda >= 0]
                     constr += [self._c.T@supp_newvar == supp_var[0]]
                     constr += [supp_newvar >= 0]
-                    return var[0]@self.Dbar[k_ind] + self._d@supp_newvar-sval[k_ind], constr, lmbda, sval
+                    return var[0]@self.Dbar[k_ind] + \
+                        self._d@supp_newvar-sval[k_ind], constr, lmbda, sval
                 else:
                     constr = []
                     constr += [lmbda >= 0]
@@ -291,5 +292,7 @@ class MRO(UncertaintySet):
                     for ind in range(shape):
                         constr += [norm(var[ind], p=self.dual_norm())
                                    <= lmbda[ind]]
-                        constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-                    return var@self.Dbar[k_ind] + supp_newvar@self._d-sval[k_ind], constr, lmbda, sval
+                        constr += [self._c.T@supp_newvar[ind] ==
+                                   supp_var[ind]]
+                    return var@self.Dbar[k_ind] + \
+                        supp_newvar@self._d-sval[k_ind], constr, lmbda, sval
