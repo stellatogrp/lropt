@@ -10,9 +10,7 @@ from lropt.remove_uncertain.atom_canonicalizers.mul_canon import mul_canon_trans
 from lropt.uncertain import UncertainParameter
 from lropt.uncertain_canon.remove_constant import REMOVE_CONSTANT_METHODS as rm_const_methods
 from lropt.uncertain_canon.separate_uncertainty import SEPARATION_METHODS as sep_methods
-from lropt.uncertainty_sets.budget import Budget
 from lropt.uncertainty_sets.mro import MRO
-from lropt.uncertainty_sets.polyhedral import Polyhedral
 from lropt.utils import unique_list
 
 
@@ -60,7 +58,8 @@ class Uncertain_Canonicalization(Reduction):
             if self.has_unc_param(constraint):
                 # import ipdb
                 # ipdb.set_trace()
-                unc_lst, std_lst, is_max = self.separate_uncertainty(constraint)
+                unc_lst, std_lst, is_max = self.separate_uncertainty(
+                    constraint)
                 if is_max:
                     unc_lst_tot = []
                     for cons_idx in range(len(unc_lst)):
@@ -86,12 +85,12 @@ class Uncertain_Canonicalization(Reduction):
                                 element_shape)
                             canon_constraints += aux_constr + [canon_constr]
 
-                            if type(unc_params[0].uncertainty_set) == Budget:
-                                canon_constraints += [lmda[0] == new_lmda[0],
-                                                      lmda[1] == new_lmda[1]]
+                            # if type(unc_params[0].uncertainty_set) == Budget:
+                            #     canon_constraints += [lmda[0] == new_lmda[0],
+                            #                           lmda[1] == new_lmda[1]]
 
-                            elif not type(unc_params[0].uncertainty_set) == Polyhedral:
-                                canon_constraints += [lmda == new_lmda]
+                            # elif not type(unc_params[0].uncertainty_set) == Polyhedral:
+                            #     canon_constraints += [lmda == new_lmda]
                     else:
                         canon_constr, aux_constr, lmda, sval = self.remove_uncertainty_mro(
                             unc_lst[0], unc_params[0], std_lst[0], element_shape)
@@ -143,7 +142,8 @@ class Uncertain_Canonicalization(Reduction):
             canon_expr, constrs = self.canonicalize_tree(
                 expr.args[0].objective.expr, var, cons)
             for constr in expr.args[0].constraints:
-                canon_constr, aux_constr = self.canonicalize_tree(constr, var, cons)
+                canon_constr, aux_constr = self.canonicalize_tree(
+                    constr, var, cons)
                 constrs += [canon_constr] + aux_constr
         else:
             canon_args = []
@@ -190,7 +190,8 @@ class Uncertain_Canonicalization(Reduction):
                 u_expr, constant = self.remove_constant(unc_lst[ind])
 
                 # uvar = mul_canon_transform(uvar, cons)
-                new_expr, new_constraint = self.canonicalize_tree(u_expr, z[ind], constant)
+                new_expr, new_constraint = self.canonicalize_tree(
+                    u_expr, z[ind], constant)
                 if self.has_unc_param(new_expr):
                     uvar = mul_canon_transform(uvar, constant)
                     new_vars[ind] = Variable((num_constr, u_shape))
@@ -214,16 +215,20 @@ class Uncertain_Canonicalization(Reduction):
                     z_cons += z[ind]
 
             z_unc = Variable((num_constr, u_shape))
+            supp_cons = Variable((num_constr, u_shape))
             if has_isolated == 1:
                 for idx in range(num_constr):
-                    aux_constraint += [z_cons + z_new_cons[idx] == -z_unc[idx]]
+                    aux_constraint += [z_cons + supp_cons[idx] +
+                                       z_new_cons[idx] == -z_unc[idx]]
             else:
-                aux_constraint += [z_cons == -z_unc[0]]
-            new_expr, new_constraint, lmbda = uvar.conjugate(z_unc, num_constr, k_ind=0)
+                aux_constraint += [z_cons + supp_cons[0] == -z_unc[0]]
+            new_expr, new_constraint, lmbda = uvar.conjugate(
+                z_unc, supp_cons, num_constr, k_ind=0)
             aux_expr = aux_expr + new_expr
             aux_constraint = aux_constraint + new_constraint
         else:
-            aux_expr, aux_constraint, lmbda = uvar.conjugate(u_shape, num_constr, k_ind=0)
+            aux_expr, aux_constraint, lmbda = uvar.conjugate(
+                u_shape, 0, num_constr, k_ind=0)
         for expr in std_lst:
             aux_expr = aux_expr + expr
         return aux_expr <= 0, aux_constraint, lmbda
@@ -250,7 +255,8 @@ class Uncertain_Canonicalization(Reduction):
                 u_expr, constant = self.remove_constant(unc_lst[ind])
 
                 # uvar = mul_canon_transform(uvar, cons)
-                new_expr, new_constraint = self.canonicalize_tree(u_expr, z[ind], constant)
+                new_expr, new_constraint = self.canonicalize_tree(
+                    u_expr, z[ind], constant)
                 if self.has_unc_param(new_expr):
                     uvar = mul_canon_transform(uvar, constant)
                     new_vars[ind] = Variable((num_constr, u_shape))
@@ -274,28 +280,35 @@ class Uncertain_Canonicalization(Reduction):
                     z_cons += z[ind]
 
             z_unc = {}
+            supp_cons = {}
             for k_ind in range(uvar.uncertainty_set._K):
                 z_unc[k_ind] = Variable((num_constr, u_shape))
+                supp_cons[k_ind] = Variable((num_constr, u_shape))
                 if has_isolated == 1:
                     for idx in range(num_constr):
-                        aux_constraint += [z_cons + z_new_cons[idx] == -z_unc[k_ind][idx]]
+                        aux_constraint += [z_cons + supp_cons[k_ind][idx] +
+                                           z_new_cons[idx] == -z_unc[k_ind][idx]]
                 else:
-                    aux_constraint += [z_cons == -z_unc[k_ind][0]]
-                new_expr, new_constraint, lmbda, sval = uvar.conjugate(z_unc[k_ind], num_constr,
-                                                                       k_ind)
+                    aux_constraint += [z_cons +
+                                       supp_cons[k_ind][0] == -z_unc[k_ind][0]]
+                new_expr, new_constraint, lmbda, sval = uvar.conjugate(
+                    z_unc[k_ind],supp_cons[k_ind], num_constr, k_ind)
                 cur_expr = aux_expr + new_expr
                 for expr in std_lst:
                     cur_expr = cur_expr + expr
-                aux_constraint = aux_constraint + new_constraint + [cur_expr <= 0]
+                aux_constraint = aux_constraint + \
+                    new_constraint + [cur_expr <= 0]
                 fin_expr = uvar.uncertainty_set.rho*lmbda + uvar.uncertainty_set._w@sval
         else:
             aux_constraint = []
             for k_ind in range(uvar.uncertainty_set._K):
-                aux_expr, new_constraint, lmbda, sval = uvar.conjugate(u_shape, num_constr, k_ind)
+                aux_expr, new_constraint, lmbda, sval = uvar.conjugate(
+                    u_shape, 0, num_constr, k_ind)
                 cur_expr = aux_expr
                 for expr in std_lst:
                     cur_expr = cur_expr + expr
-                aux_constraint = aux_constraint + new_constraint + [cur_expr <= 0]
+                aux_constraint = aux_constraint + \
+                    new_constraint + [cur_expr <= 0]
                 fin_expr = uvar.uncertainty_set.rho*lmbda + uvar.uncertainty_set._w@sval
         return fin_expr <= 0, aux_constraint, lmbda, sval
 
@@ -361,7 +374,8 @@ class Uncertain_Canonicalization(Reduction):
             return [expr], [], 0
 
         elif type(expr) not in sep_methods:
-            raise ValueError("DRP error: not able to process non multiplication/additions")
+            raise ValueError(
+                "DRP error: not able to process non multiplication/additions")
         # import ipdb
         # ipdb.set_trace()
         func = sep_methods[type(expr)]

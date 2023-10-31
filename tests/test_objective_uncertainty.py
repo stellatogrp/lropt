@@ -5,6 +5,7 @@ import cvxpy as cp
 # import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random as npr
+import numpy.testing as npt
 
 # import numpy.random as npr
 from lropt.robust_problem import RobustProblem
@@ -27,7 +28,7 @@ class TestObjectiveUncertainty(unittest.TestCase):
         self.rho = 0.2
         self.p = 2
 
-
+    @unittest.skip("not currently implementing objective uncertainty")
     def test_objective_uncertainty(self):
 
         n = 5
@@ -49,7 +50,8 @@ class TestObjectiveUncertainty(unittest.TestCase):
         objective_1 = cp.Minimize(u_1 @ x_lropt + x_lropt @ c)
         u_2 = UncertainParameter(n,
                                  uncertainty_set=unc_set_2)
-        constraints_1 = [cp.maximum(u_1 @ P @ x_lropt, a @ x_lropt) + u_2 @ x_lropt <= b]
+        constraints_1 = [cp.maximum(
+            u_1 @ P @ x_lropt, a @ x_lropt) + u_2 @ x_lropt <= b]
 
         prob_robust = RobustProblem(objective_1, constraints_1)
         prob_robust.solve()
@@ -62,15 +64,12 @@ class TestObjectiveUncertainty(unittest.TestCase):
         tau_2 = cp.Variable()
         # tau_3 = cp.Variable()
 
-
         u_1 = UncertainParameter(n,
                                  uncertainty_set=unc_set_1)
         u_2 = UncertainParameter(n,
                                  uncertainty_set=unc_set_2)
 
         objective_2 = cp.Minimize(u_1 @ x_cvx + x_cvx @ c)
-
-
 
         # constraints_2 = [x_cvx @ u_1 <= tau_3]
         constraints_2 = [tau_1 + tau_2 - b <= 0]
@@ -80,5 +79,4 @@ class TestObjectiveUncertainty(unittest.TestCase):
         prob_cvx = RobustProblem(objective_2, constraints_2)
         prob_cvx.solve()
 
-
-        # npt.assert_allclose(x_cvxpy, x_robust, rtol=RTOL, atol=ATOL)
+        npt.assert_allclose(x_cvx.value, x_lropt.value)

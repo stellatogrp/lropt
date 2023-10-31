@@ -121,3 +121,25 @@ class TestPolyhedralUncertainty(unittest.TestCase):
         prob_robust = RobustProblem(objective, constraints)
         # solve
         prob_robust.solve()
+
+        # formulate using cvxpy
+        x_cvxpy = cp.Variable(n)
+        w1 = cp.Variable(2*m)
+        w2 = cp.Variable(2*m)
+        # formulate objective
+        objective = cp.Minimize(-c@x_cvxpy)
+
+        # formulate constraints
+        constraints = [a@x_cvxpy + w1@d <= 10]
+        constraints += [w1@D == P1.T@x_cvxpy]
+        constraints += [w2@d <= 5]
+        constraints += [w2@D == P2.T@x_cvxpy]
+        constraints += [w1 >= 0, w2 >= 0, x_cvxpy <= 5]
+        # formulate Robust Problem
+        prob_cvxpy = cp.Problem(objective, constraints)
+
+        # solve
+        prob_cvxpy.solve()
+
+        # assert x values are equal
+        npt.assert_allclose(x.value, x_cvxpy.value, rtol=RTOL, atol=ATOL)
