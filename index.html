@@ -1,11 +1,11 @@
 <!doctype html>
-<html class="no-js" lang="en">
+<html class="no-js" lang="en" data-content_root="./">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Getting started" href="getting_started/index.html" />
 
-    <!-- Generated with Sphinx 7.1.2 and Furo 2023.07.26 -->
+    <!-- Generated with Sphinx 7.2.6 and Furo 2023.09.10 -->
         <title>LROPT documentation documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
@@ -208,7 +208,7 @@
         </div>
         <article role="main">
           <section id="welcome-to-lropt-s-documentation">
-<h1>Welcome to LROPT’s documentation!<a class="headerlink" href="#welcome-to-lropt-s-documentation" title="Permalink to this heading">#</a></h1>
+<h1>Welcome to LROPT’s documentation!<a class="headerlink" href="#welcome-to-lropt-s-documentation" title="Link to this heading">#</a></h1>
 <p>Learning for robust optimization (LROPT) is a package to model and solve optimization Robust Optimization (RO) problems of the form</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -224,9 +224,9 @@ to use LROPT:</p>
 <li><p>By passing a dataset <span class="math notranslate nohighlight">\(U^N\)</span> of past realizations of <span class="math notranslate nohighlight">\(u\)</span> and letting LROPT learn <span class="math notranslate nohighlight">\(\theta\)</span></p></li>
 </ol>
 <section id="simple-examples">
-<h2>Simple Examples<a class="headerlink" href="#simple-examples" title="Permalink to this heading">#</a></h2>
+<h2>Simple Examples<a class="headerlink" href="#simple-examples" title="Link to this heading">#</a></h2>
 <section id="predetermined-uncertainty-set">
-<h3>Predetermined Uncertainty Set<a class="headerlink" href="#predetermined-uncertainty-set" title="Permalink to this heading">#</a></h3>
+<h3>Predetermined Uncertainty Set<a class="headerlink" href="#predetermined-uncertainty-set" title="Link to this heading">#</a></h3>
 <p>Lets see an example of the first case. Suppose we want to solve the following optimization problem, using an ellipsoidal uncertainty set:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -260,7 +260,7 @@ to use LROPT:</p>
 </div>
 </section>
 <section id="learned-uncertainty-set">
-<h3>Learned Uncertainty Set<a class="headerlink" href="#learned-uncertainty-set" title="Permalink to this heading">#</a></h3>
+<h3>Learned Uncertainty Set<a class="headerlink" href="#learned-uncertainty-set" title="Link to this heading">#</a></h3>
 <p>One of the most difficult modeling problems in RO is determining what <span class="math notranslate nohighlight">\(\mathcal{U}(\theta)\)</span> should be.
 Let’s now use LROPT to solve the same problem, but this time passing in a dataset <span class="math notranslate nohighlight">\(U^N\)</span> and letting LROPT learn <span class="math notranslate nohighlight">\(\theta\)</span>.
 Under the hood, training is done using pytorch, so users must additionally pass in representations of the objective and constraints with
@@ -302,7 +302,7 @@ uncertainty (we are working to remove the need for this feature). Because Ellips
 </section>
 </section>
 <section id="families-of-problems">
-<h2>Families of problems<a class="headerlink" href="#families-of-problems" title="Permalink to this heading">#</a></h2>
+<h2>Families of problems<a class="headerlink" href="#families-of-problems" title="Link to this heading">#</a></h2>
 <p>LROPT can also build uncertainty sets which generalize to a family of optimization problems, parameterized by some <span class="math notranslate nohighlight">\(y\)</span>, where optimal solutions
 are now functions both of <span class="math notranslate nohighlight">\(\theta\)</span> and <span class="math notranslate nohighlight">\(y\)</span></p>
 <div class="math-wrapper docutils container">
@@ -369,7 +369,7 @@ are now functions both of <span class="math notranslate nohighlight">\(\theta\)<
 </section>
 </section>
 <section id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading">#</a></h1>
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading">#</a></h1>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
 <li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
@@ -441,9 +441,9 @@ are now functions both of <span class="math notranslate nohighlight">\(\theta\)<
       
     </aside>
   </div>
-</div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
+</div><script src="_static/documentation_options.js?v=5929fcd5"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
-    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=32e29ea5"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
