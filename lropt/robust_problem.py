@@ -3,7 +3,7 @@ from enum import Enum
 from functools import partial
 from inspect import signature
 
-# from tqdm import tqdm
+from tqdm import tqdm
 from typing import Optional
 
 import numpy as np
@@ -19,6 +19,7 @@ from cvxpylayers.torch import CvxpyLayer
 
 # from joblib import Parallel, delayed
 from pathos.multiprocessing import ProcessingPool as Pool
+from multiprocessing import RLock
 from sklearn.model_selection import train_test_split
 
 import lropt.settings as settings
@@ -907,7 +908,7 @@ class RobustProblem(Problem):
         lam = kwargs['init_lam'] * torch.ones(self.num_g, dtype=settings.DTYPE)
         mu = kwargs['init_mu']
         # use multiple initial points and training. pick lowest eval loss
-        for step_num in range(kwargs['num_iter']):
+        for step_num in tqdm(range(kwargs['num_iter'])):
             train_stats = TrainLoopStats(
                 step_num=step_num, train_flag=self.train_flag)
 
@@ -1008,6 +1009,9 @@ class RobustProblem(Problem):
         b_val = b_tch.detach().numpy().copy() if not kwargs['mro_set'] else 0
         eps_val = eps_tch.detach().numpy().copy() if kwargs['eps'] else 1
         param_vals = (a_val, b_val, eps_val, obj_test[1].item())
+        # tqdm.write("Testing objective: {}".format(obj_test[1].item()))
+        # tqdm.write("Probability of constraint violation: {}".format(
+        #            prob_violation_test))
         return df, df_test, a_history, b_history, \
             param_vals, fin_val, var_values
 
@@ -1147,9 +1151,18 @@ class RobustProblem(Problem):
                   "lr_gamma": lr_gamma}
 
         n_jobs = utils.get_n_processes() if parallel else 1
-        pool_obj = Pool(processes=n_jobs)
+        # L = list(range(num_random_init))[::-1]
+        # tqdm.set_lock(RLock())
+        # p = Pool(initializer=tqdm.set_lock, initargs=(
+        #     tqdm.get_lock(),), processes=2)
+        # res = p.map(partial(loop_fn, progress=True), L)
         loop_fn = partial(self._train_loop, **kwargs)
-        res = pool_obj.map(loop_fn, range(num_random_init))
+        pool_obj = Pool(processes=n_jobs)
+        # res = pool_obj.map(loop_fn, range(num_random_init))
+        res = tqdm(pool_obj.imap(loop_fn, range(
+            num_random_init)), total=num_random_init)
+        # for i in range(num_random_init):
+        #     res.write("Reached init {}".format(i))
         # Joblib version
         # res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
         #     init_num,**kwargs) for init_num in tqdm(range(num_random_init)))
