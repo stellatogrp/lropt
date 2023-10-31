@@ -2,8 +2,6 @@ from abc import ABC
 from enum import Enum
 from functools import partial
 from inspect import signature
-
-from tqdm import tqdm
 from typing import Optional
 
 import numpy as np
@@ -19,8 +17,8 @@ from cvxpylayers.torch import CvxpyLayer
 
 # from joblib import Parallel, delayed
 from pathos.multiprocessing import ProcessingPool as Pool
-from multiprocessing import RLock
 from sklearn.model_selection import train_test_split
+from tqdm import tqdm
 
 import lropt.settings as settings
 import lropt.utils as utils
