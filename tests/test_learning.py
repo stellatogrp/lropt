@@ -33,6 +33,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         norms = npr.multivariate_normal(
             np.zeros(self.n), np.eye(self.n), self.N)
         self.data = np.exp(norms)
+        self.ATOL=ATOL
+        self.RTOL=RTOL
 
     # @unittest.skip('learning not ready')
     def test_simple_learn(self):
@@ -55,23 +57,10 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         objective = cp.Maximize(a @ x.T)
 
-        # y_tch = torch.tensor(y, dtype = float)
-        a_tch = torch.tensor(a, dtype=float)
-        c_tch = torch.tensor(c, dtype=float)
 
-        constraints = [x @ (u + y).T <= c, cp.norm(x) <= 2*c]
+        constraints = [x @ (u + y) <= c, cp.norm(x) <= 2*c]
 
-        def f_tch(x, y, u):
-            # x is a tensor that represents the cp.Variable x.
-            return a_tch @ x.T
-
-        def g_tch(x, y, u):
-            # x,y,u are tensors that represent the cp.Variable x and cp.Parameter y and u.
-            # The cp.Constant c is converted to a tensor
-            return x @ u.T + x @ y.T - c_tch
-
-        prob = RobustProblem(objective, constraints,
-                             objective_torch=f_tch, constraints_torch=[g_tch])
+        prob = RobustProblem(objective, constraints)
         prob.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD")
         # prob.solve()
 
@@ -94,34 +83,16 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
             # d_train = np.exp(d_train)
             return d_train
 
-        def f_tch(t, x, y, u):
-            # x is a tensor that represents the cp.Variable x.
-            return t + 0.2*torch.linalg.vector_norm(x-y, 1)
-
-        def g_tch(t, x, y, u):
-            # x,y,u are tensors that represent the cp.Variable x and
-            # cp.Parameter y and u.
-            # The cp.Constant c is converted to a tensor
-            return -x @ u.T - t
-
-        def eval_tch(t, x, y, u):
-            return -x @ u.T + 0.2*torch.linalg.vector_norm(x-y, 1)
-
         data = gen_demand_intro(600, seed=15)
-        u = UncertainParameter(n,
-                               uncertainty_set=Ellipsoidal(p=2,
-                                                           data=data))
+        u = UncertainParameter(n,uncertainty_set=Ellipsoidal(p=2,data=data))
         # Formulate the Robust Problem
         x = cp.Variable(n)
         t = cp.Variable()
-
+        
         objective = cp.Minimize(t + 0.2*cp.norm(x - y, 1))
-        constraints = [-x@u.T <= t, cp.sum(x) == 1, x >= 0]
-
-        prob = RobustProblem(objective, constraints,
-                             objective_torch=f_tch,
-                             constraints_torch=[
-                                 g_tch], eval_torch=eval_tch)
+        constraints = [-x@u <= t, cp.sum(x) == 1, x >= 0]
+        eval_exp = -x @ u.T + 0.2*cp.norm(x-y, 1)
+        prob = RobustProblem(objective, constraints, eval_exp=eval_exp) 
         test_p = 0.1
         s = 5
         train, _ = train_test_split(data, test_size=int(
@@ -143,8 +114,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         timefin - timestart
         df = result.df
         npt.assert_allclose(np.array(
-            result.df["Violations_train"])[-1], 0.18101063,
-            rtol=RTOL, atol=ATOL)
+            result.df["Violations_train"])[-1], 0.1438501,
+            rtol=self.RTOL, atol=self.ATOL)
 
         print(df)
         # # Grid search epsilon
@@ -159,4 +130,47 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         #                     init_alpha=0., test_percentage=test_p)
         # dfgrid2 = result5.df
         # print(dfgrid, dfgrid2)
-        pass
+
+    def test_torch_exp(self):
+        # Setup
+        n = 3
+        num_instances = 5
+        y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), num_instances)
+
+        # Problem
+        y = Parameter(n, data=y_data)
+        u = UncertainParameter(n, uncertainty_set=Ellipsoidal(data=self.data))
+
+        a = np.ones(n)
+        c = 5
+
+        x = cp.Variable(n)
+        a_tch = torch.tensor(a, dtype=float)
+        c_tch = torch.tensor(c, dtype=float)
+
+        objective = cp.Maximize(a @ x)
+        constraints = [(u + y) @ x <= c, cp.norm(x) <= 2*c]
+
+        #Variabls and parameters are discovered, from left to right, first at the objective
+        #and then at each of the variables.
+        #Therefore, in this example, the order of the variables/parameters is:
+        #x, u, y
+        x_test = torch.arange(n, dtype=float)
+        u_test = torch.ones(n, dtype=float)
+        y_test = torch.ones(n, dtype=float)
+        vars_test = [x_test, u_test, y_test]
+
+        def f_tch(x):
+            return a_tch@x
+        
+        def g1_tch(x, u, y):
+            return (u+y)@x-c_tch
+        
+        def g2_tch(x):
+            return torch.norm(x)-2*c_tch
+        
+        prob = RobustProblem(objective, constraints)
+
+        assert f_tch(x_test) == prob.f(*vars_test)
+        assert g1_tch(x_test, u_test, y_test) == prob.g[0](*vars_test)
+        assert len(prob.g)==1 #The second constraint is not saved to g since it has no uncertainty
