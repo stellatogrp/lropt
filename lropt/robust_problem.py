@@ -1,9 +1,6 @@
 from abc import ABC
 from enum import Enum
-from functools import partial
 from inspect import signature
-
-from tqdm import tqdm
 from typing import Optional
 
 import numpy as np
@@ -16,10 +13,11 @@ from cvxpy.reductions import Dcp2Cone, Qp2SymbolicQp
 from cvxpy.reductions.flip_objective import FlipObjective
 from cvxpy.reductions.solvers.solving_chain import SolvingChain, construct_solving_chain
 from cvxpylayers.torch import CvxpyLayer
-
 from joblib import Parallel, delayed
+
 # from pathos.multiprocessing import ProcessingPool as Pool
 from sklearn.model_selection import train_test_split
+from tqdm import tqdm
 
 import lropt.settings as settings
 import lropt.utils as utils
@@ -913,10 +911,13 @@ class RobustProblem(Problem):
         # use multiple initial points and training. pick lowest eval loss
         if kwargs["position"]:
             p_bar = tqdm(
-                range(kwargs['num_iter']), desc=f"run {init_num}: test value N/A, violations N/A", position=init_num)
+                range(kwargs['num_iter']),
+                desc=f"run {init_num}: test value N/A, violations N/A",
+                position=init_num)
         else:
             p_bar = tqdm(
-                range(kwargs['num_iter']), desc=f"run {init_num}: test value N/A, violations N/A")
+                range(kwargs['num_iter']),
+                desc=f"run {init_num}: test value N/A, violations N/A")
         for step_num in p_bar:
             train_stats = TrainLoopStats(
                 step_num=step_num, train_flag=self.train_flag)
@@ -929,12 +930,13 @@ class RobustProblem(Problem):
                                          kwargs['u_batch_percentage'])
 
             if kwargs['mro_set']:
-                a_tch, _, _, _, _ = self._init_torches(kwargs['init_eps'], kwargs["init_A"], kwargs["init_b"],
-                                                       kwargs['init_alpha'],
-                                                       kwargs['train_set'],
-                                                       eps_tch,
-                                                       kwargs['mro_set'],
-                                                       kwargs['unc_set'])
+                a_tch, _, _, _, _ = self._init_torches(
+                    kwargs['init_eps'], kwargs["init_A"], kwargs["init_b"],
+                    kwargs['init_alpha'],
+                    kwargs['train_set'],
+                    eps_tch,
+                    kwargs['mro_set'],
+                    kwargs['unc_set'])
                 var_values = kwargs['cvxpylayer'](*y_batch, a_tch,
                                                   solver_args=kwargs['solver_args'])
             else:
@@ -995,7 +997,9 @@ class RobustProblem(Problem):
                         slack, lam, mu, kappa=kwargs['kappa'])
 
                 p_bar.set_description(
-                    f"run {init_num}: test value {round(obj_test[1].item(),3)}, violations {round(prob_violation_test.item(),3)}")
+                    f"run {init_num}:"
+                    f"test value {round(obj_test[1].item(),3)}"
+                    f", violations {round(prob_violation_test.item(),3)}")
                 train_stats.update_test_stats(
                     obj_test, prob_violation_test, var_vio)
                 new_row = train_stats.generate_test_row(
@@ -1020,9 +1024,6 @@ class RobustProblem(Problem):
         b_val = b_tch.detach().numpy().copy() if not kwargs['mro_set'] else 0
         eps_val = eps_tch.detach().numpy().copy() if kwargs['eps'] else 1
         param_vals = (a_val, b_val, eps_val, obj_test[1].item())
-        # tqdm.write(
-        #     f"Test value {obj_test[1].item()} and violation {prob_violation_test} for run {init_num}")
-        # print(f"Test value {obj_test[1].item()} and violation {prob_violation_test} for run {init_num}")
         return df, df_test, a_history, b_history, \
             param_vals, fin_val, var_values
 
