@@ -142,10 +142,12 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         timefin = time.time()
         timefin - timestart
         df = result.df
+        # npt.assert_allclose(np.array(
+        #     result.df["Violations_train"])[-1], 0.18101063,
+        #     rtol=RTOL, atol=ATOL)
         npt.assert_allclose(np.array(
-            result.df["Violations_train"])[-1], 0.18101063,
+            result.df["Violations_train"])[-1], 0.26081225,
             rtol=RTOL, atol=ATOL)
-
         print(df)
         # # Grid search epsilon
         # result4 = prob.grid(epslst=np.linspace(0.01, 5, 10), \

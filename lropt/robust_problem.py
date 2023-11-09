@@ -998,7 +998,7 @@ class RobustProblem(Problem):
 
                 p_bar.set_description(
                     f"run {init_num}:"
-                    f"test value {round(obj_test[1].item(),3)}"
+                    f" test value {round(obj_test[1].item(),3)}"
                     f", violations {round(prob_violation_test.item(),3)}")
                 train_stats.update_test_stats(
                     obj_test, prob_violation_test, var_vio)
