@@ -9,16 +9,16 @@ import numpy.random as npr
 import numpy.testing as npt
 import scipy as sc
 import torch
+
+# from tests.settings import SOLVER
+from settings import TESTS_ATOL as ATOL
+from settings import TESTS_RTOL as RTOL
 from sklearn.model_selection import train_test_split
 
 from lropt.parameter import Parameter
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
-
-# from tests.settings import SOLVER
-from tests.settings import TESTS_ATOL as ATOL
-from tests.settings import TESTS_RTOL as RTOL
 
 # import pandas as pd
 # import torch
@@ -55,7 +55,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         x = cp.Variable(n)
         # z = cp.Variable(n)
 
-        objective = cp.Maximize(a @ x.T)
+        objective = cp.Maximize(a @ x)
 
 
         constraints = [x @ (u + y) <= c, cp.norm(x) <= 2*c]

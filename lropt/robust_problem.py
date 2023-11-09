@@ -852,7 +852,7 @@ class RobustProblem(Problem):
         """
         def update_vars_params(expr: cp.expressions.expression.Expression | \
                                 cp.constraints.constraint.Constraint,
-                                vars_params: cp.atoms.atom.VariablesDict):
+                                vars_params: dict):
             """
             This function updates vars_params with all the varaibles and params found in expr.
             """
