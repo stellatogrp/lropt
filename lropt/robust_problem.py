@@ -3,7 +3,7 @@ from enum import Enum
 from functools import partial
 from inspect import signature
 
-# from tqdm import tqdm
+from tqdm import tqdm
 from typing import Optional
 
 import numpy as np
@@ -17,8 +17,8 @@ from cvxpy.reductions.flip_objective import FlipObjective
 from cvxpy.reductions.solvers.solving_chain import SolvingChain, construct_solving_chain
 from cvxpylayers.torch import CvxpyLayer
 
-# from joblib import Parallel, delayed
-from pathos.multiprocessing import ProcessingPool as Pool
+from joblib import Parallel, delayed
+# from pathos.multiprocessing import ProcessingPool as Pool
 from sklearn.model_selection import train_test_split
 
 import lropt.settings as settings
@@ -61,7 +61,8 @@ class TrainLoopStats():
             """
             This is an internal function that either initiates a tensor or a list
             """
-            return [] if not self.train_flag else torch.tensor(0., dtype=settings.DTYPE)
+            return torch.tensor(0., dtype=settings.DTYPE)
+            # return [] if not self.train_flag else torch.tensor(0., dtype=settings.DTYPE)
         self.step_num = step_num
         self.train_flag = train_flag
         self.tot_lagrangian = __value_init__(self)
@@ -375,8 +376,8 @@ class RobustProblem(Problem):
     # helper function for intermediate version
     def _udata_to_lst(self, data, batch_size):
         num_instances = data.shape[0]
-        random_int = np.random.randint(0, num_instances,
-                                       int(num_instances*batch_size))
+        random_int = np.random.choice(num_instances, int(
+            num_instances*batch_size), replace=False)
         # u_params_mat = []
         # for i in range(num_instances):
         #     u_params_mat.append([data[i, :]])
@@ -742,8 +743,9 @@ class RobustProblem(Problem):
         #     y_batch[sample].append(a_tch)
         # if not mro_set:
         #     y_batch[sample].append(b_tch)
-        random_int = np.random.randint(0, num_ys,
-                                       int(num_ys*batch_size))
+
+        random_int = np.random.choice(
+            num_ys, int(num_ys*batch_size), replace=False)
         y_tchs = []
         for i in range(len(y_parameters)):
             y_tchs.append(torch.tensor(
@@ -867,8 +869,10 @@ class RobustProblem(Problem):
     def _train_loop(self, init_num, **kwargs):
         if kwargs['random_init']:
             np.random.seed(kwargs['seed']+init_num)
-            init_A = np.random.rand(kwargs['u_size'], kwargs['u_size'])
-            init_b = -init_A@np.mean(kwargs['train_set'], axis=0)
+            kwargs["init_A"] = np.random.rand(
+                kwargs['u_size'], kwargs['u_size'])
+            kwargs["init_b"] = - \
+                kwargs["init_A"]@np.mean(kwargs['train_set'], axis=0)
         a_history = []
         b_history = []
         df = pd.DataFrame(columns=["step"])
@@ -907,7 +911,13 @@ class RobustProblem(Problem):
         lam = kwargs['init_lam'] * torch.ones(self.num_g, dtype=settings.DTYPE)
         mu = kwargs['init_mu']
         # use multiple initial points and training. pick lowest eval loss
-        for step_num in range(kwargs['num_iter']):
+        if kwargs["position"]:
+            p_bar = tqdm(
+                range(kwargs['num_iter']), desc=f"run {init_num}: test value N/A, violations N/A", position=init_num)
+        else:
+            p_bar = tqdm(
+                range(kwargs['num_iter']), desc=f"run {init_num}: test value N/A, violations N/A")
+        for step_num in p_bar:
             train_stats = TrainLoopStats(
                 step_num=step_num, train_flag=self.train_flag)
 
@@ -919,7 +929,7 @@ class RobustProblem(Problem):
                                          kwargs['u_batch_percentage'])
 
             if kwargs['mro_set']:
-                a_tch, _, _, _, _ = self._init_torches(kwargs['init_eps'], init_A, init_b,
+                a_tch, _, _, _, _ = self._init_torches(kwargs['init_eps'], kwargs["init_A"], kwargs["init_b"],
                                                        kwargs['init_alpha'],
                                                        kwargs['train_set'],
                                                        eps_tch,
@@ -984,6 +994,8 @@ class RobustProblem(Problem):
                         var_values, y_batch, kwargs['test_tch'], alpha,
                         slack, lam, mu, kappa=kwargs['kappa'])
 
+                p_bar.set_description(
+                    f"run {init_num}: test value {round(obj_test[1].item(),3)}, violations {round(prob_violation_test.item(),3)}")
                 train_stats.update_test_stats(
                     obj_test, prob_violation_test, var_vio)
                 new_row = train_stats.generate_test_row(
@@ -1008,6 +1020,9 @@ class RobustProblem(Problem):
         b_val = b_tch.detach().numpy().copy() if not kwargs['mro_set'] else 0
         eps_val = eps_tch.detach().numpy().copy() if kwargs['eps'] else 1
         param_vals = (a_val, b_val, eps_val, obj_test[1].item())
+        # tqdm.write(
+        #     f"Test value {obj_test[1].item()} and violation {prob_violation_test} for run {init_num}")
+        # print(f"Test value {obj_test[1].item()} and violation {prob_violation_test} for run {init_num}")
         return df, df_test, a_history, b_history, \
             param_vals, fin_val, var_values
 
@@ -1042,7 +1057,8 @@ class RobustProblem(Problem):
         quantiles=settings.QUANTILES,
         lr_step_size=settings.LR_STEP_SIZE,
         lr_gamma=settings.LR_GAMMA,
-        parallel=True
+        parallel=True,
+        position=True
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. lagrangian metric
@@ -1144,15 +1160,19 @@ class RobustProblem(Problem):
                   "kappa": kappa, "test_frequency": test_frequency,
                   "test_tch": test_tch, "mu_multiplier": mu_multiplier,
                   "quantiles": quantiles, "lr_step_size": lr_step_size,
-                  "lr_gamma": lr_gamma}
+                  "lr_gamma": lr_gamma, "position": position}
 
         n_jobs = utils.get_n_processes() if parallel else 1
-        pool_obj = Pool(processes=n_jobs)
-        loop_fn = partial(self._train_loop, **kwargs)
-        res = pool_obj.map(loop_fn, range(num_random_init))
+        # pool_obj = Pool(processes=n_jobs)
+        # loop_fn = partial(self._train_loop, **kwargs)
+        # res = pool_obj.map(loop_fn, range(num_random_init))
         # Joblib version
         # res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
-        #     init_num,**kwargs) for init_num in tqdm(range(num_random_init)))
+        #     init_num, **kwargs) for init_num in tqdm(range(num_random_init), desc="Random inits"))
+
+        res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
+            init_num, **kwargs) for init_num in range(num_random_init))
+
         df, df_test, a_history, b_history, param_vals, \
             fin_val, var_values = zip(*res)
         index_chosen = np.argmin(np.array(fin_val))
