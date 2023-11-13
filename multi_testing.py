@@ -1,14 +1,18 @@
-import lropt
 import time
+
 # import unittest
 import cvxpy as cp
+
 # import matplotlib.pyplot as plt
 import numpy as np
+
 # import numpy.random as npr
 # import numpy.testing as npt
 import scipy as sc
 import torch
 from sklearn.model_selection import train_test_split
+
+import lropt
 
 ATOL = 1e-04
 RTOL = 1e-04
@@ -35,7 +39,6 @@ def gen_demand_intro(N, seed):
     d_hat = [1000*(1+0.5*np.sin(np.pi*(t-1)/12)) for t in range(1, n+1)]
     d_train = d_hat * np.random.uniform(1-theta, 1+theta, (N, n))
     # sig = np.array([[1, -0.01], [-0.02, 1.1]]) # np.array([[0.3, -0.4], [-0.5, 0.1]])
-    # sig = np.dot(sig, sig.T)
     # mu = np.array((1000, 1000)) # np.array((0.3, 0.3))
     # d_train = np.random.multivariate_normal(mu, sig, N)
     # d_train = np.exp(d_train)
@@ -85,7 +88,7 @@ V_max = 2000
 v_1 = 0
 data = gen_demand_intro(600, seed=15)
 u = lropt.UncertainParameter(n,
-                             uncertainty_set=lropt.Box(data=data)) 
+                             uncertainty_set=lropt.Box(data=data))
 ######## is this variable name important? does it have to be called u?
 # u = lropt.UncertainParameter(n,
 #                        uncertainty_set=lropt.Ellipsoidal(p=2,
@@ -116,9 +119,9 @@ train, _ = train_test_split(data, test_size=int(
 init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
 init_bval= -init@np.mean(train, axis=0)
 np.random.seed(15)
-initn = np.random.rand(n, n) + 0.1*init + 0.5*np.eye(n) 
+initn = np.random.rand(n, n) + 0.1*init + 0.5*np.eye(n)
 ###### how did we get this initialization?
-init_bvaln = -initn@(np.mean(train, axis=0) - 0.3*np.ones(n)) 
+init_bvaln = -initn@(np.mean(train, axis=0) - 0.3*np.ones(n))
 ###### how did we get this initialization?
 
 # Train A and b
@@ -132,7 +135,7 @@ timefin = time.time()
 timefin - timestart
 df = result.df
 df_test = result.df_test
-A_fin = result.A 
+A_fin = result.A
 # what exactly is A & B (does this only work for log-normal dist. for the uncertainty param?)
 b_fin = result.b
 # npt.assert_allclose(np.array(
