@@ -88,7 +88,8 @@ V_max = 2000
 v_1 = 0
 data = gen_demand_intro(600, seed=15)
 u = lropt.UncertainParameter(n,
-                             uncertainty_set=lropt.Box(data=data)) ######## is this variable name important? does it have to be called u?
+                             uncertainty_set=lropt.Box(data=data)) 
+######## is this variable name important? does it have to be called u?
 # u = lropt.UncertainParameter(n,
 #                        uncertainty_set=lropt.Ellipsoidal(p=2,
 #                                                    data=data))
@@ -118,8 +119,10 @@ train, _ = train_test_split(data, test_size=int(
 init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
 init_bval= -init@np.mean(train, axis=0)
 np.random.seed(15)
-initn = np.random.rand(n, n) + 0.1*init + 0.5*np.eye(n) ###### how did we get this initialization?
-init_bvaln = -initn@(np.mean(train, axis=0) - 0.3*np.ones(n)) ###### how did we get this initialization?
+initn = np.random.rand(n, n) + 0.1*init + 0.5*np.eye(n) 
+###### how did we get this initialization?
+init_bvaln = -initn@(np.mean(train, axis=0) - 0.3*np.ones(n)) 
+###### how did we get this initialization?
 
 # Train A and b
 result = prob.train(lr=0.01, num_iter=5, momentum=0.8,
@@ -132,7 +135,8 @@ timefin = time.time()
 timefin - timestart
 df = result.df
 df_test = result.df_test
-A_fin = result.A # what exactly is A & B (does this only work for log-normal dist. for the uncertainty parameter?)
+A_fin = result.A 
+# what exactly is A & B (does this only work for log-normal dist. for the uncertainty param?)
 b_fin = result.b
 # npt.assert_allclose(np.array(
 #     result.df["Violations_train"])[-1], 0.260812,
