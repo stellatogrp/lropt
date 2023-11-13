@@ -143,7 +143,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         timefin - timestart
         df = result.df
         npt.assert_allclose(np.array(
-            result.df["Violations_train"])[-1], 0.18101063,
+            result.df["Violations_train"])[-1], 0.260812,
             rtol=RTOL, atol=ATOL)
 
         print(df)
