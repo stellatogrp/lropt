@@ -88,11 +88,11 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # Formulate the Robust Problem
         x = cp.Variable(n)
         t = cp.Variable()
-        
+
         objective = cp.Minimize(t + 0.2*cp.norm(x - y, 1))
         constraints = [-x@u <= t, cp.sum(x) == 1, x >= 0]
         eval_exp = -x @ u.T + 0.2*cp.norm(x-y, 1)
-        prob = RobustProblem(objective, constraints, eval_exp=eval_exp) 
+        prob = RobustProblem(objective, constraints, eval_exp=eval_exp)
         test_p = 0.1
         s = 5
         train, _ = train_test_split(data, test_size=int(
@@ -162,13 +162,13 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         def f_tch(x):
             return a_tch@x
-        
+
         def g1_tch(x, u, y):
             return (u+y)@x-c_tch
-        
+
         def g2_tch(x):
             return torch.norm(x)-2*c_tch
-        
+
         prob = RobustProblem(objective, constraints)
 
         assert f_tch(x_test) == prob.f(*vars_test)
