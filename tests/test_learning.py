@@ -67,6 +67,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
     def test_portfolio_intro(self):
         timestart = time.time()
         n = 2
+        kappa = -0.01
         seed = 15
         np.random.seed(seed)
         dist = (np.array([25, 10, 60, 50, 40, 30, 30, 20,
@@ -104,20 +105,20 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         init_bvaln = -initn@(np.mean(train, axis=0) - 0.3*np.ones(n))
 
         # Train A and b
-        result = prob.train(lr=0.01, num_iter=5, momentum=0.8,
+        result = prob.train(lr=0.01, num_iter=100, momentum=0.8,
                             optimizer="SGD",
                             seed=s, init_A=initn, init_b=init_bvaln,
                             init_lam=0.5, init_mu=0.01,
-                            mu_multiplier=1.001, init_alpha=0., test_percentage=test_p, kappa=-0.01,
-                            n_jobs=8, random_init=True, num_random_init=2)
+                            mu_multiplier=1.001, init_alpha=0., test_percentage=test_p, kappa=kappa,
+                            n_jobs=8, random_init=True, num_random_init=2, position=True)
+        
         timefin = time.time()
         timefin - timestart
         df = result.df
-        npt.assert_allclose(np.array(
-            result.df["Violations_train"])[-1], 0.1438501,
-            rtol=self.RTOL, atol=self.ATOL)
+        npt.assert_array_less(np.array(
+            result.df["Violations_train"])[-1], kappa)
 
-        print(df)
+        # print(df)
         # # Grid search epsilon
         # result4 = prob.grid(epslst=np.linspace(0.01, 5, 10), \
         # init_A=init,
