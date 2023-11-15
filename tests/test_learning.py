@@ -92,7 +92,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         objective = cp.Minimize(t + 0.2*cp.norm(x - y, 1))
         constraints = [-x@u <= t, cp.sum(x) == 1, x >= 0]
-        eval_exp = -x @ u.T + 0.2*cp.norm(x-y, 1)
+        eval_exp = -x @ u + 0.2*cp.norm(x-y, 1)
         prob = RobustProblem(objective, constraints, eval_exp=eval_exp)
         test_p = 0.1
         s = 5
@@ -111,10 +111,9 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
                             init_lam=0.5, init_mu=0.01,
                             mu_multiplier=1.001, init_alpha=0., test_percentage=test_p, kappa=kappa,
                             n_jobs=8, random_init=True, num_random_init=2, position=True)
-        
+
         timefin = time.time()
         timefin - timestart
-        df = result.df
         npt.assert_array_less(np.array(
             result.df["Violations_train"])[-1], kappa)
 

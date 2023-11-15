@@ -1119,7 +1119,11 @@ class RobustProblem(Problem):
                         eps_tch = torch.clamp(eps_tch, min=0.001)
                 if kwargs['scheduler']:
                     scheduler_.step()
-        fin_val = obj_test[1].item() + 10*sum(var_vio.detach().numpy())
+
+        if prob_violation_test.item() <= 0.001:
+            fin_val = obj_test[1].item()
+        else:
+            fin_val = obj_test[1].item() + 10*abs(sum(var_vio.detach().numpy()))
         a_val = a_tch.detach().numpy().copy()
         b_val = b_tch.detach().numpy().copy() if not kwargs['mro_set'] else 0
         eps_val = eps_tch.detach().numpy().copy() if kwargs['eps'] else 1
@@ -1306,7 +1310,8 @@ class RobustProblem(Problem):
         test_percentage=settings.TEST_PERCENTAGE_DEFAULT,
         num_ys=settings.NUM_YS_DEFAULT,
         solver_args=settings.LAYER_SOLVER,
-        quantiles=settings.QUANTILES
+        quantiles=settings.QUANTILES,
+        newdata = None
     ):
         r"""
         Perform gridsearch to find optimal :math:`\epsilon`-ball around data.
@@ -1344,9 +1349,15 @@ class RobustProblem(Problem):
             columns=["Eps"])
         mro_set = self._is_mro_set(unc_set)
 
+
+        if newdata:
+            train_set = newdata
+            test_tch = torch.tensor(newdata, requires_grad=self.train_flag, dtype=settings.DTYPE)
+
+        else:
         # setup train and test data
-        train_set, _, train_tch, test_tch = self._split_dataset(
-            unc_set, test_percentage, seed)
+            train_set, _, train_tch, test_tch = self._split_dataset(
+                unc_set, test_percentage, seed)
 
         # create cvxpylayer
         cvxpylayer = CvxpyLayer(
