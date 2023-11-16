@@ -1350,7 +1350,7 @@ class RobustProblem(Problem):
         mro_set = self._is_mro_set(unc_set)
 
 
-        if newdata:
+        if newdata is not None:
             train_set = newdata
             test_tch = torch.tensor(newdata, requires_grad=self.train_flag, dtype=settings.DTYPE)
 
@@ -1389,14 +1389,15 @@ class RobustProblem(Problem):
             train_stats = TrainLoopStats(
                 step_num=np.NAN, train_flag=self.train_flag)
             with torch.no_grad():
+                test_args, test_to_sample = self._order_args(
+                    var_values=var_values,
+                y_batch=y_batch, u_batch=test_tch)
                 obj_test = self.evaluation_metric(
-                    var_values, y_batch, test_tch, quantiles)
+                    test_args, test_to_sample, quantiles)
                 prob_violation_test = self.prob_constr_violation(
-                    var_values, y_batch, test_tch)
+                    test_args, test_to_sample,num_us=len(test_tch))
                 _, var_vio = self.lagrangian(
-                    var_values,
-                    y_batch,
-                    test_tch,
+                    test_args, test_to_sample,
                     alpha,
                     slack,
                     lam,
