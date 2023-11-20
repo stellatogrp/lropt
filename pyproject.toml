@@ -15,13 +15,12 @@ authors = [
 {name = "Bartolomeo Stellato", email="bstellato@princeton.edu"}
 ]
 dependencies = [
-    "cvxpy>=1.3.0",
+    "cvxpy @ git+https://github.com/AmitSolomonPrinceton/cvxpy@4b3d295f0eabd6548690c307cd32b157ea6dc959",
     "torch",
     "diffcp @ git+https://github.com/cvxgrp/diffcp@eaac7bc4d637e8854801929ebf01d7db45554f5d",
     "scikit-learn",
     "cvxpylayers @ git+https://github.com/cvxgrp/cvxpylayers@755d93fef4319bd1bdb8390f9c98ff0ebcf8bdea",
     "pandas",
-    "pathos",
     "tqdm",
     "diffcp @ git+https://github.com/cvxgrp/diffcp@eaac7bc4d637e8854801929ebf01d7db45554f5d"
 ]

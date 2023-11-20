@@ -148,6 +148,7 @@ class TrainLoopStats():
         new_row = pd.Series(row_dict)
         return new_row
 
+
 class GridStats():
     """
     This class contains useful information for grid search
@@ -179,12 +180,13 @@ class GridStats():
             self.minT = a_tch.clone()
             self.var_vals = var_values
 
+
 class RobustProblem(Problem):
     """Create a Robust Optimization Problem with uncertain variables"""
 
     _EVAL_INPUT_CASE = Enum("_EVAL_INPUT_CASE", "MEAN EVALMEAN MAX")
 
-    #TODO (Amit): After testing, remove objective_torch and constraints_torch
+    # TODO (Amit): After testing, remove objective_torch and constraints_torch
     def __init__(
         self, objective, constraints,
         eval_exp=None, train_flag=True
@@ -207,13 +209,12 @@ class RobustProblem(Problem):
         for constraint in constraints:
             g, has_uncertain_parameters = self._gen_torch_exp(constraint)
             if has_uncertain_parameters:
-                self.g.append(g)        
+                self.g.append(g)
         if eval_exp is None:
             self.eval = self.f
         else:
             self.eval, _ = self._gen_torch_exp(eval_exp)
         self.fg_to_lh()
-        
 
     @property
     def trained(self):
@@ -249,17 +250,17 @@ class RobustProblem(Problem):
         Returns l and h function pointers.
         Each of them takes a single x,y,u triplet (i.e. one instance of each)
         """
-        #TODO (Amit): Change this function name to a better name
+        # TODO (Amit): Change this function name to a better name
         h_funcs = []
         for g in self.g:
             def hg(*args, **kwargs):
                 return (torch.maximum(g(*args) - kwargs["alpha"],
-                        torch.tensor(0.0,dtype=settings.DTYPE,
-                            requires_grad=self.train_flag))/kwargs["eta"])
+                        torch.tensor(0.0, dtype=settings.DTYPE,
+                                     requires_grad=self.train_flag))/kwargs["eta"])
 
             h_funcs.append(hg)
-        
-        self.h=h_funcs
+
+        self.h = h_funcs
         self.num_g = len(h_funcs)
 
     def _eval_input(self, eval_func, eval_args, items_to_sample, init_val,
@@ -280,16 +281,17 @@ class RobustProblem(Problem):
             for ind, eval_arg in enumerate(eval_args):
                 if ind in items_to_sample:
                     curr_arg = eval_arg[sample_ind]
-                    res.append(curr_arg) #I removed the star_flag, see if makes problems
+                    # I removed the star_flag, see if makes problems
+                    res.append(curr_arg)
                 else:
                     res.append(eval_arg)
             return res
 
         curr_result = 0
         for j in range(self.num_ys):
-                curr_eval_args = _sample_args(eval_args, j, items_to_sample)
-                curr_result += eval_func(*curr_eval_args, **kwargs)
-        if eval_input_case==RobustProblem._EVAL_INPUT_CASE.MEAN:
+            curr_eval_args = _sample_args(eval_args, j, items_to_sample)
+            curr_result += eval_func(*curr_eval_args, **kwargs)
+        if eval_input_case == RobustProblem._EVAL_INPUT_CASE.MEAN:
             init_val += curr_result
             init_val /= self.num_ys
             init_val = init_val.mean()
@@ -308,7 +310,6 @@ class RobustProblem(Problem):
             init_val += curr_result
             init_val = (init_val > 0).float()
         return init_val
-
 
     def train_objective(self, eval_args, items_to_sample):
         return self._eval_input(eval_func=self.f, eval_args=eval_args,
@@ -342,7 +343,8 @@ class RobustProblem(Problem):
         """
         TODO (Amit): Irina, please complete the docstring
         """
-        G = torch.zeros((len(self.g), self.num_ys, num_us), dtype=settings.DTYPE)
+        G = torch.zeros((len(self.g), self.num_ys, num_us),
+                        dtype=settings.DTYPE)
 
         for g_k in self.g:
             G = self._eval_input(eval_func=g_k, eval_args=eval_args,
@@ -350,12 +352,12 @@ class RobustProblem(Problem):
                                  eval_input_case=RobustProblem._EVAL_INPUT_CASE.MAX, quantiles=None)
 
         return torch.mean(G)
-    
+
     # helper function for intermediate version
     def _udata_to_lst(self, data, batch_size):
         num_instances = data.shape[0]
-        random_int = np.random.randint(0, num_instances,
-                                       int(num_instances*batch_size))
+        random_int = np.random.choice(num_instances, int(
+            num_instances*batch_size), replace=False)
         # u_params_mat = []
         # for i in range(num_instances):
         #     u_params_mat.append([data[i, :]])
@@ -364,7 +366,8 @@ class RobustProblem(Problem):
 
     def lagrangian(self, eval_args, items_to_sample, alpha, slack, lam, mu,
                    eta=settings.ETA_LAGRANGIAN_DEFAULT, kappa=settings.KAPPA_LAGRANGIAN_DEFAULT):
-        F = self.train_objective(eval_args=eval_args, items_to_sample=items_to_sample)
+        F = self.train_objective(
+            eval_args=eval_args, items_to_sample=items_to_sample)
         H = self.train_constraint(eval_args=eval_args, items_to_sample=items_to_sample,
                                   alpha=alpha, slack=slack, eta=eta, kappa=kappa)
         return F + lam @ H + (mu/2)*(torch.linalg.norm(H)**2), H.detach()
@@ -721,8 +724,8 @@ class RobustProblem(Problem):
         #     y_batch[sample].append(a_tch)
         # if not mro_set:
         #     y_batch[sample].append(b_tch)
-        random_int = np.random.randint(0, num_ys,
-                                       int(num_ys*batch_size))
+        random_int = np.random.choice(
+            num_ys, int(num_ys*batch_size), replace=False)
         y_tchs = []
         for i in range(len(y_parameters)):
             y_tchs.append(torch.tensor(
@@ -850,9 +853,9 @@ class RobustProblem(Problem):
         The dictionary's keys are the indeces (in order which they are discovered), and the values
         are the variables or the parameters
         """
-        def update_vars_params(expr: cp.expressions.expression.Expression | \
-                                cp.constraints.constraint.Constraint,
-                                vars_params: dict):
+        def update_vars_params(expr: cp.expressions.expression.Expression |
+                               cp.constraints.constraint.Constraint,
+                               vars_params: dict):
             """
             This function updates vars_params with all the varaibles and params found in expr.
             """
@@ -866,7 +869,6 @@ class RobustProblem(Problem):
                         return True
                 return False
 
-
             _, vars_dict = expr.gen_torch_exp()
             for var_param in vars_dict.vars_dict:
                 if safe_check_in_dict(var_param, vars_params):
@@ -879,7 +881,7 @@ class RobustProblem(Problem):
             update_vars_params(expr=constraint, vars_params=vars_params)
         self.vars_params = vars_params
 
-    def _gen_torch_exp(self, expr:cp.expressions.expression.Expression):
+    def _gen_torch_exp(self, expr: cp.expressions.expression.Expression):
         """
         This function generates a torch expression to be used by RobustProblem from an expression
         and a vars_dict generated by any cvxpy expression. Also returns a variable indicating
@@ -916,14 +918,15 @@ class RobustProblem(Problem):
             args_to_pass = [None]*len(args_inds_to_pass)
             for key, value in args_inds_to_pass.items():
                 args_to_pass[value] = args[key]
-            #TODO (Amit): Go recursively over torch_exp.args, look for @. For each found, try to see
-            #if we need to transpose one of the arguments.
+            # TODO (Amit): Go recursively over torch_exp.args, look for @.
+            # For # each found, try to see
+            # if we need to transpose one of the arguments.
             return torch_exp(*args_to_pass)
-        
-        #vars_dict contains a dictionary from variable/param -> index in *args (for the expression)
+
+        # vars_dict contains a dictionary from variable/param -> index in *args (for the expression)
         torch_exp, vars_dict = expr.gen_torch_exp()
 
-        #Create a dictionary from index -> variable/param (for the problem)
+        # Create a dictionary from index -> variable/param (for the problem)
         args_inds_to_pass = gen_args_inds_to_pass(self.vars_params, vars_dict)
 
         return partial(wrapped_function, torch_exp, args_inds_to_pass), \
@@ -934,28 +937,28 @@ class RobustProblem(Problem):
         This function orders var_values, y_batch, and u_batch according to the order in vars_params.
         """
         args = []
-        #self.vars_params is a dictionary, hence unsorted. Need to iterate over it in order
+        # self.vars_params is a dictionary, hence unsorted. Need to iterate over it in order
         ind_dict = {
-                    Variable: 0,
-                    Parameter: 0,
-                    UncertainParameter: 0,
-                    }
+            Variable: 0,
+            Parameter: 0,
+            UncertainParameter: 0,
+        }
         args_dict = {
-                    Variable: var_values,
-                    Parameter: y_batch,
-                    UncertainParameter: u_batch,
-                    }
+            Variable: var_values,
+            Parameter: y_batch,
+            UncertainParameter: u_batch,
+        }
         item_to_sample = []
         for i in range(len(self.vars_params)):
             curr_type = type(self.vars_params[i])
-            #This checks for list/tuple or not, to support the fact that currently
-            #u_batch is not a list. Irina said in the future this might change.
+            # This checks for list/tuple or not, to support the fact that currently
+            # u_batch is not a list. Irina said in the future this might change.
 
-            #If list or tuple: append the next element
+            # If list or tuple: append the next element
             if isinstance(args_dict[curr_type], tuple) or isinstance(args_dict[curr_type], list):
                 append_item = args_dict[curr_type][ind_dict[curr_type]]
                 ind_dict[curr_type] += 1
-            #If not list-like (e.g. a tensor), append it
+            # If not list-like (e.g. a tensor), append it
             else:
                 append_item = args_dict[curr_type]
             args.append(append_item)
@@ -966,8 +969,10 @@ class RobustProblem(Problem):
     def _train_loop(self, init_num, **kwargs):
         if kwargs['random_init']:
             np.random.seed(kwargs['seed']+init_num)
-            init_A = np.random.rand(kwargs['u_size'], kwargs['u_size'])
-            init_b = -init_A@np.mean(kwargs['train_set'], axis=0)
+            kwargs['init_A'] = np.random.rand(
+                kwargs['u_size'], kwargs['u_size'])
+            kwargs['init_b'] = - \
+                kwargs['init_A']@np.mean(kwargs['train_set'], axis=0)
         a_history = []
         b_history = []
         df = pd.DataFrame(columns=["step"])
@@ -1006,8 +1011,17 @@ class RobustProblem(Problem):
         lam = kwargs['init_lam'] * torch.ones(self.num_g, dtype=settings.DTYPE)
         mu = kwargs['init_mu']
         # use multiple initial points and training. pick lowest eval loss
-        for step_num in tqdm(range(kwargs['num_iter'])):
-            train_stats = TrainLoopStats(step_num=step_num, train_flag=self.train_flag)
+        if kwargs["position"]:
+            p_bar = tqdm(
+                range(kwargs['num_iter']),
+                desc=f"run {init_num}: test value N/A, violations N/A",
+                position=init_num)
+        else:
+            p_bar = tqdm(
+                range(kwargs['num_iter']), desc=f"run {init_num}: test value N/A, violations N/A")
+        for step_num in p_bar:
+            train_stats = TrainLoopStats(
+                step_num=step_num, train_flag=self.train_flag)
 
             # generate batched y and u
             y_batch = self._gen_y_batch(
@@ -1017,7 +1031,9 @@ class RobustProblem(Problem):
                                          kwargs['u_batch_percentage'])
 
             if kwargs['mro_set']:
-                a_tch, _, _, _, _ = self._init_torches(kwargs['init_eps'], init_A, init_b,
+                a_tch, _, _, _, _ = self._init_torches(kwargs['init_eps'],
+                                                       kwargs['init_A'],
+                                                       kwargs['init_b'],
                                                        kwargs['init_alpha'],
                                                        kwargs['train_set'],
                                                        eps_tch,
@@ -1030,15 +1046,19 @@ class RobustProblem(Problem):
                                                   solver_args=kwargs['solver_args'])
 
             eval_args, items_to_sample = self._order_args(var_values=var_values,
-                                                y_batch=y_batch, u_batch=u_batch)
-            temp_lagrangian, train_constraint_value = self.lagrangian(eval_args, items_to_sample,
-                                                alpha, slack, lam, mu, eta=kwargs['eta'],
-                                                kappa=kwargs['kappa'])
+                                                          y_batch=y_batch, u_batch=u_batch)
+            temp_lagrangian, train_constraint_value = self.lagrangian(eval_args,
+                                                                      items_to_sample,
+                                                                      alpha, slack, lam,
+                                                                      mu,
+                                                                      eta=kwargs['eta'],
+                                                                      kappa=kwargs['kappa'])
             temp_lagrangian.backward()
             with torch.no_grad():
-                obj = self.evaluation_metric(eval_args, items_to_sample, kwargs['quantiles'])
+                obj = self.evaluation_metric(
+                    eval_args, items_to_sample, kwargs['quantiles'])
                 prob_violation_train = self.prob_constr_violation(eval_args, items_to_sample,
-                num_us=len(u_batch))
+                                                                  num_us=len(u_batch))
 
             train_stats.update_train_stats(temp_lagrangian.detach().numpy(
             ).copy(), obj, prob_violation_train, train_constraint_value)
@@ -1069,14 +1089,17 @@ class RobustProblem(Problem):
                 with torch.no_grad():
                     test_u = kwargs['test_tch']
                     test_args, test_to_sample = self._order_args(var_values=var_values,
-                                                y_batch=y_batch, u_batch=test_u)
+                                                                 y_batch=y_batch, u_batch=test_u)
                     obj_test = self.evaluation_metric(test_args, test_to_sample,
                                                       kwargs['quantiles'])
                     prob_violation_test = self.prob_constr_violation(test_args, test_to_sample,
                                                                      num_us=len(test_u))
                     _, var_vio = self.lagrangian(test_args, test_to_sample, alpha, slack, lam, mu,
                                                  eta=kwargs['eta'], kappa=kwargs['kappa'])
-
+                p_bar.set_description(
+                    f"run {init_num}:"
+                    f" test value {round(obj_test[1].item(),3)}"
+                    f", violations {round(prob_violation_test.item(),3)}")
                 train_stats.update_test_stats(
                     obj_test, prob_violation_test, var_vio)
                 new_row = train_stats.generate_test_row(
@@ -1096,7 +1119,11 @@ class RobustProblem(Problem):
                         eps_tch = torch.clamp(eps_tch, min=0.001)
                 if kwargs['scheduler']:
                     scheduler_.step()
-        fin_val = obj_test[1].item() + 10*sum(var_vio.detach().numpy())
+
+        if prob_violation_test.item() <= 0.001:
+            fin_val = obj_test[1].item()
+        else:
+            fin_val = obj_test[1].item() + 10*abs(sum(var_vio.detach().numpy()))
         a_val = a_tch.detach().numpy().copy()
         b_val = b_tch.detach().numpy().copy() if not kwargs['mro_set'] else 0
         eps_val = eps_tch.detach().numpy().copy() if kwargs['eps'] else 1
@@ -1139,6 +1166,7 @@ class RobustProblem(Problem):
         quantiles=settings.QUANTILES,
         lr_step_size=settings.LR_STEP_SIZE,
         lr_gamma=settings.LR_GAMMA,
+        position=False,
         parallel=True
     ):
         r"""
@@ -1152,7 +1180,7 @@ class RobustProblem(Problem):
            training data.
         num_iter : int, optional
             The total number of gradient steps performed.
-        lr : float, optional 
+        lr : float, optional
             The learning rate of gradient descent.
         momentum: float between 0 and 1, optional
             The momentum for gradient descent.
@@ -1241,17 +1269,17 @@ class RobustProblem(Problem):
                   "kappa": kappa, "test_frequency": test_frequency,
                   "test_tch": test_tch, "mu_multiplier": mu_multiplier,
                   "quantiles": quantiles, "lr_step_size": lr_step_size,
-                  "lr_gamma": lr_gamma, "eta": eta}
+                  "lr_gamma": lr_gamma, "eta": eta, "position": position}
 
         n_jobs = utils.get_n_processes() if parallel else 1
         # pool_obj = Pool(processes=n_jobs)
         # loop_fn = partial(self._train_loop, **kwargs)
         # res = pool_obj.map(loop_fn, range(num_random_init))
-        #Debugging code - one iteration
+        # Debugging code - one iteration
         # res = self._train_loop(0, **kwargs)
         # Joblib version
         res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
-            init_num,**kwargs) for init_num in tqdm(range(num_random_init)))
+            init_num, **kwargs) for init_num in range(num_random_init))
         df, df_test, a_history, b_history, param_vals, \
             fin_val, var_values = zip(*res)
         index_chosen = np.argmin(np.array(fin_val))
@@ -1282,7 +1310,8 @@ class RobustProblem(Problem):
         test_percentage=settings.TEST_PERCENTAGE_DEFAULT,
         num_ys=settings.NUM_YS_DEFAULT,
         solver_args=settings.LAYER_SOLVER,
-        quantiles=settings.QUANTILES
+        quantiles=settings.QUANTILES,
+        newdata = None
     ):
         r"""
         Perform gridsearch to find optimal :math:`\epsilon`-ball around data.
@@ -1320,9 +1349,15 @@ class RobustProblem(Problem):
             columns=["Eps"])
         mro_set = self._is_mro_set(unc_set)
 
+
+        if newdata is not None:
+            train_set = newdata
+            test_tch = torch.tensor(newdata, requires_grad=self.train_flag, dtype=settings.DTYPE)
+
+        else:
         # setup train and test data
-        train_set, _, train_tch, test_tch = self._split_dataset(
-            unc_set, test_percentage, seed)
+            train_set, _, train_tch, test_tch = self._split_dataset(
+                unc_set, test_percentage, seed)
 
         # create cvxpylayer
         cvxpylayer = CvxpyLayer(
@@ -1354,14 +1389,15 @@ class RobustProblem(Problem):
             train_stats = TrainLoopStats(
                 step_num=np.NAN, train_flag=self.train_flag)
             with torch.no_grad():
+                test_args, test_to_sample = self._order_args(
+                    var_values=var_values,
+                y_batch=y_batch, u_batch=test_tch)
                 obj_test = self.evaluation_metric(
-                    var_values, y_batch, test_tch, quantiles)
+                    test_args, test_to_sample, quantiles)
                 prob_violation_test = self.prob_constr_violation(
-                    var_values, y_batch, test_tch)
+                    test_args, test_to_sample,num_us=len(test_tch))
                 _, var_vio = self.lagrangian(
-                    var_values,
-                    y_batch,
-                    test_tch,
+                    test_args, test_to_sample,
                     alpha,
                     slack,
                     lam,

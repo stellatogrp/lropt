@@ -67,6 +67,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
     def test_portfolio_intro(self):
         timestart = time.time()
         n = 2
+        kappa = -0.01
         seed = 15
         np.random.seed(seed)
         dist = (np.array([25, 10, 60, 50, 40, 30, 30, 20,
@@ -88,11 +89,11 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # Formulate the Robust Problem
         x = cp.Variable(n)
         t = cp.Variable()
-        
+
         objective = cp.Minimize(t + 0.2*cp.norm(x - y, 1))
         constraints = [-x@u <= t, cp.sum(x) == 1, x >= 0]
-        eval_exp = -x @ u.T + 0.2*cp.norm(x-y, 1)
-        prob = RobustProblem(objective, constraints, eval_exp=eval_exp) 
+        eval_exp = -x @ u + 0.2*cp.norm(x-y, 1)
+        prob = RobustProblem(objective, constraints, eval_exp=eval_exp)
         test_p = 0.1
         s = 5
         train, _ = train_test_split(data, test_size=int(
@@ -104,20 +105,19 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         init_bvaln = -initn@(np.mean(train, axis=0) - 0.3*np.ones(n))
 
         # Train A and b
-        result = prob.train(lr=0.01, num_iter=5, momentum=0.8,
+        result = prob.train(lr=0.01, num_iter=100, momentum=0.8,
                             optimizer="SGD",
                             seed=s, init_A=initn, init_b=init_bvaln,
                             init_lam=0.5, init_mu=0.01,
-                            mu_multiplier=1.001, init_alpha=0., test_percentage=test_p, kappa=-0.01,
-                            n_jobs=8, random_init=True, num_random_init=2)
+                            mu_multiplier=1.001, init_alpha=0., test_percentage=test_p, kappa=kappa,
+                            n_jobs=8, random_init=True, num_random_init=2, position=True)
+
         timefin = time.time()
         timefin - timestart
-        df = result.df
-        npt.assert_allclose(np.array(
-            result.df["Violations_train"])[-1], 0.1438501,
-            rtol=self.RTOL, atol=self.ATOL)
+        npt.assert_array_less(np.array(
+            result.df["Violations_train"])[-1], kappa)
 
-        print(df)
+        # print(df)
         # # Grid search epsilon
         # result4 = prob.grid(epslst=np.linspace(0.01, 5, 10), \
         # init_A=init,
@@ -162,13 +162,13 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         def f_tch(x):
             return a_tch@x
-        
+
         def g1_tch(x, u, y):
             return (u+y)@x-c_tch
-        
+
         def g2_tch(x):
             return torch.norm(x)-2*c_tch
-        
+
         prob = RobustProblem(objective, constraints)
 
         assert f_tch(x_test) == prob.f(*vars_test)
