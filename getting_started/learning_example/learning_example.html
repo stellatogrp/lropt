@@ -1,0 +1,433 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+
+    <!-- Generated with Sphinx 7.2.6 and Furo 2023.09.10 -->
+        <title>Learning problem - LROPT documentation documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">LROPT documentation  documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  
+  <span class="sidebar-brand-text">LROPT documentation  documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../index.html">Getting started</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Getting started</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../my_first_robust/my_first_robust_prob.html">My First Robust Problem</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/index.html">Examples</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api/index.html">API</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../api/lropt_ruleset/index.html">LROPT RULESET</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/robust_problem/index.html">Robust Problem</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/uncertainty_sets/index.html">Uncertainty Sets</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Uncertainty Sets</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/uncertainty_sets/norm.html">Norm Uncertainty</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/uncertainty_sets/ellipsoidal.html">Ellipsoidal Uncertainty</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/uncertainty_sets/box.html">Box Uncertainty</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/uncertainty_sets/polyhedral.html">Polyhedral Uncertainty</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/uncertainty_sets/budget.html">Budget Uncertainty</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="Learning-problem">
+<h1>Learning problem<a class="headerlink" href="#Learning-problem" title="Link to this heading">#</a></h1>
+<p>This file shows an example of a robust learning problem where the uncertainty set is learned.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy.random</span> <span class="k">as</span> <span class="nn">npr</span>
+<span class="kn">import</span> <span class="nn">numpy.testing</span> <span class="k">as</span> <span class="nn">npt</span>
+<span class="kn">import</span> <span class="nn">scipy</span> <span class="k">as</span> <span class="nn">sc</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
+
+<span class="c1"># from tests.settings import SOLVER</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span>
+
+<span class="kn">from</span> <span class="nn">lropt.parameter</span> <span class="kn">import</span> <span class="n">Parameter</span>
+<span class="kn">from</span> <span class="nn">lropt.robust_problem</span> <span class="kn">import</span> <span class="n">RobustProblem</span>
+<span class="kn">from</span> <span class="nn">lropt.uncertain</span> <span class="kn">import</span> <span class="n">UncertainParameter</span>
+<span class="kn">from</span> <span class="nn">lropt.uncertainty_sets.ellipsoidal</span> <span class="kn">import</span> <span class="n">Ellipsoidal</span>
+<span class="c1">#from tests.settings import TESTS_ATOL as ATOL</span>
+<span class="c1">#from tests.settings import TESTS_RTOL as RTOL</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">gen_demand_intro</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">seed</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function generates random demand.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.3</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.4</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]])</span>
+    <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">))</span>
+    <span class="n">d_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
+    <span class="c1"># d_train = np.exp(d_train)</span>
+    <span class="k">return</span> <span class="n">d_train</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">N</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">norms</span> <span class="o">=</span> <span class="n">npr</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">N</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">norms</span><span class="p">)</span>
+<span class="n">kappa</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.01</span>
+<span class="n">seed</span> <span class="o">=</span> <span class="mi">15</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+<span class="n">dist</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">25</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span>
+        <span class="mi">20</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">])</span><span class="o">/</span><span class="mi">10</span><span class="p">)[:</span><span class="n">n</span><span class="p">]</span>
+<span class="n">y_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">dirichlet</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">y_data</span><span class="p">)</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">gen_demand_intro</span><span class="p">(</span><span class="mi">600</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">uncertainty_set</span><span class="o">=</span><span class="n">Ellipsoidal</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">))</span>
+<span class="c1"># Formulate the Robust Problem</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">()</span>
+
+
+<span class="n">objective</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="mf">0.2</span><span class="o">*</span><span class="n">cp</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="n">x</span><span class="nd">@u</span> <span class="o">&lt;=</span> <span class="n">t</span><span class="p">,</span> <span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">]</span>
+<span class="n">eval_exp</span> <span class="o">=</span> <span class="o">-</span><span class="n">x</span> <span class="o">@</span> <span class="n">u</span> <span class="o">+</span> <span class="mf">0.2</span><span class="o">*</span><span class="n">cp</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="n">y</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">prob</span> <span class="o">=</span> <span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">,</span> <span class="n">eval_exp</span><span class="o">=</span><span class="n">eval_exp</span><span class="p">)</span>
+<span class="n">test_p</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="n">s</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">train</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">test_p</span><span class="p">),</span> <span class="n">random_state</span><span class="o">=</span><span class="n">s</span><span class="p">)</span>
+<span class="n">init</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">sc</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">T</span><span class="p">)))</span>
+<span class="o">-</span><span class="n">init</span><span class="nd">@np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">initn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.1</span><span class="o">*</span><span class="n">init</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="n">init_bvaln</span> <span class="o">=</span> <span class="o">-</span><span class="n">initn</span><span class="o">@</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.3</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">num_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+                            <span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;SGD&quot;</span><span class="p">,</span>
+                            <span class="n">seed</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="n">init_A</span><span class="o">=</span><span class="n">initn</span><span class="p">,</span> <span class="n">init_b</span><span class="o">=</span><span class="n">init_bvaln</span><span class="p">,</span>
+                            <span class="n">init_lam</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">init_mu</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+                            <span class="n">mu_multiplier</span><span class="o">=</span><span class="mf">1.001</span><span class="p">,</span> <span class="n">init_alpha</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">test_percentage</span><span class="o">=</span><span class="n">test_p</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="n">kappa</span><span class="p">,</span>
+                            <span class="n">n_jobs</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">random_init</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">num_random_init</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/var/folders/p_/cgtqpk9j7kq74n_ft0y8yvxr0000gp/T/ipykernel_34551/2031112850.py:8: RuntimeWarning: covariance is not symmetric positive-semidefinite.
+  d_train = np.random.multivariate_normal(mu, sig, N)
+
+run 0: test value -0.013, violations 0.1:   0%|          | 0/100 [00:00&lt;?, ?it/s]
+run 0: test value -0.013, violations 0.1:   1%|          | 1/100 [00:00&lt;00:12,  8.17it/s]
+run 0: test value -0.013, violations 0.1:   5%|▌         | 5/100 [00:00&lt;00:04, 23.35it/s]s]
+run 1: test value -0.204, violations 0.117:   5%|▌         | 5/100 [00:00&lt;00:04, 23.28it/s]
+run 0: test value -0.013, violations 0.1:   9%|▉         | 9/100 [00:00&lt;00:03, 28.49it/s]s]
+run 0: test value -0.035, violations 0.067:  12%|█▏        | 12/100 [00:00&lt;00:03, 28.24it/s][A
+run 1: test value -0.199, violations 0.067:  12%|█▏        | 12/100 [00:00&lt;00:03, 28.25it/s]
+run 0: test value -0.035, violations 0.067:  20%|██        | 20/100 [00:00&lt;00:02, 32.09it/s]
+run 0: test value -0.053, violations 0.033:  20%|██        | 20/100 [00:00&lt;00:02, 32.09it/s]
+run 0: test value -0.053, violations 0.033:  24%|██▍       | 24/100 [00:00&lt;00:02, 31.21it/s]
+run 1: test value -0.183, violations 0.05:  24%|██▍       | 24/100 [00:00&lt;00:02, 31.16it/s]
+run 0: test value -0.053, violations 0.033:  28%|██▊       | 28/100 [00:00&lt;00:02, 31.89it/s][A
+run 0: test value -0.068, violations 0.017:  28%|██▊       | 28/100 [00:01&lt;00:02, 31.89it/s][A
+run 0: test value -0.068, violations 0.017:  32%|███▏      | 32/100 [00:01&lt;00:02, 31.16it/s][A
+run 0: test value -0.068, violations 0.017:  40%|████      | 40/100 [00:01&lt;00:01, 32.97it/s][A
+run 0: test value -0.08, violations 0.0:  40%|████      | 40/100 [00:01&lt;00:01, 32.97it/s]   [A
+run 1: test value -0.158, violations 0.0:  40%|████      | 40/100 [00:01&lt;00:01, 32.92it/s]
+run 0: test value -0.08, violations 0.0:  48%|████▊     | 48/100 [00:01&lt;00:01, 32.56it/s]]
+run 0: test value -0.092, violations 0.0:  48%|████▊     | 48/100 [00:01&lt;00:01, 32.56it/s]
+run 1: test value -0.143, violations 0.0:  48%|████▊     | 48/100 [00:01&lt;00:01, 32.54it/s]
+run 1: test value -0.143, violations 0.0:  52%|█████▏    | 52/100 [00:01&lt;00:01, 31.60it/s]
+run 0: test value -0.092, violations 0.0:  60%|██████    | 60/100 [00:01&lt;00:01, 33.05it/s]
+run 1: test value -0.143, violations 0.0:  60%|██████    | 60/100 [00:01&lt;00:01, 33.01it/s]
+run 0: test value -0.099, violations 0.0:  64%|██████▍   | 64/100 [00:02&lt;00:01, 31.76it/s]
+run 0: test value -0.099, violations 0.0:  68%|██████▊   | 68/100 [00:02&lt;00:00, 32.18it/s]
+run 1: test value -0.132, violations 0.0:  68%|██████▊   | 68/100 [00:02&lt;00:00, 32.16it/s]
+run 0: test value -0.102, violations 0.0:  68%|██████▊   | 68/100 [00:02&lt;00:00, 32.18it/s]
+run 1: test value -0.125, violations 0.0:  72%|███████▏  | 72/100 [00:02&lt;00:00, 30.73it/s]
+run 0: test value -0.102, violations 0.0:  76%|███████▌  | 76/100 [00:02&lt;00:00, 31.04it/s]
+run 0: test value -0.102, violations 0.0:  80%|████████  | 80/100 [00:02&lt;00:00, 31.58it/s]
+run 0: test value -0.105, violations 0.0:  80%|████████  | 80/100 [00:02&lt;00:00, 31.58it/s]
+run 0: test value -0.105, violations 0.0:  84%|████████▍ | 84/100 [00:02&lt;00:00, 29.78it/s]
+run 1: test value -0.119, violations 0.0:  88%|████████▊ | 88/100 [00:02&lt;00:00, 30.78it/s]
+run 0: test value -0.104, violations 0.0:  92%|█████████▏| 92/100 [00:03&lt;00:00, 29.32it/s]
+run 1: test value -0.116, violations 0.0:  92%|█████████▏| 92/100 [00:03&lt;00:00, 29.30it/s]
+run 0: test value -0.104, violations 0.0:  96%|█████████▌| 96/100 [00:03&lt;00:00, 30.32it/s]
+run 1: test value -0.116, violations 0.0: 100%|██████████| 100/100 [00:03&lt;00:00, 30.78it/s]
+run 0: test value -0.104, violations 0.0: 100%|██████████| 100/100 [00:03&lt;00:00, 30.78it/s]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Test value = </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">df_test</span><span class="p">[</span><span class="s1">&#39;Test_val&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Probability violations test = </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">df_test</span><span class="p">[</span><span class="s1">&#39;Probability_violations_test&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Test value = 0   -0.204291
+1   -0.199478
+2   -0.183228
+3   -0.170275
+4   -0.158126
+5   -0.142884
+6   -0.131874
+7   -0.125228
+8   -0.119399
+9   -0.116393
+Probability violations test = 0    0.116667
+1    0.066667
+2        0.05
+3    0.016667
+4         0.0
+5         0.0
+6         0.0
+7         0.0
+8         0.0
+9         0.0
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">df_test</span><span class="p">[</span><span class="s2">&quot;Test_val&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2023, Irina Wang, Cole Becker, Bart Van Parys, Bartolomeo Stellato
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/scripts/furo.js?v=32e29ea5"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    </body>
+</html>
