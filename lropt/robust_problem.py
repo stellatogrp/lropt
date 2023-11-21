@@ -1,7 +1,6 @@
 from abc import ABC
 from enum import Enum
 from functools import partial
-from inspect import signature
 from typing import Optional
 
 import cvxpy as cp
@@ -17,7 +16,6 @@ from cvxpy.reductions.flip_objective import FlipObjective
 from cvxpy.reductions.solvers.solving_chain import SolvingChain, construct_solving_chain
 from cvxpylayers.torch import CvxpyLayer
 from joblib import Parallel, delayed
-
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
