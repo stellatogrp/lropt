@@ -1,6 +1,7 @@
 from abc import ABC
 from enum import Enum
 from functools import partial
+from inspect import signature
 from typing import Optional
 
 import cvxpy as cp
@@ -16,6 +17,7 @@ from cvxpy.reductions.flip_objective import FlipObjective
 from cvxpy.reductions.solvers.solving_chain import SolvingChain, construct_solving_chain
 from cvxpylayers.torch import CvxpyLayer
 from joblib import Parallel, delayed
+
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
@@ -59,7 +61,8 @@ class TrainLoopStats():
             """
             This is an internal function that either initiates a tensor or a list
             """
-            return [] if not self.train_flag else torch.tensor(0., dtype=settings.DTYPE)
+            return torch.tensor(0., dtype=settings.DTYPE)
+            # return [] if not self.train_flag else torch.tensor(0., dtype=settings.DTYPE)
         self.step_num = step_num
         self.train_flag = train_flag
         self.tot_lagrangian = __value_init__(self)
@@ -724,6 +727,7 @@ class RobustProblem(Problem):
         #     y_batch[sample].append(a_tch)
         # if not mro_set:
         #     y_batch[sample].append(b_tch)
+
         random_int = np.random.choice(
             num_ys, int(num_ys*batch_size), replace=False)
         y_tchs = []
