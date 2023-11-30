@@ -221,6 +221,109 @@ Each of them takes a single x,y,u triplet (i.e. one instance of each)</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lropt.RobustProblem.get_problem_data">
+<span class="sig-name descname"><span class="pre">get_problem_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solver</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enforce_dpp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_dpp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canon_backend</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver_opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.get_problem_data" title="Link to this definition">#</a></dt>
+<dd><p>Returns the problem data used in the call to the solver.</p>
+<p>When a problem is solved, CVXPY creates a chain of reductions enclosed
+in a <code class="xref py py-class docutils literal notranslate"><span class="pre">SolvingChain</span></code>,
+and compiles it to some low-level representation that is
+compatible with the targeted solver. This method returns that low-level
+representation.</p>
+<p>For some solving chains, this low-level representation is a dictionary
+that contains exactly those arguments that were supplied to the solver;
+however, for other solving chains, the data is an intermediate
+representation that is compiled even further by the solver interfaces.</p>
+<p>A solution to the equivalent low-level problem can be obtained via the
+data by invoking the <cite>solve_via_data</cite> method of the returned solving
+chain, a thin wrapper around the code external to CVXPY that further
+processes and solves the problem. Invoke the unpack_results method
+to recover a solution to the original problem.</p>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">objective</span> <span class="o">=</span> <span class="o">...</span>
+<span class="n">constraints</span> <span class="o">=</span> <span class="o">...</span>
+<span class="n">problem</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+<span class="n">data</span><span class="p">,</span> <span class="n">chain</span><span class="p">,</span> <span class="n">inverse_data</span> <span class="o">=</span> <span class="n">problem</span><span class="o">.</span><span class="n">get_problem_data</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">SCS</span><span class="p">)</span>
+<span class="c1"># calls SCS using `data`</span>
+<span class="n">soln</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">solve_via_data</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+<span class="c1"># unpacks the solution returned by SCS into `problem`</span>
+<span class="n">problem</span><span class="o">.</span><span class="n">unpack_results</span><span class="p">(</span><span class="n">soln</span><span class="p">,</span> <span class="n">chain</span><span class="p">,</span> <span class="n">inverse_data</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Alternatively, the <cite>data</cite> dictionary returned by this method
+contains enough information to bypass CVXPY and call the solver
+directly.</p>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">problem</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+<span class="n">data</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">problem</span><span class="o">.</span><span class="n">get_problem_data</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">SCS</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">scs</span>
+<span class="n">probdata</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s1">&#39;A&#39;</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">],</span>
+  <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">],</span>
+  <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">],</span>
+<span class="p">}</span>
+<span class="n">cone_dims</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;dims&#39;</span><span class="p">]</span>
+<span class="n">cones</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;f&quot;</span><span class="p">:</span> <span class="n">cone_dims</span><span class="o">.</span><span class="n">zero</span><span class="p">,</span>
+    <span class="s2">&quot;l&quot;</span><span class="p">:</span> <span class="n">cone_dims</span><span class="o">.</span><span class="n">nonneg</span><span class="p">,</span>
+    <span class="s2">&quot;q&quot;</span><span class="p">:</span> <span class="n">cone_dims</span><span class="o">.</span><span class="n">soc</span><span class="p">,</span>
+    <span class="s2">&quot;ep&quot;</span><span class="p">:</span> <span class="n">cone_dims</span><span class="o">.</span><span class="n">exp</span><span class="p">,</span>
+    <span class="s2">&quot;s&quot;</span><span class="p">:</span> <span class="n">cone_dims</span><span class="o">.</span><span class="n">psd</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">soln</span> <span class="o">=</span> <span class="n">scs</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">cones</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The structure of the data dict that CVXPY returns depends on the
+solver. For details, consult the solver interfaces in
+<cite>cvxpy/reductions/solvers</cite>.</p>
+<section id="arguments">
+<h2>Arguments<a class="headerlink" href="#arguments" title="Link to this heading">#</a></h2>
+<dl class="simple">
+<dt>solver<span class="classifier">str</span></dt><dd><p>The solver the problem data is for.</p>
+</dd>
+<dt>gp<span class="classifier">bool, optional</span></dt><dd><p>If True, then parses the problem as a disciplined geometric program
+instead of a disciplined convex program.</p>
+</dd>
+<dt>enforce_dpp<span class="classifier">bool, optional</span></dt><dd><p>When True, a DPPError will be thrown when trying to parse a non-DPP
+problem (instead of just a warning). Defaults to False.</p>
+</dd>
+<dt>ignore_dpp<span class="classifier">bool, optional</span></dt><dd><p>When True, DPP problems will be treated as non-DPP,
+which may speed up compilation. Defaults to False.</p>
+</dd>
+<dt>canon_backend<span class="classifier">str, optional</span></dt><dd><p>‘CPP’ (default) | ‘SCIPY’
+Specifies which backend to use for canonicalization, which can affect
+compilation time. Defaults to None, i.e., selecting the default
+backend.</p>
+</dd>
+<dt>verbose<span class="classifier">bool, optional</span></dt><dd><p>If True, print verbose output related to problem compilation.</p>
+</dd>
+<dt>solver_opts<span class="classifier">dict, optional</span></dt><dd><p>A dict of options that will be passed to the specific solver.
+In general, these options will override any default settings
+imposed by cvxpy.</p>
+</dd>
+</dl>
+</section>
+<section id="returns">
+<h2>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h2>
+<dl class="simple">
+<dt>dict or object</dt><dd><p>lowest level representation of problem</p>
+</dd>
+<dt>SolvingChain</dt><dd><p>The solving chain that created the data.</p>
+</dd>
+<dt>list</dt><dd><p>The inverse data generated by the chain.</p>
+</dd>
+</dl>
+</section>
+<section id="raises">
+<h2>Raises<a class="headerlink" href="#raises" title="Link to this heading">#</a></h2>
+<dl class="simple">
+<dt>cvxpy.error.DPPError</dt><dd><p>Raised if DPP settings are invalid.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.grid">
 <span class="sig-name descname"><span class="pre">grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epslst</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([1.00000000e-03,</span> <span class="pre">1.62377674e-03,</span> <span class="pre">2.63665090e-03,</span> <span class="pre">4.28133240e-03,</span> <span class="pre">6.95192796e-03,</span> <span class="pre">1.12883789e-02,</span> <span class="pre">1.83298071e-02,</span> <span class="pre">2.97635144e-02,</span> <span class="pre">4.83293024e-02,</span> <span class="pre">7.84759970e-02,</span> <span class="pre">1.27427499e-01,</span> <span class="pre">2.06913808e-01,</span> <span class="pre">3.35981829e-01,</span> <span class="pre">5.45559478e-01,</span> <span class="pre">8.85866790e-01,</span> <span class="pre">1.43844989e+00,</span> <span class="pre">2.33572147e+00,</span> <span class="pre">3.79269019e+00,</span> <span class="pre">6.15848211e+00,</span> <span class="pre">1.00000000e+01])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_A</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_ys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'solve_method':</span> <span class="pre">'Clarabel'}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantiles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.25,</span> <span class="pre">0.75)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">newdata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.grid" title="Link to this definition">#</a></dt>
 <dd><p>Perform gridsearch to find optimal <span class="math notranslate nohighlight">\(\epsilon\)</span>-ball around data.</p>
@@ -257,12 +360,12 @@ Each of them takes a single x,y,u triplet (i.e. one instance of each)</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.solve">
-<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.solve" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warm_start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qcp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requires_grad</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enforce_dpp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_dpp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canon_backend</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.solve" title="Link to this definition">#</a></dt>
 <dd><p>Compiles and solves the problem using the specified method.</p>
 <p>Populates the <code class="code docutils literal notranslate"><span class="pre">status</span></code> and <code class="code docutils literal notranslate"><span class="pre">value</span></code> attributes on the
 problem object as a side-effect.</p>
-<section id="arguments">
-<h2>Arguments<a class="headerlink" href="#arguments" title="Link to this heading">#</a></h2>
+<section id="id1">
+<h2>Arguments<a class="headerlink" href="#id1" title="Link to this heading">#</a></h2>
 <dl>
 <dt>solver<span class="classifier">str, optional</span></dt><dd><p>The solver to use. For example, ‘ECOS’, ‘SCS’, or ‘OSQP’.</p>
 </dd>
@@ -313,16 +416,16 @@ exact way this is done depends on the specific solver. Here are some examples:</
 solver arguments, available at</p>
 <p><a class="reference external" href="https://www.cvxpy.org/tutorial/advanced/index.html#setting-solver-options">https://www.cvxpy.org/tutorial/advanced/index.html#setting-solver-options</a></p>
 </section>
-<section id="returns">
-<h2>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h2>
+<section id="id2">
+<h2>Returns<a class="headerlink" href="#id2" title="Link to this heading">#</a></h2>
 <dl class="simple">
 <dt>float</dt><dd><p>The optimal value for the problem, or a string indicating
 why the problem could not be solved.</p>
 </dd>
 </dl>
 </section>
-<section id="raises">
-<h2>Raises<a class="headerlink" href="#raises" title="Link to this heading">#</a></h2>
+<section id="id3">
+<h2>Raises<a class="headerlink" href="#id3" title="Link to this heading">#</a></h2>
 <dl class="simple">
 <dt>cvxpy.error.DCPError</dt><dd><p>Raised if the problem is not DCP and <cite>gp</cite> is False.</p>
 </dd>
@@ -418,6 +521,56 @@ A pandas data frame with information on each :math:r`epsilon` having the followi
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lropt.RobustProblem.unpack">
+<span class="sig-name descname"><span class="pre">unpack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#lropt.RobustProblem.unpack" title="Link to this definition">#</a></dt>
+<dd><p>Updates the problem state given a Solution.</p>
+<p>Updates problem.status, problem.value and value of primal and dual
+variables. If solution.status is in cvxpy.settins.ERROR, this method
+is a no-op.</p>
+<section id="id4">
+<h2>Arguments<a class="headerlink" href="#id4" title="Link to this heading">#</a></h2>
+<dl class="simple">
+<dt>solution<span class="classifier">cvxpy.Solution</span></dt><dd><p>A Solution object.</p>
+</dd>
+</dl>
+<section id="id5">
+<h3>Raises<a class="headerlink" href="#id5" title="Link to this heading">#</a></h3>
+<dl class="simple">
+<dt>ValueError</dt><dd><p>If the solution object has an invalid status</p>
+</dd>
+</dl>
+</section>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lropt.RobustProblem.unpack_results_unc">
+<span class="sig-name descname"><span class="pre">unpack_results_unc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inverse_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solvername</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#lropt.RobustProblem.unpack_results_unc" title="Link to this definition">#</a></dt>
+<dd><p>Updates the problem state given the solver results.</p>
+<p>Updates problem.status, problem.value and value of
+primal and dual variables.</p>
+<section id="id6">
+<h2>Arguments<a class="headerlink" href="#id6" title="Link to this heading">#</a></h2>
+<dl class="simple">
+<dt>solution<span class="classifier">object</span></dt><dd><p>The solution returned by applying the chain to the problem
+and invoking the solver on the resulting data.</p>
+</dd>
+<dt>chain<span class="classifier">SolvingChain</span></dt><dd><p>A solving chain that was used to solve the problem.</p>
+</dd>
+<dt>inverse_data<span class="classifier">list</span></dt><dd><p>The inverse data returned by applying the chain to the problem.</p>
+</dd>
+</dl>
+<section id="id7">
+<h3>Raises<a class="headerlink" href="#id7" title="Link to this heading">#</a></h3>
+<dl class="simple">
+<dt>cvxpy.error.SolverError</dt><dd><p>If the solver failed</p>
+</dd>
+</dl>
+</section>
+</section>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.y_parameters">
 <span class="sig-name descname"><span class="pre">y_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.y_parameters" title="Link to this definition">#</a></dt>
 <dd><p>Find y parameters</p>
@@ -485,11 +638,14 @@ A pandas data frame with information on each :math:r`epsilon` having the followi
 <li><a class="reference internal" href="#">Robust Problem</a><ul>
 <li><a class="reference internal" href="#lropt.RobustProblem"><code class="docutils literal notranslate"><span class="pre">RobustProblem</span></code></a><ul>
 <li><a class="reference internal" href="#lropt.RobustProblem.fg_to_lh"><code class="docutils literal notranslate"><span class="pre">RobustProblem.fg_to_lh()</span></code></a></li>
+<li><a class="reference internal" href="#lropt.RobustProblem.get_problem_data"><code class="docutils literal notranslate"><span class="pre">RobustProblem.get_problem_data()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.grid"><code class="docutils literal notranslate"><span class="pre">RobustProblem.grid()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.prob_constr_violation"><code class="docutils literal notranslate"><span class="pre">RobustProblem.prob_constr_violation()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.solve"><code class="docutils literal notranslate"><span class="pre">RobustProblem.solve()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.train"><code class="docutils literal notranslate"><span class="pre">RobustProblem.train()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.uncertain_parameters"><code class="docutils literal notranslate"><span class="pre">RobustProblem.uncertain_parameters()</span></code></a></li>
+<li><a class="reference internal" href="#lropt.RobustProblem.unpack"><code class="docutils literal notranslate"><span class="pre">RobustProblem.unpack()</span></code></a></li>
+<li><a class="reference internal" href="#lropt.RobustProblem.unpack_results_unc"><code class="docutils literal notranslate"><span class="pre">RobustProblem.unpack_results_unc()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.y_parameters"><code class="docutils literal notranslate"><span class="pre">RobustProblem.y_parameters()</span></code></a></li>
 </ul>
 </li>

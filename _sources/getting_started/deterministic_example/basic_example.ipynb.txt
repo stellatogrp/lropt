@@ -16,7 +16,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 17,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -70,7 +70,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 19,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -106,7 +106,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 20,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -135,7 +135,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 21,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -162,7 +162,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 22,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -184,7 +184,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 23,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -219,9 +219,18 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 29,
    "metadata": {},
-   "outputs": [],
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "LRO objective value:  -0.486554205438346 \n",
+      "LRO x:  [-0.61573308 -0.07132139 -0.57877838 -1.5140201 ]\n"
+     ]
+    }
+   ],
    "source": [
     "#restate the ellipsoidal set\n",
     "ellip_u = lropt.UncertainParameter(m,\n",
@@ -260,9 +269,18 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 30,
    "metadata": {},
-   "outputs": [],
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "MRO objective value:  -0.48655420520114034 \n",
+      "MRO x:  [-0.61573587 -0.07132052 -0.5787773  -1.51401982]\n"
+     ]
+    }
+   ],
    "source": [
     "#\n",
     "mro_u = lropt.UncertainParameter(m,\n",
@@ -301,9 +319,18 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 31,
    "metadata": {},
-   "outputs": [],
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Cvxpy objective value:  -0.48655420316015846 \n",
+      "Cvxpy x:  [-0.6157156  -0.07132688 -0.57878513 -1.51402186]\n"
+     ]
+    }
+   ],
    "source": [
     "# formulate cvxpy variable\n",
     "x = cp.Variable(4)\n",
@@ -350,7 +377,7 @@
    "name": "python",
    "nbconvert_exporter": "python",
    "pygments_lexer": "ipython3",
-   "version": "3.11.5"
+   "version": "3.11.0"
   }
  },
  "nbformat": 4,

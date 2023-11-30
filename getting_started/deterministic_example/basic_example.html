@@ -212,7 +212,7 @@
 <h1>Deterministic Uncertainty Sets - Basic example<a class="headerlink" href="#Deterministic-Uncertainty-Sets---Basic-example" title="Link to this heading">#</a></h1>
 <p>This section explains the basics of how to use the package with a determinsitic uncertainty set, and gives a simple example.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
@@ -266,7 +266,7 @@
 </li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Ellipsoidal uncertainty set example</span>
@@ -317,7 +317,7 @@
 </li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># size of uncertain parameter</span>
@@ -349,7 +349,7 @@
 </li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Box uncertainty set example</span>
@@ -382,7 +382,7 @@
 </li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Budget uncertainty set example</span>
@@ -398,7 +398,7 @@
 <li><p><span class="math notranslate nohighlight">\(d\)</span> : np.array</p></li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Polyhedral uncertainty set example</span>
@@ -423,7 +423,7 @@
 </div>
 <p>where <span class="math notranslate nohighlight">\(c\)</span>, <span class="math notranslate nohighlight">\(P\)</span>, and <span class="math notranslate nohighlight">\(a\)</span> are constants, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from the ellipsoidal set above, where <span class="math notranslate nohighlight">\(b\)</span> is nonzero.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#restate the ellipsoidal set</span>
@@ -460,13 +460,13 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -2.097998029531417
-LRO x:  [-0.88502512 -1.15485879 -0.47530895 -0.34174012]
+LRO objective value:  -0.486554205438346
+LRO x:  [-0.61573308 -0.07132139 -0.57877838 -1.5140201 ]
 </pre></div></div>
 </div>
 <p>We note that this is equivalent to using the MRO uncertainty set with <span class="math notranslate nohighlight">\(K = 1\)</span> and power = 1.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#</span>
@@ -497,8 +497,8 @@ LRO x:  [-0.88502512 -1.15485879 -0.47530895 -0.34174012]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-MRO objective value:  -2.097998028531319
-MRO x:  [-0.88502789 -1.15485947 -0.47530453 -0.34173626]
+MRO objective value:  -0.48655420520114034
+MRO x:  [-0.61573587 -0.07132052 -0.5787773  -1.51401982]
 </pre></div></div>
 </div>
 <p>We compare the above with its explicit reformulation and solution</p>
@@ -510,7 +510,7 @@ MRO x:  [-0.88502789 -1.15485947 -0.47530453 -0.34173626]
 \end{array}\end{split}\]</div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate cvxpy variable</span>
@@ -540,8 +540,8 @@ MRO x:  [-0.88502789 -1.15485947 -0.47530453 -0.34173626]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -2.0979980273174244
-Cvxpy x:  [-0.88503269 -1.15486066 -0.47529689 -0.34172959]
+Cvxpy objective value:  -0.48655420316015846
+Cvxpy x:  [-0.6157156  -0.07132688 -0.57878513 -1.51402186]
 </pre></div></div>
 </div>
 <p>We see that they provide the same solution.</p>

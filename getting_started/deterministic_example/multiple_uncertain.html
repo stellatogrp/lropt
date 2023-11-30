@@ -250,7 +250,7 @@
 <p>where again <span class="math notranslate nohighlight">\(c\)</span>, <span class="math notranslate nohighlight">\(P\)</span>, and <span class="math notranslate nohighlight">\(a\)</span> are constants, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from a box uncertainty set. We note that the uncertain parameter can appear more than once in the uncertain constraint.</p>
 <p>Note that using the box uncertainty set is equivalent to using the ellipsoidal uncertainty set with <span class="math notranslate nohighlight">\(p = \infty\)</span></p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#formulate using the box set</span>
@@ -280,9 +280,8 @@
 <span class="n">prob_robust</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">RobustProblem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
 
 <span class="c1"># solve</span>
-<span class="n">newprob</span> <span class="o">=</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">dualize_constraints</span><span class="p">()</span>
-<span class="n">newprob</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Box objective value: &quot;</span><span class="p">,</span> <span class="n">newprob</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Box x: &quot;</span><span class="p">,</span> <span class="n">x_box</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<span class="n">prob_robust</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Box objective value: &quot;</span><span class="p">,</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Box x: &quot;</span><span class="p">,</span> <span class="n">x_box</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
 
 <span class="c1">#formulate using the ellipsoidal set</span>
 <span class="n">ellip_u</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">m</span><span class="p">,</span>
@@ -305,7 +304,7 @@
 <span class="c1"># solve</span>
 <span class="n">prob_robust</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Ellipsoidal objective value: &quot;</span><span class="p">,</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Ellipsoidal x: &quot;</span><span class="p">,</span> <span class="n">x_el</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Ellipsoidal objective value: &quot;</span><span class="p">,</span> <span class="n">prob_robust</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Ellipsoidal x: &quot;</span><span class="p">,</span> <span class="n">x_el</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
 
 <span class="c1"># assert x values are equal</span>
 <span class="n">npt</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">x_box</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">x_el</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="n">RTOL</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="n">ATOL</span><span class="p">)</span>
@@ -317,12 +316,12 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Box objective value:  -1.759561257675106
-Box x:  [2.14193987e-10 5.43606836e-12 9.99999999e-01 1.00000000e+00
- 1.14502757e-01]
-Ellipsoidal objective value:  -1.7595612576751014
-Ellipsoidal x:  [2.14194745e-10 5.43612853e-12 9.99999999e-01 1.00000000e+00
- 1.14502757e-01]
+Box objective value:  -1.7309452384151238
+Box x:  [ 1.00000000e+00  5.22005762e-11  2.47146984e-01 -9.24851935e-12
+  1.00000000e+00]
+Ellipsoidal objective value:  -1.7309452384151234
+Ellipsoidal x:  [ 1.00000000e+00  5.22006297e-11  2.47146984e-01 -9.24852459e-12
+  1.00000000e+00]
 </pre></div></div>
 </div>
 <p>We compare the above with its explicit reformulation and solution</p>
@@ -334,7 +333,7 @@ Ellipsoidal x:  [2.14194745e-10 5.43612853e-12 9.99999999e-01 1.00000000e+00
 \end{array}\end{split}\]</div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate using cvxpy</span>
@@ -363,9 +362,9 @@ Ellipsoidal x:  [2.14194745e-10 5.43612853e-12 9.99999999e-01 1.00000000e+00
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -1.7595612578223223
-Cvxpy x:  [9.26204016e-11 3.21962933e-12 1.00000000e+00 1.00000000e+00
- 1.14502757e-01]
+Cvxpy objective value:  -1.7309452384468336
+Cvxpy x:  [ 1.00000000e+00  1.41789166e-11  2.47146984e-01 -3.34758739e-13
+  1.00000000e+00]
 </pre></div></div>
 </div>
 </section>

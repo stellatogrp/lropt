@@ -288,14 +288,14 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -40.05747102600027
-LRO x:  [ 1.11487169e-10 -1.07389600e-10  6.78816060e-11  9.15235732e+00
-  6.16167264e-11]
+LRO objective value:  -24.454189407442744
+LRO x:  [4.70361675e-09 1.80411637e-09 7.47823496e-10 4.74577154e-09
+ 1.03041143e+01]
 </pre></div></div>
 </div>
 <p>We assert that it is equivalent to the direct reformulation</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate using cvxpy</span>
@@ -325,14 +325,14 @@ LRO x:  [ 1.11487169e-10 -1.07389600e-10  6.78816060e-11  9.15235732e+00
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -40.05747102023292
-Cvxpy x:  [2.48954456e-10 2.55539857e-11 2.89194032e-10 9.15235732e+00
- 1.92659433e-10]
+Cvxpy objective value:  -24.454189395404427
+Cvxpy x:  [-2.86589643e-11  5.07678944e-09  1.29237839e-09  2.58352609e-08
+  1.03041143e+01]
 </pre></div></div>
 </div>
 <p>We solve the same problem for the MRO uncertainty set with <span class="math notranslate nohighlight">\(K= 1\)</span> and power = 1. We note that this gives a different reformulation, and upper bounds the solution for the normal Ellipsoidal case.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate uncertainty set</span>
@@ -365,14 +365,14 @@ Cvxpy x:  [2.48954456e-10 2.55539857e-11 2.89194032e-10 9.15235732e+00
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-MRO objective value:  -30.724659104353066
-MRO x:  [ 5.85853262e-11 -5.68133856e-12  3.06646864e-11  1.74313171e+01
-  4.88427518e-11]
+MRO objective value:  -11.376487544561503
+MRO x:  [3.04153506e-11 2.03812036e-10 7.84312132e-11 3.62360226e-10
+ 2.05261451e+01]
 </pre></div></div>
 </div>
 <p>We assert the equivalence to the direct reformulation of the MRO problem.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate using cvxpy</span>
@@ -402,10 +402,18 @@ MRO x:  [ 5.85853262e-11 -5.68133856e-12  3.06646864e-11  1.74313171e+01
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -30.72465908979201
-Cvxpy x:  [7.48167405e-10 3.17523486e-10 8.10239787e-10 1.74313171e+01
- 6.56639397e-10]
+Cvxpy objective value:  -11.376487544376657
+Cvxpy x:  [2.07811398e-11 1.34021124e-10 3.35226228e-11 6.51638468e-10
+ 2.05261451e+01]
 </pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
 </div>
 </section>
 
