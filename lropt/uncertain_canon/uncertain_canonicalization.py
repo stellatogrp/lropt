@@ -2,6 +2,7 @@ from cvxpy import Variable, problems
 from cvxpy.constraints.nonpos import Inequality
 from cvxpy.expressions import cvxtypes
 from cvxpy.expressions.expression import Expression
+from cvxpy.problems.objective import Minimize
 from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
 from cvxpy.reductions.solution import Solution
@@ -45,10 +46,15 @@ class Uncertain_Canonicalization(Reduction):
         inverse_data = InverseData(problem)
         # import ipdb
         # ipdb.set_trace()
-        canon_objective, canon_constraints = self.canonicalize_tree(
-            problem.objective, 0, 1)
-
-        for constraint in problem.constraints:
+        # canon_objective, canon_constraints = self.canonicalize_tree(
+        #     problem.objective, 0, 1)
+        epigraph_obj = Variable()
+        epi_cons = problem.objective.expr <= epigraph_obj
+        epi_cons.id = None
+        new_constraints = problem.constraints + [epi_cons]
+        canon_objective = Minimize(epigraph_obj)
+        canon_constraints = []
+        for constraint in new_constraints:
             # canon_constr is the constraint rexpressed in terms of
             # its canonicalized arguments, and aux_constr are the constraints
             # generated while canonicalizing the arguments of the original
@@ -119,7 +125,8 @@ class Uncertain_Canonicalization(Reduction):
                 canon_constr = constraint
                 canon_constraints += [canon_constr]
 
-            inverse_data.cons_id_map.update({constraint.id: canon_constr.id})
+            if constraint.id is not None:
+                inverse_data.cons_id_map.update({constraint.id: canon_constr.id})
 
         new_problem = problems.problem.Problem(canon_objective,
                                                canon_constraints)

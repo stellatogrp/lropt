@@ -1,4 +1,7 @@
+import time
+import warnings
 from abc import ABC
+from dataclasses import dataclass
 from enum import Enum
 from functools import partial
 from typing import Optional
@@ -8,11 +11,18 @@ import numpy as np
 import pandas as pd
 import scipy as sc
 import torch
+from cvxpy import error
+from cvxpy import settings as s
+from cvxpy.error import DPPError
+from cvxpy.expressions import cvxtypes
 from cvxpy.expressions.variable import Variable
 from cvxpy.problems.objective import Maximize
 from cvxpy.problems.problem import Problem
 from cvxpy.reductions import Dcp2Cone, Qp2SymbolicQp
+from cvxpy.reductions.dgp2dcp.dgp2dcp import Dgp2Dcp
+from cvxpy.reductions.eval_params import EvalParams
 from cvxpy.reductions.flip_objective import FlipObjective
+from cvxpy.reductions.solution import INF_OR_UNB_MESSAGE
 from cvxpy.reductions.solvers.solving_chain import SolvingChain, construct_solving_chain
 from cvxpylayers.torch import CvxpyLayer
 from joblib import Parallel, delayed
@@ -25,12 +35,27 @@ from lropt.parameter import Parameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lropt.shape_parameter import ShapeParameter
 from lropt.uncertain import UncertainParameter
-from lropt.uncertain_canon.distribute_uncertain_params import Distribute_Uncertain_Params
 from lropt.uncertain_canon.uncertain_chain import UncertainChain
 from lropt.uncertainty_sets.mro import MRO
 
 torch.manual_seed(0)
-
+_COL_WIDTH = 79
+_HEADER = (
+    '='*_COL_WIDTH +
+    '\n' +
+    ('CVXPY').center(_COL_WIDTH) +
+    '\n' +
+    ('v' + cvxtypes.version()).center(_COL_WIDTH) +
+    '\n' +
+    '='*_COL_WIDTH
+)
+_COMPILATION_STR = (
+    '-'*_COL_WIDTH +
+    '\n' +
+    ('Compilation').center(_COL_WIDTH) +
+    '\n' +
+    '-'*_COL_WIDTH
+)
 
 # TODO (Amit): Irina, please go over the functions and update the args descrption where necessary
 class TrainLoopStats():
@@ -202,6 +227,8 @@ class RobustProblem(Problem):
         self.inverse_data = None
         self._init = None
         self.train_flag = train_flag
+        self._solution = None
+        self._status = None
 
         self.num_ys = self.verify_y_parameters()
         self._store_variables_parameters()
@@ -432,10 +459,287 @@ class RobustProblem(Problem):
             for idx in range(len(new_reductions)):
                 if type(new_reductions[idx]) in [Dcp2Cone, Qp2SymbolicQp]:
                     # Insert RemoveUncertainParameters before those reductions
+                    # new_reductions.insert(idx, Distribute_Uncertain_Params())
                     new_reductions.insert(idx, RemoveUncertainParameters())
                     break
         # return a chain instead (chain.apply, return the problem and inverse data)
         return SolvingChain(reductions=new_reductions)
+
+
+    def get_problem_data(
+        self, solver,
+        gp: bool = False,
+        enforce_dpp: bool = False,
+        ignore_dpp: bool = False,
+        verbose: bool = False,
+        canon_backend: str | None = None,
+        solver_opts: Optional[dict] = None
+    ):
+        """Returns the problem data used in the call to the solver.
+
+        When a problem is solved, CVXPY creates a chain of reductions enclosed
+        in a :class:`~cvxpy.reductions.solvers.solving_chain.SolvingChain`,
+        and compiles it to some low-level representation that is
+        compatible with the targeted solver. This method returns that low-level
+        representation.
+
+        For some solving chains, this low-level representation is a dictionary
+        that contains exactly those arguments that were supplied to the solver;
+        however, for other solving chains, the data is an intermediate
+        representation that is compiled even further by the solver interfaces.
+
+        A solution to the equivalent low-level problem can be obtained via the
+        data by invoking the `solve_via_data` method of the returned solving
+        chain, a thin wrapper around the code external to CVXPY that further
+        processes and solves the problem. Invoke the unpack_results method
+        to recover a solution to the original problem.
+
+        For example:
+
+        ::
+
+            objective = ...
+            constraints = ...
+            problem = cp.Problem(objective, constraints)
+            data, chain, inverse_data = problem.get_problem_data(cp.SCS)
+            # calls SCS using `data`
+            soln = chain.solve_via_data(problem, data)
+            # unpacks the solution returned by SCS into `problem`
+            problem.unpack_results(soln, chain, inverse_data)
+
+        Alternatively, the `data` dictionary returned by this method
+        contains enough information to bypass CVXPY and call the solver
+        directly.
+
+        For example:
+
+        ::
+
+            problem = cp.Problem(objective, constraints)
+            data, _, _ = problem.get_problem_data(cp.SCS)
+
+            import scs
+            probdata = {
+              'A': data['A'],
+              'b': data['b'],
+              'c': data['c'],
+            }
+            cone_dims = data['dims']
+            cones = {
+                "f": cone_dims.zero,
+                "l": cone_dims.nonneg,
+                "q": cone_dims.soc,
+                "ep": cone_dims.exp,
+                "s": cone_dims.psd,
+            }
+            soln = scs.solve(data, cones)
+
+        The structure of the data dict that CVXPY returns depends on the
+        solver. For details, consult the solver interfaces in
+        `cvxpy/reductions/solvers`.
+
+        Arguments
+        ---------
+        solver : str
+            The solver the problem data is for.
+        gp : bool, optional
+            If True, then parses the problem as a disciplined geometric program
+            instead of a disciplined convex program.
+        enforce_dpp : bool, optional
+            When True, a DPPError will be thrown when trying to parse a non-DPP
+            problem (instead of just a warning). Defaults to False.
+        ignore_dpp : bool, optional
+            When True, DPP problems will be treated as non-DPP,
+            which may speed up compilation. Defaults to False.
+        canon_backend : str, optional
+            'CPP' (default) | 'SCIPY'
+            Specifies which backend to use for canonicalization, which can affect
+            compilation time. Defaults to None, i.e., selecting the default
+            backend.
+        verbose : bool, optional
+            If True, print verbose output related to problem compilation.
+        solver_opts : dict, optional
+            A dict of options that will be passed to the specific solver.
+            In general, these options will override any default settings
+            imposed by cvxpy.
+
+        Returns
+        -------
+        dict or object
+            lowest level representation of problem
+        SolvingChain
+            The solving chain that created the data.
+        list
+            The inverse data generated by the chain.
+
+        Raises
+        ------
+        cvxpy.error.DPPError
+            Raised if DPP settings are invalid.
+        """
+
+        # Invalid DPP setting.
+        # Must be checked here to avoid cache issues.
+        if enforce_dpp and ignore_dpp:
+            raise DPPError("Cannot set enforce_dpp = True and ignore_dpp = True.")
+
+        start = time.time()
+        # Cache includes ignore_dpp because it alters compilation.
+        key = self._cache.make_key(solver, gp, ignore_dpp)
+        if key != self._cache.key:
+            self._cache.invalidate()
+            solving_chain = self._construct_chain(
+                solver=solver, gp=gp,
+                enforce_dpp=enforce_dpp,
+                ignore_dpp=ignore_dpp,
+                canon_backend=canon_backend,
+                solver_opts=solver_opts)
+            self._cache.key = key
+            self._cache.solving_chain = solving_chain
+            self._solver_cache = {}
+        else:
+            solving_chain = self._cache.solving_chain
+
+        if verbose:
+            print(_COMPILATION_STR)
+
+        if self._cache.param_prog is not None:
+            # fast path, bypasses application of reductions
+            if verbose:
+                s.LOGGER.info(
+                        'Using cached ASA map, for faster compilation '
+                        '(bypassing reduction chain).')
+            if gp:
+                dgp2dcp = self._cache.solving_chain.get(Dgp2Dcp)
+                # Parameters in the param cone prog are the logs
+                # of parameters in the original problem (with one exception:
+                # parameters appearing as exponents (in power and gmatmul
+                # atoms) are unchanged.
+                old_params_to_new_params = dgp2dcp.canon_methods._parameters
+                for param in self.parameters():
+
+                    if param in old_params_to_new_params:
+                        old_params_to_new_params[param].value = np.log(
+                            param.value)
+
+            data, solver_inverse_data = solving_chain.solver.apply(
+                self._cache.param_prog)
+            inverse_data = self._cache.inverse_data + [solver_inverse_data]
+            self._compilation_time = time.time() - start
+            if verbose:
+                s.LOGGER.info(
+                        'Finished problem compilation '
+                        '(took %.3e seconds).', self._compilation_time)
+        else:
+            if verbose:
+                solver_name = solving_chain.reductions[-1].name()
+                reduction_chain_str = ' -> '.join(
+                        type(r).__name__ for r in solving_chain.reductions)
+                s.LOGGER.info(
+                         'Compiling problem (target solver=%s).', solver_name)
+                s.LOGGER.info('Reduction chain: %s', reduction_chain_str)
+            data, inverse_data = solving_chain.apply(self, verbose)
+            safe_to_cache = (
+                isinstance(data, dict)
+                and s.PARAM_PROB in data
+                and not any(isinstance(reduction, EvalParams)
+                            for reduction in solving_chain.reductions)
+            )
+            self._compilation_time = time.time() - start
+            if verbose:
+                s.LOGGER.info(
+                        'Finished problem compilation '
+                        '(took %.3e seconds).', self._compilation_time)
+            if safe_to_cache:
+                if verbose and self.parameters():
+                    s.LOGGER.info(
+                        '(Subsequent compilations of this problem, using the '
+                        'same arguments, should ' 'take less time.)')
+                self._cache.param_prog = data[s.PARAM_PROB]
+                # the last datum in inverse_data corresponds to the solver,
+                # so we shouldn't cache it
+                self._cache.inverse_data = inverse_data[:-1]
+        return data, solving_chain, inverse_data
+
+
+    def unpack(self, solution) -> None:
+        """Updates the problem state given a Solution.
+
+        Updates problem.status, problem.value and value of primal and dual
+        variables. If solution.status is in cvxpy.settins.ERROR, this method
+        is a no-op.
+
+        Arguments
+        _________
+        solution : cvxpy.Solution
+            A Solution object.
+
+        Raises
+        ------
+        ValueError
+            If the solution object has an invalid status
+        """
+        if solution.status in s.SOLUTION_PRESENT:
+            for v in self.variables():
+                v.save_value(solution.primal_vars[v.id])
+            for c in self.constraints:
+                if c.id in solution.dual_vars:
+                    c.save_dual_value(solution.dual_vars[c.id])
+            # Eliminate confusion of problem.value versus objective.value.
+            self._value = self.objective.value
+        elif solution.status in s.INF_OR_UNB:
+            for v in self.variables():
+                v.save_value(None)
+            for constr in self.constraints:
+                for dv in constr.dual_variables:
+                    dv.save_value(None)
+            self._value = solution.opt_val
+        else:
+            raise ValueError("Cannot unpack invalid solution: %s" % solution)
+
+        self._status = solution.status
+        self._solution = solution
+
+    def unpack_results_unc(self, solution, chain, inverse_data,solvername) -> None:
+        """Updates the problem state given the solver results.
+
+        Updates problem.status, problem.value and value of
+        primal and dual variables.
+
+        Arguments
+        _________
+        solution : object
+            The solution returned by applying the chain to the problem
+            and invoking the solver on the resulting data.
+        chain : SolvingChain
+            A solving chain that was used to solve the problem.
+        inverse_data : list
+            The inverse data returned by applying the chain to the problem.
+
+        Raises
+        ------
+        cvxpy.error.SolverError
+            If the solver failed
+        """
+
+        solution = chain.invert(solution, inverse_data)
+        if solution.status in s.INACCURATE:
+            warnings.warn(
+                "Solution may be inaccurate. Try another solver, "
+                "adjusting the solver settings, or solve with "
+                "verbose=True for more information."
+            )
+        if solution.status == s.INFEASIBLE_OR_UNBOUNDED:
+            warnings.warn(INF_OR_UNB_MESSAGE)
+        if solution.status in s.ERROR:
+            raise error.SolverError(
+                    f"Solver {solvername} failed. "
+                    "Try another solver, or solve with verbose=True for more "
+                    "information.")
+        self.unpack(solution)
+        self._solver_stats = SolverStats.from_dict(self._solution.attr,
+                                         solvername)
+
 
     def _validate_uncertain_parameters(self):
         """
@@ -508,6 +812,7 @@ class RobustProblem(Problem):
         unc_reductions = []
         if type(self.objective) == Maximize:
             unc_reductions += [FlipObjective()]
+        # unc_reductions += [Distribute_Uncertain_Params()]
         unc_reductions += [RemoveUncertainParameters()]
         newchain = UncertainChain(self, reductions=unc_reductions)
 
@@ -970,11 +1275,12 @@ class RobustProblem(Problem):
 
     def _train_loop(self, init_num, **kwargs):
         if kwargs['random_init']:
-            np.random.seed(kwargs['seed']+init_num)
-            kwargs['init_A'] = np.random.rand(
-                kwargs['u_size'], kwargs['u_size'])
-            kwargs['init_b'] = - \
-                kwargs['init_A']@np.mean(kwargs['train_set'], axis=0)
+            if init_num >= 1:
+                np.random.seed(kwargs['seed']+init_num)
+                kwargs['init_A'] = np.random.rand(
+                    kwargs['u_size'], kwargs['u_size']) + 0.01*np.eye(kwargs['u_size'])
+                kwargs['init_b'] = - \
+                    kwargs['init_A']@np.mean(kwargs['train_set'], axis=0)
         a_history = []
         b_history = []
         df = pd.DataFrame(columns=["step"])
@@ -1021,6 +1327,7 @@ class RobustProblem(Problem):
         else:
             p_bar = tqdm(
                 range(kwargs['num_iter']), desc=f"run {init_num}: test value N/A, violations N/A")
+        curr_cvar = np.inf
         for step_num in p_bar:
             train_stats = TrainLoopStats(
                 step_num=step_num, train_flag=self.train_flag)
@@ -1067,8 +1374,13 @@ class RobustProblem(Problem):
 
             # lam = torch.maximum(lam + step_lam*train_constraint_value,
             #                    torch.zeros(self.num_g, dtype=settings.DTYPE))
-            lam = lam + torch.minimum(mu*train_constraint_value,
+            if step_num % 20 == 0:
+                if torch.norm(train_constraint_value) <= 0.9*curr_cvar:
+                    curr_cvar = torch.norm(train_constraint_value)
+                    lam = lam + torch.minimum(mu*train_constraint_value,
                                       1000*torch.ones(self.num_g, dtype=settings.DTYPE))
+                else:
+                    mu = kwargs['mu_multiplier']*mu
 
             new_row = train_stats.generate_train_row(
                 a_tch, lam, mu, alpha, slack)
@@ -1110,7 +1422,7 @@ class RobustProblem(Problem):
                 df_test = pd.concat(
                     [df_test, new_row.to_frame().T], ignore_index=True)
 
-                mu = kwargs['mu_multiplier']*mu
+                # mu = kwargs['mu_multiplier']*mu
 
             if step_num < kwargs['num_iter'] - 1:
                 opt.step()
@@ -1362,9 +1674,10 @@ class RobustProblem(Problem):
                 unc_set, test_percentage, seed)
 
         # create cvxpylayer
-        cvxpylayer = CvxpyLayer(
-            self.new_prob, parameters=self.new_prob.parameters(), variables=self.variables()
-        )
+        cvxpylayer = CvxpyLayer(self.new_prob,
+                                parameters=self.y_parameters()
+                                + self.shape_parameters(self.new_prob),
+                                variables=self.variables())
 
         # use all y's
         y_parameters = self.y_parameters()
@@ -1446,14 +1759,24 @@ class RobustProblem(Problem):
             if type(self.objective) == Maximize:
                 unc_reductions += [FlipObjective()]
 
-            unc_reductions += [Distribute_Uncertain_Params()]
+            # unc_reductions += [Distribute_Uncertain_Params()]
             unc_reductions += [RemoveUncertainParameters()]
             newchain = UncertainChain(self, reductions=unc_reductions)
-            prob, _ = newchain.apply(self)
-            return prob
+            prob, inverse_data = newchain.apply(self)
+            return prob, inverse_data, newchain
         return super(RobustProblem, self)
 
-    def solve(self, solver: Optional[str] = None):
+    def solve(self,
+               solver: str = None,
+               warm_start: bool = True,
+               verbose: bool = False,
+               gp: bool = False,
+               qcp: bool = False,
+               requires_grad: bool = False,
+               enforce_dpp: bool = False,
+               ignore_dpp: bool = False,
+               canon_backend: str | None = None,
+               **kwargs):
         # TODO (Bart): Need to invert the data to get the solution to the original problem
         if self.new_prob is not None:
             return self.new_prob.solve(solver=solver)
@@ -1465,9 +1788,31 @@ class RobustProblem(Problem):
                 elif self.uncertain_parameters()[0].uncertainty_set._train:
                     _ = self.train()
                     return self.new_prob.solve(solver=solver)
-            prob = self.dualize_constraints()
-            return prob.solve(solver=solver)
-        return super(RobustProblem, self).solve()
+        #     data, solving_chain, inverse_data = self.get_problem_data(
+        #     solver, gp, enforce_dpp, ignore_dpp, verbose, canon_backend, kwargs
+        # )
+        #     solution = solving_chain.solve_via_data(
+        #     self, data, warm_start, verbose, kwargs)
+        #     self.unpack_results(solution, solving_chain, inverse_data)
+            prob, inverse_data, uncertain_chain = self.dualize_constraints()
+            prob.solve(solver,warm_start,verbose,gp,qcp,requires_grad,enforce_dpp,ignore_dpp,canon_backend,**kwargs)
+            solvername = prob.solver_stats.solver_name
+            solution = prob._solution
+            self.unpack_results_unc(solution, uncertain_chain, inverse_data,solvername)
+            return self.value
+            # prob, inverse_data, uncertain_chain = self.dualize_constraints()
+
+            # inverted_solution = uncertain_chain.invert(prob._solution, inverse_data)
+            # solution = uncertain_chain.solve_via_data(
+            # self, data, warm_start, verbose, kwargs)
+            # self.unpack_results(solution, uncertain_chain, inverse_data)
+            # return prob.solve(solver=solver)
+        return super(RobustProblem, self).solve(solver,warm_start,
+                                                verbose,gp,qcp,
+                                                requires_grad,
+                                                enforce_dpp,
+                                                ignore_dpp,
+                                                canon_backend,**kwargs)
 
 
 class Result(ABC):
@@ -1524,3 +1869,55 @@ class Result(ABC):
     @property
     def uncset_iters(self):
         return self._a_history, self._b_history
+
+@dataclass
+class SolverStats:
+    """Reports some of the miscellaneous information that is returned
+    by the solver after solving but that is not captured directly by
+    the Problem instance.
+
+    Attributes
+    ----------
+    solver_name : str
+        The name of the solver.
+    solve_time : double
+        The time (in seconds) it took for the solver to solve the problem.
+    setup_time : double
+        The time (in seconds) it took for the solver to setup the problem.
+    num_iters : int
+        The number of iterations the solver had to go through to find a solution.
+    extra_stats : object
+        Extra statistics specific to the solver; these statistics are typically
+        returned directly from the solver, without modification by CVXPY.
+        This object may be a dict, or a custom Python object.
+    """
+
+    solver_name: str
+    solve_time: Optional[float] = None
+    setup_time: Optional[float] = None
+    num_iters: Optional[int] = None
+    extra_stats: Optional[dict] = None
+
+    @classmethod
+    def from_dict(cls, attr: dict, solver_name: str) -> "SolverStats":
+        """Construct a SolverStats object from a dictionary of attributes.
+
+        Parameters
+        ----------
+        attr : dict
+            A dictionary of attributes returned by the solver.
+        solver_name : str
+            The name of the solver.
+
+        Returns
+        -------
+        SolverStats
+            A SolverStats object.
+        """
+        return cls(
+            solver_name,
+            solve_time=attr.get(s.SOLVE_TIME),
+            setup_time=attr.get(s.SETUP_TIME),
+            num_iters=attr.get(s.NUM_ITERS),
+            extra_stats=attr.get(s.EXTRA_STATS),
+        )

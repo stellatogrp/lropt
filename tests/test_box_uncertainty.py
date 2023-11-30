@@ -22,10 +22,10 @@ class TestBoxUncertainty(unittest.TestCase):
         """Setup basic problem"""
         np.random.seed(0)
         self.n = 5
-        c = np.random.rand(self.n)
+        self.c = np.random.rand(self.n)
         self.b = 10.
         self.x = cp.Variable(self.n)
-        self.objective = cp.Minimize(c @ self.x)
+        self.objective = cp.Minimize(self.c @ self.x)
         # Robust set
         self.rho = 0.2
         self.p = 2
@@ -218,3 +218,46 @@ class TestBoxUncertainty(unittest.TestCase):
         prob_cvxpy.solve()
 
         npt.assert_allclose(x.value, x_cvx.value, rtol=RTOL, atol=ATOL)
+
+    def test_maximize(self):
+        b, x, n= self.b, self.x, self.n
+        objective = cp.Maximize(-self.c @ self.x)
+        # Robust set
+        # Affine transform
+
+        A_unc = 3. * np.eye(n)
+        b_unc = 0.1 * np.random.rand(n)
+
+        # Polyhedral constraint (make a box)
+        A_poly = np.vstack((np.eye(n),
+                            -np.eye(n)))
+        b_poly = np.concatenate((0.1 * np.ones(n),
+                                 0.1 * np.ones(n)))
+
+        # Formulate robust problem using box constraints in cvxpy
+        constraints = [-2*b_unc @ x + 0.1 * cp.norm(-2*A_unc.T @ x, p=1) <= b]
+        prob_cvxpy_box = cp.Problem(objective, constraints)
+        prob_cvxpy_box.solve(solver=SOLVER)
+        x_cvxpy_box = x.value
+
+        # Formulate robust problem using box constraints in lropt
+        unc_set = Box(rho=0.1)
+
+        a = UncertainParameter(n, uncertainty_set=unc_set)
+        constraints = [-2*(b_unc + np.eye(n)@(A_unc @ a)) @ x <= b]
+        prob_robust_box = RobustProblem(objective, constraints)
+        prob_robust_box.solve(solver=SOLVER)
+        x_robust_box = x.value
+
+        # Formulate robust problem using equivalent polyhedral constraint
+        unc_set = Polyhedral(d=b_poly,
+                             D=A_poly)
+        a = UncertainParameter(n,
+                               uncertainty_set=unc_set)
+        constraints = [(-2 * A_unc @ a - 2 * b_unc) @ x <= b]
+        prob_robust_poly = RobustProblem(objective, constraints)
+        prob_robust_poly.solve(solver=SOLVER)
+        x_robust_poly = x.value
+
+        npt.assert_allclose(x_cvxpy_box, x_robust_box, rtol=RTOL, atol=ATOL)
+        npt.assert_allclose(x_robust_box, x_robust_poly, rtol=RTOL, atol=ATOL)

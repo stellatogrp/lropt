@@ -23,7 +23,7 @@ class TestMax(unittest.TestCase):
         self.a = npr.uniform(1, 4, n)
         self.d = self.a + npr.uniform(2, 5, n)
 
-    def test_max(self):
+    def test_maximum_of_affine(self):
         # formulate uncertainty set
         n = 5
         u = UncertainParameter(n,
