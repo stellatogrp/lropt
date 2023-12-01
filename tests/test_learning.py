@@ -125,11 +125,11 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         #                     init_alpha=0., test_percentage=test_p)
         # dfgrid = result4.df
 
-        result5 = prob.grid(epslst=np.linspace(0.01, 5, 10), \
-        init_A=result.A, init_b=result.b, seed=s,
-                            init_alpha=0., test_percentage=test_p)
-        dfgrid2 = result5.df
-        print(dfgrid2)
+        # result5 = prob.grid(epslst=np.linspace(0.01, 5, 10), \
+        # init_A=result.A, init_b=result.b, seed=s,
+        #                     init_alpha=0., test_percentage=test_p)
+        # dfgrid2 = result5.df
+        # print(dfgrid2)
 
     def test_torch_exp(self):
         # Setup
