@@ -1522,6 +1522,18 @@ class RobustProblem(Problem):
         )
 
     def dualize_constraints(self,override = False):
+        """
+        This function canonizes a problem and saves it to self.new_prob
+
+        Args:
+
+        override
+            If True, will override current new_prob. If false and new_prob exists, does nothing.
+
+        Returns:
+
+        None
+        """
         if (not override) and (self.new_prob):
             return
         if self.uncertain_parameters():
@@ -1547,8 +1559,14 @@ class RobustProblem(Problem):
                ignore_dpp: bool = False,
                canon_backend: str | None = None,
                **kwargs):
+        """
+        This function solves the robust problem, and dualizes it first if it has
+        not been dualized
+
+        Returns: the solution to the original problem
+        """
         if self.new_prob is not None:
-            # user must set y values
+            # if already trained
             return self._helper_solve(solver,warm_start,
                                                 verbose,gp,qcp,
                                                 requires_grad,
@@ -1556,34 +1574,30 @@ class RobustProblem(Problem):
                                                 ignore_dpp,
                                                 canon_backend,**kwargs)
         elif self.uncertain_parameters():
-            if self.uncertain_parameters()[0].uncertainty_set.data is not None:
+            # if no data is passed, no training is needed
+            if self.uncertain_parameters()[0].uncertainty_set.data is None:
+                self.dualize_constraints()
+            else:
+                # if not MRO set and not trained
                 if not type(self.uncertain_parameters()[0].uncertainty_set) == MRO:
                     _ = self.train()
                     for y in self.y_parameters():
                         y.value = y.data[0]
-                    return self._helper_solve(solver,warm_start,
-                                                verbose,gp,qcp,
-                                                requires_grad,
-                                                enforce_dpp,
-                                                ignore_dpp,
-                                                canon_backend,**kwargs)
+                # if MRO set and training needed
                 elif self.uncertain_parameters()[0].uncertainty_set._train:
                     _ = self.train()
                     for y in self.y_parameters():
                         y.value = y.data[0]
-                    return self._helper_solve(solver,warm_start,
-                                                verbose,gp,qcp,
-                                                requires_grad,
-                                                enforce_dpp,
-                                                ignore_dpp,
-                                                canon_backend,**kwargs)
-            self.dualize_constraints()
+                else:
+                    # if MRO set and no training needed
+                    self.dualize_constraints()
             return self._helper_solve(solver,warm_start,
                                                 verbose,gp,qcp,
                                                 requires_grad,
                                                 enforce_dpp,
                                                 ignore_dpp,
                                                 canon_backend,**kwargs)
+        # if not robust
         return super(RobustProblem, self).solve(solver,warm_start,
                                                 verbose,gp,qcp,
                                                 requires_grad,
@@ -1602,6 +1616,11 @@ class RobustProblem(Problem):
                 ignore_dpp: bool = False,
                 canon_backend: str | None = None,
                 **kwargs):
+        """
+        This function solves the dualized robust problem
+
+        Returns: the solution to the original problem
+        """
         prob = self.new_prob
         inverse_data = self.inverse_data
         uncertain_chain = self.uncertain_chain
