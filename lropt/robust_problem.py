@@ -23,6 +23,7 @@ import lropt.settings as settings
 import lropt.utils as utils
 from lropt.parameter import Parameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
+from lropt.set_predictors.linear import Linear
 from lropt.shape_parameter import ShapeParameter
 from lropt.uncertain import UncertainParameter
 from lropt.uncertain_canon.distribute_uncertain_params import Distribute_Uncertain_Params
@@ -993,6 +994,9 @@ class RobustProblem(Problem):
             self._update_iters(kwargs['save_history'], a_history, b_history,
                                a_tch, b_tch, kwargs['mro_set'])
 
+        predictor = Linear(size = kwargs['u_size'])
+        w_optimizer = torch.optim.SGD(predictor.parameters(), lr=kwargs['lr'])
+
         variables = self._set_train_variables(kwargs['fixb'],
                                               kwargs['mro_set'], alpha,
                                               slack,
@@ -1043,6 +1047,8 @@ class RobustProblem(Problem):
                 var_values = kwargs['cvxpylayer'](*y_batch, a_tch,
                                                   solver_args=kwargs['solver_args'])
             else:
+                a_tch_flattened, b_tch = predictor(y_batch)
+                a_tch = torch.unflatten(a_tch_flattened, (kwargs['u_size'], kwargs['u_size']))
                 var_values = kwargs['cvxpylayer'](*y_batch, a_tch, b_tch,
                                                   solver_args=kwargs['solver_args'])
 
@@ -1112,6 +1118,9 @@ class RobustProblem(Problem):
                 mu = kwargs['mu_multiplier']*mu
 
             if step_num < kwargs['num_iter'] - 1:
+                w_optimizer.step()
+                w_optimizer.zero_grad()
+
                 opt.step()
                 opt.zero_grad()
                 with torch.no_grad():
