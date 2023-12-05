@@ -33,6 +33,7 @@ import lropt.settings as settings
 import lropt.utils as utils
 from lropt.parameter import Parameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
+from lropt.set_predictors.constant import Constant
 from lropt.set_predictors.linear import Linear
 from lropt.shape_parameter import ShapeParameter
 from lropt.uncertain import UncertainParameter
@@ -1301,7 +1302,10 @@ class RobustProblem(Problem):
             self._update_iters(kwargs['save_history'], a_history, b_history,
                                a_tch, b_tch, kwargs['mro_set'])
 
-        predictor = Linear(size = kwargs['u_size'])
+        # default case is that predictor does not depend on y (the context)
+        predictor = Constant(size = kwargs['u_size'])
+        if kwargs["predictor"] == "LINEAR":
+            predictor = Linear(size = kwargs["u_size"])
         w_optimizer = torch.optim.SGD(predictor.parameters(), lr=kwargs['lr'])
 
         variables = self._set_train_variables(kwargs['fixb'],
@@ -1466,6 +1470,7 @@ class RobustProblem(Problem):
         scheduler=settings.SCHEDULER_STEPLR_DEFAULT,
         momentum=settings.MOMENTUM_DEFAULT,
         optimizer=settings.OPT_DEFAULT,
+        predictor=settings.PREDICTOR_DEFAULT,
         init_eps=settings.INIT_EPS_DEFAULT,
         init_A=settings.INIT_A_DEFAULT,
         init_b=settings.INIT_B_DEFAULT,
@@ -1508,7 +1513,9 @@ class RobustProblem(Problem):
         momentum: float between 0 and 1, optional
             The momentum for gradient descent.
         optimizer: str or letters, optional
-            The optimizer to use tor the descent algorithm.
+            The optimizer to use for the descent algorithm.
+        predictor: str, optional
+            The type of predictor to use for the dependency on the context.
         init_eps : float, optional
             The epsilon to initialize :math:`A` and :math:`b`, if passed. If not passed,
             :math:`A` will be initialized as the inverse square root of the
@@ -1581,7 +1588,7 @@ class RobustProblem(Problem):
                   "mro_set": mro_set, "random_init": random_init,
                   "seed": seed, "u_size": u_size, "train_set": train_set,
                   "init_alpha": init_alpha, "save_history": save_history,
-                  "fixb": fixb, "optimizer": optimizer,
+                  "fixb": fixb, "optimizer": optimizer, "predictor": predictor,
                   "lr": lr, "momentum": momentum,
                   "scheduler": scheduler, "init_lam":
                   init_lam, "init_mu": init_mu,

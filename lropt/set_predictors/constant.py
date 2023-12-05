@@ -3,29 +3,19 @@ import torch
 from lropt.set_predictors.set_predictor import SetPredictor
 
 
-class Linear(SetPredictor):
+class Constant(SetPredictor):
 
     def __init__(self, size):
         self.w_a = torch.nn.Parameter(torch.randn(size^2, size))
-        self.intcpt_a = torch.nn.Parameter(torch.randn(size^2, 1))
         self.w_b = torch.nn.Parameter(torch.randn(size, size))
-        self.intcpt_b = torch.nn.Paramter(torch.randn(size, 1))
 
     @property
     def w_a(self):
         return self.w_a
 
     @property
-    def intcpt_a(self):
-        return self.intcpt_a
-
-    @property
     def w_b(self):
         return self.w_b
 
-    @property
-    def intcpt_b(self):
-        return self.intcpt_b
-
     def forward(self, y):
-        return self.w_a * y + self.intcpt_a, self.w_b * y + self.intcpt_b
+        return self.w_a, self.w_b
