@@ -1,4 +1,3 @@
-import time
 import warnings
 from abc import ABC
 from dataclasses import dataclass
@@ -13,14 +12,11 @@ import scipy as sc
 import torch
 from cvxpy import error
 from cvxpy import settings as s
-from cvxpy.error import DPPError
 from cvxpy.expressions import cvxtypes
 from cvxpy.expressions.variable import Variable
 from cvxpy.problems.objective import Maximize
 from cvxpy.problems.problem import Problem
 from cvxpy.reductions import Dcp2Cone, Qp2SymbolicQp
-from cvxpy.reductions.dgp2dcp.dgp2dcp import Dgp2Dcp
-from cvxpy.reductions.eval_params import EvalParams
 from cvxpy.reductions.flip_objective import FlipObjective
 from cvxpy.reductions.solution import INF_OR_UNB_MESSAGE
 from cvxpy.reductions.solvers.solving_chain import SolvingChain, construct_solving_chain
@@ -81,7 +77,7 @@ class TrainLoopStats():
             Violation of learning constraint over train set
     """
 
-    def __init__(self, step_num, train_flag=True):
+    def __init__(self, step_num, train_flag=True, num_g=1):
         def __value_init__(self):
             """
             This is an internal function that either initiates a tensor or a list
@@ -99,6 +95,7 @@ class TrainLoopStats():
         self.prob_violation_train = __value_init__(self)
         self.violation_test = __value_init__(self)
         self.violation_train = __value_init__(self)
+        self.num_g = num_g
 
     def update_train_stats(self, temp_lagrangian, obj, prob_violation_train, train_constraint):
         """
@@ -114,7 +111,7 @@ class TrainLoopStats():
         # else:  # if self.train_flag
         self.trainval = obj[1].item()
         self.prob_violation_train = prob_violation_train.item()
-        self.violation_train = sum(train_constraint).item()
+        self.violation_train = sum(train_constraint).item()/self.num_g
 
     def update_test_stats(self, obj_test, prob_violation_test, var_vio):
         """
@@ -131,7 +128,7 @@ class TrainLoopStats():
         self.testval = obj_test[1].item()
         self.upper_testval = obj_test[2].item()
         self.prob_violation_test = prob_violation_test.item()
-        self.violation_test = sum(var_vio.detach().numpy())
+        self.violation_test = sum(var_vio.detach().numpy())/self.num_g
 
     def generate_train_row(self, a_tch, lam, mu, alpha, slack):
         """
@@ -227,6 +224,7 @@ class RobustProblem(Problem):
         self._values = None
         self.new_prob = None
         self.inverse_data = None
+        self.uncertain_chain = None
         self._init = None
         self.train_flag = train_flag
         self._solution = None
@@ -336,15 +334,15 @@ class RobustProblem(Problem):
         elif eval_input_case == RobustProblem._EVAL_INPUT_CASE.MAX:
             # We want to see if there's a violation: either 1 from previous iterations,
             # or new positive value from now
-            curr_result = (curr_result > 0).float()
+            curr_result = (curr_result > 1e-5).float()
             init_val += curr_result
-            init_val = (init_val > 0).float()
+            init_val = (init_val > 1e-5).float()
         return init_val
 
     def train_objective(self, eval_args, items_to_sample):
         return self._eval_input(eval_func=self.f, eval_args=eval_args,
                                 items_to_sample=items_to_sample, init_val=0,
-                                eval_input_case=RobustProblem._EVAL_INPUT_CASE.MAX, quantiles=None)
+                                eval_input_case=RobustProblem._EVAL_INPUT_CASE.MEAN, quantiles=None)
 
     def train_constraint(self, eval_args, items_to_sample, alpha, slack, eta, kappa):
         num_g = len(self.h)
@@ -466,202 +464,6 @@ class RobustProblem(Problem):
                     break
         # return a chain instead (chain.apply, return the problem and inverse data)
         return SolvingChain(reductions=new_reductions)
-
-
-    def get_problem_data(
-        self, solver,
-        gp: bool = False,
-        enforce_dpp: bool = False,
-        ignore_dpp: bool = False,
-        verbose: bool = False,
-        canon_backend: str | None = None,
-        solver_opts: Optional[dict] = None
-    ):
-        """Returns the problem data used in the call to the solver.
-
-        When a problem is solved, CVXPY creates a chain of reductions enclosed
-        in a :class:`~cvxpy.reductions.solvers.solving_chain.SolvingChain`,
-        and compiles it to some low-level representation that is
-        compatible with the targeted solver. This method returns that low-level
-        representation.
-
-        For some solving chains, this low-level representation is a dictionary
-        that contains exactly those arguments that were supplied to the solver;
-        however, for other solving chains, the data is an intermediate
-        representation that is compiled even further by the solver interfaces.
-
-        A solution to the equivalent low-level problem can be obtained via the
-        data by invoking the `solve_via_data` method of the returned solving
-        chain, a thin wrapper around the code external to CVXPY that further
-        processes and solves the problem. Invoke the unpack_results method
-        to recover a solution to the original problem.
-
-        For example:
-
-        ::
-
-            objective = ...
-            constraints = ...
-            problem = cp.Problem(objective, constraints)
-            data, chain, inverse_data = problem.get_problem_data(cp.SCS)
-            # calls SCS using `data`
-            soln = chain.solve_via_data(problem, data)
-            # unpacks the solution returned by SCS into `problem`
-            problem.unpack_results(soln, chain, inverse_data)
-
-        Alternatively, the `data` dictionary returned by this method
-        contains enough information to bypass CVXPY and call the solver
-        directly.
-
-        For example:
-
-        ::
-
-            problem = cp.Problem(objective, constraints)
-            data, _, _ = problem.get_problem_data(cp.SCS)
-
-            import scs
-            probdata = {
-              'A': data['A'],
-              'b': data['b'],
-              'c': data['c'],
-            }
-            cone_dims = data['dims']
-            cones = {
-                "f": cone_dims.zero,
-                "l": cone_dims.nonneg,
-                "q": cone_dims.soc,
-                "ep": cone_dims.exp,
-                "s": cone_dims.psd,
-            }
-            soln = scs.solve(data, cones)
-
-        The structure of the data dict that CVXPY returns depends on the
-        solver. For details, consult the solver interfaces in
-        `cvxpy/reductions/solvers`.
-
-        Arguments
-        ---------
-        solver : str
-            The solver the problem data is for.
-        gp : bool, optional
-            If True, then parses the problem as a disciplined geometric program
-            instead of a disciplined convex program.
-        enforce_dpp : bool, optional
-            When True, a DPPError will be thrown when trying to parse a non-DPP
-            problem (instead of just a warning). Defaults to False.
-        ignore_dpp : bool, optional
-            When True, DPP problems will be treated as non-DPP,
-            which may speed up compilation. Defaults to False.
-        canon_backend : str, optional
-            'CPP' (default) | 'SCIPY'
-            Specifies which backend to use for canonicalization, which can affect
-            compilation time. Defaults to None, i.e., selecting the default
-            backend.
-        verbose : bool, optional
-            If True, print verbose output related to problem compilation.
-        solver_opts : dict, optional
-            A dict of options that will be passed to the specific solver.
-            In general, these options will override any default settings
-            imposed by cvxpy.
-
-        Returns
-        -------
-        dict or object
-            lowest level representation of problem
-        SolvingChain
-            The solving chain that created the data.
-        list
-            The inverse data generated by the chain.
-
-        Raises
-        ------
-        cvxpy.error.DPPError
-            Raised if DPP settings are invalid.
-        """
-
-        # Invalid DPP setting.
-        # Must be checked here to avoid cache issues.
-        if enforce_dpp and ignore_dpp:
-            raise DPPError("Cannot set enforce_dpp = True and ignore_dpp = True.")
-
-        start = time.time()
-        # Cache includes ignore_dpp because it alters compilation.
-        key = self._cache.make_key(solver, gp, ignore_dpp)
-        if key != self._cache.key:
-            self._cache.invalidate()
-            solving_chain = self._construct_chain(
-                solver=solver, gp=gp,
-                enforce_dpp=enforce_dpp,
-                ignore_dpp=ignore_dpp,
-                canon_backend=canon_backend,
-                solver_opts=solver_opts)
-            self._cache.key = key
-            self._cache.solving_chain = solving_chain
-            self._solver_cache = {}
-        else:
-            solving_chain = self._cache.solving_chain
-
-        if verbose:
-            print(_COMPILATION_STR)
-
-        if self._cache.param_prog is not None:
-            # fast path, bypasses application of reductions
-            if verbose:
-                s.LOGGER.info(
-                        'Using cached ASA map, for faster compilation '
-                        '(bypassing reduction chain).')
-            if gp:
-                dgp2dcp = self._cache.solving_chain.get(Dgp2Dcp)
-                # Parameters in the param cone prog are the logs
-                # of parameters in the original problem (with one exception:
-                # parameters appearing as exponents (in power and gmatmul
-                # atoms) are unchanged.
-                old_params_to_new_params = dgp2dcp.canon_methods._parameters
-                for param in self.parameters():
-
-                    if param in old_params_to_new_params:
-                        old_params_to_new_params[param].value = np.log(
-                            param.value)
-
-            data, solver_inverse_data = solving_chain.solver.apply(
-                self._cache.param_prog)
-            inverse_data = self._cache.inverse_data + [solver_inverse_data]
-            self._compilation_time = time.time() - start
-            if verbose:
-                s.LOGGER.info(
-                        'Finished problem compilation '
-                        '(took %.3e seconds).', self._compilation_time)
-        else:
-            if verbose:
-                solver_name = solving_chain.reductions[-1].name()
-                reduction_chain_str = ' -> '.join(
-                        type(r).__name__ for r in solving_chain.reductions)
-                s.LOGGER.info(
-                         'Compiling problem (target solver=%s).', solver_name)
-                s.LOGGER.info('Reduction chain: %s', reduction_chain_str)
-            data, inverse_data = solving_chain.apply(self, verbose)
-            safe_to_cache = (
-                isinstance(data, dict)
-                and s.PARAM_PROB in data
-                and not any(isinstance(reduction, EvalParams)
-                            for reduction in solving_chain.reductions)
-            )
-            self._compilation_time = time.time() - start
-            if verbose:
-                s.LOGGER.info(
-                        'Finished problem compilation '
-                        '(took %.3e seconds).', self._compilation_time)
-            if safe_to_cache:
-                if verbose and self.parameters():
-                    s.LOGGER.info(
-                        '(Subsequent compilations of this problem, using the '
-                        'same arguments, should ' 'take less time.)')
-                self._cache.param_prog = data[s.PARAM_PROB]
-                # the last datum in inverse_data corresponds to the solver,
-                # so we shouldn't cache it
-                self._cache.inverse_data = inverse_data[:-1]
-        return data, solving_chain, inverse_data
 
 
     def unpack(self, solution) -> None:
@@ -792,38 +594,6 @@ class RobustProblem(Problem):
         """
 
         return (type(unc_set) == MRO)
-
-    def _canonize_problem(self, override=False):
-        """
-        This function canonizes a problem and saves it to self.new_prob
-
-        Args:
-
-        override
-            If True, will override current new_prob. If false and new_prob exists, does nothing.
-
-        Returns:
-
-        None
-        """
-
-        if (not override) and (self.new_prob):
-            return
-
-        # Creating uncertainty reduction and chain
-        unc_reductions = []
-        if type(self.objective) == Maximize:
-            unc_reductions += [FlipObjective()]
-        # unc_reductions += [Distribute_Uncertain_Params()]
-        unc_reductions += [RemoveUncertainParameters()]
-        newchain = UncertainChain(self, reductions=unc_reductions)
-
-        # TODO (Bart): We should keep inverse data. We can use it to reconstruct the original
-        # solution from new_prob. Are we sure we don't need it?
-        # Apply the chain
-        # prob is the problem without uncertainty
-        # The second (unused) returned value is inverse_data
-        self.new_prob, self.inverse_data = newchain.apply(self)
 
     def _gen_init(self, eps, train_set, init_eps, init_A):
         """
@@ -1338,7 +1108,7 @@ class RobustProblem(Problem):
         curr_cvar = np.inf
         for step_num in p_bar:
             train_stats = TrainLoopStats(
-                step_num=step_num, train_flag=self.train_flag)
+                step_num=step_num, train_flag=self.train_flag, num_g=self.num_g)
 
             # generate batched y and u
             y_batch = self._gen_y_batch(
@@ -1461,7 +1231,7 @@ class RobustProblem(Problem):
                 if kwargs['scheduler']:
                     scheduler_.step()
 
-        if prob_violation_test.item() <= 0.001:
+        if sum(var_vio.detach().numpy())/self.num_g <= kwargs["kappa"]:
             fin_val = obj_test[1].item()
         else:
             fin_val = obj_test[1].item() + 10*abs(sum(var_vio.detach().numpy()))
@@ -1585,7 +1355,7 @@ class RobustProblem(Problem):
         self._validate_uncertain_parameters()
 
         unc_set = self._get_unc_set()
-        self._canonize_problem()
+        self.dualize_constraints()
         self._validate_unc_set_T(unc_set)
         train_set, _, train_tch, test_tch = self._split_dataset(
             unc_set, test_percentage, seed)
@@ -1686,7 +1456,7 @@ class RobustProblem(Problem):
         self._validate_uncertain_parameters()
 
         unc_set = self._get_unc_set()
-        self._canonize_problem()
+        self.dualize_constraints(override=True)
 
         self._validate_unc_set_T(unc_set)
         df = pd.DataFrame(
@@ -1705,8 +1475,8 @@ class RobustProblem(Problem):
 
         # create cvxpylayer
         cvxpylayer = CvxpyLayer(self.new_prob,
-                                parameters=self.y_parameters()
-                                + self.shape_parameters(self.new_prob),
+                                parameters=self.y_parameters() +
+                                self.shape_parameters(self.new_prob),
                                 variables=self.variables())
 
         # use all y's
@@ -1732,7 +1502,7 @@ class RobustProblem(Problem):
                                         solver_args=solver_args)
 
             train_stats = TrainLoopStats(
-                step_num=np.NAN, train_flag=self.train_flag)
+                step_num=np.NAN, train_flag=self.train_flag, num_g=self.num_g)
             with torch.no_grad():
                 test_args, test_to_sample = self._order_args(
                     var_values=var_values,
@@ -1782,19 +1552,32 @@ class RobustProblem(Problem):
             grid_stats.var_vals,
         )
 
-    def dualize_constraints(self):
-        # TODO (Bart): This might be a redundant function, construct_chain should do that.
+    def dualize_constraints(self,override = False):
+        """
+        This function canonizes a problem and saves it to self.new_prob
+
+        Args:
+
+        override
+            If True, will override current new_prob. If false and new_prob exists, does nothing.
+
+        Returns:
+
+        None
+        """
+        if (not override) and (self.new_prob):
+            return
         if self.uncertain_parameters():
             unc_reductions = []
             if type(self.objective) == Maximize:
                 unc_reductions += [FlipObjective()]
-
             # unc_reductions += [Distribute_Uncertain_Params()]
             unc_reductions += [RemoveUncertainParameters()]
             newchain = UncertainChain(self, reductions=unc_reductions)
             prob, inverse_data = newchain.apply(self)
-            return prob, inverse_data, newchain
-        return super(RobustProblem, self)
+            self.new_prob =  prob
+            self.inverse_data = inverse_data
+            self.uncertain_chain = newchain
 
     def solve(self,
                solver: str = None,
@@ -1807,36 +1590,45 @@ class RobustProblem(Problem):
                ignore_dpp: bool = False,
                canon_backend: str | None = None,
                **kwargs):
-        # TODO (Bart): Need to invert the data to get the solution to the original problem
+        """
+        This function solves the robust problem, and dualizes it first if it has
+        not been dualized
+
+        Returns: the solution to the original problem
+        """
         if self.new_prob is not None:
-            return self.new_prob.solve(solver=solver)
+            # if already trained
+            return self._helper_solve(solver,warm_start,
+                                                verbose,gp,qcp,
+                                                requires_grad,
+                                                enforce_dpp,
+                                                ignore_dpp,
+                                                canon_backend,**kwargs)
         elif self.uncertain_parameters():
-            if self.uncertain_parameters()[0].uncertainty_set.data is not None:
+            # if no data is passed, no training is needed
+            if self.uncertain_parameters()[0].uncertainty_set.data is None:
+                self.dualize_constraints()
+            else:
+                # if not MRO set and not trained
                 if not type(self.uncertain_parameters()[0].uncertainty_set) == MRO:
                     _ = self.train()
-                    return self.new_prob.solve(solver=solver)
+                    for y in self.y_parameters():
+                        y.value = y.data[0]
+                # if MRO set and training needed
                 elif self.uncertain_parameters()[0].uncertainty_set._train:
                     _ = self.train()
-                    return self.new_prob.solve(solver=solver)
-        #     data, solving_chain, inverse_data = self.get_problem_data(
-        #     solver, gp, enforce_dpp, ignore_dpp, verbose, canon_backend, kwargs
-        # )
-        #     solution = solving_chain.solve_via_data(
-        #     self, data, warm_start, verbose, kwargs)
-        #     self.unpack_results(solution, solving_chain, inverse_data)
-            prob, inverse_data, uncertain_chain = self.dualize_constraints()
-            prob.solve(solver,warm_start,verbose,gp,qcp,requires_grad,enforce_dpp,ignore_dpp,canon_backend,**kwargs)
-            solvername = prob.solver_stats.solver_name
-            solution = prob._solution
-            self.unpack_results_unc(solution, uncertain_chain, inverse_data,solvername)
-            return self.value
-            # prob, inverse_data, uncertain_chain = self.dualize_constraints()
-
-            # inverted_solution = uncertain_chain.invert(prob._solution, inverse_data)
-            # solution = uncertain_chain.solve_via_data(
-            # self, data, warm_start, verbose, kwargs)
-            # self.unpack_results(solution, uncertain_chain, inverse_data)
-            # return prob.solve(solver=solver)
+                    for y in self.y_parameters():
+                        y.value = y.data[0]
+                else:
+                    # if MRO set and no training needed
+                    self.dualize_constraints()
+            return self._helper_solve(solver,warm_start,
+                                                verbose,gp,qcp,
+                                                requires_grad,
+                                                enforce_dpp,
+                                                ignore_dpp,
+                                                canon_backend,**kwargs)
+        # if not robust
         return super(RobustProblem, self).solve(solver,warm_start,
                                                 verbose,gp,qcp,
                                                 requires_grad,
@@ -1844,6 +1636,30 @@ class RobustProblem(Problem):
                                                 ignore_dpp,
                                                 canon_backend,**kwargs)
 
+    def _helper_solve(self,
+                solver: str = None,
+                warm_start: bool = True,
+                verbose: bool = False,
+                gp: bool = False,
+                qcp: bool = False,
+                requires_grad: bool = False,
+                enforce_dpp: bool = False,
+                ignore_dpp: bool = False,
+                canon_backend: str | None = None,
+                **kwargs):
+        """
+        This function solves the dualized robust problem
+
+        Returns: the solution to the original problem
+        """
+        prob = self.new_prob
+        inverse_data = self.inverse_data
+        uncertain_chain = self.uncertain_chain
+        prob.solve(solver,warm_start,verbose,gp,qcp,requires_grad,enforce_dpp,ignore_dpp,canon_backend,**kwargs)
+        solvername = prob.solver_stats.solver_name
+        solution = prob._solution
+        self.unpack_results_unc(solution, uncertain_chain, inverse_data,solvername)
+        return self.value
 
 class Result(ABC):
     def __init__(self, prob, probnew, df, df_test, T, b, eps, obj, x, a_history=None,
