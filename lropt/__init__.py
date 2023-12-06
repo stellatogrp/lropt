@@ -10,3 +10,5 @@ from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
 from lropt.uncertainty_sets.mro import MRO
 from lropt.uncertainty_sets.norm import Norm
 from lropt.uncertainty_sets.polyhedral import Polyhedral
+from lropt.set_predictors.constant import Constant
+from lropt.set_predictors.linear import Linear

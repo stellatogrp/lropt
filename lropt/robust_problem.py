@@ -1305,7 +1305,7 @@ class RobustProblem(Problem):
         # default case is that predictor does not depend on y (the context)
         predictor = Constant(size = kwargs['u_size'])
         if kwargs["predictor"] == "LINEAR":
-            predictor = Linear(size = kwargs["u_size"])
+            predictor = Linear(size = kwargs['u_size'])
         w_optimizer = torch.optim.SGD(predictor.parameters(), lr=kwargs['lr'])
 
         variables = self._set_train_variables(kwargs['fixb'],
@@ -1359,8 +1359,22 @@ class RobustProblem(Problem):
                 var_values = kwargs['cvxpylayer'](*y_batch, a_tch,
                                                   solver_args=kwargs['solver_args'])
             else:
-                a_tch_flattened, b_tch = predictor(y_batch)
-                a_tch = torch.unflatten(a_tch_flattened, (kwargs['u_size'], kwargs['u_size']))
+                a_tch_list = []
+                b_tch_list = []
+                for y in y_batch[0]:
+                    a_temp, b_temp = predictor(y.view(-1, 1))
+                    if kwargs["predictor"] == "LINEAR":
+                        a_temp = a_temp.view(kwargs['u_size'], kwargs['u_size'])
+                    a_tch_list.append(a_temp)
+                    b_tch_list.append(b_temp)
+
+                a_tch = torch.nn.Parameter(torch.stack(a_tch_list))
+                b_tch = torch.nn.Parameter(torch.stack(b_tch_list))
+
+                a_tch = torch.nn.Parameter(a_tch[0, :, :])
+                b_tch = torch.nn.Parameter(b_tch[0, :])
+                # print(a_tch)
+                # print(b_tch)
                 var_values = kwargs['cvxpylayer'](*y_batch, a_tch, b_tch,
                                                   solver_args=kwargs['solver_args'])
 

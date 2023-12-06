@@ -1,31 +1,35 @@
 import torch
 
+import lropt.settings as settings
 from lropt.set_predictors.set_predictor import SetPredictor
 
 
 class Linear(SetPredictor):
 
     def __init__(self, size):
-        self.w_a = torch.nn.Parameter(torch.randn(size^2, size))
-        self.intcpt_a = torch.nn.Parameter(torch.randn(size^2, 1))
-        self.w_b = torch.nn.Parameter(torch.randn(size, size))
-        self.intcpt_b = torch.nn.Paramter(torch.randn(size, 1))
+        super().__init__()
+
+        self._w_a = torch.nn.Parameter(torch.randn(size*size, size, dtype=settings.DTYPE))
+        self._intcpt_a = torch.nn.Parameter(torch.randn(size*size, dtype=settings.DTYPE))
+        self._w_b = torch.nn.Parameter(torch.randn(size, size, dtype=settings.DTYPE))
+        self._intcpt_b = torch.nn.Parameter(torch.randn(size, dtype=settings.DTYPE))
 
     @property
     def w_a(self):
-        return self.w_a
+        return self._w_a
 
     @property
     def intcpt_a(self):
-        return self.intcpt_a
+        return self._intcpt_a
 
     @property
     def w_b(self):
-        return self.w_b
+        return self._w_b
 
     @property
     def intcpt_b(self):
-        return self.intcpt_b
+        return self._intcpt_b
 
     def forward(self, y):
-        return self.w_a * y + self.intcpt_a, self.w_b * y + self.intcpt_b
+        return (torch.matmul(self._w_a, y).view(-1) + self._intcpt_a,
+                torch.matmul(self.w_b, y).view(-1) + self._intcpt_b)
