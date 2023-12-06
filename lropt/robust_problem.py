@@ -75,7 +75,7 @@ class TrainLoopStats():
             Violation of learning constraint over train set
     """
 
-    def __init__(self, step_num, train_flag=True):
+    def __init__(self, step_num, train_flag=True, num_g=1):
         def __value_init__(self):
             """
             This is an internal function that either initiates a tensor or a list
@@ -93,6 +93,7 @@ class TrainLoopStats():
         self.prob_violation_train = __value_init__(self)
         self.violation_test = __value_init__(self)
         self.violation_train = __value_init__(self)
+        self.num_g = num_g
 
     def update_train_stats(self, temp_lagrangian, obj, prob_violation_train, train_constraint):
         """
@@ -108,7 +109,7 @@ class TrainLoopStats():
         # else:  # if self.train_flag
         self.trainval = obj[1].item()
         self.prob_violation_train = prob_violation_train.item()
-        self.violation_train = sum(train_constraint).item()
+        self.violation_train = sum(train_constraint).item()/self.num_g
 
     def update_test_stats(self, obj_test, prob_violation_test, var_vio):
         """
@@ -125,7 +126,7 @@ class TrainLoopStats():
         self.testval = obj_test[1].item()
         self.upper_testval = obj_test[2].item()
         self.prob_violation_test = prob_violation_test.item()
-        self.violation_test = sum(var_vio.detach().numpy())
+        self.violation_test = sum(var_vio.detach().numpy())/self.num_g
 
     def generate_train_row(self, a_tch, lam, mu, alpha, slack):
         """
@@ -331,15 +332,15 @@ class RobustProblem(Problem):
         elif eval_input_case == RobustProblem._EVAL_INPUT_CASE.MAX:
             # We want to see if there's a violation: either 1 from previous iterations,
             # or new positive value from now
-            curr_result = (curr_result > 0).float()
+            curr_result = (curr_result > 1e-5).float()
             init_val += curr_result
-            init_val = (init_val > 0).float()
+            init_val = (init_val > 1e-5).float()
         return init_val
 
     def train_objective(self, eval_args, items_to_sample):
         return self._eval_input(eval_func=self.f, eval_args=eval_args,
                                 items_to_sample=items_to_sample, init_val=0,
-                                eval_input_case=RobustProblem._EVAL_INPUT_CASE.MAX, quantiles=None)
+                                eval_input_case=RobustProblem._EVAL_INPUT_CASE.MEAN, quantiles=None)
 
     def train_constraint(self, eval_args, items_to_sample, alpha, slack, eta, kappa):
         num_g = len(self.h)
@@ -1099,7 +1100,7 @@ class RobustProblem(Problem):
         curr_cvar = np.inf
         for step_num in p_bar:
             train_stats = TrainLoopStats(
-                step_num=step_num, train_flag=self.train_flag)
+                step_num=step_num, train_flag=self.train_flag, num_g=self.num_g)
 
             # generate batched y and u
             y_batch = self._gen_y_batch(
@@ -1203,7 +1204,7 @@ class RobustProblem(Problem):
                 if kwargs['scheduler']:
                     scheduler_.step()
 
-        if prob_violation_test.item() <= 0.001:
+        if sum(var_vio.detach().numpy())/self.num_g <= kwargs["kappa"]:
             fin_val = obj_test[1].item()
         else:
             fin_val = obj_test[1].item() + 10*abs(sum(var_vio.detach().numpy()))
@@ -1425,7 +1426,7 @@ class RobustProblem(Problem):
         self._validate_uncertain_parameters()
 
         unc_set = self._get_unc_set()
-        self.dualize_constraints()
+        self.dualize_constraints(override=True)
 
         self._validate_unc_set_T(unc_set)
         df = pd.DataFrame(
@@ -1444,8 +1445,8 @@ class RobustProblem(Problem):
 
         # create cvxpylayer
         cvxpylayer = CvxpyLayer(self.new_prob,
-                                parameters=self.y_parameters()
-                                + self.shape_parameters(self.new_prob),
+                                parameters=self.y_parameters() +
+                                self.shape_parameters(self.new_prob),
                                 variables=self.variables())
 
         # use all y's
@@ -1471,7 +1472,7 @@ class RobustProblem(Problem):
                                         solver_args=solver_args)
 
             train_stats = TrainLoopStats(
-                step_num=np.NAN, train_flag=self.train_flag)
+                step_num=np.NAN, train_flag=self.train_flag, num_g=self.num_g)
             with torch.no_grad():
                 test_args, test_to_sample = self._order_args(
                     var_values=var_values,
