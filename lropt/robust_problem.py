@@ -1141,9 +1141,9 @@ class RobustProblem(Problem):
                 a_tch = torch.nn.Parameter(torch.stack(a_tch_list))
                 b_tch = torch.nn.Parameter(torch.stack(b_tch_list))
 
-                a_tch = torch.nn.Parameter(a_tch[0, :, :])
-                b_tch = torch.nn.Parameter(b_tch[0, :])
-                # print(a_tch)
+                # a_tch = torch.nn.Parameter(a_tch[0, :, :])
+                # b_tch = torch.nn.Parameter(b_tch[0, :])
+                # print(a_tch.size())
                 # print(b_tch)
                 var_values = kwargs['cvxpylayer'](*y_batch, a_tch, b_tch,
                                                   solver_args=kwargs['solver_args'])
@@ -1238,7 +1238,8 @@ class RobustProblem(Problem):
         a_val = a_tch.detach().numpy().copy()
         b_val = b_tch.detach().numpy().copy() if not kwargs['mro_set'] else 0
         eps_val = eps_tch.detach().numpy().copy() if kwargs['eps'] else 1
-        param_vals = (a_val, b_val, eps_val, obj_test[1].item())
+        w_val = [param.data for param in predictor.parameters()]
+        param_vals = (a_val, b_val, eps_val, obj_test[1].item(), w_val)
         # tqdm.write("Testing objective: {}".format(obj_test[1].item()))
         # tqdm.write("Probability of constraint violation: {}".format(
         #            prob_violation_test))
@@ -1399,20 +1400,29 @@ class RobustProblem(Problem):
         index_chosen = np.argmin(np.array(fin_val))
         self._trained = True
         unc_set._trained = True
-        unc_set.a.value = param_vals[index_chosen][0]
-        if not mro_set:
-            unc_set.b.value = param_vals[index_chosen][1]
+
+        # commented out since we don't need the a's for all y's, rather need to
+            # return the singular weights
+        # unc_set.a.value = param_vals[index_chosen][0] # this is returning the a's
+            # for all y's (but need it for just 1 y)
+        # if not mro_set:
+        #     unc_set.b.value = param_vals[index_chosen][1]
 
         return_eps = param_vals[index_chosen][2]
-        return_b_value = unc_set.b.value if not mro_set else None
-        return_b_history = b_history[index_chosen] if not mro_set else None
+        # return_b_value = unc_set.b.value if not mro_set else None
+        # return_b_history = b_history[index_chosen] if not mro_set else None
+        return_nn_weights = param_vals[index_chosen][4]
         return Result(self, self.new_prob, df[index_chosen],
-                      df_test[index_chosen], unc_set.a.value,
-                      return_b_value,
+                      df_test[index_chosen], return_nn_weights,
                       return_eps, param_vals[index_chosen][3],
-                      var_values[index_chosen],
-                      a_history=a_history[index_chosen],
-                      b_history=return_b_history)
+                      var_values[index_chosen])
+        # return Result(self, self.new_prob, df[index_chosen],
+        #               df_test[index_chosen], unc_set.a.value,
+        #               return_b_value,
+        #               return_eps, param_vals[index_chosen][3],
+        #               var_values[index_chosen],
+        #               a_history=a_history[index_chosen],
+        #               b_history=return_b_history)
 
     def grid(
         self,
@@ -1662,14 +1672,17 @@ class RobustProblem(Problem):
         return self.value
 
 class Result(ABC):
-    def __init__(self, prob, probnew, df, df_test, T, b, eps, obj, x, a_history=None,
+    # def __init__(self, prob, probnew, df, df_test, T, b, eps, obj, x, a_history=None,
+    #              b_history=None):
+    def __init__(self, prob, probnew, df, df_test, W, eps, obj, x, a_history=None,
                  b_history=None):
         self._reform_problem = probnew
         self._problem = prob
         self._df = df
         self._df_test = df_test
-        self._A = T
-        self._b = b
+        self._weights = W
+        # self._A = T
+        # self._b = b
         self._obj = obj
         self._x = x
         self._eps = eps
@@ -1693,12 +1706,16 @@ class Result(ABC):
         return self._reform_problem
 
     @property
-    def A(self):
-        return self._A
+    def weights(self):
+        return self._weights
 
-    @property
-    def b(self):
-        return self._b
+    # @property
+    # def A(self):
+    #     return self._A
+
+    # @property
+    # def b(self):
+    #     return self._b
 
     @property
     def eps(self):
