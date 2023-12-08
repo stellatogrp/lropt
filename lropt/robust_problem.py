@@ -22,6 +22,8 @@ from cvxpy.reductions.solution import INF_OR_UNB_MESSAGE
 from cvxpy.reductions.solvers.solving_chain import SolvingChain, construct_solving_chain
 from cvxpylayers.torch import CvxpyLayer
 from joblib import Parallel, delayed
+
+# from pathos.multiprocessing import ProcessPool as Pool
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
@@ -108,7 +110,7 @@ class TrainLoopStats():
         #     self.violation_train.append(train_constraint.item())
         # else:  # if self.train_flag
         self.trainval = obj[1].item()
-        self.prob_violation_train = prob_violation_train.item()
+        self.prob_violation_train = prob_violation_train.detach().numpy()
         self.violation_train = sum(train_constraint).item()/self.num_g
 
     def update_test_stats(self, obj_test, prob_violation_test, var_vio):
@@ -125,7 +127,7 @@ class TrainLoopStats():
         self.lower_testval = obj_test[0].item()
         self.testval = obj_test[1].item()
         self.upper_testval = obj_test[2].item()
-        self.prob_violation_test = prob_violation_test.item()
+        self.prob_violation_test = prob_violation_test.detach().numpy()
         self.violation_test = sum(var_vio.detach().numpy())/self.num_g
 
     def generate_train_row(self, a_tch, lam, mu, alpha, slack):
@@ -137,6 +139,7 @@ class TrainLoopStats():
             "Train_val":         self.trainval,
             "Probability_violations_train": self.prob_violation_train,
             "Violations_train":  self.violation_train,
+            "Avg_prob_train": np.mean(self.prob_violation_train)
         }
         row_dict["step"] = self.step_num,
         row_dict["A_norm"] = np.linalg.norm(
@@ -144,7 +147,7 @@ class TrainLoopStats():
         row_dict["lam_list"] = lam.detach().numpy().copy(),
         row_dict["mu"] = mu
         row_dict["alpha"] = alpha.item(),
-        row_dict["slack"] = slack.detach().numpy(),
+        row_dict["slack"] = slack.detach().numpy().copy(),
         row_dict["alphagrad"] = alpha.grad,
         row_dict["dfnorm"] = np.linalg.norm(a_tch.grad),
         row_dict["gradnorm"] = a_tch.grad,
@@ -163,7 +166,8 @@ class TrainLoopStats():
             "Upper_test": self.upper_testval,
             "Probability_violations_test":       self.prob_violation_test,
             "Violations_test":   self.violation_test,
-            "Coverage_test":    coverage_test.detach().numpy().item()
+            "Coverage_test":    coverage_test.detach().numpy().item(),
+            "Avg_prob_teset": np.mean(self.prob_violation_test)
         }
         row_dict["step"] = self.step_num,
         if not self.train_flag:
@@ -314,9 +318,10 @@ class RobustProblem(Problem):
             return res
 
         curr_result = 0
-        for j in range(self.num_ys):
-            curr_eval_args = _sample_args(eval_args, j, items_to_sample)
-            curr_result += eval_func(*curr_eval_args, **kwargs)
+        if eval_input_case != RobustProblem._EVAL_INPUT_CASE.MAX:
+            for j in range(self.num_ys):
+                curr_eval_args = _sample_args(eval_args, j, items_to_sample)
+                curr_result += eval_func(*curr_eval_args, **kwargs)
         if eval_input_case == RobustProblem._EVAL_INPUT_CASE.MEAN:
             init_val += curr_result
             init_val /= self.num_ys
@@ -332,9 +337,13 @@ class RobustProblem(Problem):
         elif eval_input_case == RobustProblem._EVAL_INPUT_CASE.MAX:
             # We want to see if there's a violation: either 1 from previous iterations,
             # or new positive value from now
-            curr_result = (curr_result > 1e-5).float()
-            init_val += curr_result
-            init_val = (init_val > 1e-5).float()
+            # curr_result = (curr_result > 1e-4).float()
+            # init_val += curr_result
+            # make a setting/variable
+            for j in range(self.num_ys):
+                curr_eval_args = _sample_args(eval_args, j, items_to_sample)
+                init_val[j] = eval_func(*curr_eval_args, **kwargs)
+            init_val = (init_val > settings.TOLERANCE_DEFAULT).float()
         return init_val
 
     def train_objective(self, eval_args, items_to_sample):
@@ -371,13 +380,16 @@ class RobustProblem(Problem):
         """
         G = torch.zeros((len(self.g), self.num_ys, num_us),
                         dtype=settings.DTYPE)
-
+        ind=0
         for g_k in self.g:
-            G = self._eval_input(eval_func=g_k, eval_args=eval_args,
-                                 items_to_sample=items_to_sample, init_val=G,
+            G[ind] = self._eval_input(eval_func=g_k, eval_args=eval_args,
+                                 items_to_sample=items_to_sample, init_val=G[ind],
                                  eval_input_case=RobustProblem._EVAL_INPUT_CASE.MAX, quantiles=None)
+            ind +=1
 
-        return torch.mean(G)
+        # G_max = torch.max(G,dim=0)[0]
+        # torch.mean(G_max)
+        return G.view(len(self.g),-1).mean(axis=1)
 
     # helper function for intermediate version
     def _udata_to_lst(self, data, batch_size):
@@ -1108,6 +1120,7 @@ class RobustProblem(Problem):
 
             u_batch = self._udata_to_lst(kwargs['train_set'],
                                          kwargs['u_batch_percentage'])
+            # slack = torch.maximum(slack, torch.tensor(0.))
 
             if kwargs['mro_set']:
                 a_tch, _, _, _, _ = self._init_torches(kwargs['init_eps'],
@@ -1183,7 +1196,7 @@ class RobustProblem(Problem):
                 p_bar.set_description(
                     f"run {init_num}:"
                     f" test value {round(obj_test[1].item(),3)}"
-                    f", violations {round(prob_violation_test.item(),3)}")
+                    f", violations {round(sum(prob_violation_test).item()/self.num_g,3)}")
                 train_stats.update_test_stats(
                     obj_test, prob_violation_test, var_vio)
                 new_row = train_stats.generate_test_row(
@@ -1198,9 +1211,12 @@ class RobustProblem(Problem):
                 opt.step()
                 opt.zero_grad()
                 with torch.no_grad():
-                    slack = torch.clamp(slack, min=0., max=100)
+                    newval = torch.clamp(slack, min=0., max=torch.inf)
+                    slack.copy_(newval)
                     if kwargs['eps']:
-                        eps_tch = torch.clamp(eps_tch, min=0.001)
+                        neweps_tch = torch.clamp(eps_tch, min=0.001)
+                        eps_tch.copy_(neweps_tch)
+                # slack = torch.tensor(slack,requires_grad=self.train_flag)
                 if kwargs['scheduler']:
                     scheduler_.step()
 
@@ -1325,7 +1341,7 @@ class RobustProblem(Problem):
         self._validate_uncertain_parameters()
 
         unc_set = self._get_unc_set()
-        self.dualize_constraints()
+        self.dualize_constraints(override=True)
         self._validate_unc_set_T(unc_set)
         train_set, _, train_tch, test_tch = self._split_dataset(
             unc_set, test_percentage, seed)
