@@ -81,7 +81,7 @@ class TestPolyhedralUncertainty(unittest.TestCase):
         x_cvxpy = x.value
         # Formulate robust constraints with lropt
         unc_set = Polyhedral(d=b_poly,
-                             D=A_poly)
+                             c=A_poly)
         a = UncertainParameter(n,
                                uncertainty_set=unc_set)
         constraints = [(A_unc @ a + b_unc) @ x <= b]

@@ -15,15 +15,13 @@ class UncertainParameter(cp.Parameter):
         super(UncertainParameter, self).__init__(*args, **kwargs)
         self.value = np.zeros(self.shape)
         self.uncertainty_set = uncertainty_set
+        n = 1 if len(self.shape)==0 else self.shape[0]
         self.uncertainty_set.add_support_type(self.uncertainty_set.ub,
-                                              self.shape[0],
-                                              SUPPORT_TYPE.UPPER_BOUND)
+                                              n, SUPPORT_TYPE.UPPER_BOUND)
         self.uncertainty_set.add_support_type(self.uncertainty_set.lb,
-                                              self.shape[0],
-                                              SUPPORT_TYPE.LOWER_BOUND)
+                                              n, SUPPORT_TYPE.LOWER_BOUND)
         self.uncertainty_set.add_support_type(self.uncertainty_set.eq,
-                                              self.shape[0],
-                                              SUPPORT_TYPE.EQUALITY)
+                                              n, SUPPORT_TYPE.EQUALITY)
 
     def canonicalize(self, x, var):
         """Reformulate uncertain parameter"""

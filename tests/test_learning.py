@@ -78,7 +78,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         def gen_demand_intro(N, seed):
             np.random.seed(seed)
-            sig = np.array([[0.5, -0.3], [-0.3, 0.4]])
+            sig = np.array([[0.3, -0.4], [-0.5, 0.1]])
             mu = np.array((0.3, 0.3))
             d_train = np.random.multivariate_normal(mu, sig, N)
             # d_train = np.exp(d_train)
@@ -108,8 +108,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         result = prob.train(lr=0.01, num_iter=100, momentum=0.8,
                             optimizer="SGD",
                             seed=s, init_A=initn, init_b=init_bvaln,
-                            init_lam=1, init_mu=1,
-                            mu_multiplier=1.01, init_alpha=0., test_percentage=test_p, kappa=kappa,
+                            init_lam=0.5, init_mu=0.01,
+                            mu_multiplier=1.001, init_alpha=0., test_percentage=test_p, kappa=kappa,
                             n_jobs=8, random_init=True, num_random_init=2, position=True)
 
         timefin = time.time()
@@ -125,11 +125,11 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         #                     init_alpha=0., test_percentage=test_p)
         # dfgrid = result4.df
 
-        # result5 = prob.grid(epslst=np.linspace(0.01, 5, 10), \
-        # init_A=result.A, init_b=result.b, seed=s,
-        #                     init_alpha=0., test_percentage=test_p)
-        # dfgrid2 = result5.df
-        # print(dfgrid2)
+        result5 = prob.grid(epslst=np.linspace(0.01, 5, 10), \
+        init_A=result.A, init_b=result.b, seed=s,
+                            init_alpha=0., test_percentage=test_p)
+        dfgrid2 = result5.df
+        print(dfgrid2)
 
     def test_torch_exp(self):
         # Setup

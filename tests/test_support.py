@@ -95,26 +95,25 @@ class TestSupport(unittest.TestCase):
     def _check_condition_param(self,uncertainty_class, ub, lb, eq, c, d,
                             c_check_empty, d_check_empty,
                             c_check_existing, d_check_existing):
-
-        def _safe_create_uncertain_parameter(uncertainty_class, n, uncertainty_set):
+        
+        def _safe_create_uncertainty_set(uncertainty_class, n, ub,  lb, eq, c=None, d=None):
             if uncertainty_class == MRO:
                 data = np.random.rand(n, n)
-                return UncertainParameter(n, uncertainty_set=uncertainty_set, data=data)
-            else:
-                return UncertainParameter(n, uncertainty_set=uncertainty_set)
+                return uncertainty_class(ub=ub, lb=lb, eq=eq, data=data, c=c, d=d)
+            return uncertainty_class(ub=ub, lb=lb, eq=eq, c=c, d=d)
 
         #Empty self._c and self._d
         if uncertainty_class!=Polyhedral:
-            uncertainty_set = uncertainty_class(ub=ub, lb=lb, eq=eq)
-            #u = UncertainParameter(self.n, uncertainty_set=uncertainty_set)
-            u = _safe_create_uncertain_parameter(uncertainty_class, self.n, uncertainty_set)
+            uncertainty_set = _safe_create_uncertainty_set(uncertainty_class, self.n, ub, lb, eq)
+            # uncertainty_set = uncertainty_class(ub=ub, lb=lb, eq=eq)
+            u = UncertainParameter(self.n, uncertainty_set=uncertainty_set)
             self.assertTrue(np.all(u.uncertainty_set._c == c_check_empty))
             self.assertTrue(np.all(u.uncertainty_set._d == d_check_empty))
 
         #Concatentated version
-        uncertainty_set = uncertainty_class(c=c, d=d,ub=ub, lb=lb, eq=eq)
-        #u = UncertainParameter(self.n, uncertainty_set=uncertainty_set)
-        u = _safe_create_uncertain_parameter(uncertainty_class, self.n, uncertainty_set)
+        uncertainty_set = _safe_create_uncertainty_set(uncertainty_class, self.n, ub, lb, eq, c, d)
+        # uncertainty_set = uncertainty_class(c=c, d=d,ub=ub, lb=lb, eq=eq)
+        u = UncertainParameter(self.n, uncertainty_set=uncertainty_set)
         self.assertTrue(np.all(u.uncertainty_set._c == c_check_existing))
         self.assertTrue(np.all(u.uncertainty_set._d == d_check_existing))
 

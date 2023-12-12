@@ -25,6 +25,8 @@ class TestNonrobustProblems(unittest.TestCase):
         constraints = [-b_unc @ x + cp.norm(-A_unc.T @ x, p=2) <= b]
         prob_lropt = RobustProblem(objective, constraints)
         prob_cvxpy = cp.Problem(objective, constraints)
+
+        prob_lropt.dualize_constraints()
         prob_lropt.solve()
         prob_cvxpy.solve()
 
