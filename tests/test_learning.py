@@ -73,20 +73,22 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         dist = (np.array([25, 10, 60, 50, 40, 30, 30, 20,
                 20, 15, 10, 10, 10, 10, 10, 10])/10)[:n]
 
+        # formulate the family parameter
         y_data = np.random.dirichlet(dist, 10)
         y = Parameter(n, data=y_data)
 
         def gen_demand_intro(N, seed):
             np.random.seed(seed)
-            sig = np.array([[0.3, -0.4], [-0.5, 0.1]])
+            sig = np.array([[0.5, -0.3], [-0.3, 0.4]])
             mu = np.array((0.3, 0.3))
             d_train = np.random.multivariate_normal(mu, sig, N)
-            # d_train = np.exp(d_train)
             return d_train
 
-        data = gen_demand_intro(600, seed=15)
+        # formulate the uncertain parameter
+        data = gen_demand_intro(600, seed=seed)
         u = UncertainParameter(n,uncertainty_set=Ellipsoidal(p=2,data=data))
-        # Formulate the Robust Problem
+
+        # formulate the Robust Problem
         x = cp.Variable(n)
         t = cp.Variable()
 
@@ -94,23 +96,23 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         constraints = [-x@u <= t, cp.sum(x) == 1, x >= 0]
         eval_exp = -x @ u + 0.2*cp.norm(x-y, 1)
         prob = RobustProblem(objective, constraints, eval_exp=eval_exp)
+        # initialize reshaping parameters
         test_p = 0.1
-        s = 5
         train, _ = train_test_split(data, test_size=int(
-            data.shape[0]*test_p), random_state=s)
-        init = sc.linalg.sqrtm(sc.linalg.inv(np.cov(train.T)))
-        -init@np.mean(train, axis=0)
-        np.random.seed(15)
-        initn = np.random.rand(n, n) + 0.1*init + 0.5*np.eye(n)
-        init_bvaln = -initn@(np.mean(train, axis=0) - 0.3*np.ones(n))
+            data.shape[0]*test_p), random_state=5)
+        init = sc.linalg.sqrtm(sc.linalg.inv(0.0001*np.eye(2) + np.cov(train.T)))
+        init_bval = -init@np.mean(train, axis=0)
 
         # Train A and b
-        result = prob.train(lr=0.01, num_iter=100, momentum=0.8,
+        result = prob.train(lr=0.0001, num_iter=100, momentum=0.8,
                             optimizer="SGD",
-                            seed=s, init_A=initn, init_b=init_bvaln,
+                            seed=5, init_A=init, init_b=init_bval,
                             init_lam=0.5, init_mu=0.01,
-                            mu_multiplier=1.001, init_alpha=0., test_percentage=test_p, kappa=kappa,
-                            n_jobs=8, random_init=True, num_random_init=2, position=True)
+                            mu_multiplier=1.001,
+                            init_alpha=0., test_percentage=test_p, kappa=kappa,
+                            n_jobs=8, random_init=True,
+                            num_random_init=5, parallel = True,
+                            position=False)
 
         timefin = time.time()
         timefin - timestart
@@ -125,11 +127,11 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         #                     init_alpha=0., test_percentage=test_p)
         # dfgrid = result4.df
 
-        result5 = prob.grid(epslst=np.linspace(0.01, 5, 10), \
-        init_A=result.A, init_b=result.b, seed=s,
-                            init_alpha=0., test_percentage=test_p)
-        dfgrid2 = result5.df
-        print(dfgrid2)
+        # result5 = prob.grid(epslst=np.linspace(0.01, 5, 10), \
+        # init_A=result.A, init_b=result.b, seed=s,
+        #                     init_alpha=0., test_percentage=test_p)
+        # dfgrid2 = result5.df
+        # print(dfgrid2)
 
     def test_torch_exp(self):
         # Setup
