@@ -14,10 +14,18 @@ class Polyhedral(UncertaintySet):
 
     Parameters
     ----------
-    D : 2 dimentional np.array
-         :math:`D` matrix
-    d : np.array
-         :math:`d` vector
+    c: 2 dimentional np.array, optional
+        matrix defining the lhs of the polyhedral support: :math: `cu \le d`. By default None.
+    d: np.array, optional
+        vector defining the rhs of the polyhedral support: :math: `cu \le d`. By default None.
+    ub: np.array | float, optional
+        vector or float defining the upper bound of the support. If scalar, broadcast to a vector. 
+        By default None.
+    lb: np.array | float, optional
+        vector or float defining the lower bound of the support. If scalar, broadcast to a vector. 
+        By default None.
+    eq: np.array | float, optinal
+        vector or float defining an equality constraint for the uncertain vector. By default None.
 
     Returns
     -------
@@ -25,8 +33,8 @@ class Polyhedral(UncertaintySet):
         Polyhedral uncertainty set.
     """
 
-    def __init__(self, d, D,
-                 affine_transform=None):
+    def __init__(self, c, d,
+                 affine_transform=None, ub=None, lb=None,eq=None):
 
         data, loss = None, None
 
@@ -43,18 +51,18 @@ class Polyhedral(UncertaintySet):
         self.affine_transform = affine_transform
 
         self._d = d
-        self._D = D
+        self._c = c
         self._trained = False
         self._data = data
         self._loss = loss
+        self._ub = ub
+        self._lb = lb
+        self._eq = eq
+
 
     @property
     def d(self):
         return self._d
-
-    @property
-    def D(self):
-        return self._D
 
     @property
     def trained(self):
@@ -63,6 +71,22 @@ class Polyhedral(UncertaintySet):
     @property
     def data(self):
         return self._data
+    
+    @property
+    def c(self):
+        return self._c
+    
+    @property
+    def ub(self):
+        return self._ub
+
+    @property
+    def lb(self):
+        return self._lb
+
+    @property
+    def eq(self):
+        return self._eq
 
     def canonicalize(self, x, var):
         trans = self.affine_transform_temp
@@ -120,16 +144,16 @@ class Polyhedral(UncertaintySet):
                 lmbda = Variable(len(self.d))
                 constr += [lmbda >= 0]
                 if len(self.d) == 1:
-                    constr += [var[0] == lmbda*self.D]
+                    constr += [var[0] == lmbda*self.c]
                     return lmbda*self.d, constr, lmbda
                 else:
-                    constr += [var[0] == lmbda@self.D]
+                    constr += [var[0] == lmbda@self.c]
                     return lmbda@self.d, constr, lmbda
             else:
                 lmbda = Variable((shape, len(self.d)))
                 constr += [lmbda >= 0]
                 for ind in range(shape):
-                    constr += [var[ind] == lmbda[ind]@self.D]
+                    constr += [var[ind] == lmbda[ind]@self.c]
                 return lmbda@self.d, constr, lmbda
         else:
             return 0, [], 0

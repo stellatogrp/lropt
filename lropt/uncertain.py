@@ -1,6 +1,8 @@
 import cvxpy as cp
 import numpy as np
 
+from lropt.uncertainty_sets.uncertainty_set import SUPPORT_TYPE
+
 
 class UncertainParameter(cp.Parameter):
     def __init__(self, *args, **kwargs):
@@ -13,6 +15,15 @@ class UncertainParameter(cp.Parameter):
         super(UncertainParameter, self).__init__(*args, **kwargs)
         self.value = np.zeros(self.shape)
         self.uncertainty_set = uncertainty_set
+        self.uncertainty_set.add_support_type(self.uncertainty_set.ub,
+                                              self.shape[0],
+                                              SUPPORT_TYPE.UPPER_BOUND)
+        self.uncertainty_set.add_support_type(self.uncertainty_set.lb,
+                                              self.shape[0],
+                                              SUPPORT_TYPE.LOWER_BOUND)
+        self.uncertainty_set.add_support_type(self.uncertainty_set.eq,
+                                              self.shape[0],
+                                              SUPPORT_TYPE.EQUALITY)
 
     def canonicalize(self, x, var):
         """Reformulate uncertain parameter"""

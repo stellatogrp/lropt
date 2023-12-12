@@ -32,6 +32,18 @@ class Norm(UncertaintySet):
         Required if uncertainty set parameters should be trained or if `data` is passed.
         Function must use torch tensors, and arguments to loss function must be given in the
         same order as cvxpy variables defined in problem.
+    c: np.array, optional
+        matrix defining the lhs of the polyhedral support: :math: `cu \le d`. By default None.
+    d: np.array, optional
+        vector defining the rhs of the polyhedral support: :math: `cu \le d`. By default None.
+    ub: np.array | float, optional
+        vector or float defining the upper bound of the support. If scalar, broadcast to a vector. 
+        By default None.
+    lb: np.array | float, optional
+        vector or float defining the lower bound of the support. If scalar, broadcast to a vector. 
+        By default None.
+    eq: np.array | float, optinal
+        vector or float defining an equality constraint for the uncertain vector. By default None.
 
     Returns
     -------
@@ -40,7 +52,7 @@ class Norm(UncertaintySet):
     """
 
     def __init__(self, p=2, rho=1.,
-                 a=None, b=None, c=None, d=None, data=None, loss=None):
+                 a=None, b=None, c=None, d=None, data=None, loss=None, ub=None, lb=None, eq=None):
         if rho <= 0:
             raise ValueError("Rho value must be positive.")
         if p < 0.:
@@ -64,6 +76,10 @@ class Norm(UncertaintySet):
         self._c = c
         self._d = d
         self._define_support = False
+        self._ub = ub
+        self._lb = lb
+        self._eq = eq
+
 
     @property
     def p(self):
@@ -82,12 +98,32 @@ class Norm(UncertaintySet):
         return self._b
 
     @property
+    def c(self):
+        return self._c
+
+    @property
+    def d(self):
+        return self._d
+
+    @property
     def data(self):
         return self._data
 
     @property
     def loss(self):
         return self._loss
+
+    @property
+    def ub(self):
+        return self._ub
+
+    @property
+    def lb(self):
+        return self._lb
+
+    @property
+    def eq(self):
+        return self._eq
 
     @property
     def trained(self):

@@ -34,6 +34,18 @@ class Budget(UncertaintySet):
         Required if uncertainty set parameters should be trained or if `data` is passed.
         Function must use torch tensors, and arguments to loss function must be given in the
         same order as cvxpy variables defined in problem.
+    c: np.array, optional
+        matrix defining the lhs of the polyhedral support: :math: `cu \le d`. By default None.
+    d: np.array, optional
+        vector defining the rhs of the polyhedral support: :math: `cu \le d`. By default None.
+    ub: np.array | float, optional
+        vector or float defining the upper bound of the support. If scalar, broadcast to a vector. 
+        By default None.
+    lb: np.array | float, optional
+        vector or float defining the lower bound of the support. If scalar, broadcast to a vector. 
+        By default None.
+    eq: np.array | float, optinal
+        vector or float defining an equality constraint for the uncertain vector. By default None.
 
     Returns
     -------
@@ -43,7 +55,7 @@ class Budget(UncertaintySet):
 
     def __init__(self, rho1=1., rho2=1.,
                  a1=None, a2=None, b1=None, b2=None, c=None, d=None, data=None, loss=None,
-                 train_box=True):
+                 train_box=True, ub=None, lb=None, eq=None):
         if rho2 <= 0 or rho1 <= 0:
             raise ValueError("Rho values must be positive.")
 
@@ -74,6 +86,9 @@ class Budget(UncertaintySet):
         self._c = c
         self._d = d
         self._define_support = False
+        self._ub = ub
+        self._lb = lb
+        self._eq = eq
 
     @property
     def rho1(self):
@@ -106,6 +121,26 @@ class Budget(UncertaintySet):
     @property
     def train_box(self):
         return self._train_box
+    
+    @property
+    def ub(self):
+        return self._ub
+
+    @property
+    def lb(self):
+        return self._lb
+
+    @property
+    def eq(self):
+        return self._eq
+    
+    @property
+    def c(self):
+        return self._c
+
+    @property
+    def d(self):
+        return self._d
 
     def canonicalize(self, x, var):
         # import ipdb

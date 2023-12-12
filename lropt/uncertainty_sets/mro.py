@@ -15,10 +15,9 @@ class MRO(UncertaintySet):
     """
 
     def __init__(self, K=1, rho=1, data=None, power=1, p=2,
-                 a=None, train=True, c=None, d=None, loss=None, uniqueA=False):
+                 a=None, train=False, c=None, d=None, loss=None, 
+                 uniqueA=False, ub=None, lb=None, eq=None):
 
-        if train and loss is None:
-            raise ValueError("You must provide a loss function")
         if data is None:
             raise ValueError("You must provide data")
         if rho <= 0:
@@ -47,6 +46,9 @@ class MRO(UncertaintySet):
         self._c = c
         self._d = d
         self._define_support = False
+        self._ub = ub
+        self._lb = lb
+        self._eq = eq
 
         if train:
             if self._uniqueA:
@@ -114,6 +116,26 @@ class MRO(UncertaintySet):
     @property
     def Dbar(self):
         return self._Dbar
+    
+    @property
+    def ub(self):
+        return self._ub
+
+    @property
+    def lb(self):
+        return self._lb
+
+    @property
+    def eq(self):
+        return self._eq
+    
+    @property
+    def c(self):
+        return self._c
+
+    @property
+    def d(self):
+        return self._d
 
     def q(self):
         return 1. + 1. / (self._power - 1.)

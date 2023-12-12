@@ -28,6 +28,18 @@ class Box(Norm):
         Required if uncertainty set parameters should be trained or if `data` is passed.
         Function must use torch tensors, and arguments to loss function must be given in the
         same order as cvxpy variables defined in problem.
+    c: np.array, optional
+        matrix defining the lhs of the polyhedral support: :math: `cu \le d`. By default None.
+    d: np.array, optional
+        vector defining the rhs of the polyhedral support: :math: `cu \le d`. By default None.
+    ub: np.array | float, optional
+        vector or float defining the upper bound of the support. If scalar, broadcast to a vector. 
+        By default None.
+    lb: np.array | float, optional
+        vector or float defining the lower bound of the support. If scalar, broadcast to a vector. 
+        By default None.
+    eq: np.array | float, optinal
+        vector or float defining an equality constraint for the uncertain vector. By default None.
 
     Returns
     -------
@@ -37,9 +49,9 @@ class Box(Norm):
 
     def __init__(self, rho=1.,
                  a=None, b=None, c=None, d=None,
-                 data=None, loss=None):
+                 data=None, loss=None, ub=None, lb=None,eq=None):
 
         super(Box, self).__init__(
             p=np.inf,
             rho=rho,
-            a=a, b=b, c=c, d=d, data=data, loss=loss)
+            a=a, b=b, c=c, d=d, data=data, loss=loss, ub=ub, lb=lb, eq=eq)
