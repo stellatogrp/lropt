@@ -48,11 +48,15 @@ class Uncertain_Canonicalization(Reduction):
         # ipdb.set_trace()
         # canon_objective, canon_constraints = self.canonicalize_tree(
         #     problem.objective, 0, 1)
-        epigraph_obj = Variable()
-        epi_cons = problem.objective.expr <= epigraph_obj
-        epi_cons.id = None
-        new_constraints = problem.constraints + [epi_cons]
-        canon_objective = Minimize(epigraph_obj)
+        if self.has_unc_param(problem.objective.expr):
+            epigraph_obj = Variable()
+            epi_cons = problem.objective.expr <= epigraph_obj
+            new_constraints = [epi_cons] + problem.constraints
+            canon_objective = Minimize(epigraph_obj)
+            # problem = RobustProblem(canon_objective,new_constraints)
+        else:
+            canon_objective = problem.objective
+            new_constraints = problem.constraints
         canon_constraints = []
         for constraint in new_constraints:
             # canon_constr is the constraint rexpressed in terms of
@@ -125,8 +129,7 @@ class Uncertain_Canonicalization(Reduction):
                 canon_constr = constraint
                 canon_constraints += [canon_constr]
 
-            if constraint.id is not None:
-                inverse_data.cons_id_map.update({constraint.id: canon_constr.id})
+            inverse_data.cons_id_map.update({constraint.id: canon_constr.id})
 
         new_problem = problems.problem.Problem(canon_objective,
                                                canon_constraints)

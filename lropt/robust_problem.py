@@ -500,7 +500,9 @@ class RobustProblem(Problem):
                 if c.id in solution.dual_vars:
                     c.save_dual_value(solution.dual_vars[c.id])
             # Eliminate confusion of problem.value versus objective.value.
-            self._value = self.objective.value
+            # self.objective.value = solution.opt_val
+            self._value = solution.opt_val
+
         elif solution.status in s.INF_OR_UNB:
             for v in self.variables():
                 v.save_value(None)
