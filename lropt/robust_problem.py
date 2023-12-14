@@ -167,7 +167,7 @@ class TrainLoopStats():
             "Probability_violations_test":       self.prob_violation_test,
             "Violations_test":   self.violation_test,
             "Coverage_test":    coverage_test.detach().numpy().item(),
-            "Avg_prob_teset": np.mean(self.prob_violation_test)
+            "Avg_prob_test": np.mean(self.prob_violation_test)
         }
         row_dict["step"] = self.step_num,
         if not self.train_flag:
