@@ -213,7 +213,6 @@ class RobustProblem(Problem):
 
     _EVAL_INPUT_CASE = Enum("_EVAL_INPUT_CASE", "MEAN EVALMEAN MAX")
 
-    # TODO (Amit): After testing, remove objective_torch and constraints_torch
     def __init__(
         self, objective, constraints,
         eval_exp=None, train_flag=True
@@ -553,8 +552,7 @@ class RobustProblem(Problem):
                     "Try another solver, or solve with verbose=True for more "
                     "information.")
         self.unpack(solution)
-        self._solver_stats = SolverStats.from_dict(self._solution.attr,
-                                         solvername)
+        self._solver_stats = SolverStats.from_dict(self._solution.attr, solvername)
 
 
     def _validate_uncertain_parameters(self):
@@ -1548,7 +1546,7 @@ class RobustProblem(Problem):
 
         override
             If True, will override current new_prob. If false and new_prob exists, does nothing.
-
+            
         Returns:
 
         None
@@ -1562,9 +1560,7 @@ class RobustProblem(Problem):
             # unc_reductions += [Distribute_Uncertain_Params()]
             unc_reductions += [RemoveUncertainParameters()]
             newchain = UncertainChain(self, reductions=unc_reductions)
-            prob, inverse_data = newchain.apply(self)
-            self.new_prob =  prob
-            self.inverse_data = inverse_data
+            self.new_prob, self.inverse_data = newchain.apply(self)
             self.uncertain_chain = newchain
 
     def solve(self,

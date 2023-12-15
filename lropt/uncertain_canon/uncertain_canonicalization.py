@@ -43,96 +43,44 @@ class Uncertain_Canonicalization(Reduction):
 
     def apply(self, problem):
         """Recursively canonicalize the objective and every constraint."""
+        def _gen_objective_constraints(problem):
+            """
+            This function generates canon objective and new constraints
+            """
+            if self.has_unc_param(problem.objective.expr):
+                epigraph_obj = Variable()
+                epi_cons = problem.objective.expr <= epigraph_obj
+                new_constraints = [epi_cons] + problem.constraints
+                canon_objective = Minimize(epigraph_obj)
+            else:
+                canon_objective = problem.objective
+                new_constraints = problem.constraints
+            return canon_objective, new_constraints
+        
         inverse_data = InverseData(problem)
         # import ipdb
         # ipdb.set_trace()
         # canon_objective, canon_constraints = self.canonicalize_tree(
         #     problem.objective, 0, 1)
-        if self.has_unc_param(problem.objective.expr):
-            epigraph_obj = Variable()
-            epi_cons = problem.objective.expr <= epigraph_obj
-            new_constraints = [epi_cons] + problem.constraints
-            canon_objective = Minimize(epigraph_obj)
-            # problem = RobustProblem(canon_objective,new_constraints)
-        else:
-            canon_objective = problem.objective
-            new_constraints = problem.constraints
+
+        canon_objective, new_constraints = _gen_objective_constraints(problem)
         canon_constraints = []
+        
         for constraint in new_constraints:
             # canon_constr is the constraint rexpressed in terms of
             # its canonicalized arguments, and aux_constr are the constraints
             # generated while canonicalizing the arguments of the original
             # constraint
-            # import ipdb
-            # ipdb.set_trace()
             if self.has_unc_param(constraint):
-                # import ipdb
-                # ipdb.set_trace()
-                unc_lst, std_lst, is_max = self.separate_uncertainty(
-                    constraint)
-                if is_max:
-                    unc_lst_tot = []
-                    for cons_idx in range(len(unc_lst)):
-                        unc_lst_tot += unc_lst[cons_idx]
-                else:
-                    unc_lst_tot = unc_lst
-                if len(unc_lst_tot[0].shape) >= 1:
-                    element_shape = unc_lst_tot[0].shape[0]
-                else:
-                    element_shape = 1
-                unc_params = []
-                unc_params += [v for v in unc_lst_tot[0].parameters()
-                               if isinstance(v, UncertainParameter)]
-                if is_max == 1:
-                    if not type(unc_params[0].uncertainty_set) == MRO:
-                        canon_constr, aux_constr, lmda = self.remove_uncertainty(
-                            unc_lst[0], unc_params[0], std_lst[0], element_shape)
-                        canon_constraints += aux_constr + [canon_constr]
-
-                        for new_cons_idx in range(1, len(unc_lst)):
-                            canon_constr, aux_constr, new_lmda = self.remove_uncertainty(
-                                unc_lst[new_cons_idx], unc_params[0], std_lst[new_cons_idx],
-                                element_shape)
-                            canon_constraints += aux_constr + [canon_constr]
-
-                            # if type(unc_params[0].uncertainty_set) == Budget:
-                            #     canon_constraints += [lmda[0] == new_lmda[0],
-                            #                           lmda[1] == new_lmda[1]]
-
-                            # elif not type(unc_params[0].uncertainty_set) == Polyhedral:
-                            #     canon_constraints += [lmda == new_lmda]
-                    else:
-                        canon_constr, aux_constr, lmda, sval = self.remove_uncertainty_mro(
-                            unc_lst[0], unc_params[0], std_lst[0], element_shape)
-                        canon_constraints += aux_constr + [canon_constr]
-
-                        for new_cons_idx in range(1, len(unc_lst)):
-                            canon_constr, aux_constr, new_lmda, new_sval = \
-                                self.remove_uncertainty_mro(unc_lst[new_cons_idx], unc_params[0],
-                                                            std_lst[new_cons_idx], element_shape)
-                            canon_constraints += aux_constr
-                            canon_constraints += [lmda == new_lmda]
-                            canon_constraints += [sval == new_sval]
-
-                else:
-                    # import ipdb
-                    # ipdb.set_trace()
-                    if not type(unc_params[0].uncertainty_set) == MRO:
-                        canon_constr, aux_constr, lmbda = self.remove_uncertainty(
-                            unc_lst, unc_params[0], std_lst, element_shape)
-                        canon_constraints += aux_constr + [canon_constr]
-                    else:
-                        canon_constr, aux_constr, lmbda, sval = self.remove_uncertainty_mro(
-                            unc_lst, unc_params[0], std_lst, element_shape)
-                        canon_constraints += aux_constr + [canon_constr]
+                unc_lst, std_lst, is_max = self.separate_uncertainty(constraint)
+                canon_constr = self.remove_uncertainty(unc_lst, std_lst, is_max, canon_constraints)
             else:
                 canon_constr = constraint
                 canon_constraints += [canon_constr]
 
             inverse_data.cons_id_map.update({constraint.id: canon_constr.id})
 
-        new_problem = problems.problem.Problem(canon_objective,
-                                               canon_constraints)
+        new_problem = problems.problem.Problem(canon_objective, canon_constraints)
         return new_problem, inverse_data
 
     def invert(self, solution, inverse_data):
@@ -142,8 +90,7 @@ class Uncertain_Canonicalization(Reduction):
                  for orig_id, vid in inverse_data.cons_id_map.items()
                  if vid in solution.dual_vars}
 
-        return Solution(solution.status, solution.opt_val, pvars, dvars,
-                        solution.attr)
+        return Solution(solution.status, solution.opt_val, pvars, dvars, solution.attr)
 
     def canonicalize_tree(self, expr, var, cons):
         """Recursively canonicalize an Expression."""
@@ -177,7 +124,7 @@ class Uncertain_Canonicalization(Reduction):
         else:
             return expr.copy(args), []
 
-    def remove_uncertainty(self, unc_lst, uvar, std_lst, num_constr):
+    def remove_uncertainty_simple(self, unc_lst, uvar, std_lst, num_constr):
         "canonicalize each term separately with inf convolution"
         # import ipdb
         # ipdb.set_trace()
@@ -372,8 +319,6 @@ class Uncertain_Canonicalization(Reduction):
 
         The original expr is equivalent to the sum of expressions in unc_lst and std_lst
             '''
-        # import ipdb
-        # ipdb.set_trace()
         # Check Initial Conditions
         if self.count_unq_uncertain_param(expr) == 0:
             return [], [expr], 0
@@ -386,10 +331,76 @@ class Uncertain_Canonicalization(Reduction):
         elif type(expr) not in sep_methods:
             raise ValueError(
                 "DRP error: not able to process non multiplication/additions")
-        # import ipdb
-        # ipdb.set_trace()
         func = sep_methods[type(expr)]
         return func(self, expr)
+    
+    #TODO (Irina): Please fill/update/assert the docstrings of all the helper functions below
+    # (just the description, no need to go over args/returns)
+    def remove_uncertainty(self, unc_lst, std_lst, is_max, canon_constraints):
+        """
+        This function removes uncertainty. See Appendix A.1.3.
+        """
+
+        def _gen_merged_unc_lst(is_max, unc_lst):
+            """
+            This function returns a merged uncertainty list.
+            """
+            if is_max:
+                unc_lst_merged = []
+                for cons_idx in range(len(unc_lst)):
+                    unc_lst_merged += unc_lst[cons_idx]
+            else:
+                unc_lst_merged = unc_lst
+            return unc_lst_merged
+        
+        def _calc_constraint_shape(unc_lst_merged):
+            """
+            This function calculates the shape of the constraint.
+            """
+            if len(unc_lst_merged[0].shape) >= 1:
+                constraint_shape = unc_lst_merged[0].shape[0]
+            else:
+                constraint_shape = 1
+            return constraint_shape
+
+        def _add_canon_constraint(is_mro, canon_constraints, new_cons_idx=None,
+                                  lmbda=None, sval=None):
+            new_sval = None
+            if new_cons_idx is None:
+                #not is_max
+                unc_lst_pass = unc_lst
+                std_lst_pass = std_lst
+            else:
+                unc_lst_pass = unc_lst[new_cons_idx]
+                std_lst_pass = std_lst[new_cons_idx]
+            
+            if is_mro:
+                canon_constr, aux_constr, new_lmbda, new_sval = self.remove_uncertainty_mro(
+                    unc_lst_pass, unc_params[0], std_lst_pass, constraint_shape)
+            else:
+                canon_constr, aux_constr, new_lmbda = self.remove_uncertainty_simple(
+                    unc_lst_pass, unc_params[0], std_lst_pass, constraint_shape)
+                
+            if is_mro and new_cons_idx:
+                canon_constraints += aux_constr
+                canon_constraints += [lmbda == new_lmbda]
+                canon_constraints += [sval == new_sval]
+            else:
+                canon_constraints += aux_constr + [canon_constr]
+            return new_lmbda, new_sval, canon_constr
+
+
+        unc_lst_merged = _gen_merged_unc_lst(is_max, unc_lst)
+        constraint_shape = _calc_constraint_shape(unc_lst_merged)
+        unc_params= [v for v in unc_lst_merged[0].parameters() if isinstance(v, UncertainParameter)]
+        is_mro = type(unc_params[0].uncertainty_set) == MRO
+        new_cons_idx = 0 if is_max else None
+        lmbda, sval, canon_constr = _add_canon_constraint(is_mro, canon_constraints, new_cons_idx)
+        if is_max:
+            for new_cons_idx in range(1, len(unc_lst)):
+                lmbda, sval, canon_constr = _add_canon_constraint(is_mro, canon_constraints,
+                                                                  new_cons_idx, lmbda, sval)
+        return canon_constr
 
     def remove_constant(self, expr, constant=1):
         '''remove the constants at the beginning of an expression with uncertainty'''

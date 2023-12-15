@@ -71,8 +71,6 @@ class UncertainChain(Reduction):
         list
             The inverse data yielded by each of the reductions.
         """
-        # import ipdb
-        # ipdb.set_trace()
         inverse_data = []
         for r in self.reductions:
             if verbose:
