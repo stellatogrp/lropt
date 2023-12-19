@@ -1,3 +1,4 @@
+from cvxpy.atoms.affine.binary_operators import multiply
 from cvxpy.atoms.affine.diag import diag
 from cvxpy.atoms.affine.promote import Promote
 from cvxpy.atoms.affine.unary_operators import NegExpression
@@ -31,4 +32,4 @@ def multiply_rm(unc_canon, expr, constant):
     else:
         expr1, constant = unc_canon.remove_constant(expr.args[0], constant)
         expr2, constant = unc_canon.remove_constant(expr.args[1], constant)
-        return expr1*expr2, constant
+        return multiply(expr1,expr2), constant
