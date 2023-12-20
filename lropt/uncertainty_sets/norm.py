@@ -37,10 +37,10 @@ class Norm(UncertaintySet):
     d: np.array, optional
         vector defining the rhs of the polyhedral support: :math: `cu \le d`. By default None.
     ub: np.array | float, optional
-        vector or float defining the upper bound of the support. If scalar, broadcast to a vector. 
+        vector or float defining the upper bound of the support. If scalar, broadcast to a vector.
         By default None.
     lb: np.array | float, optional
-        vector or float defining the lower bound of the support. If scalar, broadcast to a vector. 
+        vector or float defining the lower bound of the support. If scalar, broadcast to a vector.
         By default None.
     eq: np.array | float, optinal
         vector or float defining an equality constraint for the uncertain vector. By default None.
@@ -51,7 +51,7 @@ class Norm(UncertaintySet):
         Norm uncertainty set.
     """
 
-    def __init__(self, p=2, rho=1.,
+    def __init__(self, dimension=None, p=2, rho=1.,
                  a=None, b=None, c=None, d=None, data=None, loss=None, ub=None, lb=None, eq=None):
         if rho <= 0:
             raise ValueError("Rho value must be positive.")
@@ -60,11 +60,10 @@ class Norm(UncertaintySet):
 
         if data is not None:
             dat_shape = data.shape[1]
-            a = ShapeParameter((dat_shape, dat_shape))
+            if dimension is None:
+                dimension = dat_shape
+            a = ShapeParameter((dat_shape, dimension))
             b = ShapeParameter(dat_shape)
-
-        self.affine_transform_temp = None
-        self.affine_transform = None
 
         self._p = p
         self._rho = rho
@@ -79,6 +78,8 @@ class Norm(UncertaintySet):
         self._ub = ub
         self._lb = lb
         self._eq = eq
+        self.affine_transform_temp = None
+        self.affine_transform = None
 
 
     @property
@@ -145,7 +146,6 @@ class Norm(UncertaintySet):
             else:
                 new_expr = 0
                 new_constraints = [var == -x]
-
         else:
             if trans:
                 new_expr = trans['b'] @ x
@@ -220,28 +220,24 @@ class Norm(UncertaintySet):
                 self._b = np.zeros(ushape)
             if self.data is not None or self.a is not None:
                 if shape == 1:
-                    newvar = Variable(ushape)  # gamma aux variable
                     lmbda = Variable()
                     supp_newvar = Variable(len(self._d))
-                    constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
-                    constr += [self.a.T@newvar == var[0]]
+                    constr = [norm(var[0], p=self.dual_norm()) <= lmbda]
                     constr += [lmbda >= 0]
                     constr += [self._c.T@supp_newvar == supp_var[0]]
                     constr += [supp_newvar >= 0]
-                    return self.rho * lmbda + self._d@supp_newvar - newvar@self.b, constr, lmbda
+                    return self.rho * lmbda + self._d@supp_newvar, constr, lmbda
                 else:
                     constr = []
                     lmbda = Variable(shape)
-                    newvar = Variable((shape, ushape))
                     constr += [lmbda >= 0]
                     supp_newvar = Variable((shape, len(self._d)))
                     constr += [supp_newvar >= 0]
                     for ind in range(shape):
-                        constr += [norm(newvar[ind],
+                        constr += [norm(var[ind],
                                         p=self.dual_norm()) <= lmbda[ind]]
-                        constr += [self.a.T@newvar[ind] == var[ind]]
                         constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-                    return self.rho * lmbda + supp_newvar@self._d - newvar@self.b, constr, lmbda
+                    return self.rho * lmbda + supp_newvar@self._d, constr, lmbda
             else:
                 if shape == 1:
                     lmbda = Variable()
@@ -250,7 +246,7 @@ class Norm(UncertaintySet):
                     constr += [lmbda >= 0]
                     constr += [self._c.T@supp_newvar == supp_var[0]]
                     constr += [supp_newvar >= 0]
-                    return self.rho * lmbda + self._d@supp_newvar - var[0]@self.b, constr, lmbda
+                    return self.rho * lmbda + self._d@supp_newvar, constr, lmbda
                 else:
                     constr = []
                     lmbda = Variable(shape)
@@ -261,4 +257,4 @@ class Norm(UncertaintySet):
                         constr += [norm(var[ind], p=self.dual_norm())
                                    <= lmbda[ind]]
                         constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-                    return self.rho * lmbda + supp_newvar@self._d - var@self.b, constr, lmbda
+                    return self.rho * lmbda + supp_newvar@self._d, constr, lmbda
