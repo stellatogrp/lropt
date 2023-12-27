@@ -20,8 +20,8 @@ class UncertainParameter(cp.Parameter):
                                               n, SUPPORT_TYPE.UPPER_BOUND)
         self.uncertainty_set.add_support_type(self.uncertainty_set.lb,
                                               n, SUPPORT_TYPE.LOWER_BOUND)
-        self.uncertainty_set.add_support_type(self.uncertainty_set.eq,
-                                              n, SUPPORT_TYPE.EQUALITY)
+        self.uncertainty_set.add_support_type(self.uncertainty_set.sum_eq,
+                                              n, SUPPORT_TYPE.SUM_EQUALITY)
 
     def canonicalize(self, x, var):
         """Reformulate uncertain parameter"""

@@ -24,7 +24,7 @@ class Polyhedral(UncertaintySet):
     lb: np.array | float, optional
         vector or float defining the lower bound of the support. If scalar, broadcast to a vector. 
         By default None.
-    eq: np.array | float, optinal
+    sum_eq: np.array | float, optinal
         vector or float defining an equality constraint for the uncertain vector. By default None.
 
     Returns
@@ -34,7 +34,7 @@ class Polyhedral(UncertaintySet):
     """
 
     def __init__(self, c, d,
-                 affine_transform=None, ub=None, lb=None,eq=None):
+                 affine_transform=None, ub=None, lb=None,sum_eq=None):
 
         data, loss = None, None
 
@@ -57,7 +57,7 @@ class Polyhedral(UncertaintySet):
         self._loss = loss
         self._ub = ub
         self._lb = lb
-        self._eq = eq
+        self._sum_eq = sum_eq
 
 
     @property
@@ -85,8 +85,8 @@ class Polyhedral(UncertaintySet):
         return self._lb
 
     @property
-    def eq(self):
-        return self._eq
+    def sum_eq(self):
+        return self._sum_eq
 
     def canonicalize(self, x, var):
         trans = self.affine_transform_temp

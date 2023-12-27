@@ -3,7 +3,7 @@ from enum import Enum
 
 import numpy as np
 
-SUPPORT_TYPE = Enum("SUPPORT_TYPE", "UPPER_BOUND LOWER_BOUND EQUALITY")
+SUPPORT_TYPE = Enum("SUPPORT_TYPE", "UPPER_BOUND LOWER_BOUND SUM_EQUALITY")
 
 class UncertaintySet(ABC):
 
@@ -36,7 +36,7 @@ class UncertaintySet(ABC):
 
         Args:
             value:
-                ub/lb/eq values
+                ub/lb/sum_eq values
             target:
                 Existing self._c or self.d
             func:
@@ -59,14 +59,14 @@ class UncertaintySet(ABC):
             value = np.eye(n)
         elif support_type == SUPPORT_TYPE.LOWER_BOUND:
             value = -np.eye(n)
-        elif support_type == SUPPORT_TYPE.EQUALITY:
+        elif support_type == SUPPORT_TYPE.SUM_EQUALITY:
             if value.size > 1:
                 value = np.eye(n)
             else:
                 value = np.ones(n)
 
         self._c = self._safe_add_to_list(value, self.c, np.vstack)
-        if support_type == SUPPORT_TYPE.EQUALITY:
+        if support_type == SUPPORT_TYPE.SUM_EQUALITY:
             self._c = self._safe_add_to_list(-value, self.c, np.vstack)
 
     def _update_d(self, value: np.ndarray | float | None, n: int, support_type: SUPPORT_TYPE):

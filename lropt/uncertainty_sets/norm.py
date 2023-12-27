@@ -42,7 +42,7 @@ class Norm(UncertaintySet):
     lb: np.array | float, optional
         vector or float defining the lower bound of the support. If scalar, broadcast to a vector. 
         By default None.
-    eq: np.array | float, optinal
+    sum_eq: np.array | float, optinal
         vector or float defining an equality constraint for the uncertain vector. By default None.
 
     Returns
@@ -52,7 +52,8 @@ class Norm(UncertaintySet):
     """
 
     def __init__(self, p=2, rho=1.,
-                 a=None, b=None, c=None, d=None, data=None, loss=None, ub=None, lb=None, eq=None):
+                 a=None, b=None, c=None, d=None, data=None, loss=None,
+                 ub=None, lb=None, sum_eq=None):
         if rho <= 0:
             raise ValueError("Rho value must be positive.")
         if p < 0.:
@@ -78,7 +79,7 @@ class Norm(UncertaintySet):
         self._define_support = False
         self._ub = ub
         self._lb = lb
-        self._eq = eq
+        self._sum_eq = sum_eq
 
 
     @property
@@ -122,8 +123,8 @@ class Norm(UncertaintySet):
         return self._lb
 
     @property
-    def eq(self):
-        return self._eq
+    def sum_eq(self):
+        return self._sum_eq
 
     @property
     def trained(self):
