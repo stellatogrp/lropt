@@ -38,7 +38,7 @@ class Box(Norm):
     lb: np.array | float, optional
         vector or float defining the lower bound of the support. If scalar, broadcast to a vector. 
         By default None.
-    eq: np.array | float, optinal
+    sum_eq: np.array | float, optinal
         vector or float defining an equality constraint for the uncertain vector. By default None.
 
     Returns
@@ -49,9 +49,9 @@ class Box(Norm):
 
     def __init__(self, rho=1.,
                  a=None, b=None, c=None, d=None,
-                 data=None, loss=None, ub=None, lb=None,eq=None):
+                 data=None, loss=None, ub=None, lb=None,sum_eq=None):
 
         super(Box, self).__init__(
             p=np.inf,
             rho=rho,
-            a=a, b=b, c=c, d=d, data=data, loss=loss, ub=ub, lb=lb, eq=eq)
+            a=a, b=b, c=c, d=d, data=data, loss=loss, ub=ub, lb=lb, sum_eq=sum_eq)

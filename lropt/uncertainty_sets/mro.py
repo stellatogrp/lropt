@@ -16,7 +16,7 @@ class MRO(UncertaintySet):
 
     def __init__(self, K=1, rho=1, data=None, power=1, p=2,
                  a=None, train=False, c=None, d=None, loss=None, 
-                 uniqueA=False, ub=None, lb=None, eq=None):
+                 uniqueA=False, ub=None, lb=None, sum_eq=None):
 
         if data is None:
             raise ValueError("You must provide data")
@@ -48,7 +48,7 @@ class MRO(UncertaintySet):
         self._define_support = False
         self._ub = ub
         self._lb = lb
-        self._eq = eq
+        self._sum_eq = sum_eq
 
         if train:
             if self._uniqueA:
@@ -126,8 +126,8 @@ class MRO(UncertaintySet):
         return self._lb
 
     @property
-    def eq(self):
-        return self._eq
+    def sum_eq(self):
+        return self._sum_eq
     
     @property
     def c(self):
