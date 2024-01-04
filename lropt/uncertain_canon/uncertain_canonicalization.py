@@ -283,7 +283,7 @@ class Uncertain_Canonicalization(Reduction):
 
     def has_unc_param(self, expr):
         if not isinstance(expr, int) and not isinstance(expr, float):
-            return self.count_unq_uncertain_param(expr) == 1
+            return self.count_unq_uncertain_param(expr) >= 1
         else:
             return 0
 
