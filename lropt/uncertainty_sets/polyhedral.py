@@ -10,7 +10,7 @@ class Polyhedral(UncertaintySet):
     Polyhedral uncertainty set, defined as
 
     .. math::
-        \mathcal{U}_{\text{poly}} = \{D u \leq d\}
+        \mathcal{U}_{\text{poly}} = \{c u \leq d\}
 
     Parameters
     ----------
