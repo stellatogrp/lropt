@@ -131,7 +131,7 @@ class Polyhedral(UncertaintySet):
         e = np.eye(num_constr)[i]
         if trans:
             lhs = -trans['A']
-            if var.is_scalar():
+            if not var.is_scalar():
                 lhs = lhs.T
             new_constraints = [var == self._safe_mul(lhs, e)]
         else:
