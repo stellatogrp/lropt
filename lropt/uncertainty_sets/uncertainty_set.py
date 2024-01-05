@@ -7,9 +7,9 @@ SUPPORT_TYPE = Enum("SUPPORT_TYPE", "UPPER_BOUND LOWER_BOUND SUM_EQUALITY")
 
 class UncertaintySet(ABC):
 
-    @abstractmethod
-    def canonicalize(self, x, var):
-        return NotImplemented
+    # @abstractmethod
+    # def canonicalize(self, x, var):
+    #     return NotImplemented
 
     @abstractmethod
     def conjugate(self, var):
