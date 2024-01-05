@@ -154,62 +154,6 @@ class MRO(UncertaintySet):
         else:
             return (self.q() - 1.)**(self.q() - 1.)/(self.q()**self.q())
 
-    def canonicalize(self, x, var):
-        # import ipdb
-        # ipdb.set_trace()
-        trans = self.affine_transform_temp
-        if x.is_scalar():
-            if trans:
-                new_expr = trans['b'] * x
-                new_constraints = [var == -trans['A'] * x]
-            else:
-                new_expr = 0
-                new_constraints = [var == -x]
-
-        else:
-            if trans:
-                new_expr = trans['b'] @ x
-                new_constraints = [var == -trans['A'].T @ x]
-            else:
-                new_expr = 0
-                new_constraints = [var == -x]
-
-        if self.affine_transform:
-            self.affine_transform_temp = self.affine_transform.copy()
-        else:
-            self.affine_transform_temp = None
-        return new_expr, new_constraints
-
-    def isolated_unc(self, i, var, num_constr):
-        # import ipdb
-        # ipdb.set_trace()
-        trans = self.affine_transform_temp
-        new_expr = 0
-        if i == 0:
-            if trans:
-                new_expr += trans['b']
-        e = np.eye(num_constr)[i]
-        if len(trans['A'].shape) == 1:
-            newA = np.reshape(trans['A'].value, (1, trans['A'].shape[0]))
-        else:
-            newA = trans['A']
-        if var.is_scalar():
-            if trans:
-                new_constraints = [var == -newA * e]
-            else:
-                new_constraints = [var == - e]
-        else:
-            if trans:
-                new_constraints = [var == -newA.T @ e]
-            else:
-                new_constraints = [var == - e]
-        if i == (num_constr - 1):
-            if self.affine_transform:
-                self.affine_transform_temp = self.affine_transform.copy()
-            else:
-                self.affine_transform_temp = None
-        return new_expr, new_constraints
-
     def conjugate(self, var, supp_var, shape, k_ind):
         if not self._define_support:
             if self._c is None:

@@ -88,62 +88,6 @@ class Polyhedral(UncertaintySet):
     def sum_eq(self):
         return self._sum_eq
 
-    def _safe_mul(self, lhs, rhs):
-        """
-        This function uses either @ or *, depending on the size of rhs
-        """
-        def _is_scalar(rhs):
-            """
-            Helper function that determines if rhs is a scalar (CVXPY or else e.g. numpy scalar)
-            """
-            if hasattr(rhs, "is_scalar"):
-                return rhs.is_scalar()
-            return not len(rhs)>1
-
-        if _is_scalar(rhs):
-            return lhs*rhs
-        return lhs@rhs
-
-    def canonicalize(self, x, var):
-        trans = self.affine_transform_temp
-        new_expr = 0
-        if trans:
-            new_expr += self._safe_mul(trans['b'], x)
-            lhs = -trans['A']
-            if not x.is_scalar():
-                lhs = lhs.T
-            new_constraints = [var == self._safe_mul(lhs, x)]
-        else:
-            new_constraints = [var == -x]
-
-        if self.affine_transform:
-            self.affine_transform_temp = self.affine_transform.copy()
-        else:
-            self.affine_transform_temp = None
-        return new_expr, new_constraints
-
-    def isolated_unc(self, i, var, num_constr):
-        trans = self.affine_transform_temp
-        new_expr = 0
-        if i == 0 and trans:
-            new_expr += trans['b']
-        
-        e = np.eye(num_constr)[i]
-        if trans:
-            lhs = -trans['A']
-            if not var.is_scalar():
-                lhs = lhs.T
-            new_constraints = [var == self._safe_mul(lhs, e)]
-        else:
-            new_constraints = [var == - e]
-
-        if i == (num_constr - 1):
-            if self.affine_transform:
-                self.affine_transform_temp = self.affine_transform.copy()
-            else:
-                self.affine_transform_temp = None
-        return new_expr, new_constraints
-
     def conjugate(self, var, supp_var, shape, k_ind=0):
         constr = [supp_var == 0]
         if isinstance(var, Variable):

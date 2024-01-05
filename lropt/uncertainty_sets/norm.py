@@ -135,69 +135,6 @@ class Norm(UncertaintySet):
             return np.inf
         return 1. + 1. / (self.p - 1.)
 
-    def canonicalize(self, x, var):
-        # import ipdb
-        # ipdb.set_trace()
-        trans = self.affine_transform_temp
-        if x.is_scalar():
-            if trans:
-                new_expr = trans['b'] * x
-                new_constraints = [var == -trans['A'] * x]
-            else:
-                new_expr = 0
-                new_constraints = [var == -x]
-
-        else:
-            if trans:
-                new_expr = trans['b'] @ x
-                new_constraints = [var == -trans['A'].T @ x]
-            else:
-                new_expr = 0
-                new_constraints = [var == -x]
-
-        if self.affine_transform:
-            self.affine_transform_temp = self.affine_transform.copy()
-        else:
-            self.affine_transform_temp = None
-
-        return new_expr, new_constraints
-
-    def isolated_unc(self, i, var, num_constr):
-        trans = self.affine_transform_temp
-        new_expr = 0
-        if i == 0:
-            if trans:
-                new_expr += trans['b']
-        e = np.eye(num_constr)[i]
-        if len(trans['A'].shape) == 1:
-            if var.is_scalar():
-                if trans:
-                    new_constraints = [var == -trans['A'] * e]
-                else:
-                    new_constraints = [var == - e]
-            else:
-                if trans:
-                    new_constraints = [var == -trans['A']]
-                else:
-                    new_constraints = [var == - e]
-        else:
-            if var.is_scalar():
-                if trans:
-                    new_constraints = [var == -trans['A'] * e]
-                else:
-                    new_constraints = [var == - e]
-            else:
-                if trans:
-                    new_constraints = [var == -trans['A'].T @ e]
-                else:
-                    new_constraints = [var == - e]
-        if i == (num_constr - 1):
-            if self.affine_transform:
-                self.affine_transform_temp = self.affine_transform.copy()
-            else:
-                self.affine_transform_temp = None
-        return new_expr, new_constraints
-
     def conjugate(self, var, supp_var, shape, k_ind=0):
         if not self._define_support:
             if self._c is None:
