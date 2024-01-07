@@ -15,7 +15,7 @@ class MRO(UncertaintySet):
     """
 
     def __init__(self, K=1, rho=1, data=None, power=1, p=2,
-                 a=None, train=False, c=None, d=None, loss=None, 
+                 a=None, train=False, c=None, d=None, loss=None,
                  uniqueA=False, ub=None, lb=None, eq=None):
 
         if data is None:
@@ -116,7 +116,7 @@ class MRO(UncertaintySet):
     @property
     def Dbar(self):
         return self._Dbar
-    
+
     @property
     def ub(self):
         return self._ub
@@ -128,7 +128,7 @@ class MRO(UncertaintySet):
     @property
     def eq(self):
         return self._eq
-    
+
     @property
     def c(self):
         return self._c
@@ -181,8 +181,6 @@ class MRO(UncertaintySet):
         return new_expr, new_constraints
 
     def isolated_unc(self, i, var, num_constr):
-        # import ipdb
-        # ipdb.set_trace()
         trans = self.affine_transform_temp
         new_expr = 0
         if i == 0:
@@ -190,19 +188,27 @@ class MRO(UncertaintySet):
                 new_expr += trans['b']
         e = np.eye(num_constr)[i]
         if len(trans['A'].shape) == 1:
-            newA = np.reshape(trans['A'].value, (1, trans['A'].shape[0]))
-        else:
-            newA = trans['A']
-        if var.is_scalar():
-            if trans:
-                new_constraints = [var == -newA * e]
+            if var.is_scalar():
+                if trans:
+                    new_constraints = [var == -trans['A'] * e]
+                else:
+                    new_constraints = [var == - e]
             else:
-                new_constraints = [var == - e]
+                if trans:
+                    new_constraints = [var == -trans['A']]
+                else:
+                    new_constraints = [var == - e]
         else:
-            if trans:
-                new_constraints = [var == -newA.T @ e]
+            if var.is_scalar():
+                if trans:
+                    new_constraints = [var == -trans['A'] * e]
+                else:
+                    new_constraints = [var == - e]
             else:
-                new_constraints = [var == - e]
+                if trans:
+                    new_constraints = [var == -trans['A'].T @ e]
+                else:
+                    new_constraints = [var == - e]
         if i == (num_constr - 1):
             if self.affine_transform:
                 self.affine_transform_temp = self.affine_transform.copy()

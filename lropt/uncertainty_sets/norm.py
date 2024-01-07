@@ -10,7 +10,7 @@ class Norm(UncertaintySet):
     Norm uncertainty set, defined as
 
     .. math::
-        \mathcal{U}_{\text{Norm}} = \{u \ | \ \| Au + b\|_p \le \rho\}
+        \mathcal{U}_{\text{Norm}} = \{Au + b \ | \ \| u\|_p \le \rho\}
 
     when :math:`p = 2` this is an ellipsoidal set, and when :math:`p = \infty` this is a box set
 
@@ -215,46 +215,25 @@ class Norm(UncertaintySet):
             constr = [lmbda >= 0]
             return self.rho*lmbda, constr, lmbda
         else:
-            ushape = var.shape[1]  # shape of uncertainty
-            if self.b is None:
-                self._b = np.zeros(ushape)
-            if self.data is not None or self.a is not None:
-                if shape == 1:
-                    lmbda = Variable()
-                    supp_newvar = Variable(len(self._d))
-                    constr = [norm(var[0], p=self.dual_norm()) <= lmbda]
-                    constr += [lmbda >= 0]
-                    constr += [self._c.T@supp_newvar == supp_var[0]]
-                    constr += [supp_newvar >= 0]
-                    return self.rho * lmbda + self._d@supp_newvar, constr, lmbda
-                else:
-                    constr = []
-                    lmbda = Variable(shape)
-                    constr += [lmbda >= 0]
-                    supp_newvar = Variable((shape, len(self._d)))
-                    constr += [supp_newvar >= 0]
-                    for ind in range(shape):
-                        constr += [norm(var[ind],
-                                        p=self.dual_norm()) <= lmbda[ind]]
-                        constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-                    return self.rho * lmbda + supp_newvar@self._d, constr, lmbda
+            # ushape = var.shape[1]  # shape of uncertainty
+            # if self.b is None:
+            #     self._b = np.zeros(ushape)
+            if shape == 1:
+                lmbda = Variable()
+                supp_newvar = Variable(len(self._d))
+                constr = [norm(var[0], p=self.dual_norm()) <= lmbda]
+                constr += [lmbda >= 0]
+                constr += [self._c.T@supp_newvar == supp_var[0]]
+                constr += [supp_newvar >= 0]
+                return self.rho * lmbda + self._d@supp_newvar, constr, lmbda
             else:
-                if shape == 1:
-                    lmbda = Variable()
-                    supp_newvar = Variable(len(self._d))
-                    constr = [norm(var[0], p=self.dual_norm()) <= lmbda]
-                    constr += [lmbda >= 0]
-                    constr += [self._c.T@supp_newvar == supp_var[0]]
-                    constr += [supp_newvar >= 0]
-                    return self.rho * lmbda + self._d@supp_newvar, constr, lmbda
-                else:
-                    constr = []
-                    lmbda = Variable(shape)
-                    constr += [lmbda >= 0]
-                    supp_newvar = Variable((shape, len(self._d)))
-                    constr += [supp_newvar >= 0]
-                    for ind in range(shape):
-                        constr += [norm(var[ind], p=self.dual_norm())
-                                   <= lmbda[ind]]
-                        constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-                    return self.rho * lmbda + supp_newvar@self._d, constr, lmbda
+                constr = []
+                lmbda = Variable(shape)
+                constr += [lmbda >= 0]
+                supp_newvar = Variable((shape, len(self._d)))
+                constr += [supp_newvar >= 0]
+                for ind in range(shape):
+                    constr += [norm(var[ind],
+                                    p=self.dual_norm()) <= lmbda[ind]]
+                    constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
+                return self.rho * lmbda + supp_newvar@self._d, constr, lmbda

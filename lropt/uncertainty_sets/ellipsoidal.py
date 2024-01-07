@@ -43,12 +43,12 @@ class Ellipsoidal(Norm):
         Ellipsoidal uncertainty set.
     """
 
-    def __init__(self, shape = None, rho=1., p=2,
+    def __init__(self, dimension = None, rho=1., p=2,
                  a=None, b=None, c= None, d = None,
                  data=None, loss=None, ub=None, lb=None, eq=None):
 
         super(Ellipsoidal, self).__init__(
-            shape = shape,
+            dimension = dimension,
             p=p,
             rho=rho,
             a=a, b=b,c = c, d = d, data=data, loss=loss, ub=ub, lb=lb, eq=eq)
