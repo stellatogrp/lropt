@@ -37,7 +37,11 @@ class TestSupport(unittest.TestCase):
             self.assertTrue(np.all(uncertainty_set._d == d_check_empty))
 
         #Concatentated version
-        uncertainty_set = uncertainty_class(c=c, d=d)
+        if uncertainty_class == Polyhedral:
+            uncertainty_set = uncertainty_class(lhs = np.eye(self.n), \
+                             rhs = np.zeros(self.n), c=c, d=d)
+        else:
+            uncertainty_set = uncertainty_class(c=c, d=d)
         uncertainty_set.add_support_type(ub, self.n, SUPPORT_TYPE.UPPER_BOUND)
         uncertainty_set.add_support_type(lb, self.n, SUPPORT_TYPE.LOWER_BOUND)
         uncertainty_set.add_support_type(sum_eq, self.n, SUPPORT_TYPE.SUM_EQUALITY)
@@ -46,11 +50,11 @@ class TestSupport(unittest.TestCase):
 
     def test_all_none(self):
         c = np.eye(self.n)
-        d = np.ones(self.n) 
+        d = np.ones(self.n)
         self._check_condition(uncertainty_class=Norm, ub=None, lb=None, sum_eq=None, c=c, d=d,
                               c_check_empty=None, d_check_empty=None,
                               c_check_existing=c, d_check_existing=d)
-    
+
     def test_vector_bounds(self):
         c = np.eye(self.n)
         d = np.ones(self.n)
@@ -64,7 +68,7 @@ class TestSupport(unittest.TestCase):
         self._check_condition(uncertainty_class=Ellipsoidal, ub=ub, lb=lb, sum_eq=sum_eq, c=c, d=d,
                               c_check_empty=c_check_empty, d_check_empty=d_check_empty,
                               c_check_existing=c_check_existing, d_check_existing=d_check_existing)
-    
+
     def test_scalars(self):
         c = np.random.randn(self.n, self.n)
         d = np.random.uniform(size=self.n)
@@ -78,7 +82,7 @@ class TestSupport(unittest.TestCase):
         self._check_condition(uncertainty_class=Box, ub=ub, lb=lb, sum_eq=sum_eq, c=c, d=d,
                               c_check_empty=c_check_empty, d_check_empty=d_check_empty,
                               c_check_existing=c_check_existing, d_check_existing=d_check_existing)
-        
+
     def test_vector_equality(self):
         c = np.random.randn(self.n, self.n)
         d = np.random.uniform(size=self.n)
@@ -92,15 +96,19 @@ class TestSupport(unittest.TestCase):
         self._check_condition(uncertainty_class=Polyhedral, ub=ub, lb=lb, sum_eq=sum_eq, c=c, d=d,
                               c_check_empty=c_check_empty, d_check_empty=d_check_empty,
                               c_check_existing=c_check_existing, d_check_existing=d_check_existing)
-                  
+
     def _check_condition_param(self,uncertainty_class, ub, lb, sum_eq, c, d,
                             c_check_empty, d_check_empty,
                             c_check_existing, d_check_existing):
-        
+
         def _safe_create_uncertainty_set(uncertainty_class, n, ub,  lb, sum_eq, c=None, d=None):
             if uncertainty_class == MRO:
                 data = np.random.rand(n, n)
                 return uncertainty_class(ub=ub, lb=lb, sum_eq=sum_eq, data=data, c=c, d=d)
+            if uncertainty_class == Polyhedral:
+                return uncertainty_class(ub=ub, lb=lb, \
+                     sum_eq=sum_eq, data=data, c=c,\
+                          d=d, lhs = np.eye(n), rhs = np.zeros(n))
             return uncertainty_class(ub=ub, lb=lb, sum_eq=sum_eq, c=c, d=d)
 
         #Empty self._c and self._d
@@ -120,7 +128,7 @@ class TestSupport(unittest.TestCase):
 
     def test_uncertain_param_none(self):
         c = np.eye(self.n)
-        d = -np.ones(self.n) 
+        d = -np.ones(self.n)
         self._check_condition_param(uncertainty_class=Budget, ub=None, lb=None, sum_eq=None,
                               c=c, d=d, c_check_empty=None, d_check_empty=None,
                               c_check_existing=c, d_check_existing=d)
@@ -138,7 +146,7 @@ class TestSupport(unittest.TestCase):
         self._check_condition_param(uncertainty_class=Norm, ub=ub, lb=lb, sum_eq=sum_eq, c=c, d=d,
                               c_check_empty=c_check_empty, d_check_empty=d_check_empty,
                               c_check_existing=c_check_existing, d_check_existing=d_check_existing)
-        
+
     def test_uncertain_param_scalar_box(self):
         c = np.random.randn(self.n, self.n)
         d = np.random.uniform(size=self.n)

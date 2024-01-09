@@ -43,8 +43,8 @@ class TestPolyhedralUncertainty(unittest.TestCase):
         prob_cvxpy.solve()
         x_cvxpy = x.value
         # Formulate robust constraints with lropt
-        unc_set = Polyhedral(d=b_poly,
-                             c=A_poly)
+        unc_set = Polyhedral(rhs=b_poly,
+                             lhs=A_poly)
         a = UncertainParameter(n,
                                uncertainty_set=unc_set)
         constraints = [a @ x <= b]
@@ -80,8 +80,8 @@ class TestPolyhedralUncertainty(unittest.TestCase):
         prob_cvxpy.solve()
         x_cvxpy = x.value
         # Formulate robust constraints with lropt
-        unc_set = Polyhedral(d=b_poly,
-                             c=A_poly)
+        unc_set = Polyhedral(rhs=b_poly,
+                             lhs=A_poly)
         a = UncertainParameter(n,
                                uncertainty_set=unc_set)
         constraints = [(A_unc @ a + b_unc) @ x <= b]
@@ -99,8 +99,8 @@ class TestPolyhedralUncertainty(unittest.TestCase):
         d = np.concatenate((0.1*np.ones(m), 0.1*np.ones(m)))
         poly_u = UncertainParameter(m,
                                     uncertainty_set=Polyhedral(
-                                        c=D,
-                                        d=d))
+                                        lhs=D,
+                                        rhs=d))
         n = 4
         # formulate cvxpy variable
         x = cp.Variable(n)

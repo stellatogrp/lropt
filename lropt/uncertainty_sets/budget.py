@@ -1,6 +1,7 @@
 import numpy as np
-from cvxpy import Parameter, Variable, norm
+from cvxpy import Variable, norm
 
+from lropt.shape_parameter import ShapeParameter
 from lropt.uncertainty_sets.uncertainty_set import UncertaintySet
 
 
@@ -39,10 +40,10 @@ class Budget(UncertaintySet):
     d: np.array, optional
         vector defining the rhs of the polyhedral support: :math: `cu \le d`. By default None.
     ub: np.array | float, optional
-        vector or float defining the upper bound of the support. If scalar, broadcast to a vector. 
+        vector or float defining the upper bound of the support. If scalar, broadcast to a vector.
         By default None.
     lb: np.array | float, optional
-        vector or float defining the lower bound of the support. If scalar, broadcast to a vector. 
+        vector or float defining the lower bound of the support. If scalar, broadcast to a vector.
         By default None.
     sum_eq: np.array | float, optinal
         vector or float defining an equality constraint for the uncertain vector. By default None.
@@ -53,9 +54,9 @@ class Budget(UncertaintySet):
         Budget uncertainty set.
     """
 
-    def __init__(self, rho1=1., rho2=1.,
-                 a1=None, a2=None, b1=None, b2=None, c=None, d=None, data=None, loss=None,
-                 train_box=True, ub=None, lb=None, sum_eq=None):
+    def __init__(self, dimension=None, rho1=1., rho2=1.,
+                 a=None, b=None, c=None, d=None, data=None, loss=None,
+                  ub=None, lb=None, sum_eq=None):
         if rho2 <= 0 or rho1 <= 0:
             raise ValueError("Rho values must be positive.")
 
@@ -64,17 +65,21 @@ class Budget(UncertaintySet):
 
         if data is not None:
             dat_shape = data.shape[1]
-            a = Parameter((dat_shape, dat_shape))
-            b = Parameter(dat_shape)
-        else:
-            a = None
-            b = None
+            if dimension is None:
+                dimension = dat_shape
+            a = ShapeParameter((dat_shape, dimension))
+            b = ShapeParameter(dat_shape)
+
+        if dimension is not None:
+            if a is not None:
+                if a.shape[1] != dimension:
+                    raise ValueError("Mismatching dimension for A.")
+            if a is None:
+                raise ValueError("You must provide A if you provide a dimension without data.")
+
         self.affine_transform_temp = None
         self.affine_transform = None
-        self._a1 = a1
-        self._a2 = a2
-        self._b1 = b1
-        self._b2 = b2
+        self._dimension = dimension
         self._rho1 = rho1
         self._rho2 = rho2
         self._data = data
@@ -82,7 +87,6 @@ class Budget(UncertaintySet):
         self._b = b
         self._trained = False
         self._loss = loss
-        self._train_box = train_box
         self._c = c
         self._d = d
         self._define_support = False
@@ -97,6 +101,10 @@ class Budget(UncertaintySet):
     @property
     def rho2(self):
         return self._rho2
+
+    @property
+    def dimension(self):
+        return self._dimension
 
     @property
     def a(self):
@@ -119,10 +127,6 @@ class Budget(UncertaintySet):
         return self._trained
 
     @property
-    def train_box(self):
-        return self._train_box
-    
-    @property
     def ub(self):
         return self._ub
 
@@ -133,7 +137,7 @@ class Budget(UncertaintySet):
     @property
     def sum_eq(self):
         return self._sum_eq
-    
+
     @property
     def c(self):
         return self._c
@@ -148,12 +152,12 @@ class Budget(UncertaintySet):
                 if not isinstance(var, Variable):
                     self._c = np.zeros((var, var))
                 else:
-                    self._c = np.zeros((var.shape[1], var.shape[1]))
+                    self._c = np.zeros((supp_var.shape[1], supp_var.shape[1]))
             if self._d is None:
                 if not isinstance(var, Variable):
                     self._d = np.zeros(var)
                 else:
-                    self._d = np.zeros(var.shape[1])
+                    self._d = np.zeros(supp_var.shape[1])
             self._define_support = True
         if isinstance(var, Variable):
             ushape = var.shape[1]
@@ -165,118 +169,26 @@ class Budget(UncertaintySet):
             newvar1 = Variable(ushape)
             newvar2 = Variable(ushape)
             constr = [newvar1 + newvar2 == 0]
-        if self._a1 is None:
-            self._a1 = np.eye(ushape)
-        if self._a2 is None:
-            self._a2 = np.eye(ushape)
-        if self._b1 is None:
-            self._b1 = np.zeros(ushape)
-        if self._b2 is None:
-            self._b2 = np.zeros(ushape)
-
-        if self.data is not None and self.train_box:
-            if shape == 1:
-                newvar = Variable(ushape)  # z conjugate variables
-                lmbda1 = Variable()
-                lmbda2 = Variable()
-                supp_newvar = Variable(len(self._d))
-                constr += [norm(newvar, 1) <= lmbda1]
-                constr += [norm(newvar2[0], np.inf) <= lmbda2]
-                constr += [self.a.T@newvar == newvar1[0]]
-                constr += [lmbda1 >= 0, lmbda2 >= 0]
-                constr += [self._c.T@supp_newvar == supp_var[0]]
-                constr += [supp_newvar >= 0]
-                return self.rho1*lmbda1 + self._d@supp_newvar + self.rho2*lmbda2 - newvar*self.b, \
-                    constr, (lmbda1, lmbda2)
-            else:
-                lmbda1 = Variable(shape)
-                lmbda2 = Variable(shape)
-                newvar = Variable((shape, ushape))
-                supp_newvar = Variable((shape, len(self._d)))
-                constr += [lmbda1 >= 0, lmbda2 >= 0]
-                constr += [supp_newvar >= 0]
-                for ind in range(shape):
-                    constr += [norm(newvar[ind], p=1) <= lmbda1[ind]]
-                    constr += [norm(newvar2[ind], p=np.inf) <= lmbda2[ind]]
-                    constr += [self.a.T@newvar[ind] == newvar1[ind]]
-                    constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-                return self.rho1*lmbda1 + supp_newvar@self._d + self.rho2*lmbda2 - newvar@self.b, \
-                    constr, (lmbda1, lmbda2)
-        elif self.data is not None and not self.train_box:
-            if shape == 1:
-                newvar = Variable(ushape)  # z conjugate variables
-                lmbda1 = Variable()
-                lmbda2 = Variable()
-                supp_newvar = Variable(len(self._d))
-                constr += [norm(newvar1, 1) <= lmbda1]
-                constr += [norm(newvar[0], np.inf) <= lmbda2]
-                constr += [self.a.T@newvar == newvar2[0]]
-                constr += [lmbda1 >= 0, lmbda2 >= 0]
-                constr += [self._c.T@supp_newvar == supp_var[0]]
-                constr += [supp_newvar >= 0]
-                return self.rho1*lmbda1 + self._d@supp_newvar + self.rho2*lmbda2 - newvar*self.b, \
-                    constr, (lmbda1, lmbda2)
-            else:
-                lmbda1 = Variable(shape)
-                lmbda2 = Variable(shape)
-                newvar = Variable((shape, ushape))
-                supp_newvar = Variable((shape, len(self._d)))
-                constr += [lmbda1 >= 0, lmbda2 >= 0]
-                constr += [supp_newvar >= 0]
-                for ind in range(shape):
-                    constr += [norm(newvar1[ind], p=1) <= lmbda1[ind]]
-                    constr += [norm(newvar[ind], p=np.inf) <= lmbda2[ind]]
-                    constr += [self.a.T@newvar[ind] == newvar2[ind]]
-                    constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-                return self.rho1*lmbda1 + supp_newvar@self._d + self.rho2*lmbda2 - newvar@self.b,\
-                    constr, (lmbda1, lmbda2)
-        # else:
-        #     if shape == 1:
-        #         lmbda1 = Variable()
-        #         lmbda2 = Variable()
-        #         constr += [norm(newvar1[0], p=1) <= lmbda1]
-        #         constr += [norm(newvar2[0], p=np.inf) <= lmbda2]
-        #         constr += [lmbda1 >= 0, lmbda2 >= 0]
-        #         return self.rho1 * lmbda1 + self.rho2 * lmbda2, constr
-        #     else:
-        #         lmbda1 = Variable(shape)
-        #         lmbda2 = Variable(shape)
-        #         constr += [lmbda1 >= 0, lmbda2 >= 0]
-        #         for ind in range(shape):
-        #             constr += [norm(newvar1[ind], p=1) <= lmbda1[ind]]
-        #             constr += [norm(newvar2[ind], p=np.inf) <= lmbda2[ind]]
-        #         return self.rho1 * lmbda1 + self.rho2 * lmbda2, constr
+        if shape == 1:
+            lmbda1 = Variable()
+            lmbda2 = Variable()
+            supp_newvar = Variable(len(self._d))
+            constr += [norm(newvar1[0], 1) <= lmbda1]
+            constr += [norm(newvar2[0], np.inf) <= lmbda2]
+            constr += [lmbda1 >= 0, lmbda2 >= 0]
+            constr += [self._c.T@supp_newvar == supp_var[0]]
+            constr += [supp_newvar >= 0]
+            return self.rho1*lmbda1 + self._d@supp_newvar + self.rho2*lmbda2, \
+                constr, (lmbda1, lmbda2)
         else:
-            if shape == 1:
-                newvar_1 = Variable(ushape)  # z conjugate variables
-                newvar_2 = Variable(ushape)
-                lmbda1 = Variable()
-                lmbda2 = Variable()
-                supp_newvar = Variable(len(self._d))
-                constr += [norm(newvar_1, 1) <= lmbda1]
-                constr += [norm(newvar_2, np.inf) <= lmbda2]
-                constr += [self._a1.T@newvar_1 == newvar1[0]]
-                constr += [self._a2.T@newvar_2 == newvar2[0]]
-                constr += [lmbda1 >= 0, lmbda2 >= 0]
-                constr += [self._c.T@supp_newvar == supp_var[0]]
-                constr += [supp_newvar >= 0]
-                return self.rho1 * lmbda1 + self._d@supp_newvar + self.rho2 * lmbda2 \
-                    - newvar_1@self._b1 - newvar_2@self._b2,\
-                    constr, (lmbda1, lmbda2)
-            else:
-                lmbda1 = Variable(shape)
-                lmbda2 = Variable(shape)
-                newvar_1 = Variable((shape, ushape))
-                newvar_2 = Variable((shape, ushape))
-                supp_newvar = Variable((shape, len(self._d)))
-                constr += [lmbda1 >= 0, lmbda2 >= 0]
-                constr += [supp_newvar >= 0]
-                for ind in range(shape):
-                    constr += [norm(newvar_1[ind], p=1) <= lmbda1[ind]]
-                    constr += [norm(newvar_2[ind], p=np.inf) <= lmbda2[ind]]
-                    constr += [self._a1.T@newvar_1[ind] == newvar1[ind]]
-                    constr += [self._a2.T@newvar_2[ind] == newvar2[ind]]
-                    constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-                return self.rho1 * lmbda1 + supp_newvar@self._d + self.rho2 * lmbda2 \
-                    - newvar_1@self._b1 - newvar_2@self._b2, constr,\
-                    (lmbda1, lmbda2)
+            lmbda1 = Variable(shape)
+            lmbda2 = Variable(shape)
+            supp_newvar = Variable((shape, len(self._d)))
+            constr += [lmbda1 >= 0, lmbda2 >= 0]
+            constr += [supp_newvar >= 0]
+            for ind in range(shape):
+                constr += [norm(newvar1[ind], p=1) <= lmbda1[ind]]
+                constr += [norm(newvar2[ind], p=np.inf) <= lmbda2[ind]]
+                constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
+            return self.rho1*lmbda1 + supp_newvar@self._d + self.rho2*lmbda2, \
+                constr, (lmbda1, lmbda2)

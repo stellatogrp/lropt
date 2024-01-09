@@ -61,8 +61,8 @@ class TestBoxUncertainty(unittest.TestCase):
         x_robust_box = x.value
 
         # Formulate robust problem using equivalent polyhedral constraint
-        unc_set = Polyhedral(d=b_poly,
-                             c=A_poly)
+        unc_set = Polyhedral(rhs=b_poly,
+                             lhs=A_poly)
         a = UncertainParameter(n,
                                uncertainty_set=unc_set)
         constraints = [(-2 * A_unc @ a - 2 * b_unc) @ x <= b]
@@ -250,8 +250,8 @@ class TestBoxUncertainty(unittest.TestCase):
         x_robust_box = x.value
 
         # Formulate robust problem using equivalent polyhedral constraint
-        unc_set = Polyhedral(d=b_poly,
-                             c=A_poly)
+        unc_set = Polyhedral(rhs=b_poly,
+                             lhs=A_poly)
         a = UncertainParameter(n,
                                uncertainty_set=unc_set)
         constraints = [(-2 * A_unc @ a - 2 * b_unc) @ x <= b]

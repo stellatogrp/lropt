@@ -1,6 +1,7 @@
 import numpy as np
 from cvxpy import Variable
 
+from lropt.shape_parameter import ShapeParameter
 from lropt.uncertainty_sets.uncertainty_set import UncertaintySet
 from lropt.utils import check_affine_transform
 
@@ -14,15 +15,15 @@ class Polyhedral(UncertaintySet):
 
     Parameters
     ----------
-    c: 2 dimentional np.array, optional
+    lhs: 2 dimentional np.array, optional
         matrix defining the lhs of the polyhedral support: :math: `cu \le d`. By default None.
-    d: np.array, optional
+    rhs: np.array, optional
         vector defining the rhs of the polyhedral support: :math: `cu \le d`. By default None.
     ub: np.array | float, optional
-        vector or float defining the upper bound of the support. If scalar, broadcast to a vector. 
+        vector or float defining the upper bound of the support. If scalar, broadcast to a vector.
         By default None.
     lb: np.array | float, optional
-        vector or float defining the lower bound of the support. If scalar, broadcast to a vector. 
+        vector or float defining the lower bound of the support. If scalar, broadcast to a vector.
         By default None.
     sum_eq: np.array | float, optinal
         vector or float defining an equality constraint for the uncertain vector. By default None.
@@ -33,8 +34,8 @@ class Polyhedral(UncertaintySet):
         Polyhedral uncertainty set.
     """
 
-    def __init__(self, c, d,
-                 affine_transform=None, ub=None, lb=None,sum_eq=None):
+    def __init__(self, lhs, rhs, c=None, d=None, dimension = None, a = None, b=None,
+                 affine_transform=None, data = None, ub=None, lb=None,sum_eq=None):
 
         data, loss = None, None
 
@@ -50,19 +51,47 @@ class Polyhedral(UncertaintySet):
             self.affine_transform_temp = None
         self.affine_transform = affine_transform
 
+        if data is not None:
+            dat_shape = data.shape[1]
+            if dimension is None:
+                dimension = dat_shape
+            a = ShapeParameter((dat_shape, dimension))
+            b = ShapeParameter(dat_shape)
+
+        if dimension is not None:
+            if a is not None:
+                if a.shape[1] != dimension:
+                    raise ValueError("Mismatching dimension for A.")
+            if a is None:
+                raise ValueError("You must provide A if you provide a dimension without data.")
+
+        self._a = a
+        self._b = b
+        self._dimension = dimension
         self._d = d
         self._c = c
+        self._lhs = lhs
+        self._rhs = rhs
         self._trained = False
         self._data = data
         self._loss = loss
         self._ub = ub
         self._lb = lb
         self._sum_eq = sum_eq
+        self._define_support = False
 
 
     @property
     def d(self):
         return self._d
+
+    @property
+    def rhs(self):
+        return self._rhs
+
+    @property
+    def lhs(self):
+        return self._lhs
 
     @property
     def trained(self):
@@ -71,11 +100,23 @@ class Polyhedral(UncertaintySet):
     @property
     def data(self):
         return self._data
-    
+
+    @property
+    def dimension(self):
+        return self._dimension
+
+    @property
+    def a(self):
+        return self._a
+
+    @property
+    def b(self):
+        return self._b
+
     @property
     def c(self):
         return self._c
-    
+
     @property
     def ub(self):
         return self._ub
@@ -89,22 +130,40 @@ class Polyhedral(UncertaintySet):
         return self._sum_eq
 
     def conjugate(self, var, supp_var, shape, k_ind=0):
-        constr = [supp_var == 0]
+        constr = []
+        if not self._define_support:
+            if self._c is None:
+                if not isinstance(var, Variable):
+                    self._c = np.zeros((var, var))
+                else:
+                    self._c = np.zeros((supp_var.shape[1], supp_var.shape[1]))
+            if self._d is None:
+                if not isinstance(var, Variable):
+                    self._d = np.zeros(var)
+                else:
+                    self._d = np.zeros(supp_var.shape[1])
+            self._define_support = True
         if isinstance(var, Variable):
             if shape == 1:
-                lmbda = Variable(len(self.d))
+                supp_newvar = Variable(len(self._d))
+                lmbda = Variable(len(self.rhs))
                 constr += [lmbda >= 0]
-                if len(self.d) == 1:
-                    constr += [var[0] == lmbda*self.c]
-                    return lmbda*self.d, constr, lmbda
+                constr += [self._c.T@supp_newvar == supp_var[0]]
+                constr += [supp_newvar >= 0]
+                if len(self.rhs) == 1:
+                    constr += [var[0] == lmbda*self.lhs]
+                    return lmbda*self.rhs + self._d@supp_newvar, constr, lmbda
                 else:
-                    constr += [var[0] == lmbda@self.c]
-                    return lmbda@self.d, constr, lmbda
+                    constr += [var[0] == lmbda@self.lhs]
+                    return lmbda@self.rhs, constr, lmbda
             else:
-                lmbda = Variable((shape, len(self.d)))
+                lmbda = Variable((shape, len(self.rhs)))
+                supp_newvar = Variable((shape, len(self._d)))
+                constr += [supp_newvar >= 0]
                 constr += [lmbda >= 0]
                 for ind in range(shape):
-                    constr += [var[ind] == lmbda[ind]@self.c]
-                return lmbda@self.d, constr, lmbda
+                    constr += [var[ind] == lmbda[ind]@self.lhs]
+                    constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
+                return lmbda@self.rhs+ supp_newvar@self._d, constr, lmbda
         else:
             return 0, [], 0

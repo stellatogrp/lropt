@@ -15,7 +15,7 @@ class MRO(UncertaintySet):
     """
 
     def __init__(self, K=1, rho=1, data=None, power=1, p=2,
-                 a=None, train=False, c=None, d=None, loss=None, 
+                 a=None, b=None, train=False, c=None, d=None, loss=None,
                  uniqueA=False, ub=None, lb=None, sum_eq=None):
 
         if data is None:
@@ -49,6 +49,8 @@ class MRO(UncertaintySet):
         self._ub = ub
         self._lb = lb
         self._sum_eq = sum_eq
+        self._dimension = None
+        self._b = b
 
         if train:
             if self._uniqueA:
@@ -98,6 +100,14 @@ class MRO(UncertaintySet):
         return self._a
 
     @property
+    def b(self):
+        return self._b
+
+    @property
+    def dimension(self):
+        return self._dimension
+
+    @property
     def N(self):
         return self._N
 
@@ -116,7 +126,7 @@ class MRO(UncertaintySet):
     @property
     def Dbar(self):
         return self._Dbar
-    
+
     @property
     def ub(self):
         return self._ub
@@ -128,7 +138,7 @@ class MRO(UncertaintySet):
     @property
     def sum_eq(self):
         return self._sum_eq
-    
+
     @property
     def c(self):
         return self._c

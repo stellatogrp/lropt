@@ -19,16 +19,16 @@ class UncertaintySet(ABC):
     def add_support_type(self, value: np.ndarray | float | None, n: int,
                          support_type: SUPPORT_TYPE):
         """
-        
+
         """
         if value is None:
             return
         value = np.array(value)
-        
+
         self._update_c(value=value, n=n, support_type=support_type)
         self._update_d(value=value, n=n, support_type=support_type)
 
-    def _safe_add_to_list(self, value: np.ndarray | float | None, target: np.ndarray | None, 
+    def _safe_add_to_list(self, value: np.ndarray | float | None, target: np.ndarray | None,
                           func: callable):
         """
         This function returns a new matrix with value added to target if target is not None, or
@@ -49,12 +49,12 @@ class UncertaintySet(ABC):
         if target is None:
             return value
         return func([target, value])
-    
+
     def _update_c(self, value: np.ndarray | float | None, n: int, support_type: SUPPORT_TYPE):
         """
         This function adds value to self._c and updates it.
         """
-        
+
         if support_type == SUPPORT_TYPE.UPPER_BOUND:
             value = np.eye(n)
         elif support_type == SUPPORT_TYPE.LOWER_BOUND:
@@ -128,7 +128,10 @@ class UncertaintySet(ABC):
         new_expr = 0
         if i == 0 and trans:
             new_expr += trans['b']
-        
+
+        if self.b is not None:
+            new_expr = new_expr + self._safe_mul(-self.b,var)
+
         e = np.eye(num_constr)[i]
         if trans:
             lhs = -trans['A']

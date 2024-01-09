@@ -1,3 +1,4 @@
+import numpy as np
 from cvxpy import Variable, problems
 from cvxpy.constraints.nonpos import Inequality
 from cvxpy.expressions import cvxtypes
@@ -56,7 +57,7 @@ class Uncertain_Canonicalization(Reduction):
                 canon_objective = problem.objective
                 new_constraints = problem.constraints
             return canon_objective, new_constraints
-        
+
         inverse_data = InverseData(problem)
         # import ipdb
         # ipdb.set_trace()
@@ -65,7 +66,7 @@ class Uncertain_Canonicalization(Reduction):
 
         canon_objective, new_constraints = _gen_objective_constraints(problem)
         canon_constraints = []
-        
+
         for constraint in new_constraints:
             # canon_constr is the constraint rexpressed in terms of
             # its canonicalized arguments, and aux_constr are the constraints
@@ -129,13 +130,14 @@ class Uncertain_Canonicalization(Reduction):
         # import ipdb
         # ipdb.set_trace()
         u_shape = self.get_u_shape(uvar)
+        smaller_u_shape = uvar.uncertainty_set._dimension
         num_unc_fns = len(unc_lst)
         if num_unc_fns > 0:
             if u_shape == 1:
                 z = Variable(num_unc_fns)
             else:
                 z = Variable((num_unc_fns, u_shape))
-            z_cons = 0
+            z_cons = np.zeros(u_shape)
             z_new_cons = {}
             new_vars = {}
             aux_expr = 0
@@ -169,19 +171,32 @@ class Uncertain_Canonicalization(Reduction):
                     # ipdb.set_trace()
                     aux_expr = aux_expr + new_expr
                     aux_constraint += new_constraint
-                    z_cons += z[ind]
+                    z_cons = z_cons + z[ind]
 
-            z_unc = Variable((num_constr, u_shape))
+            z_unc = Variable((num_constr, smaller_u_shape))
             supp_cons = Variable((num_constr, u_shape))
             if has_isolated == 1:
                 for idx in range(num_constr):
-                    aux_constraint += [z_cons + supp_cons[idx] +
+                    if uvar.uncertainty_set.a is not None:
+                        aux_constraint += [uvar.uncertainty_set.a.T@z_cons \
+                        + uvar.uncertainty_set.a.T@supp_cons[idx] \
+                        +uvar.uncertainty_set.a.T@z_new_cons[idx] == \
+                            -z_unc[idx]]
+                    else:
+                        aux_constraint += [z_cons + supp_cons[idx] +
                                        z_new_cons[idx] == -z_unc[idx]]
             else:
-                aux_constraint += [z_cons + supp_cons[0] == -z_unc[0]]
+                if uvar.uncertainty_set.a is not None:
+                    aux_constraint += [uvar.uncertainty_set.a.T@z_cons \
+                          + uvar.uncertainty_set.a.T@supp_cons[0] == -z_unc[0]]
+                else:
+                    aux_constraint += [z_cons + supp_cons[0] == -z_unc[0]]
             new_expr, new_constraint, lmbda = uvar.conjugate(
                 z_unc, supp_cons, num_constr, k_ind=0)
             aux_expr = aux_expr + new_expr
+            if uvar.uncertainty_set.b is not None:
+                aux_expr = aux_expr - uvar.uncertainty_set.b@(z_cons) \
+                    - supp_cons@uvar.uncertainty_set.b
             aux_constraint = aux_constraint + new_constraint
         else:
             aux_expr, aux_constraint, lmbda = uvar.conjugate(
@@ -333,7 +348,7 @@ class Uncertain_Canonicalization(Reduction):
                 "DRP error: not able to process non multiplication/additions")
         func = sep_methods[type(expr)]
         return func(self, expr)
-    
+
     #TODO (Irina): Please fill/update/assert the docstrings of all the helper functions below
     # (just the description, no need to go over args/returns)
     def remove_uncertainty(self, unc_lst, std_lst, is_max, canon_constraints):
@@ -352,7 +367,7 @@ class Uncertain_Canonicalization(Reduction):
             else:
                 unc_lst_merged = unc_lst
             return unc_lst_merged
-        
+
         def _calc_constraint_shape(unc_lst_merged):
             """
             This function calculates the shape of the constraint.
@@ -373,14 +388,14 @@ class Uncertain_Canonicalization(Reduction):
             else:
                 unc_lst_pass = unc_lst[new_cons_idx]
                 std_lst_pass = std_lst[new_cons_idx]
-            
+
             if is_mro:
                 canon_constr, aux_constr, new_lmbda, new_sval = self.remove_uncertainty_mro(
                     unc_lst_pass, unc_params[0], std_lst_pass, constraint_shape)
             else:
                 canon_constr, aux_constr, new_lmbda = self.remove_uncertainty_simple(
                     unc_lst_pass, unc_params[0], std_lst_pass, constraint_shape)
-                
+
             if is_mro and new_cons_idx:
                 canon_constraints += aux_constr
                 canon_constraints += [lmbda == new_lmbda]

@@ -28,7 +28,7 @@ class TestMax(unittest.TestCase):
         n = 5
         u = UncertainParameter(n,
                                uncertainty_set=Ellipsoidal(p=2, rho=1,
-                                                           b=-np.mean(self.data, axis=0)))
+                                                           b=np.mean(self.data, axis=0)))
         # formulate cvxpy variables
         x_r = cp.Variable(n)
         t = cp.Variable()

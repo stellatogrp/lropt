@@ -30,10 +30,10 @@ class Ellipsoidal(Norm):
     d: np.array, optional
         vector defining the rhs of the polyhedral support: :math: `cu \le d`. By default None.
     ub: np.array | float, optional
-        vector or float defining the upper bound of the support. If scalar, broadcast to a vector. 
+        vector or float defining the upper bound of the support. If scalar, broadcast to a vector.
         By default None.
     lb: np.array | float, optional
-        vector or float defining the lower bound of the support. If scalar, broadcast to a vector. 
+        vector or float defining the lower bound of the support. If scalar, broadcast to a vector.
         By default None.
     sum_eq: np.array | float, optinal
         vector or float defining an equality constraint for the uncertain vector. By default None.
@@ -43,11 +43,12 @@ class Ellipsoidal(Norm):
         Ellipsoidal uncertainty set.
     """
 
-    def __init__(self, rho=1., p=2,
+    def __init__(self, dimension = None, rho=1., p=2,
                  a=None, b=None, c= None, d = None,
                  data=None, loss=None, ub=None, lb=None, sum_eq=None):
 
         super(Ellipsoidal, self).__init__(
+            dimension=dimension,
             p=p,
             rho=rho,
             a=a, b=b,c = c, d = d, data=data, loss=loss, ub=ub, lb=lb, sum_eq=sum_eq)
