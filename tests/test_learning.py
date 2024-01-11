@@ -105,7 +105,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         init_bvaln = -initn@(np.mean(train, axis=0) - 0.3*np.ones(n))
 
         # Train A and b
-        result = prob.train(lr=0.01, num_iter=100, momentum=0.8,
+        result = prob.train(lr=0.001, num_iter=400, momentum=0.8,
                             optimizer="SGD",
                             seed=s, init_A=initn, init_b=init_bvaln,
                             init_lam=1, init_mu=1,

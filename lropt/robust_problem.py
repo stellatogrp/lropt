@@ -291,6 +291,8 @@ class RobustProblem(Problem):
         self.h = h_funcs
         self.num_g = len(h_funcs)
 
+    # eval_args --> var_values, y_batch, u_batch
+    # items_to_sample --> var_values, y_batch
     def _eval_input(self, eval_func, eval_args, items_to_sample, init_val,
                     eval_input_case, quantiles, **kwargs):
         """
@@ -367,6 +369,8 @@ class RobustProblem(Problem):
                                 eval_input_case=RobustProblem._EVAL_INPUT_CASE.EVALMEAN,
                                 quantiles=quantiles)
 
+    # eval_args --> var_values, y_batch, u_batch
+    # items_to_sample --> var_values, y_batch
     def prob_constr_violation(self, eval_args, items_to_sample, num_us):
         """
         TODO (Amit): Irina, please complete the docstring
@@ -757,20 +761,21 @@ class RobustProblem(Problem):
         if not mro_set:
             b_history.append(b_tch.detach().numpy().copy())
 
-    def _set_train_variables(self, fixb, mro_set, alpha, slack, a_tch,
-                             b_tch, eps_tch):
+    def _set_train_variables(self, fixb, mro_set, alpha, slack): # , a_tch, # b_tch, eps_tch):
         """
         This function sets the variables to be trained in the outer level problem.
         TODO (Amit): complete the docstrings (to Irina)
         """
-        if eps_tch is not None:
-            variables = [eps_tch, alpha, slack]
-            return variables
+        # if eps_tch is not None:
+        #     variables = [eps_tch, alpha, slack]
+        #     return variables
 
-        if fixb or mro_set:
-            variables = [a_tch, alpha, slack]
-        else:
-            variables = [a_tch, b_tch, alpha, slack]
+        # if fixb or mro_set:
+        #     variables = [a_tch, alpha, slack]
+        # else:
+        #     variables = [a_tch, b_tch, alpha, slack]
+
+        variables = [alpha, slack]
 
         return variables
 
@@ -1076,12 +1081,13 @@ class RobustProblem(Problem):
         predictor = Constant(size = kwargs['u_size'])
         if kwargs["predictor"] == "LINEAR":
             predictor = Linear(size = kwargs['u_size'])
-        w_optimizer = torch.optim.SGD(predictor.parameters(), lr=kwargs['lr'])
+        # w_optimizer = torch.optim.SGD(predictor.parameters(), lr=kwargs['lr'])
 
         variables = self._set_train_variables(kwargs['fixb'],
                                               kwargs['mro_set'], alpha,
-                                              slack,
-                                              a_tch, b_tch, eps_tch)
+                                              slack)
+                                              # a_tch, b_tch, eps_tch)
+        variables.extend(list(predictor.parameters())) # add the weights parameters
         if kwargs['optimizer'] == "SGD":
             opt = settings.OPTIMIZERS[kwargs['optimizer']](
                 variables, lr=kwargs['lr'], momentum=kwargs['momentum'])
@@ -1091,6 +1097,7 @@ class RobustProblem(Problem):
         if kwargs['scheduler']:
             scheduler_ = torch.optim.lr_scheduler.StepLR(
                 opt, step_size=kwargs['lr_step_size'], gamma=kwargs['lr_gamma'])
+
         # y's and cvxpylayer begin
         y_parameters = self.y_parameters()
         num_ys = self.num_ys
@@ -1138,6 +1145,7 @@ class RobustProblem(Problem):
                     a_tch_list.append(a_temp)
                     b_tch_list.append(b_temp)
 
+                # a_tch = a_tch_list[0]
                 a_tch = torch.nn.Parameter(torch.stack(a_tch_list))
                 b_tch = torch.nn.Parameter(torch.stack(b_tch_list))
 
@@ -1219,8 +1227,8 @@ class RobustProblem(Problem):
                 # mu = kwargs['mu_multiplier']*mu
 
             if step_num < kwargs['num_iter'] - 1:
-                w_optimizer.step()
-                w_optimizer.zero_grad()
+                # w_optimizer.step()
+                # w_optimizer.zero_grad()
 
                 opt.step()
                 opt.zero_grad()

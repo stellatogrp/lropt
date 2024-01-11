@@ -22,44 +22,44 @@
 # print(solution)
 
 
-import cvxpy as cp
+# import cvxpy as cp
 
-# import matplotlib.pyplot as plt
-import numpy as np
-import numpy.random as npr
+# # import matplotlib.pyplot as plt
+# import numpy as np
+# import numpy.random as npr
 
-# from tests.settings import SOLVER
-from lropt.parameter import Parameter
-from lropt.robust_problem import RobustProblem
-from lropt.uncertain import UncertainParameter
-from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
+# # from tests.settings import SOLVER
+# from lropt.parameter import Parameter
+# from lropt.robust_problem import RobustProblem
+# from lropt.uncertain import UncertainParameter
+# from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
 
-# Setup
-n = 4
-norms = npr.multivariate_normal(
-            np.zeros(n), np.eye(n), 100)
-data = np.exp(norms)
-num_instances = 5
-y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), num_instances)
+# # Setup
+# n = 4
+# norms = npr.multivariate_normal(
+#             np.zeros(n), np.eye(n), 100)
+# data = np.exp(norms)
+# num_instances = 5
+# y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), num_instances)
 
-# Problem
-# y = np.ones(n)
-y = Parameter(n, data=y_data)
-u = UncertainParameter(n, uncertainty_set=Ellipsoidal(data=data))
+# # Problem
+# # y = np.ones(n)
+# y = Parameter(n, data=y_data)
+# u = UncertainParameter(n, uncertainty_set=Ellipsoidal(data=data))
 
-a = npr.randint(3, 5, n)
-# b = np.ones(n)
-c = 5
+# a = npr.randint(3, 5, n)
+# # b = np.ones(n)
+# c = 5
 
-x = cp.Variable(n)
-# z = cp.Variable(n)
+# x = cp.Variable(n)
+# # z = cp.Variable(n)
 
-objective = cp.Maximize(a @ x)
+# objective = cp.Maximize(a @ x)
 
 
-constraints = [x @ (u + y) <= c, cp.norm(x) <= 2*c]
+# constraints = [x @ (u + y) <= c, cp.norm(x) <= 2*c]
 
-prob = RobustProblem(objective, constraints)
-res = prob.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD")
-print(res.weights)
-print("DONE")
+# prob = RobustProblem(objective, constraints)
+# res = prob.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD")
+# print(res.weights)
+# print("DONE")
