@@ -640,7 +640,7 @@ class RobustProblem(Problem):
                 return sc.linalg.sqrtm(sc.linalg.inv(np.cov(train_set.T)))
             return np.array([[np.cov(train_set.T)]])
 
-        scalar = 1/init_eps if init_eps else 1
+        scalar = init_eps if init_eps else 1
         mat_shape = train_set.shape[1] if cov_len_cond else 1
         matrix = np.array(init_A) if (
             init_A is not None) else np.eye(mat_shape)
@@ -836,7 +836,7 @@ class RobustProblem(Problem):
             Boolean flag set to True for MRO problem
         """
 
-        scalar = 1/np.array(init_eps) if init_eps else 1.0
+        scalar = np.array(init_eps) if init_eps else 1.0
         eps_tch = torch.tensor(
             scalar, requires_grad=self.train_flag, dtype=settings.DTYPE)
 
@@ -927,8 +927,9 @@ class RobustProblem(Problem):
         coverage = 0
         for datind in range(dset.shape[0]):
             coverage += torch.where(
-                torch.norm(a_tch @ dset[datind] +
-                           b_tch)
+                torch.norm((a_tch.T@torch.linalg.inv(a_tch@a_tch.T
+                + 0.0001*torch.eye(a_tch.shape[0]))) @ (dset[datind]-
+                           b_tch))
                 <= 1,
                 1,
                 0,
@@ -1059,10 +1060,10 @@ class RobustProblem(Problem):
         if kwargs['random_init']:
             if init_num >= 1:
                 np.random.seed(kwargs['seed']+init_num)
-                kwargs['init_A'] = np.random.rand(
-                    kwargs['u_size'], kwargs['u_size']) + 0.01*np.eye(kwargs['u_size'])
-                kwargs['init_b'] = - \
-                    kwargs['init_A']@np.mean(kwargs['train_set'], axis=0)
+                shape = kwargs['unc_set']._a.shape
+                kwargs['init_A'] = np.random.rand(shape[0],shape[1])
+                    #  + 0.01*np.eye(kwargs['u_size'])
+                kwargs['init_b'] = np.mean(kwargs['train_set'], axis=0)
         a_history = []
         b_history = []
         df = pd.DataFrame(columns=["step"])
@@ -1479,12 +1480,12 @@ class RobustProblem(Problem):
                                                                      False, unc_set)
         for init_eps in epslst:
             eps_tch = torch.tensor(
-                1/init_eps, requires_grad=self.train_flag, dtype=settings.DTYPE)
+                init_eps, requires_grad=self.train_flag, dtype=settings.DTYPE)
             if mro_set:
                 var_values = cvxpylayer(*y_batch, eps_tch*a_tch_init,
                                         solver_args=solver_args)
             else:
-                var_values = cvxpylayer(*y_batch, eps_tch*a_tch_init, eps_tch*b_tch_init,
+                var_values = cvxpylayer(*y_batch, eps_tch*a_tch_init, b_tch_init,
                                         solver_args=solver_args)
 
             train_stats = TrainLoopStats(
@@ -1511,7 +1512,7 @@ class RobustProblem(Problem):
                               eps_tch, eps_tch*a_tch_init, var_values)
 
             new_row = train_stats.generate_test_row(
-                self._calc_coverage, eps_tch*a_tch_init, eps_tch*b_tch_init,  alpha, test_tch,
+                self._calc_coverage, eps_tch*a_tch_init,b_tch_init,  alpha, test_tch,
                 eps_tch)
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
@@ -1522,7 +1523,7 @@ class RobustProblem(Problem):
             unc_set.a.value = (
                 grid_stats.mineps * a_tch_init).detach().numpy().copy()
             unc_set.b.value = (
-                grid_stats.mineps * b_tch_init).detach().numpy().copy()
+                b_tch_init).detach().numpy().copy()
         else:
             unc_set.a.value = grid_stats.minT.detach().numpy().copy()
         b_value = None if mro_set else unc_set.b.value
@@ -1546,7 +1547,7 @@ class RobustProblem(Problem):
 
         override
             If True, will override current new_prob. If false and new_prob exists, does nothing.
-            
+
         Returns:
 
         None
