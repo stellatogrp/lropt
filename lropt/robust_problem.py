@@ -970,6 +970,16 @@ class RobustProblem(Problem):
             update_vars_params(expr=constraint, vars_params=vars_params)
         self.vars_params = vars_params
 
+    def _count_uncertain_params(self):
+        """
+        This function returns the number of uncertain variables introduced to this problem.
+        """
+
+        cnt = 0
+        for var in self.vars_params.values():
+            cnt += isinstance(var, UncertainParameter)
+        return cnt
+
     def _gen_torch_exp(self, expr: cp.expressions.expression.Expression):
         """
         This function generates a torch expression to be used by RobustProblem from an expression
@@ -1579,7 +1589,15 @@ class RobustProblem(Problem):
         not been dualized
 
         Returns: the solution to the original problem
+
+        Raises:
+            NotImplementedError if the problem has more than one uncertain parameter
         """
+
+        if self._count_uncertain_params()>1:
+            raise NotImplementedError("The package currently does not support more "
+                                      "than one uncertain parameter.")
+
         if self.new_prob is not None:
             # if already trained
             return self._helper_solve(solver,warm_start,
