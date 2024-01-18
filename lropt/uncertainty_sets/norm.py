@@ -10,7 +10,7 @@ class Norm(UncertaintySet):
     Norm uncertainty set, defined as
 
     .. math::
-        \mathcal{U}_{\text{Norm}} = \{u \ | \ \| Au + b\|_p \le \rho\}
+        \mathcal{U}_{\text{Norm}} = \{Az+b \ | \ z\| \|_p \le \rho\}
 
     when :math:`p = 2` this is an ellipsoidal set, and when :math:`p = \infty` this is a box set
 

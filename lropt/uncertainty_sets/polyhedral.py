@@ -11,7 +11,7 @@ class Polyhedral(UncertaintySet):
     Polyhedral uncertainty set, defined as
 
     .. math::
-        \mathcal{U}_{\text{poly}} = \{c u \leq d\}
+        \mathcal{U}_{\text{poly}} = \{Az+b \ | \ lhs z \leq rhs\}
 
     Parameters
     ----------

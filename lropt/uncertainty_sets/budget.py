@@ -10,8 +10,8 @@ class Budget(UncertaintySet):
     Budget uncertainty set defined as
 
     .. math::
-        \mathcal{U}_{\text{budget}} = \{u \ | \ \| A_1 u + b_1 \|_\infty \le \rho_1,
-        \| A_2 u + b_2 \|_1 \leq \rho_2\}
+        \mathcal{U}_{\text{budget}} = \{Az+b \ | \ \|z \|_\infty \le \rho_1,
+        \|z \|_1 \leq \rho_2\}
 
     Parameters
     ----------

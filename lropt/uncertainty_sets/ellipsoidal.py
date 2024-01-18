@@ -6,7 +6,7 @@ class Ellipsoidal(Norm):
     Ellipsoidal uncertainty set, defined as
 
     .. math::
-        \mathcal{U}_{\text{ellips}} = \{u \ | \ \| Au + b\|_2 \le \rho\}
+        \mathcal{U}_{\text{ellips}} = \{Az+b \ | \ \| z\|_2 \le \rho\}
 
 
     Parameters
