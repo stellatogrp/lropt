@@ -129,6 +129,7 @@ class Polyhedral(UncertaintySet):
     def sum_eq(self):
         return self._sum_eq
 
+
     def conjugate(self, var, supp_var, shape, k_ind=0):
         constr = []
         if not self._define_support:
