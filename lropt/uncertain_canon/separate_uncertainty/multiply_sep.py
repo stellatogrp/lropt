@@ -1,3 +1,4 @@
+from cvxpy.atoms.affine.binary_operators import multiply
 from cvxpy.atoms.affine.promote import Promote
 from cvxpy.atoms.affine.unary_operators import NegExpression
 
@@ -9,14 +10,14 @@ def promote_sep_sub(expr, unc_lst, std_lst):
 
 
 def negexpression_sep_sub(expr, unc_lst, std_lst):
-    new_unc_lst = [-1 * expr.args[0] * g_u for g_u in unc_lst]
-    new_std_lst = [-1 * expr.args[0] * h_x for h_x in std_lst]
+    new_unc_lst = [-1 * multiply(expr.args[0], g_u) for g_u in unc_lst]
+    new_std_lst = [-1 * multiply(expr.args[0], h_x) for h_x in std_lst]
     return new_unc_lst, new_std_lst
 
 
 def default_sep_sub(expr, unc_lst, std_lst):
-    new_unc_lst = [expr * g_u for g_u in unc_lst]
-    new_std_lst = [expr * h_x for h_x in std_lst]
+    new_unc_lst = [multiply(expr, g_u) for g_u in unc_lst]
+    new_std_lst = [multiply(expr, h_x) for h_x in std_lst]
     return new_unc_lst, new_std_lst
 
 

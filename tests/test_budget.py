@@ -20,8 +20,7 @@ class TestBudgetUncertainty(unittest.TestCase):
     def test_budget(self):
         m = 5
 
-        budget_u = UncertainParameter(m, uncertainty_set=Budget(rho1=2., rho2=1., a1=np.eye(m),
-                                                                a2=np.eye(m)))
+        budget_u = UncertainParameter(m, uncertainty_set=Budget(rho1=2., rho2=1., a=np.eye(m)))
         n = 4
         # formulate cvxpy variable
         x_r = cp.Variable(n)

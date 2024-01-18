@@ -22,8 +22,10 @@ class TestQuad(unittest.TestCase):
 
     def test_quad(self):
         n = 5
+        A = 0.1*np.ones(n)
+        b = np.ones(n)
         u = UncertainParameter(n,
-                               uncertainty_set=Ellipsoidal(p=2, rho=0.5))
+                               uncertainty_set=Ellipsoidal(p=2, rho=0.5, a = A, b = b))
         # formulate cvxpy variables
         x_r = cp.Variable(n)
         t = cp.Variable()
@@ -53,16 +55,16 @@ class TestQuad(unittest.TestCase):
         # formulate using cvxpy
         x_cvxpy = cp.Variable(n)
         t = cp.Variable()
-        z = cp.Variable(n)
-        y = cp.Variable((n, n))
+        y = cp.Variable((n,n))
 
         # formulate objective
         objective = cp.Minimize(t)
 
         # formulate constraints
-        constraints = [cp.sum([cp.quad_over_lin(y[i]@P_inv[i], 2*x_cvxpy[i])
-                              for i in range(n)]) + 0.5*cp.norm(z, 2) <= t]
-        constraints += [cp.sum(y, axis=1) == z]
+        constraints = [cp.sum([cp.quad_over_lin(y[i]@P_inv[i],2*x_cvxpy[i])\
+                                for i in range(n)]) + cp.sum([b@y[i] \
+                         for i in range(n)])+ 0.5*cp.norm(cp.sum([A.T@y[i]\
+                        for i in range(n)]),2) <= t]
         constraints += [cp.sum(x_cvxpy) == 4]
         constraints += [x_cvxpy >= 0.6, x_cvxpy <= 1]
 

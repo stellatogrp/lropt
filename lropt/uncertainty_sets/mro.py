@@ -15,10 +15,9 @@ class MRO(UncertaintySet):
     """
 
     def __init__(self, K=1, rho=1, data=None, power=1, p=2,
-                 a=None, train=True, c=None, d=None, loss=None, uniqueA=False):
+                 a=None, b=None, train=False, c=None, d=None, loss=None,
+                 uniqueA=False, ub=None, lb=None, sum_eq=None):
 
-        if train and loss is None:
-            raise ValueError("You must provide a loss function")
         if data is None:
             raise ValueError("You must provide data")
         if rho <= 0:
@@ -47,6 +46,11 @@ class MRO(UncertaintySet):
         self._c = c
         self._d = d
         self._define_support = False
+        self._ub = ub
+        self._lb = lb
+        self._sum_eq = sum_eq
+        self._dimension = None
+        self._b = b
 
         if train:
             if self._uniqueA:
@@ -96,6 +100,14 @@ class MRO(UncertaintySet):
         return self._a
 
     @property
+    def b(self):
+        return self._b
+
+    @property
+    def dimension(self):
+        return self._dimension
+
+    @property
     def N(self):
         return self._N
 
@@ -115,6 +127,26 @@ class MRO(UncertaintySet):
     def Dbar(self):
         return self._Dbar
 
+    @property
+    def ub(self):
+        return self._ub
+
+    @property
+    def lb(self):
+        return self._lb
+
+    @property
+    def sum_eq(self):
+        return self._sum_eq
+
+    @property
+    def c(self):
+        return self._c
+
+    @property
+    def d(self):
+        return self._d
+
     def q(self):
         return 1. + 1. / (self._power - 1.)
 
@@ -131,62 +163,6 @@ class MRO(UncertaintySet):
             return 1
         else:
             return (self.q() - 1.)**(self.q() - 1.)/(self.q()**self.q())
-
-    def canonicalize(self, x, var):
-        # import ipdb
-        # ipdb.set_trace()
-        trans = self.affine_transform_temp
-        if x.is_scalar():
-            if trans:
-                new_expr = trans['b'] * x
-                new_constraints = [var == -trans['A'] * x]
-            else:
-                new_expr = 0
-                new_constraints = [var == -x]
-
-        else:
-            if trans:
-                new_expr = trans['b'] @ x
-                new_constraints = [var == -trans['A'].T @ x]
-            else:
-                new_expr = 0
-                new_constraints = [var == -x]
-
-        if self.affine_transform:
-            self.affine_transform_temp = self.affine_transform.copy()
-        else:
-            self.affine_transform_temp = None
-        return new_expr, new_constraints
-
-    def isolated_unc(self, i, var, num_constr):
-        # import ipdb
-        # ipdb.set_trace()
-        trans = self.affine_transform_temp
-        new_expr = 0
-        if i == 0:
-            if trans:
-                new_expr += trans['b']
-        e = np.eye(num_constr)[i]
-        if len(trans['A'].shape) == 1:
-            newA = np.reshape(trans['A'].value, (1, trans['A'].shape[0]))
-        else:
-            newA = trans['A']
-        if var.is_scalar():
-            if trans:
-                new_constraints = [var == -newA * e]
-            else:
-                new_constraints = [var == - e]
-        else:
-            if trans:
-                new_constraints = [var == -newA.T @ e]
-            else:
-                new_constraints = [var == - e]
-        if i == (num_constr - 1):
-            if self.affine_transform:
-                self.affine_transform_temp = self.affine_transform.copy()
-            else:
-                self.affine_transform_temp = None
-        return new_expr, new_constraints
 
     def conjugate(self, var, supp_var, shape, k_ind):
         if not self._define_support:
