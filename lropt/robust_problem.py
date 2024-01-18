@@ -167,7 +167,7 @@ class TrainLoopStats():
             "Probability_violations_test":       self.prob_violation_test,
             "Violations_test":   self.violation_test,
             "Coverage_test":    coverage_test.detach().numpy().item(),
-            "Avg_prob_teset": np.mean(self.prob_violation_test)
+            "Avg_prob_test": np.mean(self.prob_violation_test)
         }
         row_dict["step"] = self.step_num,
         if not self.train_flag:
@@ -213,7 +213,6 @@ class RobustProblem(Problem):
 
     _EVAL_INPUT_CASE = Enum("_EVAL_INPUT_CASE", "MEAN EVALMEAN MAX")
 
-    # TODO (Amit): After testing, remove objective_torch and constraints_torch
     def __init__(
         self, objective, constraints,
         eval_exp=None, train_flag=True
@@ -500,7 +499,9 @@ class RobustProblem(Problem):
                 if c.id in solution.dual_vars:
                     c.save_dual_value(solution.dual_vars[c.id])
             # Eliminate confusion of problem.value versus objective.value.
-            self._value = self.objective.value
+            # self.objective.value = solution.opt_val
+            self._value = solution.opt_val
+
         elif solution.status in s.INF_OR_UNB:
             for v in self.variables():
                 v.save_value(None)
@@ -551,8 +552,7 @@ class RobustProblem(Problem):
                     "Try another solver, or solve with verbose=True for more "
                     "information.")
         self.unpack(solution)
-        self._solver_stats = SolverStats.from_dict(self._solution.attr,
-                                         solvername)
+        self._solver_stats = SolverStats.from_dict(self._solution.attr, solvername)
 
 
     def _validate_uncertain_parameters(self):
@@ -969,6 +969,16 @@ class RobustProblem(Problem):
         for constraint in self.constraints:
             update_vars_params(expr=constraint, vars_params=vars_params)
         self.vars_params = vars_params
+
+    def _count_uncertain_params(self):
+        """
+        This function returns the number of uncertain variables introduced to this problem.
+        """
+
+        cnt = 0
+        for var in self.vars_params.values():
+            cnt += isinstance(var, UncertainParameter)
+        return cnt
 
     def _gen_torch_exp(self, expr: cp.expressions.expression.Expression):
         """
@@ -1546,7 +1556,7 @@ class RobustProblem(Problem):
 
         override
             If True, will override current new_prob. If false and new_prob exists, does nothing.
-
+            
         Returns:
 
         None
@@ -1560,9 +1570,7 @@ class RobustProblem(Problem):
             # unc_reductions += [Distribute_Uncertain_Params()]
             unc_reductions += [RemoveUncertainParameters()]
             newchain = UncertainChain(self, reductions=unc_reductions)
-            prob, inverse_data = newchain.apply(self)
-            self.new_prob =  prob
-            self.inverse_data = inverse_data
+            self.new_prob, self.inverse_data = newchain.apply(self)
             self.uncertain_chain = newchain
 
     def solve(self,
@@ -1581,7 +1589,15 @@ class RobustProblem(Problem):
         not been dualized
 
         Returns: the solution to the original problem
+
+        Raises:
+            NotImplementedError if the problem has more than one uncertain parameter
         """
+
+        if self._count_uncertain_params()>1:
+            raise NotImplementedError("The package currently does not support more "
+                                      "than one uncertain parameter.")
+
         if self.new_prob is not None:
             # if already trained
             return self._helper_solve(solver,warm_start,

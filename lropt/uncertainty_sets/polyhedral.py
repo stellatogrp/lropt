@@ -10,7 +10,7 @@ class Polyhedral(UncertaintySet):
     Polyhedral uncertainty set, defined as
 
     .. math::
-        \mathcal{U}_{\text{poly}} = \{D u \leq d\}
+        \mathcal{U}_{\text{poly}} = \{c u \leq d\}
 
     Parameters
     ----------
@@ -88,54 +88,6 @@ class Polyhedral(UncertaintySet):
     def sum_eq(self):
         return self._sum_eq
 
-    def canonicalize(self, x, var):
-        trans = self.affine_transform_temp
-
-        if x.is_scalar():
-            new_expr = 0
-            if trans:
-                new_expr += trans['b'] * x
-                new_constraints = [var == -trans['A'] * x]
-            else:
-                new_constraints = [var == -x]
-
-        else:
-            new_expr = 0
-            if trans:
-                new_expr += trans['b'] @ x
-                new_constraints = [var == -trans['A'].T @ x]
-            else:
-                new_constraints = [var == -x]
-
-        if self.affine_transform:
-            self.affine_transform_temp = self.affine_transform.copy()
-        else:
-            self.affine_transform_temp = None
-        return new_expr, new_constraints
-
-    def isolated_unc(self, i, var, num_constr):
-        trans = self.affine_transform_temp
-        new_expr = 0
-        if i == 0:
-            if trans:
-                new_expr += trans['b']
-        e = np.eye(num_constr)[i]
-        if var.is_scalar():
-            if trans:
-                new_constraints = [var == -trans['A'] * e]
-            else:
-                new_constraints = [var == - e]
-        else:
-            if trans:
-                new_constraints = [var == -trans['A'].T @ e]
-            else:
-                new_constraints = [var == - e]
-        if i == (num_constr - 1):
-            if self.affine_transform:
-                self.affine_transform_temp = self.affine_transform.copy()
-            else:
-                self.affine_transform_temp = None
-        return new_expr, new_constraints
 
     def conjugate(self, var, supp_var, shape, k_ind=0):
         constr = [supp_var == 0]

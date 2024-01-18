@@ -6,7 +6,7 @@ from cvxpy.atoms.affine.promote import Promote
 from cvxpy.atoms.affine.unary_operators import NegExpression
 from cvxpy.atoms.elementwise.maximum import maximum
 from cvxpy.constraints.nonpos import Inequality
-
+from cvxpy.atoms.affine.sum import Sum
 # from cvxpy.atoms.quad_form import QuadForm
 from lropt.uncertain_atoms.quad_form import UncertainQuadForm
 from lropt.uncertain_canon.separate_uncertainty.addexpression_sep import \
@@ -22,13 +22,17 @@ from lropt.uncertain_canon.separate_uncertainty.negexpression_sep import \
     negexpression_sep
 from lropt.uncertain_canon.separate_uncertainty.quadform_sep import \
     quadform_sep
+from lropt.uncertain_canon.separate_uncertainty.promoteexpression_sep import \
+    promoteexpression_sep
 
 SEPARATION_METHODS = {
     Inequality: inequality_sep,
     multiply: multiply_sep,
     MulExpression: mulexpression_sep,
     AddExpression: addexpression_sep,
+    Sum: addexpression_sep,
     NegExpression: negexpression_sep,
     UncertainQuadForm: quadform_sep,
-    maximum: maximum_sep
+    maximum: maximum_sep,
+    Promote: promoteexpression_sep
     }
