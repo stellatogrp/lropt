@@ -22,7 +22,6 @@ from cvxpy.reductions.solution import INF_OR_UNB_MESSAGE
 from cvxpy.reductions.solvers.solving_chain import SolvingChain, construct_solving_chain
 from cvxpylayers.torch import CvxpyLayer
 from joblib import Parallel, delayed
-from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 import lropt.settings as settings
@@ -309,12 +308,14 @@ class RobustProblem(Problem):
         def _sample_args(eval_args, sample_ind, items_to_sample):
             res = []
             for ind, eval_arg in enumerate(eval_args):
-                if ind in items_to_sample:
-                    curr_arg = eval_arg[sample_ind]
-                    # I removed the star_flag, see if makes problems
-                    res.append(curr_arg)
-                else:
-                    res.append(eval_arg)
+                curr_arg = eval_arg[sample_ind] # CHANGED FOR (Y, U) PAIRS
+                res.append(curr_arg) # CHANGED FOR (Y, U) PAIRS
+                # if ind in items_to_sample:
+                #     curr_arg = eval_arg[sample_ind]
+                #     # I removed the star_flag, see if makes problems
+                #     res.append(curr_arg)
+                # else:
+                #     res.append(eval_arg)
             return res
 
         curr_result = 0
@@ -721,8 +722,10 @@ class RobustProblem(Problem):
 
         # Split the dataset into train_set and test, and create Tensors
         # Val is the training set, eval is the test set
-        train_set, test_set = train_test_split(unc_set.data, test_size=int(
-            unc_set.data.shape[0]*test_percentage), random_state=seed)
+        # train_set, test_set = train_test_split(unc_set.data, test_size=int(
+        #     unc_set.data.shape[0]*test_percentage), random_state=seed)
+        train_set = unc_set.data
+        test_set = unc_set.data
         train_tch = torch.tensor(
             train_set, requires_grad=self.train_flag, dtype=settings.DTYPE)
         test_tch = torch.tensor(
@@ -1078,9 +1081,11 @@ class RobustProblem(Problem):
                                a_tch, b_tch, kwargs['mro_set'])
 
         # default case is that predictor does not depend on y (the context)
-        predictor = Constant(size = kwargs['u_size'])
+        predictor = Constant(size = kwargs['u_size'],
+                             init_A = kwargs['init_A'], init_b = kwargs['init_b'])
         if kwargs["predictor"] == "LINEAR":
-            predictor = Linear(size = kwargs['u_size'])
+            predictor = Linear(size = kwargs['u_size'],
+                               init_A = kwargs['init_A'], init_b = kwargs['init_b'])
         # w_optimizer = torch.optim.SGD(predictor.parameters(), lr=kwargs['lr'])
 
         variables = self._set_train_variables(kwargs['fixb'],

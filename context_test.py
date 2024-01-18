@@ -63,3 +63,41 @@
 # res = prob.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD")
 # print(res.weights)
 # print("DONE")
+
+
+
+import cvxpy as cp
+
+# import matplotlib.pyplot as plt
+import numpy as np
+import numpy.random as npr
+
+# from tests.settings import SOLVER
+from lropt.parameter import Parameter
+from lropt.robust_problem import RobustProblem
+from lropt.uncertain import UncertainParameter
+from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
+
+# import pandas as pd
+# import torch
+
+n = 3
+num_instances = 5
+y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), 4)
+y = Parameter(n, data=y_data)
+
+# Problem
+norms = npr.multivariate_normal(np.zeros(n), np.eye(n), 4)
+data = np.exp(norms)
+u = UncertainParameter(n, uncertainty_set=Ellipsoidal(data=data))
+
+a = npr.randint(3, 5, n)
+c = 5
+
+x = cp.Variable(n)
+objective = cp.Maximize(a @ x)
+constraints = [x @ (u + y) <= c, cp.norm(x) <= 2*c]
+
+prob = RobustProblem(objective, constraints)
+prob.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD",
+           u_batch_percentage = 1, test_percentage=0)
