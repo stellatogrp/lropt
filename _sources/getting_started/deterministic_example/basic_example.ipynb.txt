@@ -176,9 +176,9 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "Polyhedral uncertainty: $\\{ u \\mid Du \\leq d\\}$\n",
+    "Polyhedral uncertainty: $\\{ u \\mid cu \\leq d\\}$\n",
     "\n",
-    "- $D$ : np.array  \n",
+    "- $c$ : np.array  \n",
     "- $d$ : np.array  "
    ]
   },
@@ -190,7 +190,7 @@
    "source": [
     "# Polyhedral uncertainty set example\n",
     "poly_u = lropt.UncertainParameter(m, \n",
-    "                                  uncertainty_set = lropt.Polyhedral(D = np.ones((3,m)), d = np.array([1,2,3])))"
+    "                                  uncertainty_set = lropt.Polyhedral(c = np.ones((3,m)), d = np.array([1,2,3])))"
    ]
   },
   {
