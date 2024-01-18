@@ -59,8 +59,6 @@ class Uncertain_Canonicalization(Reduction):
             return canon_objective, new_constraints
 
         inverse_data = InverseData(problem)
-        # import ipdb
-        # ipdb.set_trace()
         # canon_objective, canon_constraints = self.canonicalize_tree(
         #     problem.objective, 0, 1)
 
@@ -127,8 +125,6 @@ class Uncertain_Canonicalization(Reduction):
 
     def remove_uncertainty_simple(self, unc_lst, uvar, std_lst, num_constr):
         "canonicalize each term separately with inf convolution"
-        # import ipdb
-        # ipdb.set_trace()
         u_shape = self.get_u_shape(uvar)
         smaller_u_shape = uvar.uncertainty_set._dimension
         num_unc_fns = len(unc_lst)
@@ -155,8 +151,6 @@ class Uncertain_Canonicalization(Reduction):
                     uvar = mul_canon_transform(uvar, constant)
                     new_vars[ind] = Variable((num_constr, u_shape))
                     for idx in range(num_constr):
-                        # import ipdb
-                        # ipdb.set_trace()
                         new_expr, new_constraint = uvar.isolated_unc(idx, new_vars[ind][idx],
                                                                      num_constr)
                         aux_expr = aux_expr + new_expr
@@ -167,8 +161,6 @@ class Uncertain_Canonicalization(Reduction):
                             z_new_cons[idx] = new_vars[ind][idx]
                     has_isolated = 1
                 else:
-                    # import ipdb
-                    # ipdb.set_trace()
                     aux_expr = aux_expr + new_expr
                     aux_constraint += new_constraint
                     z_cons = z_cons + z[ind]
@@ -207,8 +199,6 @@ class Uncertain_Canonicalization(Reduction):
 
     def remove_uncertainty_mro(self, unc_lst, uvar, std_lst, num_constr):
         "canonicalize each term separately with inf convolution"
-        # import ipdb
-        # ipdb.set_trace()
         u_shape = self.get_u_shape(uvar)
         num_unc_fns = len(unc_lst)
         if num_unc_fns > 0:
@@ -233,8 +223,6 @@ class Uncertain_Canonicalization(Reduction):
                     uvar = mul_canon_transform(uvar, constant)
                     new_vars[ind] = Variable((num_constr, u_shape))
                     for idx in range(num_constr):
-                        # import ipdb
-                        # ipdb.set_trace()
                         new_expr, new_constraint = uvar.isolated_unc(idx, new_vars[ind][idx],
                                                                      num_constr)
                         aux_expr = aux_expr + new_expr
@@ -245,8 +233,6 @@ class Uncertain_Canonicalization(Reduction):
                             z_new_cons[idx] = new_vars[ind][idx]
                     has_isolated = 1
                 else:
-                    # import ipdb
-                    # ipdb.set_trace()
                     aux_expr = aux_expr + new_expr
                     aux_constraint += new_constraint
                     z_cons += z[ind]
@@ -419,8 +405,6 @@ class Uncertain_Canonicalization(Reduction):
 
     def remove_constant(self, expr, constant=1):
         '''remove the constants at the beginning of an expression with uncertainty'''
-        # import ipdb
-        # ipdb.set_trace()
         if len(expr.args) == 0:
             return expr, constant
 
