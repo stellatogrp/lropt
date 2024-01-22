@@ -29,6 +29,8 @@ def mulexpression_canon_transform(u, P):
     # import ipdb
     # ipdb.set_trace()
     # adjust affine transform
+    if len(P.shape) == 1:
+        P = np.reshape(P,(1,P.shape[0]))
     uset = u.uncertainty_set
     if uset.affine_transform_temp:
         uset.affine_transform_temp['b'] = P@uset.affine_transform_temp['b']
