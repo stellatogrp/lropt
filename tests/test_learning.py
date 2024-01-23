@@ -29,7 +29,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
     def setUp(self):
 
         self.n = 4
-        self.N = 100
+        self.N = 30
         norms = npr.multivariate_normal(
             np.zeros(self.n), np.eye(self.n), self.N)
         self.data = np.exp(norms)
@@ -40,8 +40,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
     def test_simple_learn(self):
         # Setup
         n = self.n
-        num_instances = 5
-        y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), num_instances)
+        # num_instances = 5
+        y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), self.N)
 
         # Problem
         # y = np.ones(n)
@@ -61,7 +61,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         constraints = [x @ (u + y) <= c, cp.norm(x) <= 2*c]
 
         prob = RobustProblem(objective, constraints)
-        prob.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD")
+        prob.train(lr=0.001, num_iter=20, momentum=0.8, optimizer="SGD")
         # prob.solve()
 
     def test_portfolio_intro(self):
@@ -85,7 +85,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
             return d_train
 
         # formulate the uncertain parameter
-        data = gen_demand_intro(600, seed=seed)
+        data = gen_demand_intro(10, seed=seed)
         u = UncertainParameter(n,uncertainty_set=Ellipsoidal(p=2,data=data))
 
         # formulate the Robust Problem

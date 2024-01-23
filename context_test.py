@@ -83,11 +83,16 @@ from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
 
 n = 3
 num_instances = 5
-y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), 4)
+# y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), num_instances)
+y_data = np.array([[-0.7, -0.5, 0.5],
+          [-0.3, 0.2, 0.9],
+          [-0.7, -0.5, 0.5],
+          [-0.3, 0.02, 0.4],
+          [-0.1, 0.1, -1]])
 y = Parameter(n, data=y_data)
 
 # Problem
-norms = npr.multivariate_normal(np.zeros(n), np.eye(n), 4)
+norms = npr.multivariate_normal(np.zeros(n), np.eye(n), num_instances)
 data = np.exp(norms)
 u = UncertainParameter(n, uncertainty_set=Ellipsoidal(data=data))
 
@@ -99,5 +104,4 @@ objective = cp.Maximize(a @ x)
 constraints = [x @ (u + y) <= c, cp.norm(x) <= 2*c]
 
 prob = RobustProblem(objective, constraints)
-prob.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD",
-           u_batch_percentage = 1, test_percentage=0)
+prob.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD", batch_percentage = 1)
