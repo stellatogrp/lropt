@@ -296,7 +296,7 @@ class RobustProblem(Problem):
     # eval_args --> var_values, y_batch, u_batch
     # items_to_sample --> var_values, y_batch
     def _eval_input(self, num_ys, eval_func, eval_args, init_val,
-                    eval_input_case, quantiles, unique_y_indices = [], **kwargs):
+                    eval_input_case, quantiles, **kwargs):
         """
         This function takes decision varaibles, y's, and u's,
             evaluates them and averages them on a given function.
@@ -345,16 +345,11 @@ class RobustProblem(Problem):
             # curr_result = (curr_result > 1e-4).float()
             # init_val += curr_result
             # make a setting/variable
-            temp_vals = torch.zeros((num_ys, np.max(unique_y_indices) + 1),
-                        dtype=settings.DTYPE)
-            y_counts = np.zeros(np.max(unique_y_indices) + 1)
             for j in range(num_ys):
                 curr_eval_args = _sample_args(eval_args, j)
-                temp_vals[j][unique_y_indices[j]] = eval_func(*curr_eval_args, **kwargs)
-                y_counts[unique_y_indices[j]] += 1
-            temp_vals = (temp_vals > settings.TOLERANCE_DEFAULT).float()
-            init_val = temp_vals.sum(dim = 0)
-            init_val /= y_counts
+                init_val[j] = eval_func(*curr_eval_args, **kwargs)
+            init_val = (init_val > settings.TOLERANCE_DEFAULT).float()
+            init_val = init_val.mean()
         return init_val
 
     def train_objective(self, num_ys, eval_args):
@@ -385,18 +380,17 @@ class RobustProblem(Problem):
                                 eval_input_case=RobustProblem._EVAL_INPUT_CASE.EVALMEAN,
                                 quantiles=quantiles)
 
-    def prob_constr_violation(self, eval_args, num_ys, unique_y_indices = []):
+    def prob_constr_violation(self, eval_args, num_ys):
         """
         TODO (Amit): Irina, please complete the docstring
         """
-        G = torch.zeros((len(self.g), np.max(unique_y_indices) + 1),
+        G = torch.zeros((len(self.g), num_ys),
                         dtype=settings.DTYPE)
         ind=0
         for g_k in self.g:
             G[ind] = self._eval_input(num_ys, eval_func=g_k, eval_args=eval_args,
                                  init_val=G[ind],
-                                 eval_input_case=RobustProblem._EVAL_INPUT_CASE.MAX, quantiles=None,
-                                 unique_y_indices = unique_y_indices)
+                                 eval_input_case=RobustProblem._EVAL_INPUT_CASE.MAX, quantiles=None)
             ind +=1
 
         # G_max = torch.max(G,dim=0)[0]
@@ -1183,10 +1177,10 @@ class RobustProblem(Problem):
             # slack = torch.maximum(slack, torch.tensor(0.))
 
             # get indices of unique y's
-            y_batch_array = y_batch[0].detach().numpy()
-            structured_data = np.core.records.fromarrays(y_batch_array.transpose(),
-                                                         names='col1, col2, col3')
-            _, unique_y_indices = np.unique(structured_data, return_inverse=True)
+            # y_batch_array = y_batch[0].detach().numpy()
+            # structured_data = np.core.records.fromarrays(y_batch_array.transpose(),
+            #                                              names='col1, col2, col3')
+            # _, unique_y_indices = np.unique(structured_data, return_inverse=True)
 
             if kwargs['mro_set']:
                 a_tch, _, _, _, _ = self._init_torches(kwargs['init_eps'],
@@ -1231,8 +1225,7 @@ class RobustProblem(Problem):
             with torch.no_grad():
                 obj = self.evaluation_metric(
                     eval_args, kwargs['quantiles'], num_ys)
-                prob_violation_train = self.prob_constr_violation(eval_args,
-                                                                  num_ys, unique_y_indices)
+                prob_violation_train = self.prob_constr_violation(eval_args, num_ys)
 
             train_stats.update_train_stats(temp_lagrangian.detach().numpy(
             ).copy(), obj, prob_violation_train, train_constraint_value)
@@ -1260,10 +1253,10 @@ class RobustProblem(Problem):
                     kwargs["y_test_tch"][0].shape[0], kwargs['y_test_tch'], kwargs['test_set'], 1)
 
                 # get indices of unique y's
-                y_batch_array = y_batch[0].detach().numpy()
-                structured_data = np.core.records.fromarrays(y_batch_array.transpose(),
-                                                             names='col1, col2, col3')
-                _, unique_y_indices = np.unique(structured_data, return_inverse=True)
+                # y_batch_array = y_batch[0].detach().numpy()
+                # structured_data = np.core.records.fromarrays(y_batch_array.transpose(),
+                #                                              names='col1, col2, col3')
+                # _, unique_y_indices = np.unique(structured_data, return_inverse=True)
 
                 if kwargs['mro_set']:
                     var_values = kwargs['cvxpylayer'](*y_batch, a_tch,
@@ -1280,8 +1273,7 @@ class RobustProblem(Problem):
                                                       kwargs['quantiles'],
                                                       kwargs["y_test_tch"][0].shape[0])
                     prob_violation_test = self.prob_constr_violation(test_args,
-                                                                     kwargs["y_test_tch"][0].shape[0],
-                                                                     unique_y_indices)
+                                                                     kwargs["y_test_tch"][0].shape[0])
                                                                     #  num_us=len(test_u))
                     _, var_vio = self.lagrangian(test_args, alpha, slack, lam, mu,
                                                  kwargs["y_test_tch"][0].shape[0],
