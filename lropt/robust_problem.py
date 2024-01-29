@@ -1473,7 +1473,7 @@ class RobustProblem(Problem):
         if newdata is not None:
             train_set, y_set = newdata
             test_tch = torch.tensor(train_set, requires_grad=self.train_flag, dtype=settings.DTYPE)
-            y_batch = torch.tensor(y_set, requires_grad=self.train_flag, dtype=settings.DTYPE)
+            y_batch = [torch.tensor(y_set, requires_grad=self.train_flag, dtype=settings.DTYPE)]
             batch_int = train_set.shape[0]
 
 
