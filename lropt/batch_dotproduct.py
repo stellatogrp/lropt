@@ -1,8 +1,7 @@
-import cvxpy
-from cvxpy.expressions.expression import Expression
-from cvxpy.atoms.affine.binary_operators import MulExpression, multiply
-import numpy as np
 import torch
+from cvxpy.atoms.affine.binary_operators import MulExpression, multiply
+from cvxpy.expressions.expression import Expression
+
 
 class ElementwiseDotProduct(MulExpression):
     """
@@ -21,7 +20,7 @@ class ElementwiseDotProduct(MulExpression):
         """
         Elementwise dot product
         """
-        raise NotImplemented("Numeric for ElementwiseDotProduct should not be used.")
+        raise NotImplementedError("Numeric for ElementwiseDotProduct should not be used.")
     
     def torch_numeric(self, values):
         return elementwise_dotproduct(values[0], values[1])
@@ -79,7 +78,7 @@ def elementwise_dotproduct(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     #If both are matrices and the dimensions don't match - raise an error
     if len(a.size())==2 and len(b.size())==2 and (a.size() != b.size()): 
         raise ValueError("Matrix dimensions mismatch: Elementwise multiplication is allowed for "
-                         f"matricres of the same dimensions only.")
+                         "matricres of the same dimensions only.")
     
     #If scalars or vectors, regular matmul
     if len(a.shape)<=1 or len(b.shape)<=1:

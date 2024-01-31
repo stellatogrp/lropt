@@ -1,12 +1,12 @@
 import unittest
 
 import cvxpy as cp
-import numpy as np
 import torch
 
+from lropt import Ellipsoidal
 from lropt.batch_dotproduct import ElementwiseDotProduct
 from lropt.uncertain import UncertainParameter
-from lropt import Ellipsoidal
+
 
 class TestElementwiseDotproduct(unittest.TestCase):
 

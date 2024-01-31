@@ -40,7 +40,6 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
     def test_simple_learn(self):
         # Setup
         n = self.n
-        num_instances = 5
         y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), self.N)
 
         # Problem
