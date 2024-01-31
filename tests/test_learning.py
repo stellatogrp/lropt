@@ -29,7 +29,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
     def setUp(self):
 
         self.n = 4
-        self.N = 100
+        self.N = 20
         norms = npr.multivariate_normal(
             np.zeros(self.n), np.eye(self.n), self.N)
         self.data = np.exp(norms)
@@ -41,7 +41,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # Setup
         n = self.n
         num_instances = 5
-        y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), num_instances)
+        y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), self.N)
 
         # Problem
         # y = np.ones(n)
@@ -74,7 +74,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
                 20, 15, 10, 10, 10, 10, 10, 10])/10)[:n]
 
         # formulate the family parameter
-        y_data = np.random.dirichlet(dist, 10)
+        y_data = np.random.dirichlet(dist, self.N)
         y = Parameter(n, data=y_data)
 
         def gen_demand_intro(N, seed):
@@ -85,7 +85,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
             return d_train
 
         # formulate the uncertain parameter
-        data = gen_demand_intro(600, seed=seed)
+        data = gen_demand_intro(self.N, seed=seed)
         u = UncertainParameter(n,uncertainty_set=Ellipsoidal(p=2,data=data))
 
         # formulate the Robust Problem

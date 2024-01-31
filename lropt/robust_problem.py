@@ -34,6 +34,7 @@ from lropt.shape_parameter import ShapeParameter
 from lropt.uncertain import UncertainParameter
 from lropt.uncertain_canon.uncertain_chain import UncertainChain
 from lropt.uncertainty_sets.mro import MRO
+from lropt.batch_dotproduct import ElementwiseDotProduct
 
 torch.manual_seed(0)
 _COL_WIDTH = 79
@@ -317,11 +318,8 @@ class RobustProblem(Problem):
                 #     res.append(eval_arg)
             return res
 
-        curr_result = torch.zeros(batch_int, dtype=settings.DTYPE)
         if eval_input_case != RobustProblem._EVAL_INPUT_CASE.MAX:
-            for j in range(batch_int):
-                curr_eval_args = _sample_args(eval_args, j, items_to_sample)
-                curr_result[j] = eval_func(*curr_eval_args, **kwargs)
+            curr_result = eval_func(*eval_args, **kwargs)
         if eval_input_case == RobustProblem._EVAL_INPUT_CASE.MEAN:
             init_val = curr_result
             # init_val /= self.num_ys
@@ -340,9 +338,7 @@ class RobustProblem(Problem):
             # curr_result = (curr_result > 1e-4).float()
             # init_val += curr_result
             # make a setting/variable
-            for j in range(batch_int):
-                curr_eval_args = _sample_args(eval_args, j, items_to_sample)
-                init_val[j] = eval_func(*curr_eval_args, **kwargs)
+            init_val = eval_func(*eval_args, **kwargs)
             init_val = (init_val > settings.TOLERANCE_DEFAULT).float()
         return init_val
 
@@ -485,7 +481,6 @@ class RobustProblem(Problem):
         # return a chain instead (chain.apply, return the problem and inverse data)
         return SolvingChain(reductions=new_reductions)
 
-
     def unpack(self, solution) -> None:
         """Updates the problem state given a Solution.
 
@@ -564,7 +559,6 @@ class RobustProblem(Problem):
                     "information.")
         self.unpack(solution)
         self._solver_stats = SolverStats.from_dict(self._solution.attr, solvername)
-
 
     def _validate_uncertain_parameters(self):
         """
@@ -1024,6 +1018,8 @@ class RobustProblem(Problem):
             # if we need to transpose one of the arguments.
             return torch_exp(*args_to_pass)
 
+        #Change all batched @ to elementwise dot products
+        expr = ElementwiseDotProduct.matmul_to_elementwise_dotproduct(expr)
         # vars_dict contains a dictionary from variable/param -> index in *args (for the expression)
         torch_exp, vars_dict = expr.gen_torch_exp()
 
@@ -1390,12 +1386,15 @@ class RobustProblem(Problem):
                   "lr_gamma": lr_gamma, "eta": eta,
                     "position": position, "test_percentage": test_percentage}
 
-        n_jobs = utils.get_n_processes() if parallel else 1
+        # Debugging code - one iteration
+        # res = self._train_loop(0, **kwargs)
+        # res = []
+        # for init_num in range(num_random_init):
+        #     res.append(self._train_loop(init_num, **kwargs))
+        # n_jobs = utils.get_n_processes() if parallel else 1
         # pool_obj = Pool(processes=n_jobs)
         # loop_fn = partial(self._train_loop, **kwargs)
         # res = pool_obj.map(loop_fn, range(num_random_init))
-        # Debugging code - one iteration
-        # res = self._train_loop(0, **kwargs)
         # Joblib version
         res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
             init_num, **kwargs) for init_num in range(num_random_init))
