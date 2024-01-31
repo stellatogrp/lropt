@@ -170,7 +170,7 @@ class TrainLoopStats():
         }
         row_dict["step"] = self.step_num,
         if not self.train_flag:
-            row_dict["Eps"] = 1 / eps_tch.detach().numpy().copy()
+            row_dict["Eps"] = eps_tch.detach().numpy().copy()
         new_row = pd.Series(row_dict)
         return new_row
 
@@ -390,8 +390,8 @@ class RobustProblem(Problem):
     # helper function for intermediate version
     def _udata_to_lst(self, data, batch_size, num_ys, y_parameters):
         num_instances = data.shape[0]
-        batch_int = int(
-            num_instances*batch_size)
+        batch_int = min(int(
+            num_instances*batch_size),10)
         random_int = np.random.choice(num_instances, batch_int, replace=False)
 
         # u_params_mat = []
@@ -1183,8 +1183,9 @@ class RobustProblem(Problem):
                                a_tch, b_tch, kwargs['mro_set'])
 
             if step_num % kwargs['test_frequency'] == 0:
-                y_batch = self._gen_y_batch(
-                    num_ys, y_parameters, kwargs["test_percentage"])
+                batch_int, y_batch, u_batch = self._udata_to_lst(kwargs\
+                                ['test_set'],kwargs['test_percentage'],
+                                         num_ys, y_parameters)
                 if kwargs['mro_set']:
                     var_values = kwargs['cvxpylayer'](*y_batch, a_tch,
                                                       solver_args=kwargs['solver_args'])
@@ -1193,14 +1194,14 @@ class RobustProblem(Problem):
                                                       solver_args=kwargs['solver_args'])
 
                 with torch.no_grad():
-                    test_u = kwargs['test_tch']
-                    batch_int = test_u.shape[0]
+                    # test_u = kwargs['test_tch']
+                    batch_int = u_batch.shape[0]
                     test_args, test_to_sample = self._order_args(var_values=var_values,
-                                                                 y_batch=y_batch, u_batch=test_u)
+                                                                 y_batch=y_batch, u_batch=u_batch)
                     obj_test = self.evaluation_metric(batch_int,test_args, test_to_sample,
                                                       kwargs['quantiles'])
                     prob_violation_test = self.prob_constr_violation(batch_int,
-                            test_args, test_to_sample,num_us=len(test_u))
+                            test_args, test_to_sample,num_us=len(u_batch))
                     _, var_vio = self.lagrangian(batch_int,test_args,
                                                  test_to_sample, alpha, slack,
                                                    lam, mu,
@@ -1214,7 +1215,7 @@ class RobustProblem(Problem):
                     obj_test, prob_violation_test, var_vio)
                 new_row = train_stats.generate_test_row(
                     self._calc_coverage, a_tch, b_tch, alpha,
-                    test_u, eps_tch)
+                    u_batch, eps_tch)
                 df_test = pd.concat(
                     [df_test, new_row.to_frame().T], ignore_index=True)
 
