@@ -390,8 +390,8 @@ class RobustProblem(Problem):
     # helper function for intermediate version
     def _udata_to_lst(self, data, batch_size, num_ys, y_parameters):
         num_instances = data.shape[0]
-        batch_int = min(int(
-            num_instances*batch_size),10)
+        batch_int = max(1,min(int(
+            num_instances*batch_size),10))
         random_int = np.random.choice(num_instances, batch_int, replace=False)
 
         # u_params_mat = []
@@ -1183,8 +1183,8 @@ class RobustProblem(Problem):
                                a_tch, b_tch, kwargs['mro_set'])
 
             if step_num % kwargs['test_frequency'] == 0:
-                batch_int, y_batch, u_batch = self._udata_to_lst(kwargs\
-                                ['test_set'],kwargs['test_percentage'],
+                batch_int, y_batch, u_batch = self._udata_to_lst(\
+                    kwargs['test_tch'],kwargs['test_percentage'],
                                          num_ys, y_parameters)
                 if kwargs['mro_set']:
                     var_values = kwargs['cvxpylayer'](*y_batch, a_tch,
