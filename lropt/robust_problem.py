@@ -24,10 +24,8 @@ from cvxpylayers.torch import CvxpyLayer
 from joblib import Parallel, delayed
 
 # from pathos.multiprocessing import ProcessPool as Pool
-from sklearn.model_selection import train_test_split
-
 import lropt.settings as settings
-from lropt.batch_dotproduct import ElementwiseDotProduct
+from lropt import utils
 from lropt.parameter import Parameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lropt.shape_parameter import ShapeParameter
@@ -316,9 +314,11 @@ class RobustProblem(Problem):
                 # else:
                 #     res.append(eval_arg)
             return res
-
+        curr_result = torch.zeros(batch_int, dtype=settings.DTYPE)
         if eval_input_case != RobustProblem._EVAL_INPUT_CASE.MAX:
-            curr_result = eval_func(*eval_args, **kwargs)
+            for j in range(batch_int):
+                curr_eval_args = _sample_args(eval_args, j, items_to_sample)
+                curr_result[j] = eval_func(*curr_eval_args, **kwargs)
         if eval_input_case == RobustProblem._EVAL_INPUT_CASE.MEAN:
             init_val = curr_result
             # init_val /= self.num_ys
@@ -337,7 +337,10 @@ class RobustProblem(Problem):
             # curr_result = (curr_result > 1e-4).float()
             # init_val += curr_result
             # make a setting/variable
-            init_val = eval_func(*eval_args, **kwargs)
+            for j in range(batch_int):
+                curr_eval_args = _sample_args(eval_args, j, items_to_sample)
+                init_val[j] = eval_func(*curr_eval_args, **kwargs)
+            # init_val = eval_func(*eval_args, **kwargs)
             init_val = (init_val > settings.TOLERANCE_DEFAULT).float()
         return init_val
 
@@ -388,24 +391,24 @@ class RobustProblem(Problem):
         return G.mean(axis=1)
 
     # helper function for intermediate version
-    def _udata_to_lst(self, data, batch_size, num_ys, y_parameters):
-        num_instances = data.shape[0]
-        batch_int = max(1,min(int(
-            num_instances*batch_size),10))
-        random_int = np.random.choice(num_instances, batch_int, replace=False)
+    # def _udata_to_lst(self, data, batch_size, num_ys, y_parameters):
+    #     num_instances = data.shape[0]
+    #     batch_int = max(1,min(int(
+    #         num_instances*batch_size),10))
+    #     random_int = np.random.choice(num_instances, batch_int, replace=False)
 
-        # u_params_mat = []
-        # for i in range(num_instances):
-        #     u_params_mat.append([data[i, :]])
-        # return u_params_mat
-        y_tchs = []
-        for i in range(len(y_parameters)):
-            y_tchs.append(torch.tensor(
-                y_parameters[i].data[random_int], requires_grad=self.train_flag,
-                dtype=settings.DTYPE))
+    #     # u_params_mat = []
+    #     # for i in range(num_instances):
+    #     #     u_params_mat.append([data[i, :]])
+    #     # return u_params_mat
+    #     y_tchs = []
+    #     for i in range(len(y_parameters)):
+    #         y_tchs.append(torch.tensor(
+    #             y_parameters[i].data[random_int], requires_grad=self.train_flag,
+    #             dtype=settings.DTYPE))
 
-        return batch_int, y_tchs, torch.tensor(data[random_int],
-                        requires_grad=self.train_flag, dtype=settings.DTYPE)
+    #     return batch_int, y_tchs, torch.tensor(data[random_int],
+    #                     requires_grad=self.train_flag, dtype=settings.DTYPE)
 
     def lagrangian(self, batch_int,eval_args, items_to_sample, alpha, slack, lam, mu,
                    eta=settings.ETA_LAGRANGIAN_DEFAULT, kappa=settings.KAPPA_LAGRANGIAN_DEFAULT):
@@ -703,7 +706,7 @@ class RobustProblem(Problem):
             self.num_g, requires_grad=self.train_flag, dtype=settings.DTYPE)
         return a_tch, b_tch, alpha, slack, case
 
-    def _split_dataset(self, unc_set, test_percentage, seed):
+    def _split_dataset(self, unc_set, y_parameters, test_percentage, seed):
         """
         This function splits the uncertainty set into train and test sets
             and also creates torch tensors
@@ -730,15 +733,30 @@ class RobustProblem(Problem):
         """
 
         # Split the dataset into train_set and test, and create Tensors
-        # Val is the training set, eval is the test set
-        train_set, test_set = train_test_split(unc_set.data, test_size=int(
-            unc_set.data.shape[0]*test_percentage), random_state=seed)
-        train_tch = torch.tensor(
-            train_set, requires_grad=self.train_flag, dtype=settings.DTYPE)
-        test_tch = torch.tensor(
-            test_set, requires_grad=self.train_flag, dtype=settings.DTYPE)
+        np.random.seed(seed)
+        num_test = max(1, int(unc_set.data.shape[0]*test_percentage))
+        test_indices = np.random.choice(unc_set.data.shape[0],
+                                      num_test, replace=False)
+        train_indices = [i for i in range(unc_set.data.shape[0]) if i not in test_indices]
 
-        return train_set, test_set, train_tch, test_tch
+        unc_train_set = np.array([unc_set.data[i] for i in train_indices])
+        unc_test_set = np.array([unc_set.data[i] for i in test_indices])
+        unc_train_tch = torch.tensor(
+            unc_set.data[train_indices], requires_grad=self.train_flag, dtype=settings.DTYPE)
+        unc_test_tch = torch.tensor(
+            unc_set.data[test_indices], requires_grad=self.train_flag, dtype=settings.DTYPE)
+
+        y_train_tchs = []
+        y_test_tchs = []
+        for i in range(len(y_parameters)):
+            y_train_tchs.append(torch.tensor(
+                y_parameters[i].data[train_indices], requires_grad=self.train_flag,
+                dtype=settings.DTYPE))
+            y_test_tchs.append(torch.tensor(
+                y_parameters[i].data[test_indices], requires_grad=self.train_flag,
+                dtype=settings.DTYPE))
+
+        return unc_train_set, unc_test_set, unc_train_tch, unc_test_tch, y_train_tchs, y_test_tchs
 
     def _update_iters(self, save_history, a_history, b_history, a_tch, b_tch, mro_set):
         """
@@ -788,9 +806,9 @@ class RobustProblem(Problem):
 
         return variables
 
-    def _gen_y_batch(self, num_ys, y_parameters, batch_size):
+    def _gen_batch(self, num_ys, y_parameters, u_data, batch_size, max_size=10000, min_size=1):
         """
-        This function generates a set of parameters for each y in the family of y's
+        This function generates a set of parameters for each y and u in the family of y's and u's
 
         Args:
 
@@ -804,6 +822,8 @@ class RobustProblem(Problem):
             Boolean flag set to True for MRO problem
         y_parameters
             Y parameters
+        u_data
+            Paired uncertainty dataset
         """
         # Save the parameters for each y in the family of y's
         # y_batch = {}
@@ -817,14 +837,19 @@ class RobustProblem(Problem):
         # if not mro_set:
         #     y_batch[sample].append(b_tch)
 
+        batch_int = max(min(int(num_ys*batch_size),max_size),min_size)
         random_int = np.random.choice(
-            num_ys, int(num_ys*batch_size), replace=False)
+            num_ys, batch_int, replace=False)
         y_tchs = []
         for i in range(len(y_parameters)):
             y_tchs.append(torch.tensor(
                 y_parameters[i].data[random_int], requires_grad=self.train_flag,
                 dtype=settings.DTYPE))
-        return y_tchs
+
+        u_tch = torch.tensor(u_data[random_int], requires_grad=self.train_flag,
+                             dtype=settings.DTYPE)
+
+        return batch_int, y_tchs, u_tch
 
     def _gen_eps_tch(self, init_eps, unc_set, mro_set):
         """
@@ -1018,7 +1043,7 @@ class RobustProblem(Problem):
             return torch_exp(*args_to_pass)
 
         #Change all batched @ to elementwise dot products
-        expr = ElementwiseDotProduct.matmul_to_elementwise_dotproduct(expr)
+        # expr = ElementwiseDotProduct.matmul_to_elementwise_dotproduct(expr)
         # vars_dict contains a dictionary from variable/param -> index in *args (for the expression)
         torch_exp, vars_dict = expr.gen_torch_exp()
 
@@ -1103,8 +1128,8 @@ class RobustProblem(Problem):
             scheduler_ = torch.optim.lr_scheduler.StepLR(
                 opt, step_size=kwargs['lr_step_size'], gamma=kwargs['lr_gamma'])
         # y's and cvxpylayer begin
-        y_parameters = self.y_parameters()
-        num_ys = self.num_ys
+        self.y_parameters()
+        num_ys = kwargs["y_train_tch"][0].shape[0]
         lam = kwargs['init_lam'] * torch.ones(self.num_g, dtype=settings.DTYPE)
         mu = kwargs['init_mu']
         # use multiple initial points and training. pick lowest eval loss
@@ -1124,9 +1149,9 @@ class RobustProblem(Problem):
             # y_batch = self._gen_y_batch(
             #     num_ys, y_parameters, kwargs['y_batch_percentage'])
 
-            batch_int, y_batch, u_batch = self._udata_to_lst(kwargs['train_set'],
-                                         kwargs['u_batch_percentage'],
-                                         num_ys, y_parameters)
+            batch_int, y_batch, u_batch = self._gen_batch(num_ys,
+                    kwargs['y_train_tch'], kwargs['train_set'],
+                    kwargs['batch_percentage'], max_size=10)
             # slack = torch.maximum(slack, torch.tensor(0.))
 
             if kwargs['mro_set']:
@@ -1183,9 +1208,9 @@ class RobustProblem(Problem):
                                a_tch, b_tch, kwargs['mro_set'])
 
             if step_num % kwargs['test_frequency'] == 0:
-                batch_int, y_batch, u_batch = self._udata_to_lst(\
-                    kwargs['test_tch'],kwargs['test_percentage'],
-                                         num_ys, y_parameters)
+                batch_int, y_batch, u_batch = self._gen_batch(
+                    kwargs["y_test_tch"][0].shape[0],
+                    kwargs['y_test_tch'], kwargs['test_set'], 1,max_size=10)
                 if kwargs['mro_set']:
                     var_values = kwargs['cvxpylayer'](*y_batch, a_tch,
                                                       solver_args=kwargs['solver_args'])
@@ -1195,7 +1220,6 @@ class RobustProblem(Problem):
 
                 with torch.no_grad():
                     # test_u = kwargs['test_tch']
-                    batch_int = u_batch.shape[0]
                     test_args, test_to_sample = self._order_args(var_values=var_values,
                                                                  y_batch=y_batch, u_batch=u_batch)
                     obj_test = self.evaluation_metric(batch_int,test_args, test_to_sample,
@@ -1273,8 +1297,7 @@ class RobustProblem(Problem):
         test_frequency=settings.TEST_FREQUENCY_DEFAULT,
         test_percentage=settings.TEST_PERCENTAGE_DEFAULT,
         step_lam=settings.STEP_LAM_DEFAULT,
-        u_batch_percentage=settings.U_BATCH_PERCENTAGE_DEFAULT,
-        y_batch_percentage=settings.Y_BATCH_PERCENTAGE_DEFAULT,
+        batch_percentage=settings.BATCH_PERCENTAGE_DEFAULT,
         solver_args=settings.LAYER_SOLVER,
         n_jobs=settings.N_JOBS,
         quantiles=settings.QUANTILES,
@@ -1357,9 +1380,10 @@ class RobustProblem(Problem):
         unc_set = self._get_unc_set()
         self.dualize_constraints(override=True)
         self._validate_unc_set_T(unc_set)
-        train_set, _, train_tch, test_tch = self._split_dataset(
-            unc_set, test_percentage, seed)
-        u_size = train_set.shape[1]
+        unc_train_set, unc_test_set, unc_train_tch, unc_test_tch, \
+            y_train_tchs, y_test_tchs = self._split_dataset(
+            unc_set, self.y_parameters(), test_percentage, seed)
+        u_size = unc_train_set.shape[1]
         mro_set = self._is_mro_set(unc_set)
 
         cvxpylayer = CvxpyLayer(self.new_prob,
@@ -1370,28 +1394,28 @@ class RobustProblem(Problem):
         kwargs = {"eps": eps, "init_A": init_A, "init_b": init_b,
                   "init_eps": init_eps, "unc_set": unc_set,
                   "mro_set": mro_set, "random_init": random_init,
-                  "seed": seed, "u_size": u_size, "train_set": train_set,
+                  "seed": seed, "u_size": u_size, "train_set": unc_train_set,
                   "init_alpha": init_alpha, "save_history": save_history,
                   "fixb": fixb, "optimizer": optimizer,
                   "lr": lr, "momentum": momentum,
                   "scheduler": scheduler, "init_lam":
                   init_lam, "init_mu": init_mu,
                   "num_iter": num_iter,
-                  "y_batch_percentage": y_batch_percentage,
-                  "u_batch_percentage": u_batch_percentage,
+                  "batch_percentage": batch_percentage,
                   "cvxpylayer": cvxpylayer, "solver_args": solver_args,
                   "kappa": kappa, "test_frequency": test_frequency,
-                  "test_tch": test_tch, "mu_multiplier": mu_multiplier,
+                  "test_set": unc_test_set, "mu_multiplier": mu_multiplier,
                   "quantiles": quantiles, "lr_step_size": lr_step_size,
                   "lr_gamma": lr_gamma, "eta": eta,
-                    "position": position, "test_percentage": test_percentage}
+                    "position": position, "test_percentage": test_percentage,
+                    "y_train_tch": y_train_tchs, "y_test_tch": y_test_tchs}
 
         # Debugging code - one iteration
         # res = self._train_loop(0, **kwargs)
         # res = []
         # for init_num in range(num_random_init):
         #     res.append(self._train_loop(init_num, **kwargs))
-        # n_jobs = utils.get_n_processes() if parallel else 1
+        n_jobs = utils.get_n_processes() if parallel else 1
         # pool_obj = Pool(processes=n_jobs)
         # loop_fn = partial(self._train_loop, **kwargs)
         # res = pool_obj.map(loop_fn, range(num_random_init))
@@ -1471,22 +1495,21 @@ class RobustProblem(Problem):
 
         if newdata is not None:
             train_set, y_set = newdata
-            test_tch = torch.tensor(train_set, requires_grad=self.train_flag, dtype=settings.DTYPE)
+            torch.tensor(train_set, requires_grad=self.train_flag, dtype=settings.DTYPE)
             y_batch = [torch.tensor(y_set, requires_grad=self.train_flag, dtype=settings.DTYPE)]
             batch_int = train_set.shape[0]
 
 
         else:
         # setup train and test data
-            train_set, _, train_tch, test_tch = self._split_dataset(
-                unc_set, test_percentage, seed)
-            batch_int = test_tch.shape[0]
+            unc_train_set, unc_test_set, unc_train_tch, unc_test_tch, \
+            _, y_test_tchs = self._split_dataset(
+            unc_set, self.y_parameters(), test_percentage, seed)
             # use all y's
-            y_parameters = self.y_parameters()
-            num_ys = self.num_ys
-            y_batch = self._gen_y_batch(num_ys, y_parameters, test_percentage)
-
+            batch_int, y_batch, u_batch= self._gen_batch(unc_test_set.shape[0],
+                                y_test_tchs, unc_test_set,test_percentage)
         # create cvxpylayer
+
         cvxpylayer = CvxpyLayer(self.new_prob,
                                 parameters=self.y_parameters() +
                                 self.shape_parameters(self.new_prob),
@@ -1498,9 +1521,8 @@ class RobustProblem(Problem):
         lam = 1000 * torch.ones(self.num_g, dtype=settings.DTYPE)
         # initialize torches
         eps_tch = self._gen_eps_tch(1, unc_set, False)
-        a_tch_init, b_tch_init, alpha, slack, _ = self._init_torches(1, init_A, init_b,
-                                                                     init_alpha, train_set, eps_tch,
-                                                                     False, unc_set)
+        a_tch_init, b_tch_init, alpha, slack, _ = self._init_torches(1,
+            init_A, init_b,init_alpha, unc_train_set, eps_tch,False, unc_set)
         for init_eps in epslst:
             eps_tch = torch.tensor(
                 init_eps, requires_grad=self.train_flag, dtype=settings.DTYPE)
@@ -1516,11 +1538,11 @@ class RobustProblem(Problem):
             with torch.no_grad():
                 test_args, test_to_sample = self._order_args(
                     var_values=var_values,
-                y_batch=y_batch, u_batch=test_tch)
+                y_batch=y_batch, u_batch=u_batch)
                 obj_test = self.evaluation_metric(batch_int,
                     test_args, test_to_sample, quantiles)
                 prob_violation_test = self.prob_constr_violation(batch_int,
-                    test_args, test_to_sample,num_us=len(test_tch))
+                    test_args, test_to_sample,num_us=len(unc_test_tch))
                 _, var_vio = self.lagrangian(batch_int,
                     test_args, test_to_sample,
                     alpha,
@@ -1535,7 +1557,7 @@ class RobustProblem(Problem):
                               eps_tch, eps_tch*a_tch_init, var_values)
 
             new_row = train_stats.generate_test_row(
-                self._calc_coverage, eps_tch*a_tch_init,b_tch_init,  alpha, test_tch,
+                self._calc_coverage, eps_tch*a_tch_init,b_tch_init, alpha, unc_test_tch,
                 eps_tch)
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 

@@ -99,8 +99,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         test_p = 0.1
         train, _ = train_test_split(data, test_size=int(
             data.shape[0]*test_p), random_state=5)
-        init = sc.linalg.sqrtm(sc.linalg.inv(0.0001*np.eye(2) + np.cov(train.T)))
-        init_bval = -init@np.mean(train, axis=0)
+        init = sc.linalg.sqrtm(np.cov(train.T))
+        init_bval = np.mean(train, axis=0)
 
         # Train A and b
         result = prob.train(lr=0.0001, num_iter=100, momentum=0.8,
@@ -120,9 +120,9 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         # print(df)
         # # Grid search epsilon
-        # result4 = prob.grid(epslst=np.linspace(0.01, 5, 10), \
+        # result4 = prob.grid(epslst=np.linspace(0.01, 5, 50), \
         # init_A=init,
-        #                     init_b=init_bval, seed=s,
+        #                     init_b=init_bval, seed=5,
         #                     init_alpha=0., test_percentage=test_p)
         # dfgrid = result4.df
 
