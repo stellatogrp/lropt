@@ -842,9 +842,7 @@ class RobustProblem(Problem):
             num_ys, batch_int, replace=False)
         y_tchs = []
         for i in range(len(y_parameters)):
-            y_tchs.append(torch.tensor(
-                y_parameters[i].data[random_int], requires_grad=self.train_flag,
-                dtype=settings.DTYPE))
+            y_tchs.append(y_parameters[i].data[random_int])
 
         u_tch = torch.tensor(u_data[random_int], requires_grad=self.train_flag,
                              dtype=settings.DTYPE)
@@ -1092,7 +1090,7 @@ class RobustProblem(Problem):
             if init_num >= 1:
                 np.random.seed(kwargs['seed']+init_num)
                 shape = kwargs['unc_set']._a.shape
-                kwargs['init_A'] = 10*np.random.rand(shape[0],shape[1])
+                kwargs['init_A'] = np.random.rand(shape[0],shape[1])
                     #  + 0.01*np.eye(kwargs['u_size'])
                 kwargs['init_b'] = np.mean(kwargs['train_set'], axis=0)
         a_history = []
@@ -1540,7 +1538,7 @@ class RobustProblem(Problem):
                 obj_test = self.evaluation_metric(batch_int,
                     test_args, test_to_sample, quantiles)
                 prob_violation_test = self.prob_constr_violation(batch_int,
-                    test_args, test_to_sample,num_us=len(unc_test_tch))
+                    test_args, test_to_sample,num_us=batch_int)
                 _, var_vio = self.lagrangian(batch_int,
                     test_args, test_to_sample,
                     alpha,
