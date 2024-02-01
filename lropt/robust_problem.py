@@ -1491,20 +1491,18 @@ class RobustProblem(Problem):
         df = pd.DataFrame(
             columns=["Eps"])
         mro_set = self._is_mro_set(unc_set)
-
+        unc_train_set, unc_test_set, unc_train_tch, unc_test_tch, \
+            _, y_test_tchs = self._split_dataset(
+            unc_set, self.y_parameters(), test_percentage, seed)
 
         if newdata is not None:
             train_set, y_set = newdata
-            torch.tensor(train_set, requires_grad=self.train_flag, dtype=settings.DTYPE)
+            u_batch = torch.tensor(train_set, requires_grad=self.train_flag, dtype=settings.DTYPE)
             y_batch = [torch.tensor(y_set, requires_grad=self.train_flag, dtype=settings.DTYPE)]
             batch_int = train_set.shape[0]
 
-
         else:
         # setup train and test data
-            unc_train_set, unc_test_set, unc_train_tch, unc_test_tch, \
-            _, y_test_tchs = self._split_dataset(
-            unc_set, self.y_parameters(), test_percentage, seed)
             # use all y's
             batch_int, y_batch, u_batch= self._gen_batch(unc_test_set.shape[0],
                                 y_test_tchs, unc_test_set,test_percentage)
