@@ -1410,14 +1410,16 @@ class RobustProblem(Problem):
 
         # Debugging code - one iteration
         # res = self._train_loop(0, **kwargs)
+        # Debugging code - serial
         # res = []
         # for init_num in range(num_random_init):
         #     res.append(self._train_loop(init_num, **kwargs))
-        n_jobs = utils.get_n_processes() if parallel else 1
+        # n_jobs = utils.get_n_processes() if parallel else 1
         # pool_obj = Pool(processes=n_jobs)
         # loop_fn = partial(self._train_loop, **kwargs)
         # res = pool_obj.map(loop_fn, range(num_random_init))
         # Joblib version
+        n_jobs = utils.get_n_processes() if parallel else 1
         res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
             init_num, **kwargs) for init_num in range(num_random_init))
         df, df_test, a_history, b_history, param_vals, \
