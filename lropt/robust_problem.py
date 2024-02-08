@@ -26,13 +26,13 @@ from joblib import Parallel, delayed
 # from pathos.multiprocessing import ProcessPool as Pool
 import lropt.settings as settings
 from lropt import utils
+from lropt.batch_dotproduct import ElementwiseDotProduct
 from lropt.parameter import Parameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lropt.shape_parameter import ShapeParameter
 from lropt.uncertain import UncertainParameter
 from lropt.uncertain_canon.uncertain_chain import UncertainChain
 from lropt.uncertainty_sets.mro import MRO
-from lropt.batch_dotproduct import ElementwiseDotProduct
 
 torch.manual_seed(0)
 _COL_WIDTH = 79
