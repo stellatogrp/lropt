@@ -1139,6 +1139,7 @@ class RobustProblem(Problem):
         # else:
         #     p_bar = tqdm(
         #         range(kwargs['num_iter']), desc=f"run {init_num}: test value N/A, violations N/A")
+        curr_cvar = np.inf
         for step_num in range(kwargs['num_iter']):
             train_stats = TrainLoopStats(
                 step_num=step_num, train_flag=self.train_flag, num_g=self.num_g)
@@ -1188,11 +1189,11 @@ class RobustProblem(Problem):
             # lam = torch.maximum(lam + step_lam*train_constraint_value,
             #                    torch.zeros(self.num_g, dtype=settings.DTYPE))
             if step_num % 20 == 0:
-                # if torch.norm(train_constraint_value) <= 1.1*curr_cvar:
-                torch.norm(train_constraint_value)
-                lam = lam + torch.minimum(mu*train_constraint_value,
-                                    1000*torch.ones(self.num_g, dtype=settings.DTYPE))
-            if step_num % 30 == 0:
+                if torch.norm(train_constraint_value) <= 0.99*curr_cvar:
+                    curr_cvar= torch.norm(train_constraint_value)
+                    lam = lam + torch.minimum(mu*train_constraint_value,
+                                        1000*torch.ones(self.num_g, dtype=settings.DTYPE))
+            else:
                 mu = kwargs['mu_multiplier']*mu
                 # else:
                 #     mu = kwargs['mu_multiplier']*mu
