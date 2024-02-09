@@ -26,6 +26,7 @@ from joblib import Parallel, delayed
 # from pathos.multiprocessing import ProcessPool as Pool
 import lropt.settings as settings
 from lropt import utils
+from lropt.batch_dotproduct import ElementwiseDotProduct
 from lropt.parameter import Parameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lropt.shape_parameter import ShapeParameter
@@ -314,11 +315,12 @@ class RobustProblem(Problem):
                 # else:
                 #     res.append(eval_arg)
             return res
-        curr_result = torch.zeros(batch_int, dtype=settings.DTYPE)
+
+        # curr_result = torch.zeros(batch_int, dtype=settings.DTYPE)
         if eval_input_case != RobustProblem._EVAL_INPUT_CASE.MAX:
-            for j in range(batch_int):
-                curr_eval_args = _sample_args(eval_args, j, items_to_sample)
-                curr_result[j] = eval_func(*curr_eval_args, **kwargs)
+            # for j in range(batch_int):
+            #     curr_eval_args = _sample_args(eval_args, j, items_to_sample)
+            curr_result = eval_func(*eval_args, **kwargs)
         if eval_input_case == RobustProblem._EVAL_INPUT_CASE.MEAN:
             init_val = curr_result
             # init_val /= self.num_ys
@@ -337,10 +339,9 @@ class RobustProblem(Problem):
             # curr_result = (curr_result > 1e-4).float()
             # init_val += curr_result
             # make a setting/variable
-            for j in range(batch_int):
-                curr_eval_args = _sample_args(eval_args, j, items_to_sample)
-                init_val[j] = eval_func(*curr_eval_args, **kwargs)
-            # init_val = eval_func(*eval_args, **kwargs)
+            # for j in range(batch_int):
+            #     curr_eval_args = _sample_args(eval_args, j, items_to_sample)
+            init_val = eval_func(*eval_args, **kwargs)
             init_val = (init_val > settings.TOLERANCE_DEFAULT).float()
         return init_val
 
@@ -1040,10 +1041,10 @@ class RobustProblem(Problem):
             # if we need to transpose one of the arguments.
             return torch_exp(*args_to_pass)
 
-        #Change all batched @ to elementwise dot products
-        # expr = ElementwiseDotProduct.matmul_to_elementwise_dotproduct(expr)
         # vars_dict contains a dictionary from variable/param -> index in *args (for the expression)
+        expr = ElementwiseDotProduct.matmul_to_elementwise_dotproduct(expr)
         torch_exp, vars_dict = expr.gen_torch_exp()
+        
 
         # Create a dictionary from index -> variable/param (for the problem)
         args_inds_to_pass = gen_args_inds_to_pass(self.vars_params, vars_dict)
