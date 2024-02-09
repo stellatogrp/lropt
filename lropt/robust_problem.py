@@ -1545,7 +1545,7 @@ class RobustProblem(Problem):
             # create dictionary from unique y's to var_values
             y_to_var_values_dict = {}
             for i in range(num_unique_indices):
-                y_to_var_values_dict[tuple(tuple(v[0].flatten())\
+                y_to_var_values_dict[tuple(tuple(v[i].flatten())\
                         for v in y_unique_array)] = [v[i] for v in var_values]
             # initialize new var_values
             shapes = [torch.tensor(v.shape) for v in var_values]
