@@ -1044,7 +1044,7 @@ class RobustProblem(Problem):
         # vars_dict contains a dictionary from variable/param -> index in *args (for the expression)
         expr = ElementwiseDotProduct.matmul_to_elementwise_dotproduct(expr)
         torch_exp, vars_dict = expr.gen_torch_exp()
-        
+
 
         # Create a dictionary from index -> variable/param (for the problem)
         args_inds_to_pass = gen_args_inds_to_pass(self.vars_params, vars_dict)
@@ -1523,21 +1523,48 @@ class RobustProblem(Problem):
         eps_tch = self._gen_eps_tch(1, unc_set, False)
         a_tch_init, b_tch_init, alpha, slack, _ = self._init_torches(1,
             init_A, init_b,init_alpha, unc_train_set, eps_tch,False, unc_set)
+
+        # get unique y's
+        y_batch_array = [np.array(ele) for ele in y_batch]
+        all_indices = [np.unique(ele,axis=0, return_index=True)[1] for ele in y_batch_array]
+        unique_indices = np.unique(np.concatenate(all_indices))
+        num_unique_indices = len(unique_indices)
+        y_unique = [torch.tensor(ele, dtype=settings.DTYPE)[unique_indices] \
+                    for ele in y_batch_array]
+        y_unique_array = [ele[unique_indices] for ele in y_batch_array]
+
         for init_eps in epslst:
             eps_tch = torch.tensor(
                 init_eps, requires_grad=self.train_flag, dtype=settings.DTYPE)
             if mro_set:
-                var_values = cvxpylayer(*y_batch, eps_tch*a_tch_init,
+                var_values = cvxpylayer(*y_unique, eps_tch*a_tch_init,
                                         solver_args=solver_args)
             else:
-                var_values = cvxpylayer(*y_batch, eps_tch*a_tch_init, b_tch_init,
+                var_values = cvxpylayer(*y_unique, eps_tch*a_tch_init, b_tch_init,
                                         solver_args=solver_args)
+            # create dictionary from unique y's to var_values
+            y_to_var_values_dict = {}
+            for i in range(num_unique_indices):
+                y_to_var_values_dict[tuple(tuple(v[0].flatten())\
+                        for v in y_unique_array)] = [v[i] for v in var_values]
+            # initialize new var_values
+            shapes = [torch.tensor(v.shape) for v in var_values]
+            for i in range(len(shapes)):
+                shapes[i][0] = batch_int
+            new_var_values = [torch.zeros(*shape, dtype=settings.DTYPE) for shape in shapes]
+
+            # populate new_var_values using the dictionary
+            for i in range(batch_int):
+                values_list = y_to_var_values_dict[tuple(tuple(v[i].flatten())\
+                        for v in y_batch_array)]
+                for j in range(len(var_values)):
+                    new_var_values[j][i] = values_list[j]
 
             train_stats = TrainLoopStats(
                 step_num=np.NAN, train_flag=self.train_flag, num_g=self.num_g)
             with torch.no_grad():
                 test_args, test_to_sample = self._order_args(
-                    var_values=var_values,
+                    var_values=new_var_values,
                 y_batch=y_batch, u_batch=u_batch)
                 obj_test = self.evaluation_metric(batch_int,
                     test_args, test_to_sample, quantiles)
