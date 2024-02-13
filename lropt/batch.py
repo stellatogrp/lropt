@@ -1,7 +1,19 @@
 import torch
 from cvxpy.atoms.affine.binary_operators import MulExpression, multiply
+from cvxpy.atoms.affine.index import index
 from cvxpy.expressions.expression import Expression
+from torch import Tensor
 
+"""
+This file contains all the new batch-supporting atoms. Such atom must have the following static
+methods (see the examples below):
+
+1. "inner_batchify" that checks if an expression should be batchified, and if so, returns a new
+expression using the new batched atom.
+
+2. "get_args" that given an expression, produces a list called args that would be the inputs to
+the constructor.
+"""
 
 class ElementwiseDotProduct(MulExpression):
     """
@@ -25,10 +37,10 @@ class ElementwiseDotProduct(MulExpression):
         """
         raise NotImplementedError("Numeric for ElementwiseDotProduct should not be used.")
     
-    def torch_numeric(self, values):
+    def torch_numeric(self, values: list[Tensor]):
         return self.elementwise_dotproduct(values[0], values[1])
     
-    def elementwise_dotproduct(self, *args) -> torch.Tensor:
+    def elementwise_dotproduct(self, *args) -> Tensor:
         """
         This function calculates the dot product between the rows of a and the
         corresponding rows of b.
@@ -197,9 +209,8 @@ class ElementwiseDotProduct(MulExpression):
                 else:
                     return torch.matmul(batched_args[vec_ind], args[mat_ind])
 
-        
     @staticmethod
-    def matmul_to_elementwise_dotproduct(expr: Expression) -> Expression:
+    def inner_batchify(expr: Expression) -> Expression:
         """
         This method returns a new expression where matrix multiplications are replaced with
         elementwise dot products if the args are vectors.
@@ -209,24 +220,123 @@ class ElementwiseDotProduct(MulExpression):
             """
             This is a helper function that checks if this expression needs to be transformed
             """
-
-            # #Transform only multiplicaiton between two elements
-            # if len(expr.args) != 2:
-            #     return False
-            
-            # #Transform only if both are vectors
-            # for arg in expr.args:
-            #     if len(arg.shape) != 1:
-            #         return False
             
             #Check if dot-product
             op_name = getattr(expr, "OP_NAME", None)
             return (op_name=="@") and (type(expr) != multiply)
 
-        #Recursiv%ely change all the args of this expression
-        args = [ElementwiseDotProduct.matmul_to_elementwise_dotproduct(arg) for arg in expr.args]
-        expr.args = args
         #Change this expression if necessary
         if not _should_transform(expr):
             return expr
         return ElementwiseDotProduct(*expr.args)
+    
+    @staticmethod
+    def get_args(expr: Expression) -> tuple:
+        """
+        This is a helper function that returns the requires args for the ElementwiseDotProduct atom.
+        """
+        return (expr)
+
+class BatchedIndex(index):
+    """
+    This is an index (slicing) atom that supports batched data.
+    """
+
+    def __init__(self, expr, key, _orig_key, *args):
+        super().__init__(expr, key, _orig_key, *args)
+        self._orig_shape = self.args[0].shape
+
+    def numeric(self, values):
+        """
+        Elementwise dot product
+        """
+        raise NotImplementedError("Numeric for ElementwiseIndex should not be used.")
+    
+    def torch_numeric(self, values: list[Tensor]):
+        def _is_batch(self, values: list[Tensor]) -> bool:
+            """
+            This is a helper function that returns True if this is batch mode
+            """
+            curr_shape = len(values[0].shape)
+            return (curr_shape - len(self._orig_shape)) == 1
+        
+        def _create_slice(key: None | int | tuple | slice) -> tuple:
+            """
+            This is a helper function that adds a slice(None, None, None) to key to select all the
+            elements of the 0-th element (which is the batch).
+            """
+            #Slice to add to the key, to take all the batched elements
+            add_slice = slice(None, None, None)
+            #If key is a single slice, convert it to a list (will be used later).
+            if isinstance(key, slice):
+                key = [key]
+            if key is None:
+                return add_slice
+            elif isinstance(key, int):
+                return (add_slice, key)
+            else:
+                key = list(key)
+                key.insert(0, add_slice)
+                return tuple(key)
+
+        batch_flag = _is_batch(self, values)
+        # updated_key = _update_key(self, values, batch_flag)
+        key = self._orig_key
+        if batch_flag:
+            #In batch mode, need to specify to take all the elements from the first dimension
+            key = _create_slice(key)
+        return values[0][key]
+    
+    @staticmethod
+    def inner_batchify(expr: Expression) -> Expression:
+        """
+        This method returns a new expression where index (slicing) opertaions are replaced with
+        batched indexing.
+        """
+
+        def _should_transform(expr: Expression):
+            """
+            This is a helper function that checks if this expression needs to be transformed
+            """
+            
+            return isinstance(expr, index)
+
+        #Change this expression if necessary
+        if not _should_transform(expr):
+            return expr
+        return BatchedIndex(*BatchedIndex.get_args(expr))
+    
+    @staticmethod
+    def get_args(expr: Expression) -> tuple:
+        """
+        This is a helper function that returns the requires args for the ElementwiseDotProduct atom.
+        """
+        return (expr.args[0], expr.key, expr._orig_key)
+
+
+def batchify(expr: Expression) -> Expression:
+    """
+    This method returns a new expression where objects of target_class are transformed to 
+    """
+
+    #Recursively change all the args of this expression
+    # args = [ElementwiseDotProduct.matmul_to_elementwise_dotproduct(arg) for arg in expr.args]
+    #DEBUG
+    args = []
+    for arg in expr.args:
+        args.append(batchify(arg))
+    expr.args = args
+    
+    #Change this expression if necessary
+    batched_type = SUPPORT_BATCH[type(expr)] if type(expr) in SUPPORT_BATCH else None
+
+    if not batched_type:
+        return expr
+    
+    return batched_type.inner_batchify(expr)
+
+#This dictionary contains all the supported batched elements.
+SUPPORT_BATCH = {
+                MulExpression:  ElementwiseDotProduct,
+                index:          BatchedIndex,
+                }

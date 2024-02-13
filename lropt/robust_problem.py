@@ -26,7 +26,7 @@ from joblib import Parallel, delayed
 # from pathos.multiprocessing import ProcessPool as Pool
 import lropt.settings as settings
 from lropt import utils
-from lropt.batch_dotproduct import ElementwiseDotProduct
+from lropt.batch import batchify
 from lropt.parameter import Parameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lropt.shape_parameter import ShapeParameter
@@ -1042,7 +1042,7 @@ class RobustProblem(Problem):
             return torch_exp(*args_to_pass)
 
         # vars_dict contains a dictionary from variable/param -> index in *args (for the expression)
-        expr = ElementwiseDotProduct.matmul_to_elementwise_dotproduct(expr)
+        expr = batchify(expr)
         torch_exp, vars_dict = expr.gen_torch_exp()
 
 
@@ -1412,7 +1412,7 @@ class RobustProblem(Problem):
 
         # Debugging code - one iteration
         # res = self._train_loop(0, **kwargs)
-        # Debugging code - serial
+        # # Debugging code - serial
         # res = []
         # for init_num in range(num_random_init):
         #     res.append(self._train_loop(init_num, **kwargs))
