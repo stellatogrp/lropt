@@ -26,7 +26,6 @@ from joblib import Parallel, delayed
 # from pathos.multiprocessing import ProcessPool as Pool
 import lropt.settings as settings
 from lropt import utils
-from lropt.batch import batchify
 from lropt.parameter import Parameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lropt.shape_parameter import ShapeParameter
@@ -290,6 +289,62 @@ class RobustProblem(Problem):
         self.h = h_funcs
         self.num_g = len(h_funcs)
 
+    # def _eval_input(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
+    #                 eval_input_case, quantiles, **kwargs):
+    #     """
+    #     This function takes decision varaibles, y's, and u's,
+    #         evaluates them and averages them on a given function.
+
+    #     Args: TODO (Amit): Finish this documentation
+    #         eval_func:
+    #             The function used for evaluation.
+
+    #     Returns:
+    #         The average among all evaluated J x N pairs
+    #     """
+    #     def _sample_args(eval_args, sample_ind, items_to_sample):
+    #         res = []
+    #         for ind, eval_arg in enumerate(eval_args):
+    #             curr_arg = eval_arg[sample_ind]
+    #             res.append(curr_arg)
+    #             # if ind in items_to_sample:
+    #             #     curr_arg = eval_arg[sample_ind]
+    #             #     # I removed the star_flag, see if makes problems
+    #             #     res.append(curr_arg)
+    #             # else:
+    #             #     res.append(eval_arg)
+    #         return res
+
+    #     # curr_result = torch.zeros(batch_int, dtype=settings.DTYPE)
+    #     if eval_input_case != RobustProblem._EVAL_INPUT_CASE.MAX:
+    #         # for j in range(batch_int):
+    #         #     curr_eval_args = _sample_args(eval_args, j, items_to_sample)
+    #         curr_result = eval_func(*eval_args, **kwargs)
+    #     if eval_input_case == RobustProblem._EVAL_INPUT_CASE.MEAN:
+    #         init_val = curr_result
+    #         # init_val /= self.num_ys
+    #         init_val = init_val.mean()
+    #     elif eval_input_case == RobustProblem._EVAL_INPUT_CASE.EVALMEAN:
+    #         init_val = curr_result
+    #         # init_val /= self.num_ys
+    #         bot_q, top_q = quantiles
+    #         init_val_lower = torch.quantile(init_val, bot_q)
+    #         init_val_mean = init_val.mean()
+    #         init_val_upper = torch.quantile(init_val, top_q)
+    #         return (init_val_lower, init_val_mean, init_val_upper)
+    #     elif eval_input_case == RobustProblem._EVAL_INPUT_CASE.MAX:
+    #         # We want to see if there's a violation: either 1 from previous iterations,
+    #         # or new positive value from now
+    #         # curr_result = (curr_result > 1e-4).float()
+    #         # init_val += curr_result
+    #         # make a setting/variable
+    #         # for j in range(batch_int):
+    #         #     curr_eval_args = _sample_args(eval_args, j, items_to_sample)
+    #         init_val = eval_func(*eval_args, **kwargs)
+    #         init_val = (init_val > settings.TOLERANCE_DEFAULT).float()
+    #     return init_val
+
+
     def _eval_input(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
                     eval_input_case, quantiles, **kwargs):
         """
@@ -315,12 +370,11 @@ class RobustProblem(Problem):
                 # else:
                 #     res.append(eval_arg)
             return res
-
-        # curr_result = torch.zeros(batch_int, dtype=settings.DTYPE)
+        curr_result = torch.zeros(batch_int, dtype=settings.DTYPE)
         if eval_input_case != RobustProblem._EVAL_INPUT_CASE.MAX:
-            # for j in range(batch_int):
-            #     curr_eval_args = _sample_args(eval_args, j, items_to_sample)
-            curr_result = eval_func(*eval_args, **kwargs)
+            for j in range(batch_int):
+                curr_eval_args = _sample_args(eval_args, j, items_to_sample)
+                curr_result[j] = eval_func(*curr_eval_args, **kwargs)
         if eval_input_case == RobustProblem._EVAL_INPUT_CASE.MEAN:
             init_val = curr_result
             # init_val /= self.num_ys
@@ -339,9 +393,10 @@ class RobustProblem(Problem):
             # curr_result = (curr_result > 1e-4).float()
             # init_val += curr_result
             # make a setting/variable
-            # for j in range(batch_int):
-            #     curr_eval_args = _sample_args(eval_args, j, items_to_sample)
-            init_val = eval_func(*eval_args, **kwargs)
+            for j in range(batch_int):
+                curr_eval_args = _sample_args(eval_args, j, items_to_sample)
+                init_val[j] = eval_func(*curr_eval_args, **kwargs)
+            # init_val = eval_func(*eval_args, **kwargs)
             init_val = (init_val > settings.TOLERANCE_DEFAULT).float()
         return init_val
 
@@ -645,7 +700,7 @@ class RobustProblem(Problem):
         cov_len_cond = (len(np.shape(np.cov(train_set.T))) >= 1)
         if (init_eps is None) and (init_A is None):
             if cov_len_cond:
-                return sc.linalg.sqrtm(sc.linalg.inv(np.cov(train_set.T)))
+                return sc.linalg.sqrtm(np.cov(train_set.T))
             return np.array([[np.cov(train_set.T)]])
 
         scalar = init_eps if init_eps else 1
@@ -664,48 +719,47 @@ class RobustProblem(Problem):
         init_tensor = torch.tensor(
             self._init, requires_grad=self.train_flag, dtype=settings.DTYPE)
         b_tch = None
-        case = self._calc_mro_case(eps_tch, mro_set, unc_set, init_A)
+        # case = self._calc_mro_case(eps_tch, mro_set, unc_set, init_A)
 
-        if case == settings.MRO_CASE.NO_MRO:
-            if init_b is not None:
-                b_tch_data = np.array(init_b)
-            else:
-                b_tch_data = -self._init@np.mean(train_set, axis=0)
-            b_tch = torch.tensor(b_tch_data, requires_grad=self.train_flag,
-                                 dtype=settings.DTYPE)
-            b_tch = eps_tch*b_tch if eps else b_tch
-            a_tch = init_tensor*eps_tch if eps else init_tensor
+        # if case == settings.MRO_CASE.NO_MRO:
+        if init_b is not None:
+            b_tch_data = np.array(init_b)
+        else:
+            b_tch_data = -np.mean(train_set, axis=0)
+        b_tch = torch.tensor(b_tch_data, requires_grad=self.train_flag,
+                                dtype=settings.DTYPE)
+        a_tch = init_tensor*eps_tch if eps else init_tensor
 
-        elif case == settings.MRO_CASE.DIFF_A_UNINIT:
-            a_tch = eps_tch[0]*init_tensor
-            for k_ind in range(1, unc_set._K):
-                a_tch = torch.vstack(
-                    (a_tch, eps_tch[k_ind]*self._init))
+        # elif case == settings.MRO_CASE.DIFF_A_UNINIT:
+        #     a_tch = eps_tch[0]*init_tensor
+        #     for k_ind in range(1, unc_set._K):
+        #         a_tch = torch.vstack(
+        #             (a_tch, eps_tch[k_ind]*self._init))
 
-        elif case == settings.MRO_CASE.DIFF_A_INIT:
-            a_tch = eps_tch[0]*torch.tensor(init_A[0:unc_set._m, 0:unc_set._m],
-                                            dtype=settings.DTYPE)
-            for k_ind in range(1, unc_set._K):
-                a_tch = torch.vstack(
-                    (a_tch, eps_tch[k_ind] *
-                        torch.tensor(init_A[(k_ind*unc_set._m):(k_ind+1)*unc_set._m,
-                                            0:unc_set._m],
-                                     dtype=settings.DTYPE)))
+        # elif case == settings.MRO_CASE.DIFF_A_INIT:
+        #     a_tch = eps_tch[0]*torch.tensor(init_A[0:unc_set._m, 0:unc_set._m],
+        #                                     dtype=settings.DTYPE)
+        #     for k_ind in range(1, unc_set._K):
+        #         a_tch = torch.vstack(
+        #             (a_tch, eps_tch[k_ind] *
+        #                 torch.tensor(init_A[(k_ind*unc_set._m):(k_ind+1)*unc_set._m,
+        #                                     0:unc_set._m],
+        #                              dtype=settings.DTYPE)))
 
-        elif case == settings.MRO_CASE.SAME_A:
-            a_tch = eps_tch*init_tensor
-            if unc_set._uniqueA:
-                if init_A is None:
-                    a_tch = a_tch.repeat(unc_set._K, 1)
-                elif init_A is not None and init_A.shape[0] != (unc_set._K*unc_set._m):
-                    a_tch = a_tch.repeat(unc_set._K, 1)
-            a = a_tch.detach().numpy()
-            a_tch = torch.tensor(
-                a, requires_grad=self.train_flag, dtype=settings.DTYPE)
+        # elif case == settings.MRO_CASE.SAME_A:
+        #     a_tch = eps_tch*init_tensor
+        #     if unc_set._uniqueA:
+        #         if init_A is None:
+        #             a_tch = a_tch.repeat(unc_set._K, 1)
+        #         elif init_A is not None and init_A.shape[0] != (unc_set._K*unc_set._m):
+        #             a_tch = a_tch.repeat(unc_set._K, 1)
+        #     a = a_tch.detach().numpy()
+        #     a_tch = torch.tensor(
+        #         a, requires_grad=self.train_flag, dtype=settings.DTYPE)
         alpha = torch.tensor(init_alpha, requires_grad=self.train_flag)
         slack = torch.zeros(
             self.num_g, requires_grad=self.train_flag, dtype=settings.DTYPE)
-        return a_tch, b_tch, alpha, slack, case
+        return a_tch, b_tch, alpha, slack
 
     def _split_dataset(self, unc_set, y_parameters, test_percentage, seed):
         """
@@ -791,16 +845,16 @@ class RobustProblem(Problem):
             b_history.append(b_tch.detach().numpy().copy())
 
     def _set_train_variables(self, fixb, mro_set, alpha, slack, a_tch,
-                             b_tch, eps_tch):
+                             b_tch, eps_tch, eps):
         """
         This function sets the variables to be trained in the outer level problem.
         TODO (Amit): complete the docstrings (to Irina)
         """
-        if eps_tch is not None:
+        if eps:
             variables = [eps_tch, alpha, slack]
             return variables
 
-        if fixb or mro_set:
+        if fixb:
             variables = [a_tch, alpha, slack]
         else:
             variables = [a_tch, b_tch, alpha, slack]
@@ -868,16 +922,16 @@ class RobustProblem(Problem):
         eps_tch = torch.tensor(
             scalar, requires_grad=self.train_flag, dtype=settings.DTYPE)
 
-        if (not mro_set) or (not unc_set._uniqueA):
-            return eps_tch
+        # if (not mro_set):
+        #     return eps_tch
 
-        if init_eps and eps_tch.shape != torch.Size([]):
-            return eps_tch
+        # if init_eps and eps_tch.shape != torch.Size([]):
+        #     return eps_tch
 
-        eps_tch = eps_tch.repeat(unc_set._K)
-        eps_tch = eps_tch.detach().numpy()
-        eps_tch = torch.tensor(
-            eps_tch, requires_grad=self.train_flag, dtype=settings.DTYPE)
+        # eps_tch = eps_tch.repeat(unc_set._K)
+        # eps_tch = eps_tch.detach().numpy()
+        # eps_tch = torch.tensor(
+        #     eps_tch, requires_grad=self.train_flag, dtype=settings.DTYPE)
         return eps_tch
 
     def _calc_mro_case(self, eps_tch, mro_set, unc_set, init_A):
@@ -955,8 +1009,7 @@ class RobustProblem(Problem):
         coverage = 0
         for datind in range(dset.shape[0]):
             coverage += torch.where(
-                torch.norm((a_tch.T@torch.linalg.inv(a_tch@a_tch.T
-                + 0.0001*torch.eye(a_tch.shape[0]))) @ (dset[datind]-
+                torch.norm((a_tch.T@torch.linalg.inv(a_tch@a_tch.T)) @ (dset[datind]-
                            b_tch))
                 <= 1,
                 1,
@@ -1042,7 +1095,7 @@ class RobustProblem(Problem):
             return torch_exp(*args_to_pass)
 
         # vars_dict contains a dictionary from variable/param -> index in *args (for the expression)
-        expr = batchify(expr)
+        # expr = batchify(expr)
         torch_exp, vars_dict = expr.gen_torch_exp()
 
 
@@ -1101,9 +1154,9 @@ class RobustProblem(Problem):
 
         eps_tch = self._gen_eps_tch(
             kwargs['init_eps'], kwargs['unc_set'],
-            kwargs['mro_set']) if kwargs['eps'] else None
+            kwargs['mro_set']) if kwargs['init_eps'] else None
         a_tch, b_tch, \
-            alpha, slack, _ \
+            alpha, slack \
             = self._init_torches(kwargs['init_eps'], kwargs['init_A'],
                                  kwargs['init_b'], kwargs['init_alpha'],
                                  kwargs['train_set'], eps_tch,
@@ -1116,7 +1169,7 @@ class RobustProblem(Problem):
         variables = self._set_train_variables(kwargs['fixb'],
                                               kwargs['mro_set'], alpha,
                                               slack,
-                                              a_tch, b_tch, eps_tch)
+                                              a_tch, b_tch,eps_tch,kwargs["eps"])
         if kwargs['optimizer'] == "SGD":
             opt = settings.OPTIMIZERS[kwargs['optimizer']](
                 variables, lr=kwargs['lr'], momentum=kwargs['momentum'])
@@ -1154,19 +1207,19 @@ class RobustProblem(Problem):
                     kwargs['batch_percentage'], max_size=10)
             # slack = torch.maximum(slack, torch.tensor(0.))
 
-            if kwargs['mro_set']:
-                a_tch, _, _, _, _ = self._init_torches(kwargs['init_eps'],
-                                                       kwargs['init_A'],
-                                                       kwargs['init_b'],
-                                                       kwargs['init_alpha'],
-                                                       kwargs['train_set'],
-                                                       eps_tch,
-                                                       kwargs['mro_set'],
-                                                       kwargs['unc_set'])
-                var_values = kwargs['cvxpylayer'](*y_batch, a_tch,
-                                                  solver_args=kwargs['solver_args'])
-            else:
-                var_values = kwargs['cvxpylayer'](*y_batch, a_tch, b_tch,
+            # if kwargs['mro_set']:
+            #     a_tch, _, _, _= self._init_torches(kwargs['init_eps'],
+            #                                            kwargs['init_A'],
+            #                                            kwargs['init_b'],
+            #                                            kwargs['init_alpha'],
+            #                                            kwargs['train_set'],
+            #                                            eps_tch,
+            #                                            kwargs['mro_set'],
+            #                                            kwargs['unc_set'])
+            #     var_values = kwargs['cvxpylayer'](*y_batch, a_tch,
+            #                                       solver_args=kwargs['solver_args'])
+            # else:
+            var_values = kwargs['cvxpylayer'](*y_batch, a_tch, b_tch,
                                                   solver_args=kwargs['solver_args'])
 
             eval_args, items_to_sample = self._order_args(var_values=var_values,
@@ -1211,11 +1264,11 @@ class RobustProblem(Problem):
                 batch_int, y_batch, u_batch = self._gen_batch(
                     kwargs["y_test_tch"][0].shape[0],
                     kwargs['y_test_tch'], kwargs['test_set'], 1,max_size=10)
-                if kwargs['mro_set']:
-                    var_values = kwargs['cvxpylayer'](*y_batch, a_tch,
-                                                      solver_args=kwargs['solver_args'])
-                else:
-                    var_values = kwargs['cvxpylayer'](*y_batch, a_tch, b_tch,
+                # if kwargs['mro_set']:
+                #     var_values = kwargs['cvxpylayer'](*y_batch, a_tch,
+                #                                       solver_args=kwargs['solver_args'])
+                # else:
+                var_values = kwargs['cvxpylayer'](*y_batch, a_tch, b_tch,
                                                       solver_args=kwargs['solver_args'])
 
                 with torch.no_grad():
@@ -1263,7 +1316,7 @@ class RobustProblem(Problem):
         else:
             fin_val = obj_test[1].item() + 10*abs(sum(var_vio.detach().numpy()))
         a_val = a_tch.detach().numpy().copy()
-        b_val = b_tch.detach().numpy().copy() if not kwargs['mro_set'] else 0
+        b_val = b_tch.detach().numpy().copy()
         eps_val = eps_tch.detach().numpy().copy() if kwargs['eps'] else 1
         param_vals = (a_val, b_val, eps_val, obj_test[1].item())
         # tqdm.write("Testing objective: {}".format(obj_test[1].item()))
@@ -1430,12 +1483,11 @@ class RobustProblem(Problem):
         self._trained = True
         unc_set._trained = True
         unc_set.a.value = param_vals[index_chosen][0]
-        if not mro_set:
-            unc_set.b.value = param_vals[index_chosen][1]
+        unc_set.b.value = param_vals[index_chosen][1]
 
         return_eps = param_vals[index_chosen][2]
-        return_b_value = unc_set.b.value if not mro_set else None
-        return_b_history = b_history[index_chosen] if not mro_set else None
+        return_b_value = unc_set.b.value
+        return_b_history = b_history[index_chosen]
         return Result(self, self.new_prob, df[index_chosen],
                       df_test[index_chosen], unc_set.a.value,
                       return_b_value,
@@ -1492,7 +1544,7 @@ class RobustProblem(Problem):
         self._validate_unc_set_T(unc_set)
         df = pd.DataFrame(
             columns=["Eps"])
-        mro_set = self._is_mro_set(unc_set)
+        self._is_mro_set(unc_set)
         unc_train_set, unc_test_set, unc_train_tch, unc_test_tch, \
             _, y_test_tchs = self._split_dataset(
             unc_set, self.y_parameters(), test_percentage, seed)
@@ -1521,7 +1573,7 @@ class RobustProblem(Problem):
         lam = 1000 * torch.ones(self.num_g, dtype=settings.DTYPE)
         # initialize torches
         eps_tch = self._gen_eps_tch(1, unc_set, False)
-        a_tch_init, b_tch_init, alpha, slack, _ = self._init_torches(1,
+        a_tch_init, b_tch_init, alpha, slack = self._init_torches(1,
             init_A, init_b,init_alpha, unc_train_set, eps_tch,False, unc_set)
 
         # get unique y's
@@ -1536,11 +1588,11 @@ class RobustProblem(Problem):
         for init_eps in epslst:
             eps_tch = torch.tensor(
                 init_eps, requires_grad=self.train_flag, dtype=settings.DTYPE)
-            if mro_set:
-                var_values = cvxpylayer(*y_unique, eps_tch*a_tch_init,
-                                        solver_args=solver_args)
-            else:
-                var_values = cvxpylayer(*y_unique, eps_tch*a_tch_init, b_tch_init,
+            # if mro_set:
+            #     var_values = cvxpylayer(*y_unique, eps_tch*a_tch_init,
+            #                             solver_args=solver_args)
+            # else:
+            var_values = cvxpylayer(*y_unique, eps_tch*a_tch_init, b_tch_init,
                                         solver_args=solver_args)
             # create dictionary from unique y's to var_values
             y_to_var_values_dict = {}
@@ -1591,14 +1643,13 @@ class RobustProblem(Problem):
         self._trained = True
         unc_set._trained = True
 
-        if not mro_set:
-            unc_set.a.value = (
-                grid_stats.mineps * a_tch_init).detach().numpy().copy()
-            unc_set.b.value = (
-                b_tch_init).detach().numpy().copy()
-        else:
-            unc_set.a.value = grid_stats.minT.detach().numpy().copy()
-        b_value = None if mro_set else unc_set.b.value
+        unc_set.a.value = (
+            grid_stats.mineps * a_tch_init).detach().numpy().copy()
+        unc_set.b.value = (
+            b_tch_init).detach().numpy().copy()
+        # else:
+        #     unc_set.a.value = grid_stats.minT.detach().numpy().copy()
+        b_value = unc_set.b.value
         return Result(
             self,
             self.new_prob,

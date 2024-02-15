@@ -1,8 +1,8 @@
 import numpy as np
-import scipy as sc
-from cvxpy import Parameter, Variable, norm
+from cvxpy import Variable, norm
 from sklearn.cluster import KMeans
 
+from lropt.shape_parameter import ShapeParameter
 from lropt.uncertainty_sets.uncertainty_set import UncertaintySet
 
 
@@ -15,11 +15,20 @@ class MRO(UncertaintySet):
     """
 
     def __init__(self, K=1, rho=1, data=None, power=1, p=2,
-                 a=None, b=None, train=False, c=None, d=None, loss=None,
-                 uniqueA=False, ub=None, lb=None, sum_eq=None):
+                 a=None, b=None, train=False, c=None, d=None, \
+                    loss=None, ub=None, lb=None, sum_eq=None):
 
         if data is None:
             raise ValueError("You must provide data")
+
+        self._dimension = data.shape[1]
+        if train:
+            a = ShapeParameter((self._dimension, self._dimension))
+            b = ShapeParameter(self._dimension)
+
+        if (not train) and (a is not None):
+            if a.shape[1] != self._dimension:
+                raise ValueError("Mismatching dimension for A.")
         if rho <= 0:
             raise ValueError("Rho value must be positive.")
         if p < 0.:
@@ -41,7 +50,6 @@ class MRO(UncertaintySet):
         self._rho = rho
         self._s = None
         self._train = train
-        self._uniqueA = uniqueA
         self._m = data.shape[1]
         self._c = c
         self._d = d
@@ -49,34 +57,35 @@ class MRO(UncertaintySet):
         self._ub = ub
         self._lb = lb
         self._sum_eq = sum_eq
-        self._dimension = None
         self._b = b
-
-        if train:
-            if self._uniqueA:
-                a = Parameter((K*self._m, self._m))
-                dat = data[kmeans.labels_ == 0]
-                if dat.shape[0] <= 2:
-                    initnew = sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))
-                else:
-                    initnew = sc.linalg.sqrtm(sc.linalg.inv(np.cov(dat.T)))
-                for k_ind in range(1, K):
-                    dat = data[kmeans.labels_ == k_ind]
-                    if dat.shape[0] <= 2:
-                        initnew = np.vstack((initnew,
-                                             sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))))
-                    else:
-                        initnew = np.vstack((initnew,
-                                             sc.linalg.sqrtm(sc.linalg.inv(np.cov(dat.T)))))
-                self._initA = initnew
-            else:
-                a = Parameter((self._m, self._m))
-        else:
-            if a is not None:
-                if self._uniqueA and a.shape[0] != (K*self._m):
-                    raise ValueError("a must be of dimension (K*m, m)")
-
         self._a = a
+
+
+
+        # if train:
+        #     if self._uniqueA:
+        #         a = Parameter((K*self._m, self._m))
+        #         dat = data[kmeans.labels_ == 0]
+        #         if dat.shape[0] <= 2:
+        #             initnew = sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))
+        #         else:
+        #             initnew = sc.linalg.sqrtm(sc.linalg.inv(np.cov(dat.T)))
+        #         for k_ind in range(1, K):
+        #             dat = data[kmeans.labels_ == k_ind]
+        #             if dat.shape[0] <= 2:
+        #                 initnew = np.vstack((initnew,
+        #                                      sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))))
+        #             else:
+        #                 initnew = np.vstack((initnew,
+        #                                      sc.linalg.sqrtm(sc.linalg.inv(np.cov(dat.T)))))
+        #         self._initA = initnew
+        #     else:
+        #         a = Parameter((self._m, self._m))
+        # else:
+        #     if a is not None:
+        #         if self._uniqueA and a.shape[0] != (K*self._m):
+        #             raise ValueError("a must be of dimension (K*m, m)")
+
         self._lam = None
 
     @property
@@ -189,86 +198,84 @@ class MRO(UncertaintySet):
             self._s = s
         lmbda = self._lam
         sval = self._s
-        # import ipdb
-        # ipdb.set_trace()
         if not isinstance(var, Variable):
             constr = [lmbda >= 0]
             return -sval[k_ind], constr, lmbda, sval
+        # else:
+        #     ushape = var.shape[1]  # shape of uncertainty
+        #     if (self._train or (self.a is not None)) and not self._uniqueA:
+        #         if shape == 1:
+        #             newvar = Variable(ushape)  # gamma aux variable
+        #             supp_newvar = Variable(len(self._d))
+        #             constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
+        #             constr += [self.a.T@newvar == var[0]]
+        #             constr += [lmbda >= 0]
+        #             constr += [self._c.T@supp_newvar == supp_var[0]]
+        #             constr += [supp_newvar >= 0]
+        #             return newvar@(self.a@self.Dbar[k_ind]) \
+        #                 + self._d@supp_newvar - sval[k_ind], constr, \
+        #                 lmbda, sval
+        #         else:
+        #             constr = []
+        #             newvar = Variable((shape, ushape))
+        #             supp_newvar = Variable((shape, len(self._d)))
+        #             constr += [lmbda >= 0]
+        #             constr += [supp_newvar >= 0]
+        #             for ind in range(shape):
+        #                 constr += [norm(newvar[ind],
+        #                                 p=self.dual_norm()) <= lmbda[ind]]
+        #                 constr += [self.a.T@newvar[ind] == var[ind]]
+        #                 constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
+        #             return newvar@(self.a@self.Dbar[k_ind]) \
+        #                 + supp_newvar@self._d-sval[k_ind], constr, lmbda, sval
+        #     elif self._train or (self.a is not None):
+        #         if shape == 1:
+        #             newvar = Variable(ushape)  # gamma aux variable
+        #             supp_newvar = Variable(len(self._d))
+        #             constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
+        #             constr += [supp_newvar >= 0]
+        #             constr += \
+        #                 [self.a[k_ind*self._m:(k_ind+1)*self._m,
+        #                         0:self._m].T@newvar == var[0]]
+        #             constr += [lmbda >= 0]
+        #             constr += [self._c.T@supp_newvar == supp_var[0]]
+        #             return newvar@(self.a[k_ind*self._m:(k_ind+1) *
+        #                                   self._m, 0:self._m]@self.Dbar[k_ind]) -\
+        #                 sval[k_ind] + self._d@supp_newvar, constr, lmbda, sval
+        #         else:
+        #             constr = []
+        #             newvar = Variable((shape, ushape))
+        #             supp_newvar = Variable((shape, len(self._d)))
+        #             constr += [lmbda >= 0]
+        #             constr += [supp_newvar >= 0]
+        #             for ind in range(shape):
+        #                 constr += [norm(newvar[ind],
+        #                                 p=self.dual_norm()) <= lmbda[ind]]
+        #                 constr += [self.a[k_ind*self._m:(k_ind+1) *
+        #                                   self._m, 0:self._m].T@newvar[ind]
+        #                            == var[ind]]
+        #                 constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
+        #             return newvar@(self.a[k_ind*self._m:(k_ind+1) *
+        #                                   self._m, 0:self._m]@self.Dbar[k_ind]) -\
+        #                 sval[k_ind] + supp_newvar@self._d, constr, lmbda, sval
         else:
-            ushape = var.shape[1]  # shape of uncertainty
-            if (self._train or (self.a is not None)) and not self._uniqueA:
-                if shape == 1:
-                    newvar = Variable(ushape)  # gamma aux variable
-                    supp_newvar = Variable(len(self._d))
-                    constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
-                    constr += [self.a.T@newvar == var[0]]
-                    constr += [lmbda >= 0]
-                    constr += [self._c.T@supp_newvar == supp_var[0]]
-                    constr += [supp_newvar >= 0]
-                    return newvar@(self.a@self.Dbar[k_ind]) \
-                        + self._d@supp_newvar - sval[k_ind], constr, \
-                        lmbda, sval
-                else:
-                    constr = []
-                    newvar = Variable((shape, ushape))
-                    supp_newvar = Variable((shape, len(self._d)))
-                    constr += [lmbda >= 0]
-                    constr += [supp_newvar >= 0]
-                    for ind in range(shape):
-                        constr += [norm(newvar[ind],
-                                        p=self.dual_norm()) <= lmbda[ind]]
-                        constr += [self.a.T@newvar[ind] == var[ind]]
-                        constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-                    return newvar@(self.a@self.Dbar[k_ind]) \
-                        + supp_newvar@self._d-sval[k_ind], constr, lmbda, sval
-            elif self._train or (self.a is not None):
-                if shape == 1:
-                    newvar = Variable(ushape)  # gamma aux variable
-                    supp_newvar = Variable(len(self._d))
-                    constr = [norm(newvar, p=self.dual_norm()) <= lmbda]
-                    constr += [supp_newvar >= 0]
-                    constr += \
-                        [self.a[k_ind*self._m:(k_ind+1)*self._m,
-                                0:self._m].T@newvar == var[0]]
-                    constr += [lmbda >= 0]
-                    constr += [self._c.T@supp_newvar == supp_var[0]]
-                    return newvar@(self.a[k_ind*self._m:(k_ind+1) *
-                                          self._m, 0:self._m]@self.Dbar[k_ind]) -\
-                        sval[k_ind] + self._d@supp_newvar, constr, lmbda, sval
-                else:
-                    constr = []
-                    newvar = Variable((shape, ushape))
-                    supp_newvar = Variable((shape, len(self._d)))
-                    constr += [lmbda >= 0]
-                    constr += [supp_newvar >= 0]
-                    for ind in range(shape):
-                        constr += [norm(newvar[ind],
-                                        p=self.dual_norm()) <= lmbda[ind]]
-                        constr += [self.a[k_ind*self._m:(k_ind+1) *
-                                          self._m, 0:self._m].T@newvar[ind]
-                                   == var[ind]]
-                        constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-                    return newvar@(self.a[k_ind*self._m:(k_ind+1) *
-                                          self._m, 0:self._m]@self.Dbar[k_ind]) -\
-                        sval[k_ind] + supp_newvar@self._d, constr, lmbda, sval
+            if shape == 1:
+                supp_newvar = Variable(len(self._d))
+                constr = [norm(var[0], p=self.dual_norm()) <= lmbda]
+                constr += [lmbda >= 0]
+                constr += [self._c.T@supp_newvar == supp_var[0]]
+                constr += [supp_newvar >= 0]
+                return var[0]@self.Dbar[k_ind] + \
+                    self._d@supp_newvar-sval[k_ind], constr, lmbda, sval
             else:
-                if shape == 1:
-                    supp_newvar = Variable(len(self._d))
-                    constr = [norm(var[0], p=self.dual_norm()) <= lmbda]
-                    constr += [lmbda >= 0]
-                    constr += [self._c.T@supp_newvar == supp_var[0]]
-                    constr += [supp_newvar >= 0]
-                    return var[0]@self.Dbar[k_ind] + \
-                        self._d@supp_newvar-sval[k_ind], constr, lmbda, sval
-                else:
-                    constr = []
-                    constr += [lmbda >= 0]
-                    supp_newvar = Variable((shape, len(self._d)))
-                    constr += [supp_newvar >= 0]
-                    for ind in range(shape):
-                        constr += [norm(var[ind], p=self.dual_norm())
-                                   <= lmbda[ind]]
-                        constr += [self._c.T@supp_newvar[ind] ==
-                                   supp_var[ind]]
-                    return var@self.Dbar[k_ind] + \
-                        supp_newvar@self._d-sval[k_ind], constr, lmbda, sval
+                constr = []
+                constr += [lmbda >= 0]
+                supp_newvar = Variable((shape, len(self._d)))
+                constr += [supp_newvar >= 0]
+                for ind in range(shape):
+                    constr += [norm(var[ind], p=self.dual_norm())
+                                <= lmbda[ind]]
+                    constr += [self._c.T@supp_newvar[ind] ==
+                                supp_var[ind]]
+                return var@self.Dbar[k_ind] + \
+                    supp_newvar@self._d-sval[k_ind], constr, lmbda, sval

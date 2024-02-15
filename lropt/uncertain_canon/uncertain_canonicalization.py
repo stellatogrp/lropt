@@ -258,29 +258,62 @@ class Uncertain_Canonicalization(Reduction):
             aux_expr = aux_expr + expr
         return aux_expr <= 0, aux_constraint, lmbda
 
+
     def remove_uncertainty_mro(self, unc_lst, uvar, std_lst, num_constr):
         "canonicalize each term separately with inf convolution"
         u_shape = self.get_u_shape(uvar)
+        smaller_u_shape = uvar.uncertainty_set._dimension
         num_unc_fns = len(unc_lst)
         if num_unc_fns > 0:
             if u_shape == 1:
                 z = Variable(num_unc_fns)
             else:
                 z = Variable((num_unc_fns, u_shape))
-            z_cons = 0
+            z_cons = np.zeros(u_shape)
             z_new_cons = {}
             new_vars = {}
             aux_expr = 0
             aux_constraint = []
             has_isolated = 0
+            has_matrix = 0
             for ind in range(num_unc_fns):
+
                 # if len(unc_lst[ind].variables()) (check if has variable)
                 u_expr, constant = self.remove_constant(unc_lst[ind])
 
                 # uvar = mul_canon_transform(uvar, cons)
                 new_expr, new_constraint = self.canonicalize_tree(
                     u_expr, z[ind], constant)
-                if self.has_unc_param(new_expr):
+
+                if self.has_unc_param(new_expr) and len(unc_lst[ind].shape)==2:
+                    uvar = mul_canon_transform(uvar, constant)
+                    if self.has_unc_param(new_expr.args[0]):
+                        var_mat = new_expr.args[1]
+                    elif self.has_unc_param(new_expr.args[1]):
+                        var_mat = new_expr.args[0]
+                    num_constr_cols = unc_lst[ind].shape[1]
+                    total_inds = 0
+                    for col in range(num_constr_cols):
+                        if ind == 0:
+                            z_new_cons[col] = {}
+                        new_vars[col] = {}
+                        new_vars[col][ind] = Variable((num_constr, u_shape))
+                        for idx in range(num_constr):
+                            new_expr, new_constraint = \
+                                uvar.isolated_unc_matrix(total_inds, \
+                                  col, idx, new_vars[col][ind][idx], \
+                                    var_mat[col][idx],num_constr_cols,\
+                                        num_constr)
+                            total_inds += 1
+                            aux_expr = aux_expr + new_expr
+                            aux_constraint += new_constraint
+                            if  ind >=1 :
+                                z_new_cons[col][idx] += new_vars[col][ind][idx]
+                            else:
+                                z_new_cons[col][idx] = new_vars[col][ind][idx]
+                    has_matrix = 1
+
+                elif self.has_unc_param(new_expr):
                     uvar = mul_canon_transform(uvar, constant)
                     new_vars[ind] = Variable((num_constr, u_shape))
                     for idx in range(num_constr):
@@ -288,7 +321,7 @@ class Uncertain_Canonicalization(Reduction):
                                                                      num_constr)
                         aux_expr = aux_expr + new_expr
                         aux_constraint += new_constraint
-                        if has_isolated == 1:
+                        if ind == 1:
                             z_new_cons[idx] += new_vars[ind][idx]
                         else:
                             z_new_cons[idx] = new_vars[ind][idx]
@@ -296,27 +329,77 @@ class Uncertain_Canonicalization(Reduction):
                 else:
                     aux_expr = aux_expr + new_expr
                     aux_constraint += new_constraint
-                    z_cons += z[ind]
+                    z_cons = z_cons + z[ind]
 
-            z_unc = {}
             supp_cons = {}
-            for k_ind in range(uvar.uncertainty_set._K):
-                z_unc[k_ind] = Variable((num_constr, u_shape))
-                supp_cons[k_ind] = Variable((num_constr, u_shape))
-                if has_isolated == 1:
+            z_unc = {}
+            if has_matrix == 1:
+                for expr in std_lst:
+                    aux_expr = aux_expr + expr
+                for col in range(num_constr_cols):
+                    supp_cons[col] = {}
+                    z_unc[col] =  {}
+                    for k_ind in range(uvar.uncertainty_set._K):
+                        supp_cons[col][k_ind] = Variable((num_constr, u_shape))
+                        z_unc[col][k_ind] =  Variable((num_constr, smaller_u_shape))
+                        for idx in range(num_constr):
+                            if uvar.uncertainty_set.a is not None:
+                                aux_constraint += [uvar.uncertainty_set.a.T@z_cons \
+                                + uvar.uncertainty_set.a.T@supp_cons[col][k_ind][idx] \
+                                +uvar.uncertainty_set.a.T@z_new_cons[col][idx] == \
+                                    -z_unc[col][k_ind][idx]]
+                            else:
+                                aux_constraint += [z_cons + supp_cons[col][k_ind][idx]\
+                    +z_new_cons[col][idx] == -z_unc[col][k_ind][idx]]
+
+                        new_expr, new_constraint, lmbda, sval = uvar.conjugate(
+                        z_unc[col][k_ind], supp_cons[col][k_ind], num_constr, k_ind)
+                        if uvar.uncertainty_set.b is not None:
+                            new_expr = new_expr - uvar.uncertainty_set.b@(z_cons) \
+                                - supp_cons[col][k_ind]@uvar.uncertainty_set.b
+                        matrix_expr_to_constr = [aux_expr[:,col] + new_expr <=0]
+                        aux_constraint = aux_constraint + new_constraint \
+                                + matrix_expr_to_constr
+                    if col < num_constr_cols - 1:
+                        fin_expr = [uvar.uncertainty_set.rho*lmbda +\
+                                     uvar.uncertainty_set._w@sval <=0]
+                        aux_constraint = aux_constraint + fin_expr
+                return uvar.uncertainty_set.rho*lmbda + \
+                    uvar.uncertainty_set._w@sval <=0, aux_constraint,lmbda,sval
+
+            elif has_isolated == 1:
+                for k_ind in range(uvar.uncertainty_set._K):
+                    z_unc[k_ind] = Variable((num_constr, smaller_u_shape))
+                    supp_cons[k_ind] = Variable((num_constr, u_shape))
                     for idx in range(num_constr):
-                        aux_constraint += [z_cons + supp_cons[k_ind][idx] +
-                                           z_new_cons[idx] == -z_unc[k_ind][idx]]
-                else:
-                    aux_constraint += [z_cons +
-                                       supp_cons[k_ind][0] == -z_unc[k_ind][0]]
+                        if uvar.uncertainty_set.a is not None:
+                            aux_constraint += [uvar.uncertainty_set.a.T@z_cons \
+                            + uvar.uncertainty_set.a.T@supp_cons[k_ind][idx] \
+                            +uvar.uncertainty_set.a.T@z_new_cons[idx] == \
+                                -z_unc[k_ind][idx]]
+                        else:
+                            aux_constraint += [z_cons + supp_cons[k_ind][idx] +
+                                        z_new_cons[idx] == -z_unc[k_ind][idx]]
+            else:
+                for k_ind in range(uvar.uncertainty_set._K):
+                    z_unc[k_ind] = Variable((num_constr, smaller_u_shape))
+                    supp_cons[k_ind] = Variable((num_constr, u_shape))
+                    if uvar.uncertainty_set.a is not None:
+                        aux_constraint += [uvar.uncertainty_set.a.T@z_cons \
+                            + uvar.uncertainty_set.a.T@supp_cons[k_ind][0] == -z_unc[k_ind][0]]
+                    else:
+                        aux_constraint += [z_cons + supp_cons[k_ind][0] == -z_unc[k_ind][0]]
+            for k_ind in range(uvar.uncertainty_set._K):
                 new_expr, new_constraint, lmbda, sval = uvar.conjugate(
                     z_unc[k_ind],supp_cons[k_ind], num_constr, k_ind)
                 cur_expr = aux_expr + new_expr
+                if uvar.uncertainty_set.b is not None:
+                    cur_expr = cur_expr - uvar.uncertainty_set.b@(z_cons) \
+                        - supp_cons[k_ind]@uvar.uncertainty_set.b
                 for expr in std_lst:
                     cur_expr = cur_expr + expr
-                aux_constraint = aux_constraint + \
-                    new_constraint + [cur_expr <= 0]
+                aux_constraint = aux_constraint + new_constraint+\
+                      [cur_expr <= 0]
                 fin_expr = uvar.uncertainty_set.rho*lmbda + uvar.uncertainty_set._w@sval
         else:
             aux_constraint = []
@@ -330,6 +413,80 @@ class Uncertain_Canonicalization(Reduction):
                     new_constraint + [cur_expr <= 0]
                 fin_expr = uvar.uncertainty_set.rho*lmbda + uvar.uncertainty_set._w@sval
         return fin_expr <= 0, aux_constraint, lmbda, sval
+
+
+    # def remove_uncertainty_mro(self, unc_lst, uvar, std_lst, num_constr):
+    #     "canonicalize each term separately with inf convolution"
+    #     u_shape = self.get_u_shape(uvar)
+    #     num_unc_fns = len(unc_lst)
+    #     if num_unc_fns > 0:
+    #         if u_shape == 1:
+    #             z = Variable(num_unc_fns)
+    #         else:
+    #             z = Variable((num_unc_fns, u_shape))
+    #         z_cons = 0
+    #         z_new_cons = {}
+    #         new_vars = {}
+    #         aux_expr = 0
+    #         aux_constraint = []
+    #         has_isolated = 0
+    #         for ind in range(num_unc_fns):
+    #             # if len(unc_lst[ind].variables()) (check if has variable)
+    #             u_expr, constant = self.remove_constant(unc_lst[ind])
+
+    #             # uvar = mul_canon_transform(uvar, cons)
+    #             new_expr, new_constraint = self.canonicalize_tree(
+    #                 u_expr, z[ind], constant)
+    #             if self.has_unc_param(new_expr):
+    #                 uvar = mul_canon_transform(uvar, constant)
+    #                 new_vars[ind] = Variable((num_constr, u_shape))
+    #                 for idx in range(num_constr):
+    #                     new_expr, new_constraint = uvar.isolated_unc(idx, new_vars[ind][idx],
+    #                                                                  num_constr)
+    #                     aux_expr = aux_expr + new_expr
+    #                     aux_constraint += new_constraint
+    #                     if has_isolated == 1:
+    #                         z_new_cons[idx] += new_vars[ind][idx]
+    #                     else:
+    #                         z_new_cons[idx] = new_vars[ind][idx]
+    #                 has_isolated = 1
+    #             else:
+    #                 aux_expr = aux_expr + new_expr
+    #                 aux_constraint += new_constraint
+    #                 z_cons += z[ind]
+
+    #         z_unc = {}
+    #         supp_cons = {}
+    #         for k_ind in range(uvar.uncertainty_set._K):
+    #             z_unc[k_ind] = Variable((num_constr, u_shape))
+    #             supp_cons[k_ind] = Variable((num_constr, u_shape))
+    #             if has_isolated == 1:
+    #                 for idx in range(num_constr):
+    #                     aux_constraint += [z_cons + supp_cons[k_ind][idx] +
+    #                                        z_new_cons[idx] == -z_unc[k_ind][idx]]
+    #             else:
+    #                 aux_constraint += [z_cons +
+    #                                    supp_cons[k_ind][0] == -z_unc[k_ind][0]]
+    #             new_expr, new_constraint, lmbda, sval = uvar.conjugate(
+    #                 z_unc[k_ind],supp_cons[k_ind], num_constr, k_ind)
+    #             cur_expr = aux_expr + new_expr
+    #             for expr in std_lst:
+    #                 cur_expr = cur_expr + expr
+    #             aux_constraint = aux_constraint + \
+    #                 new_constraint + [cur_expr <= 0]
+    #             fin_expr = uvar.uncertainty_set.rho*lmbda + uvar.uncertainty_set._w@sval
+    #     else:
+    #         aux_constraint = []
+    #         for k_ind in range(uvar.uncertainty_set._K):
+    #             aux_expr, new_constraint, lmbda, sval = uvar.conjugate(
+    #                 u_shape, 0, num_constr, k_ind)
+    #             cur_expr = aux_expr
+    #             for expr in std_lst:
+    #                 cur_expr = cur_expr + expr
+    #             aux_constraint = aux_constraint + \
+    #                 new_constraint + [cur_expr <= 0]
+    #             fin_expr = uvar.uncertainty_set.rho*lmbda + uvar.uncertainty_set._w@sval
+    #     return fin_expr <= 0, aux_constraint, lmbda, sval
 
     def count_unq_uncertain_param(self, expr):
         unc_params = []
@@ -444,7 +601,7 @@ class Uncertain_Canonicalization(Reduction):
                     unc_lst_pass, unc_params[0], std_lst_pass, constraint_shape)
 
             if is_mro and new_cons_idx:
-                canon_constraints += aux_constr
+                canon_constraints += aux_constr + [canon_constr]
                 canon_constraints += [lmbda == new_lmbda]
                 canon_constraints += [sval == new_sval]
             else:
