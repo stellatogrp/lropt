@@ -20,9 +20,6 @@ from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
 from tests.settings import TESTS_ATOL as ATOL
 from tests.settings import TESTS_RTOL as RTOL
 
-# import pandas as pd
-# import torch
-
 
 class TestEllipsoidalUncertainty(unittest.TestCase):
 

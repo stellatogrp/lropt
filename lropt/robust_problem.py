@@ -13,6 +13,7 @@ import torch
 from cvxpy import error
 from cvxpy import settings as s
 from cvxpy.expressions import cvxtypes
+from cvxpy.expressions.expression import Expression
 from cvxpy.expressions.variable import Variable
 from cvxpy.problems.objective import Maximize
 from cvxpy.problems.problem import Problem
@@ -26,6 +27,7 @@ from joblib import Parallel, delayed
 # from pathos.multiprocessing import ProcessPool as Pool
 import lropt.settings as settings
 from lropt import utils
+from lropt.batch import batchify
 from lropt.parameter import Parameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lropt.shape_parameter import ShapeParameter
@@ -289,63 +291,47 @@ class RobustProblem(Problem):
         self.h = h_funcs
         self.num_g = len(h_funcs)
 
-    # def _eval_input(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
-    #                 eval_input_case, quantiles, **kwargs):
-    #     """
-    #     This function takes decision varaibles, y's, and u's,
-    #         evaluates them and averages them on a given function.
-
-    #     Args: TODO (Amit): Finish this documentation
-    #         eval_func:
-    #             The function used for evaluation.
-
-    #     Returns:
-    #         The average among all evaluated J x N pairs
-    #     """
-    #     def _sample_args(eval_args, sample_ind, items_to_sample):
-    #         res = []
-    #         for ind, eval_arg in enumerate(eval_args):
-    #             curr_arg = eval_arg[sample_ind]
-    #             res.append(curr_arg)
-    #             # if ind in items_to_sample:
-    #             #     curr_arg = eval_arg[sample_ind]
-    #             #     # I removed the star_flag, see if makes problems
-    #             #     res.append(curr_arg)
-    #             # else:
-    #             #     res.append(eval_arg)
-    #         return res
-
-    #     # curr_result = torch.zeros(batch_int, dtype=settings.DTYPE)
-    #     if eval_input_case != RobustProblem._EVAL_INPUT_CASE.MAX:
-    #         # for j in range(batch_int):
-    #         #     curr_eval_args = _sample_args(eval_args, j, items_to_sample)
-    #         curr_result = eval_func(*eval_args, **kwargs)
-    #     if eval_input_case == RobustProblem._EVAL_INPUT_CASE.MEAN:
-    #         init_val = curr_result
-    #         # init_val /= self.num_ys
-    #         init_val = init_val.mean()
-    #     elif eval_input_case == RobustProblem._EVAL_INPUT_CASE.EVALMEAN:
-    #         init_val = curr_result
-    #         # init_val /= self.num_ys
-    #         bot_q, top_q = quantiles
-    #         init_val_lower = torch.quantile(init_val, bot_q)
-    #         init_val_mean = init_val.mean()
-    #         init_val_upper = torch.quantile(init_val, top_q)
-    #         return (init_val_lower, init_val_mean, init_val_upper)
-    #     elif eval_input_case == RobustProblem._EVAL_INPUT_CASE.MAX:
-    #         # We want to see if there's a violation: either 1 from previous iterations,
-    #         # or new positive value from now
-    #         # curr_result = (curr_result > 1e-4).float()
-    #         # init_val += curr_result
-    #         # make a setting/variable
-    #         # for j in range(batch_int):
-    #         #     curr_eval_args = _sample_args(eval_args, j, items_to_sample)
-    #         init_val = eval_func(*eval_args, **kwargs)
-    #         init_val = (init_val > settings.TOLERANCE_DEFAULT).float()
-    #     return init_val
-
-
+    #BATCHED
     def _eval_input(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
+                    eval_input_case, quantiles, **kwargs):
+        """
+        This function takes decision varaibles, y's, and u's,
+            evaluates them and averages them on a given function.
+
+        Args: TODO (Amit): Finish this documentation
+            eval_func:
+                The function used for evaluation.
+
+        Returns:
+            The average among all evaluated J x N pairs
+        """
+
+        if eval_input_case != RobustProblem._EVAL_INPUT_CASE.MAX:
+            curr_result = eval_func(*eval_args, **kwargs)
+        if eval_input_case == RobustProblem._EVAL_INPUT_CASE.MEAN:
+            init_val = curr_result
+            init_val = init_val.mean()
+        elif eval_input_case == RobustProblem._EVAL_INPUT_CASE.EVALMEAN:
+            init_val = curr_result
+            bot_q, top_q = quantiles
+            init_val_lower = torch.quantile(init_val, bot_q)
+            init_val_mean = init_val.mean()
+            init_val_upper = torch.quantile(init_val, top_q)
+            return (init_val_lower, init_val_mean, init_val_upper)
+        elif eval_input_case == RobustProblem._EVAL_INPUT_CASE.MAX:
+            # We want to see if there's a violation: either 1 from previous iterations,
+            # or new positive value from now
+            # curr_result = (curr_result > 1e-4).float()
+            # init_val += curr_result
+            # make a setting/variable
+            # for j in range(batch_int):
+            #     curr_eval_args = _sample_args(eval_args, j, items_to_sample)
+            init_val = eval_func(*eval_args, **kwargs)
+            init_val = (init_val > settings.TOLERANCE_DEFAULT).float()
+        return init_val
+
+    #SERIAL - LEFT FOR DEBUGGING PURPOSES FOR NOW
+    def _eval_input_SERIAL(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
                     eval_input_case, quantiles, **kwargs):
         """
         This function takes decision varaibles, y's, and u's,
@@ -1024,8 +1010,7 @@ class RobustProblem(Problem):
         The dictionary's keys are the indeces (in order which they are discovered), and the values
         are the variables or the parameters
         """
-        def update_vars_params(expr: cp.expressions.expression.Expression |
-                               cp.constraints.constraint.Constraint,
+        def update_vars_params(expr: Expression | cp.constraints.constraint.Constraint,
                                vars_params: dict):
             """
             This function updates vars_params with all the varaibles and params found in expr.
@@ -1052,7 +1037,7 @@ class RobustProblem(Problem):
             update_vars_params(expr=constraint, vars_params=vars_params)
         self.vars_params = vars_params
 
-    def _gen_torch_exp(self, expr: cp.expressions.expression.Expression):
+    def _gen_torch_exp(self, expr: Expression):
         """
         This function generates a torch expression to be used by RobustProblem from an expression
         and a vars_dict generated by any cvxpy expression. Also returns a variable indicating
@@ -1086,16 +1071,68 @@ class RobustProblem(Problem):
                     The arguments of torch_exp
             """
 
+            def _is_batch(expr: Expression, *args) -> bool:
+                """
+                This is a helper function that returns True if any of args is in batched,
+                and false otherwise.
+                """
+                for i, arg in enumerate(*args):
+                    if len(arg.shape) == (len(expr.args[i].shape)+1):
+                        return True
+                return False
+            
+            def _safe_increase_axis(expr: Expression, *args) -> int | None | bool:
+                """
+                This is an internal function that increases expr.axis by 1 if it is not negative.
+                It is needed because we add a new dimension that is reserved for batching, and when
+                CVXPY atoms are created, they are unaware of that.
+                The increase happens only if batch mode is recognized.
+
+                Returns:
+                    original_axis (int | None | False):
+                        The original axis of the expression. It is needed to be able to revert back
+                        to the original axis. If the original expression has no axis, returns False.
+                        WARNING! None is returns when expr.axis=None, whereas False is returned
+                        when expr does not have an axis attribute.
+                """
+
+                # if not _is_batch(expr, *args):
+                #     return False
+                if not hasattr(expr, "axis"):
+                    return False
+                original_axis = expr.axis
+        
+                #If axis=None is equivalent to 0. This is needed to make sure numeric functions
+                #do not flatten the inputs.
+                if expr.axis is None:
+                    expr.axis = 0
+                
+                if expr.axis>=0:
+                    expr.axis += 1
+                
+                return original_axis
+            
+            
+            
+
+
             args_to_pass = [None]*len(args_inds_to_pass)
             for key, value in args_inds_to_pass.items():
                 args_to_pass[value] = args[key]
-            # TODO (Amit): Go recursively over torch_exp.args, look for @.
-            # For # each found, try to see
-            # if we need to transpose one of the arguments.
-            return torch_exp(*args_to_pass)
+
+            #To make sure batched inputs are processed correctly, we need to update expr.axis
+            #(if applicable). It is important to revert it back to the original value when done,
+            #hence we save original_axis.
+            expr = torch_exp.args[0]
+            original_axis = _safe_increase_axis(expr, args_to_pass)
+            res = torch_exp(*args_to_pass)
+            #Revert to the original axis if applicable. Note: None is a valid axis (unlike False).
+            if original_axis is not False:
+                expr.axis = original_axis
+            return res
 
         # vars_dict contains a dictionary from variable/param -> index in *args (for the expression)
-        # expr = batchify(expr)
+        expr = batchify(expr)
         torch_exp, vars_dict = expr.gen_torch_exp()
 
 
@@ -1465,7 +1502,7 @@ class RobustProblem(Problem):
 
         # Debugging code - one iteration
         # res = self._train_loop(0, **kwargs)
-        # # Debugging code - serial
+        # Debugging code - serial
         # res = []
         # for init_num in range(num_random_init):
         #     res.append(self._train_loop(init_num, **kwargs))

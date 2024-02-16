@@ -313,18 +313,17 @@ class BatchedIndex(index):
         """
         return (expr.args[0], expr.key, expr._orig_key)
 
-
 def batchify(expr: Expression) -> Expression:
     """
     This method returns a new expression where objects of target_class are transformed to 
     """
-
+    
     #Recursively change all the args of this expression
-    # args = [ElementwiseDotProduct.matmul_to_elementwise_dotproduct(arg) for arg in expr.args]
+    args = [batchify(arg) for arg in expr.args]
     #DEBUG
-    args = []
-    for arg in expr.args:
-        args.append(batchify(arg))
+    # args = []
+    # for arg in expr.args:
+    #     args.append(batchify(arg))
     expr.args = args
     
     #Change this expression if necessary
