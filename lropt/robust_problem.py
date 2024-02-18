@@ -28,7 +28,8 @@ from joblib import Parallel, delayed
 # from pathos.multiprocessing import ProcessPool as Pool
 import lropt.settings as settings
 from lropt import utils
-from lropt.batch import batchify
+
+# from lropt.batch import batchify
 from lropt.parameter import Parameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lropt.shape_parameter import ShapeParameter
@@ -154,12 +155,13 @@ class TrainLoopStats():
         new_row = pd.Series(row_dict)
         return new_row
 
-    def generate_test_row(self, calc_coverage, a_tch, b_tch, alpha, test_tch, eps_tch):
+    def generate_test_row(self, calc_coverage, a_tch, b_tch,
+                        alpha, test_tch, eps_tch, uncset, var_values= None):
         """
         This function generates a new row with the statistics
         """
         coverage_test = calc_coverage(
-            test_tch, a_tch, b_tch)
+            test_tch, a_tch, b_tch, uncset._rho)
         row_dict = {
             "Test_val":         self.testval,
             "Lower_test": self.lower_testval,
@@ -167,7 +169,8 @@ class TrainLoopStats():
             "Probability_violations_test":       self.prob_violation_test,
             "Violations_test":   self.violation_test,
             "Coverage_test":    coverage_test.detach().numpy().item(),
-            "Avg_prob_test": np.mean(self.prob_violation_test)
+            "Avg_prob_test": np.mean(self.prob_violation_test),
+            "var_values": var_values
         }
         row_dict["step"] = self.step_num,
         if not self.train_flag:
@@ -263,14 +266,14 @@ class RobustProblem(Problem):
 
     def orig_yparams(self):
         """Find cvxpy y parameters"""
-        return [v for v in self.parameters() if isinstance(v, OrigParameter)\
-                 and not (isinstance(v,Parameter) or\
+        return [v for v in self.parameters() if isinstance(v, OrigParameter)
+                 and not (isinstance(v,Parameter) or
                            isinstance(v,UncertainParameter))]
 
     def gen_y_orig(self,yparams):
             if yparams is not None:
-                return [torch.tensor(y.value,\
-                        dtype=settings.DTYPE, \
+                return [torch.tensor(y.value,
+                        dtype=settings.DTYPE,
                         requires_grad=self.train_flag) for y in yparams]
             else:
                 return []
@@ -1000,7 +1003,7 @@ class RobustProblem(Problem):
             raise ValueError("Cannot train without uncertainty set data")
         return unc_set
 
-    def _calc_coverage(self, dset, a_tch, b_tch):
+    def _calc_coverage(self, dset, a_tch, b_tch, rho=1):
         """
         This function calculates coverage.
 
@@ -1020,7 +1023,7 @@ class RobustProblem(Problem):
             coverage += torch.where(
                 torch.norm((a_tch.T@torch.linalg.inv(a_tch@a_tch.T)) @ (dset[datind]-
                            b_tch))
-                <= 1,
+                <= rho,
                 1,
                 0,
             )
@@ -1155,7 +1158,7 @@ class RobustProblem(Problem):
             return res
 
         # vars_dict contains a dictionary from variable/param -> index in *args (for the expression)
-        expr = batchify(expr)
+        # expr = batchify(expr)
         torch_exp, vars_dict = expr.gen_torch_exp()
 
 
@@ -1332,7 +1335,7 @@ class RobustProblem(Problem):
                     obj_test, prob_violation_test, var_vio)
                 new_row = train_stats.generate_test_row(
                     self._calc_coverage, a_tch, b_tch, alpha,
-                    u_batch, eps_tch)
+                    u_batch, eps_tch, kwargs['unc_set'], var_values)
                 df_test = pd.concat(
                     [df_test, new_row.to_frame().T], ignore_index=True)
 
@@ -1582,11 +1585,11 @@ class RobustProblem(Problem):
 
         unc_set = self._get_unc_set()
         self.dualize_constraints(override=True)
+        mro_set = self._is_mro_set(unc_set)
 
         self._validate_unc_set_T(unc_set)
         df = pd.DataFrame(
             columns=["Eps"])
-        self._is_mro_set(unc_set)
         unc_train_set, unc_test_set, unc_train_tch, unc_test_tch, \
             _, y_test_tchs = self._split_dataset(
             unc_set, self.orig_yparams(), self.y_parameters(), test_percentage, seed)
@@ -1631,11 +1634,13 @@ class RobustProblem(Problem):
         for init_eps in epslst:
             eps_tch = torch.tensor(
                 init_eps, requires_grad=self.train_flag, dtype=settings.DTYPE)
-            # if mro_set:
-            #     var_values = cvxpylayer(*y_unique, eps_tch*a_tch_init,
-            #                             solver_args=solver_args)
-            # else:
-            var_values = cvxpylayer(*y_orig_torches, *y_unique, eps_tch*a_tch_init, b_tch_init,
+
+            if mro_set:
+                unc_set._rho = init_eps
+                var_values = cvxpylayer(*y_orig_torches,*y_unique, a_tch_init,b_tch_init,
+                                        solver_args=solver_args)
+            else:
+                var_values = cvxpylayer(*y_orig_torches, *y_unique, eps_tch*a_tch_init, b_tch_init,
                                         solver_args=solver_args)
             # create dictionary from unique y's to var_values
             y_to_var_values_dict = {}
@@ -1680,7 +1685,7 @@ class RobustProblem(Problem):
 
             new_row = train_stats.generate_test_row(
                 self._calc_coverage, eps_tch*a_tch_init,b_tch_init, alpha, unc_test_tch,
-                eps_tch)
+                eps_tch, unc_set, var_values)
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
         self._trained = True
