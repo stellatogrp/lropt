@@ -131,7 +131,7 @@ class TrainLoopStats():
         self.prob_violation_test = prob_violation_test.detach().numpy()
         self.violation_test = sum(var_vio.detach().numpy())/self.num_g
 
-    def generate_train_row(self, a_tch, lam, mu, alpha, slack):
+    def generate_train_row(self, a_tch, eps_tch, lam, mu, alpha, slack):
         """
         This function generates a new row with the statistics
         """
@@ -152,6 +152,7 @@ class TrainLoopStats():
         row_dict["alphagrad"] = alpha.grad,
         row_dict["dfnorm"] = np.linalg.norm(a_tch.grad),
         row_dict["gradnorm"] = a_tch.grad,
+        row_dict["Eps"] = eps_tch.detach().numpy().copy()
         new_row = pd.Series(row_dict)
         return new_row
 
@@ -170,11 +171,12 @@ class TrainLoopStats():
             "Violations_test":   self.violation_test,
             "Coverage_test":    coverage_test.detach().numpy().item(),
             "Avg_prob_test": np.mean(self.prob_violation_test),
-            "var_values": var_values
+            "var_values": var_values,
+            "Eps": eps_tch.detach().numpy().copy()
         }
         row_dict["step"] = self.step_num,
-        if not self.train_flag:
-            row_dict["Eps"] = eps_tch.detach().numpy().copy()
+        # if not self.train_flag:
+        #     row_dict["Eps"] = eps_tch.detach().numpy().copy()
         new_row = pd.Series(row_dict)
         return new_row
 
@@ -681,7 +683,7 @@ class RobustProblem(Problem):
 
         return (type(unc_set) == MRO)
 
-    def _gen_init(self, eps, train_set, init_eps, init_A):
+    def _gen_init(self, train_shape, train_set, init_eps, init_A):
         """
         This is an internal function that calculates init.
         Init means different things depending on eps
@@ -689,8 +691,8 @@ class RobustProblem(Problem):
 
         Args:
 
-        eps
-            Boolean flag indicating if we train epsilon or not
+        train_shape
+            Boolean flag indicating if we train a/b or not
         train_set
             The training set
         init_eps : float, optional
@@ -707,9 +709,10 @@ class RobustProblem(Problem):
             np.array (NOT TENSOR)
         """
 
-        if eps:
-            return init_A if (init_A is not None) else np.eye(train_set.shape[1])
-
+        #if
+        # if not train_shape:
+        #     scalar = 1
+        #     # return init_A if (init_A is not None) else np.eye(train_set.shape[1])
         cov_len_cond = (len(np.shape(np.cov(train_set.T))) >= 1)
         if (init_eps is None) and (init_A is None):
             if cov_len_cond:
@@ -717,18 +720,18 @@ class RobustProblem(Problem):
             return np.array([[np.cov(train_set.T)]])
 
         scalar = init_eps if init_eps else 1
+        scalar = scalar if train_shape else 1
         mat_shape = train_set.shape[1] if cov_len_cond else 1
         matrix = np.array(init_A) if (
             init_A is not None) else np.eye(mat_shape)
         return scalar * matrix
 
     def _init_torches(self, init_eps, init_A, init_b, init_alpha,\
-                       train_set, eps_tch):
+                       train_set, train_shape):
         """
         This function Initializes and returns a_tch, b_tch, and alpha as tensors
         """
-        eps = (eps_tch is not None)
-        self._init = self._gen_init(eps, train_set, init_eps, init_A)
+        self._init = self._gen_init(train_shape, train_set, init_eps, init_A)
         init_tensor = torch.tensor(
             self._init, requires_grad=self.train_flag, dtype=settings.DTYPE)
         b_tch = None
@@ -741,7 +744,7 @@ class RobustProblem(Problem):
             b_tch_data = -np.mean(train_set, axis=0)
         b_tch = torch.tensor(b_tch_data, requires_grad=self.train_flag,
                                 dtype=settings.DTYPE)
-        a_tch = init_tensor*eps_tch if eps else init_tensor
+        a_tch = init_tensor
 
         # elif case == settings.MRO_CASE.DIFF_A_UNINIT:
         #     a_tch = eps_tch[0]*init_tensor
@@ -835,7 +838,7 @@ class RobustProblem(Problem):
 
         return unc_train_set, unc_test_set, unc_train_tch, unc_test_tch, y_train_tchs, y_test_tchs
 
-    def _update_iters(self, save_history, a_history, b_history, a_tch, b_tch):
+    def _update_iters(self, save_history, a_history, b_history, a_tch, b_tch, eps_tch):
         """
         This function updates a_history and b_history
 
@@ -861,8 +864,8 @@ class RobustProblem(Problem):
 
         if not save_history:
             return
-
-        a_history.append(a_tch.detach().numpy().copy())
+        eps = eps_tch.detach().numpy().copy()
+        a_history.append(eps*a_tch.detach().numpy().copy())
         b_history.append(b_tch.detach().numpy().copy())
 
     def _set_train_variables(self, fixb, alpha, slack, a_tch,
@@ -939,7 +942,7 @@ class RobustProblem(Problem):
             Boolean flag set to True for MRO problem
         """
 
-        scalar = np.array(init_eps) if init_eps else 1.0
+        scalar = init_eps if init_eps else 1.0
         eps_tch = torch.tensor(
             scalar, requires_grad=self.train_flag, dtype=settings.DTYPE)
 
@@ -1214,7 +1217,7 @@ class RobustProblem(Problem):
         return args, item_to_sample
 
     def _train_loop(self, init_num, **kwargs):
-        if kwargs['random_init']:
+        if kwargs['random_init'] and kwargs['train_shape']:
             if init_num >= 1:
                 np.random.seed(kwargs['seed']+init_num)
                 shape = kwargs['unc_set']._a.shape
@@ -1227,19 +1230,19 @@ class RobustProblem(Problem):
         df_test = pd.DataFrame(columns=["step"])
 
         eps_tch = self._gen_eps_tch(
-            kwargs['init_eps']) if kwargs['init_eps'] else None
+            kwargs['init_eps']) if kwargs['trained_shape'] else kwargs["rho_mult_tch"][0]
         a_tch, b_tch, \
             alpha, slack \
             = self._init_torches(kwargs['init_eps'], kwargs['init_A'],
                                  kwargs['init_b'], kwargs['init_alpha'],
-                                 kwargs['train_set'], eps_tch)
-        if not kwargs['train_size']:
-            self._update_iters(kwargs['save_history'], a_history, b_history,
-                               a_tch, b_tch)
+                                 kwargs['train_set'], kwargs['train_shape'])
+
+        self._update_iters(kwargs['save_history'], a_history, b_history,
+                               a_tch, b_tch, eps_tch)
 
         variables = self._set_train_variables(kwargs['fixb'], alpha,
                                               slack,
-                                              a_tch, b_tch,eps_tch,kwargs["train_size"])
+                                              a_tch, b_tch,eps_tch,kwargs["trained_shape"])
         if kwargs['optimizer'] == "SGD":
             opt = settings.OPTIMIZERS[kwargs['optimizer']](
                 variables, lr=kwargs['lr'], momentum=kwargs['momentum'])
@@ -1277,7 +1280,7 @@ class RobustProblem(Problem):
                     kwargs['batch_percentage'], max_size=30)
             # slack = torch.maximum(slack, torch.tensor(0.))
 
-            var_values = kwargs['cvxpylayer'](*kwargs["rho_mult_tch"], \
+            var_values = kwargs['cvxpylayer'](eps_tch, \
                                     *kwargs['y_orig_tch'], \
                 *y_batch, a_tch, b_tch,solver_args=kwargs['solver_args'])
 
@@ -1310,19 +1313,19 @@ class RobustProblem(Problem):
                     mu = kwargs['mu_multiplier']*mu
 
             new_row = train_stats.generate_train_row(
-                a_tch, lam, mu, alpha, slack)
+                a_tch, eps_tch, lam, mu, alpha, slack)
             df = pd.concat(
                 [df, new_row.to_frame().T], ignore_index=True)
 
             self._update_iters(kwargs['save_history'], a_history, b_history,
-                               a_tch, b_tch)
+                               a_tch, b_tch, eps_tch)
 
             if step_num % kwargs['test_frequency'] == 0:
                 batch_int, y_batch, u_batch = self._gen_batch(
                     kwargs["y_test_tch"][0].shape[0],
                     kwargs['y_test_tch'], kwargs['test_set'], 1,max_size=10)
                 var_values = kwargs['cvxpylayer'](
-                    *kwargs["rho_mult_tch"],*kwargs['y_orig_tch'],\
+                    eps_tch,*kwargs['y_orig_tch'],\
                         *y_batch, a_tch, b_tch,
                         solver_args=kwargs['solver_args'])
 
@@ -1358,7 +1361,7 @@ class RobustProblem(Problem):
                 with torch.no_grad():
                     newval = torch.clamp(slack, min=0., max=torch.inf)
                     slack.copy_(newval)
-                    if kwargs['train_size']:
+                    if kwargs['trained_shape']:
                         neweps_tch = torch.clamp(eps_tch, min=0.001)
                         eps_tch.copy_(neweps_tch)
                 if kwargs['scheduler']:
@@ -1370,7 +1373,7 @@ class RobustProblem(Problem):
             fin_val = obj_test[1].item() + 10*abs(sum(var_vio.detach().numpy()))
         a_val = a_tch.detach().numpy().copy()
         b_val = b_tch.detach().numpy().copy()
-        eps_val = eps_tch.detach().numpy().copy() if kwargs['train_size'] else 1
+        eps_val = eps_tch.detach().numpy().copy() if kwargs['trained_shape'] else 1
         param_vals = (a_val, b_val, eps_val, obj_test[1].item())
         # tqdm.write("Testing objective: {}".format(obj_test[1].item()))
         # tqdm.write("Probability of constraint violation: {}".format(
@@ -1384,6 +1387,7 @@ class RobustProblem(Problem):
         train_shape=settings.TRAIN_SHAPE_DEFAULT,
         fixb=settings.FIXB_DEFAULT,
         num_iter=settings.NUM_ITER_DEFAULT,  # Used to be "step"
+        num_iter_size = None,
         lr=settings.LR_DEFAULT,
         scheduler=settings.SCHEDULER_STEPLR_DEFAULT,
         momentum=settings.MOMENTUM_DEFAULT,
@@ -1502,7 +1506,9 @@ class RobustProblem(Problem):
                                 + self.shape_parameters(self.new_prob),
                                 variables=self.variables())
         num_random_init = num_random_init if random_init else 1
-        kwargs = {"train_size": train_size, "train_shape": train_shape,
+        num_random_init = num_random_init if train_shape else 1
+        kwargs = {"train_size": train_size,
+                   "trained_shape": not train_shape, "train_shape": train_shape,
                   "init_A": init_A, "init_b": init_b,
                   "init_eps": init_eps, "unc_set": unc_set,
                   "random_init": random_init,
@@ -1544,17 +1550,38 @@ class RobustProblem(Problem):
         unc_set._trained = True
         unc_set.a.value = param_vals[index_chosen][0]
         unc_set.b.value = param_vals[index_chosen][1]
-
         return_eps = param_vals[index_chosen][2]
-        return_b_value = unc_set.b.value
-        return_b_history = b_history[index_chosen]
+
+        if train_shape and train_size:
+            kwargs["trained_shape"] = True
+            kwargs["init_A"] = unc_set.a.value
+            kwargs["init_b"] = unc_set.b.value
+            kwargs["init_eps"] = 1
+            kwargs["random_init"] = 1
+            kwargs["num_iter"] = num_iter_size if num_iter_size else num_iter
+            res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
+            init_num, **kwargs) for init_num in range(num_random_init))
+            df_s, df_test_s, a_history_s, b_history_s, param_vals_s, \
+                fin_val_s, var_values_s = zip(*res)
+            return_eps = param_vals_s[0][2]
+            return_df = pd.concat([df[index_chosen],df_s[0]])
+            return_df_test = pd.concat([df_test[index_chosen], df_test_s[0]])
+            return_a_history = a_history[index_chosen] + a_history_s[0]
+            return_b_history = b_history[index_chosen] + b_history_s[0]
+            return Result(self, self.new_prob, return_df,
+                      return_df_test, unc_set.a.value,
+                      unc_set.b.value,
+                      return_eps, param_vals[0][3],
+                      var_values[index_chosen] + var_values_s[0],
+                      a_history=return_a_history,
+                      b_history=return_b_history)
         return Result(self, self.new_prob, df[index_chosen],
                       df_test[index_chosen], unc_set.a.value,
-                      return_b_value,
+                      unc_set.b.value,
                       return_eps, param_vals[index_chosen][3],
                       var_values[index_chosen],
                       a_history=a_history[index_chosen],
-                      b_history=return_b_history)
+                      b_history=b_history[index_chosen])
 
     def grid(
         self,
@@ -1638,7 +1665,7 @@ class RobustProblem(Problem):
         # initialize torches
         eps_tch = self._gen_eps_tch(1)
         a_tch_init, b_tch_init, alpha, slack = self._init_torches(1,
-            init_A, init_b,init_alpha, unc_train_set, eps_tch)
+            init_A, init_b,init_alpha, unc_train_set, True)
 
         # get unique y's
         y_batch_array = [np.array(ele) for ele in y_batch]
