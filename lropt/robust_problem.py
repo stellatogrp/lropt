@@ -1389,6 +1389,7 @@ class RobustProblem(Problem):
         num_iter=settings.NUM_ITER_DEFAULT,  # Used to be "step"
         num_iter_size = None,
         lr=settings.LR_DEFAULT,
+        lr_size = None,
         scheduler=settings.SCHEDULER_STEPLR_DEFAULT,
         momentum=settings.MOMENTUM_DEFAULT,
         optimizer=settings.OPT_DEFAULT,
@@ -1554,10 +1555,12 @@ class RobustProblem(Problem):
 
         if train_shape and train_size:
             kwargs["trained_shape"] = True
+            kwargs["train_shape"] = False
             kwargs["init_A"] = unc_set.a.value
             kwargs["init_b"] = unc_set.b.value
             kwargs["init_eps"] = 1
-            kwargs["random_init"] = 1
+            kwargs["random_init"] = False
+            kwargs["lr"] = lr_size if lr_size else lr
             kwargs["num_iter"] = num_iter_size if num_iter_size else num_iter
             res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
             init_num, **kwargs) for init_num in range(num_random_init))
