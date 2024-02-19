@@ -361,10 +361,12 @@ class Uncertain_Canonicalization(Reduction):
                         aux_constraint = aux_constraint + new_constraint \
                                 + matrix_expr_to_constr
                     if col < num_constr_cols - 1:
-                        fin_expr = [uvar.uncertainty_set.rho*lmbda +\
+                        fin_expr = [uvar.uncertainty_set.rho_mult*\
+                                    uvar.uncertainty_set.rho*lmbda +\
                                      uvar.uncertainty_set._w@sval <=0]
                         aux_constraint = aux_constraint + fin_expr
-                return uvar.uncertainty_set.rho*lmbda + \
+                return uvar.uncertainty_set.rho_mult*\
+                    uvar.uncertainty_set.rho*lmbda + \
                     uvar.uncertainty_set._w@sval <=0, aux_constraint,lmbda,sval
 
             elif has_isolated == 1:
@@ -400,7 +402,9 @@ class Uncertain_Canonicalization(Reduction):
                     cur_expr = cur_expr + expr
                 aux_constraint = aux_constraint + new_constraint+\
                       [cur_expr <= 0]
-                fin_expr = uvar.uncertainty_set.rho*lmbda + uvar.uncertainty_set._w@sval
+                fin_expr = uvar.uncertainty_set.rho_mult*\
+                    uvar.uncertainty_set.rho*lmbda +\
+                          uvar.uncertainty_set._w@sval
         else:
             aux_constraint = []
             for k_ind in range(uvar.uncertainty_set._K):
@@ -411,7 +415,9 @@ class Uncertain_Canonicalization(Reduction):
                     cur_expr = cur_expr + expr
                 aux_constraint = aux_constraint + \
                     new_constraint + [cur_expr <= 0]
-                fin_expr = uvar.uncertainty_set.rho*lmbda + uvar.uncertainty_set._w@sval
+                fin_expr = uvar.uncertainty_set.rho_mult*\
+                    uvar.uncertainty_set.rho*lmbda +\
+                          uvar.uncertainty_set._w@sval
         return fin_expr <= 0, aux_constraint, lmbda, sval
 
 

@@ -1,7 +1,7 @@
 import numpy as np
 from cvxpy import Variable
 
-from lropt.shape_parameter import ShapeParameter
+from lropt.shape_parameter import EpsParameter, ShapeParameter
 from lropt.uncertainty_sets.uncertainty_set import UncertaintySet
 from lropt.utils import check_affine_transform
 
@@ -79,11 +79,17 @@ class Polyhedral(UncertaintySet):
         self._lb = lb
         self._sum_eq = sum_eq
         self._define_support = False
+        self._rho_mult = EpsParameter(value=1.)
+
 
 
     @property
     def d(self):
         return self._d
+
+    @property
+    def rho_mult(self):
+        return self._rho_mult
 
     @property
     def rhs(self):
@@ -153,10 +159,10 @@ class Polyhedral(UncertaintySet):
                 constr += [supp_newvar >= 0]
                 if len(self.rhs) == 1:
                     constr += [var[0] == lmbda*self.lhs]
-                    return lmbda*self.rhs + self._d@supp_newvar, constr, lmbda
+                    return self.rho_mult*lmbda*self.rhs + self._d@supp_newvar, constr, lmbda
                 else:
                     constr += [var[0] == lmbda@self.lhs]
-                    return lmbda@self.rhs, constr, lmbda
+                    return self.rho_mult*lmbda@self.rhs, constr, lmbda
             else:
                 lmbda = Variable((shape, len(self.rhs)))
                 supp_newvar = Variable((shape, len(self._d)))
@@ -165,6 +171,6 @@ class Polyhedral(UncertaintySet):
                 for ind in range(shape):
                     constr += [var[ind] == lmbda[ind]@self.lhs]
                     constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-                return lmbda@self.rhs+ supp_newvar@self._d, constr, lmbda
+                return self.rho_mult*lmbda@self.rhs+ supp_newvar@self._d, constr, lmbda
         else:
             return 0, [], 0

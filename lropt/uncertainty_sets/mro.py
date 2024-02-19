@@ -2,7 +2,7 @@ import numpy as np
 from cvxpy import Variable, norm
 from sklearn.cluster import KMeans
 
-from lropt.shape_parameter import ShapeParameter
+from lropt.shape_parameter import EpsParameter, ShapeParameter
 from lropt.uncertainty_sets.uncertainty_set import UncertaintySet
 
 
@@ -59,7 +59,7 @@ class MRO(UncertaintySet):
         self._sum_eq = sum_eq
         self._b = b
         self._a = a
-
+        self._rho_mult = EpsParameter(value=1.)
 
 
         # if train:
@@ -95,6 +95,10 @@ class MRO(UncertaintySet):
     @property
     def p(self):
         return self._p
+
+    @property
+    def rho_mult(self):
+        return self._rho_mult
 
     @property
     def power_val(self):

@@ -32,7 +32,7 @@ from lropt import utils
 # from lropt.batch import batchify
 from lropt.parameter import Parameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
-from lropt.shape_parameter import ShapeParameter
+from lropt.shape_parameter import EpsParameter, ShapeParameter
 from lropt.uncertain import UncertainParameter
 from lropt.uncertain_canon.uncertain_chain import UncertainChain
 from lropt.uncertainty_sets.mro import MRO
@@ -270,6 +270,9 @@ class RobustProblem(Problem):
                  and not (isinstance(v,Parameter) or
                            isinstance(v,UncertainParameter))]
 
+    def rho_mult_param(self,problem):
+        return [v for v in problem.parameters() if isinstance(v, EpsParameter)]
+
     def gen_y_orig(self,yparams):
             if yparams is not None:
                 return [torch.tensor(y.value,
@@ -277,6 +280,12 @@ class RobustProblem(Problem):
                         requires_grad=self.train_flag) for y in yparams]
             else:
                 return []
+
+    def gen_rho_mult_tch(self,rhoparams):
+        if rhoparams is not None:
+            return [torch.tensor(rho.value,
+                        dtype=settings.DTYPE,
+                        requires_grad=self.train_flag) for rho in rhoparams]
 
     def shape_parameters(self, problem):
         return [v for v in problem.parameters() if isinstance(v, ShapeParameter)]
@@ -1268,7 +1277,8 @@ class RobustProblem(Problem):
                     kwargs['batch_percentage'], max_size=30)
             # slack = torch.maximum(slack, torch.tensor(0.))
 
-            var_values = kwargs['cvxpylayer'](*kwargs['y_orig_tch'], \
+            var_values = kwargs['cvxpylayer'](*kwargs["rho_mult_tch"], \
+                                    *kwargs['y_orig_tch'], \
                 *y_batch, a_tch, b_tch,solver_args=kwargs['solver_args'])
 
             eval_args, items_to_sample = self._order_args(var_values=var_values,
@@ -1311,8 +1321,10 @@ class RobustProblem(Problem):
                 batch_int, y_batch, u_batch = self._gen_batch(
                     kwargs["y_test_tch"][0].shape[0],
                     kwargs['y_test_tch'], kwargs['test_set'], 1,max_size=10)
-                var_values = kwargs['cvxpylayer'](*kwargs['y_orig_tch'],\
-                    *y_batch, a_tch, b_tch,solver_args=kwargs['solver_args'])
+                var_values = kwargs['cvxpylayer'](
+                    *kwargs["rho_mult_tch"],*kwargs['y_orig_tch'],\
+                        *y_batch, a_tch, b_tch,
+                        solver_args=kwargs['solver_args'])
 
                 with torch.no_grad():
                     # test_u = kwargs['test_tch']
@@ -1481,9 +1493,12 @@ class RobustProblem(Problem):
         u_size = unc_train_set.shape[1]
         self._is_mro_set(unc_set)
         y_orig_torches = self.gen_y_orig(self.orig_yparams())
+        rho_mult_params = self.rho_mult_param(self.new_prob)
+        rho_mult_tch = self.gen_rho_mult_tch(rho_mult_params)
 
         cvxpylayer = CvxpyLayer(self.new_prob,
-                                parameters=self.orig_yparams() + self.y_parameters()
+                                parameters=rho_mult_params + \
+                                self.orig_yparams() + self.y_parameters()
                                 + self.shape_parameters(self.new_prob),
                                 variables=self.variables())
         num_random_init = num_random_init if random_init else 1
@@ -1506,7 +1521,7 @@ class RobustProblem(Problem):
                   "lr_gamma": lr_gamma, "eta": eta,
                     "position": position, "test_percentage": test_percentage,
                     "y_train_tch": y_train_tchs, "y_test_tch": y_test_tchs,
-                    "y_orig_tch": y_orig_torches}
+                    "y_orig_tch": y_orig_torches, "rho_mult_tch": rho_mult_tch}
 
         # Debugging code - one iteration
         # res = self._train_loop(0, **kwargs)
@@ -1594,6 +1609,8 @@ class RobustProblem(Problem):
             _, y_test_tchs = self._split_dataset(
             unc_set, self.orig_yparams(), self.y_parameters(), test_percentage, seed)
         y_orig_torches = self.gen_y_orig(self.orig_yparams())
+        rho_mult_params = self.rho_mult_param(self.new_prob)
+        rho_mult_tch = self.gen_rho_mult_tch(rho_mult_params)
 
         if newdata is not None:
             train_set, y_set = newdata
@@ -1609,7 +1626,8 @@ class RobustProblem(Problem):
         # create cvxpylayer
 
         cvxpylayer = CvxpyLayer(self.new_prob,
-                                parameters=self.orig_yparams() + self.y_parameters() +
+                                parameters=rho_mult_params + \
+                                self.orig_yparams() + self.y_parameters() +
                                 self.shape_parameters(self.new_prob),
                                 variables=self.variables())
 
@@ -1618,9 +1636,9 @@ class RobustProblem(Problem):
 
         lam = 1000 * torch.ones(self.num_g, dtype=settings.DTYPE)
         # initialize torches
-        eps_tch = self._gen_eps_tch(1, unc_set, False)
+        eps_tch = self._gen_eps_tch(1)
         a_tch_init, b_tch_init, alpha, slack = self._init_torches(1,
-            init_A, init_b,init_alpha, unc_train_set, eps_tch,False, unc_set)
+            init_A, init_b,init_alpha, unc_train_set, eps_tch)
 
         # get unique y's
         y_batch_array = [np.array(ele) for ele in y_batch]
@@ -1636,11 +1654,15 @@ class RobustProblem(Problem):
                 init_eps, requires_grad=self.train_flag, dtype=settings.DTYPE)
 
             if mro_set:
-                unc_set._rho = init_eps
-                var_values = cvxpylayer(*y_orig_torches,*y_unique, a_tch_init,b_tch_init,
+                unc_set._rho_mult.value = init_eps
+                rho_mult_tch = self.gen_rho_mult_tch(rho_mult_params)
+                var_values = cvxpylayer(*rho_mult_tch, *y_orig_torches,
+                                        *y_unique, a_tch_init,b_tch_init,
                                         solver_args=solver_args)
             else:
-                var_values = cvxpylayer(*y_orig_torches, *y_unique, eps_tch*a_tch_init, b_tch_init,
+                var_values = cvxpylayer(*rho_mult_tch, *y_orig_torches,
+                                         *y_unique, eps_tch*a_tch_init,
+                                           b_tch_init,
                                         solver_args=solver_args)
             # create dictionary from unique y's to var_values
             y_to_var_values_dict = {}

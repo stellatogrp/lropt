@@ -1,7 +1,7 @@
 import numpy as np
 from cvxpy import Variable, norm
 
-from lropt.shape_parameter import ShapeParameter
+from lropt.shape_parameter import EpsParameter, ShapeParameter
 from lropt.uncertainty_sets.uncertainty_set import UncertaintySet
 
 
@@ -90,11 +90,16 @@ class Norm(UncertaintySet):
         self._ub = ub
         self._lb = lb
         self._sum_eq = sum_eq
+        self._rho_mult = EpsParameter(value=1.)
 
 
     @property
     def p(self):
         return self._p
+
+    @property
+    def rho_mult(self):
+        return self._rho_mult
 
     @property
     def dimension(self):
@@ -165,7 +170,7 @@ class Norm(UncertaintySet):
         if not isinstance(var, Variable):
             lmbda = Variable(shape)
             constr = [lmbda >= 0]
-            return self.rho*lmbda, constr, lmbda
+            return self.rho_mult*self.rho*lmbda, constr, lmbda
         else:
             # ushape = var.shape[1]  # shape of uncertainty
             # if self.b is None:
@@ -177,7 +182,7 @@ class Norm(UncertaintySet):
                 constr += [lmbda >= 0]
                 constr += [self._c.T@supp_newvar == supp_var[0]]
                 constr += [supp_newvar >= 0]
-                return self.rho * lmbda + self._d@supp_newvar, constr, lmbda
+                return self.rho_mult*self.rho * lmbda + self._d@supp_newvar, constr, lmbda
             else:
                 constr = []
                 lmbda = Variable(shape)
@@ -188,4 +193,4 @@ class Norm(UncertaintySet):
                     constr += [norm(var[ind],
                                     p=self.dual_norm()) <= lmbda[ind]]
                     constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-                return self.rho * lmbda + supp_newvar@self._d, constr, lmbda
+                return self.rho_mult*self.rho * lmbda + supp_newvar@self._d, constr, lmbda

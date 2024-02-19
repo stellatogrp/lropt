@@ -1,7 +1,7 @@
 import numpy as np
 from cvxpy import Variable, norm
 
-from lropt.shape_parameter import ShapeParameter
+from lropt.shape_parameter import EpsParameter, ShapeParameter
 from lropt.uncertainty_sets.uncertainty_set import UncertaintySet
 
 
@@ -93,6 +93,8 @@ class Budget(UncertaintySet):
         self._ub = ub
         self._lb = lb
         self._sum_eq = sum_eq
+        self._rho_mult = EpsParameter(value=1.)
+
 
     @property
     def rho1(self):
@@ -101,6 +103,10 @@ class Budget(UncertaintySet):
     @property
     def rho2(self):
         return self._rho2
+
+    @property
+    def rho_mult(self):
+        return self._rho_mult
 
     @property
     def dimension(self):
@@ -178,7 +184,8 @@ class Budget(UncertaintySet):
             constr += [lmbda1 >= 0, lmbda2 >= 0]
             constr += [self._c.T@supp_newvar == supp_var[0]]
             constr += [supp_newvar >= 0]
-            return self.rho1*lmbda1 + self._d@supp_newvar + self.rho2*lmbda2, \
+            return self.rho_mult*self.rho1*lmbda1 + self._d@supp_newvar +\
+                  self.rho_mult*self.rho2*lmbda2, \
                 constr, (lmbda1, lmbda2)
         else:
             lmbda1 = Variable(shape)
@@ -190,5 +197,6 @@ class Budget(UncertaintySet):
                 constr += [norm(newvar1[ind], p=1) <= lmbda1[ind]]
                 constr += [norm(newvar2[ind], p=np.inf) <= lmbda2[ind]]
                 constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-            return self.rho1*lmbda1 + supp_newvar@self._d + self.rho2*lmbda2, \
+            return self.rho_mult*self.rho1*lmbda1 + \
+                supp_newvar@self._d + self.rho_mult*self.rho2*lmbda2, \
                 constr, (lmbda1, lmbda2)
