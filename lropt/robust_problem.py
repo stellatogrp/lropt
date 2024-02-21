@@ -142,16 +142,16 @@ class TrainLoopStats():
             "Violations_train":  self.violation_train,
             "Avg_prob_train": np.mean(self.prob_violation_train)
         }
-        row_dict["step"] = self.step_num,
+        row_dict["step"] = self.step_num
         row_dict["A_norm"] = np.linalg.norm(
-            a_tch.detach().numpy().copy()),
-        row_dict["lam_list"] = lam.detach().numpy().copy(),
+            a_tch.detach().numpy().copy())
+        row_dict["lam_list"] = lam.detach().numpy().copy()
         row_dict["mu"] = mu
-        row_dict["alpha"] = alpha.item(),
-        row_dict["slack"] = slack.detach().numpy().copy(),
-        row_dict["alphagrad"] = alpha.grad,
-        row_dict["dfnorm"] = np.linalg.norm(a_tch.grad),
-        row_dict["gradnorm"] = a_tch.grad,
+        row_dict["alpha"] = alpha.item()
+        row_dict["slack"] = slack.detach().numpy().copy()
+        row_dict["alphagrad"] = alpha.grad
+        row_dict["dfnorm"] = np.linalg.norm(a_tch.grad)
+        row_dict["gradnorm"] = a_tch.grad
         row_dict["Eps"] = eps_tch.detach().numpy().copy()
         new_row = pd.Series(row_dict)
         return new_row
@@ -176,9 +176,9 @@ class TrainLoopStats():
         }
         row_dict["step"] = self.step_num,
         if not self.train_flag:
-            row_dict["Train_val"] = self.trainval,
-            row_dict["Probability_violations_train"] = self.prob_violation_train,
-            row_dict["Violations_train"] = self.violation_train,
+            row_dict["Train_val"] = self.trainval
+            row_dict["Probability_violations_train"] = self.prob_violation_train
+            row_dict["Violations_train"] = self.violation_train
             row_dict["Avg_prob_train"] = np.mean(self.prob_violation_train)
         new_row = pd.Series(row_dict)
         return new_row
