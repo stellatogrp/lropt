@@ -175,8 +175,11 @@ class TrainLoopStats():
             "Eps": eps_tch.detach().numpy().copy()
         }
         row_dict["step"] = self.step_num,
-        # if not self.train_flag:
-        #     row_dict["Eps"] = eps_tch.detach().numpy().copy()
+        if not self.train_flag:
+            row_dict["Train_val"] = self.trainval,
+            row_dict["Probability_violations_train"] = self.prob_violation_train,
+            row_dict["Violations_train"] = self.violation_train,
+            row_dict["Avg_prob_train"] = np.mean(self.prob_violation_train)
         new_row = pd.Series(row_dict)
         return new_row
 
@@ -1379,7 +1382,7 @@ class RobustProblem(Problem):
         # tqdm.write("Probability of constraint violation: {}".format(
         #            prob_violation_test))
         return df, df_test, a_history, b_history, \
-            param_vals, fin_val, var_values
+            param_vals, fin_val, var_values, mu
 
     def train(
         self,
@@ -1545,7 +1548,7 @@ class RobustProblem(Problem):
         res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
             init_num, **kwargs) for init_num in range(num_random_init))
         df, df_test, a_history, b_history, param_vals, \
-            fin_val, var_values = zip(*res)
+            fin_val, var_values, mu_val = zip(*res)
         index_chosen = np.argmin(np.array(fin_val))
         self._trained = True
         unc_set._trained = True
@@ -1562,10 +1565,11 @@ class RobustProblem(Problem):
             kwargs["random_init"] = False
             kwargs["lr"] = lr_size if lr_size else lr
             kwargs["num_iter"] = num_iter_size if num_iter_size else num_iter
+            kwargs["init_mu"] = mu_val[index_chosen]
             res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
             init_num, **kwargs) for init_num in range(num_random_init))
             df_s, df_test_s, a_history_s, b_history_s, param_vals_s, \
-                fin_val_s, var_values_s = zip(*res)
+                fin_val_s, var_values_s, mu_s = zip(*res)
             return_eps = param_vals_s[0][2]
             return_df = pd.concat([df[index_chosen],df_s[0]])
             return_df_test = pd.concat([df_test[index_chosen], df_test_s[0]])
@@ -1635,8 +1639,8 @@ class RobustProblem(Problem):
         self._validate_unc_set_T(unc_set)
         df = pd.DataFrame(
             columns=["Eps"])
-        unc_train_set, unc_test_set, unc_train_tch, unc_test_tch, \
-            _, y_test_tchs = self._split_dataset(
+        unc_train_set, unc_test_set, unc_train_tch, unc_test_tch,\
+            y_train_tchs, y_test_tchs = self._split_dataset(
             unc_set, self.orig_yparams(), self.y_parameters(), test_percentage, seed)
         y_orig_torches = self.gen_y_orig(self.orig_yparams())
         rho_mult_params = self.rho_mult_param(self.new_prob)
@@ -1652,7 +1656,11 @@ class RobustProblem(Problem):
         # setup train and test data
             # use all y's
             batch_int, y_batch, u_batch= self._gen_batch(unc_test_set.shape[0],
-                                y_test_tchs, unc_test_set,test_percentage)
+                                y_test_tchs, unc_test_set,1)
+
+        batch_int_train, y_batch_train, u_batch_train = \
+                self._gen_batch(unc_train_set.shape[0],
+                                y_train_tchs, unc_train_set,1)
         # create cvxpylayer
 
         cvxpylayer = CvxpyLayer(self.new_prob,
@@ -1679,6 +1687,16 @@ class RobustProblem(Problem):
                     for ele in y_batch_array]
         y_unique_array = [ele[unique_indices] for ele in y_batch_array]
 
+        y_batch_array_t = [np.array(ele) for ele in y_batch_train]
+        all_indices = [np.unique(ele,axis=0,
+              return_index=True)[1] for ele in y_batch_array_t]
+        unique_indices_t = np.unique(np.concatenate(all_indices))
+        num_unique_indices_t = len(unique_indices_t)
+        y_unique_t = [torch.tensor(ele, \
+                                   dtype=settings.DTYPE)[unique_indices_t] \
+                    for ele in y_batch_array_t]
+        y_unique_array_t = [ele[unique_indices_t] for ele in y_batch_array_t]
+
         for init_eps in epslst:
             eps_tch = torch.tensor(
                 init_eps, requires_grad=self.train_flag, dtype=settings.DTYPE)
@@ -1689,9 +1707,16 @@ class RobustProblem(Problem):
                 var_values = cvxpylayer(*rho_mult_tch, *y_orig_torches,
                                         *y_unique, a_tch_init,b_tch_init,
                                         solver_args=solver_args)
+                var_values_t = cvxpylayer(*rho_mult_tch, *y_orig_torches,
+                                        *y_unique_t, a_tch_init,b_tch_init,
+                                        solver_args=solver_args)
             else:
                 var_values = cvxpylayer(*rho_mult_tch, *y_orig_torches,
                                          *y_unique, eps_tch*a_tch_init,
+                                           b_tch_init,
+                                        solver_args=solver_args)
+                var_values_t = cvxpylayer(*rho_mult_tch, *y_orig_torches,
+                                         *y_unique_t, eps_tch*a_tch_init,
                                            b_tch_init,
                                         solver_args=solver_args)
             # create dictionary from unique y's to var_values
@@ -1712,6 +1737,24 @@ class RobustProblem(Problem):
                 for j in range(len(var_values)):
                     new_var_values[j][i] = values_list[j]
 
+            # create dictionary from unique y's to var_values
+            y_to_var_values_dict_t = {}
+            for i in range(num_unique_indices_t):
+                y_to_var_values_dict_t[tuple(tuple(v[i].flatten())\
+                        for v in y_unique_array_t)] = [v[i] for v in var_values_t]
+            # initialize new var_values
+            shapes = [torch.tensor(v.shape) for v in var_values_t]
+            for i in range(len(shapes)):
+                shapes[i][0] = batch_int_train
+            new_var_values_t = [torch.zeros(*shape, dtype=settings.DTYPE) for shape in shapes]
+
+            # populate new_var_values using the dictionary
+            for i in range(batch_int_train):
+                values_list = y_to_var_values_dict_t[
+                    tuple(tuple(v[i].flatten()) for v in y_batch_array_t)]
+                for j in range(len(var_values_t)):
+                    new_var_values_t[j][i] = values_list[j]
+
             train_stats = TrainLoopStats(
                 step_num=np.NAN, train_flag=self.train_flag, num_g=self.num_g)
             with torch.no_grad():
@@ -1730,14 +1773,32 @@ class RobustProblem(Problem):
                     1, eta
                 )
 
+                test_args_t, test_to_sample_t = self._order_args(
+                    var_values=new_var_values_t,
+                y_batch=y_batch_train, u_batch=u_batch_train)
+                obj_train = self.evaluation_metric(batch_int_train,
+                    test_args_t, test_to_sample_t, quantiles)
+                prob_violation_train = \
+                    self.prob_constr_violation(batch_int_train,
+                    test_args_t, test_to_sample_t,num_us=batch_int_train)
+                _, var_vio_train = self.lagrangian(batch_int_train,
+                    test_args_t, test_to_sample_t,
+                    alpha,
+                    slack,
+                    lam,
+                    1, eta
+                )
+
             train_stats.update_test_stats(obj_test, prob_violation_test,
                                           var_vio)
+            train_stats.update_train_stats(None, obj_train,
+                                prob_violation_train,var_vio_train)
             grid_stats.update(train_stats, obj_test,
-                              eps_tch, eps_tch*a_tch_init, var_values)
+                              eps_tch, eps_tch*a_tch_init, var_values[1])
 
             new_row = train_stats.generate_test_row(
                 self._calc_coverage, eps_tch*a_tch_init,b_tch_init, alpha, unc_test_tch,
-                eps_tch, unc_set, var_values)
+                eps_tch, unc_set, var_values[1])
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
         self._trained = True
