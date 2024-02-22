@@ -792,7 +792,7 @@ class RobustProblem(Problem):
         if not mro_set:
             b_history.append(b_tch.detach().numpy().copy())
 
-    def _set_train_variables(self, fixb, mro_set, alpha, slack): # , a_tch, # b_tch, eps_tch):
+    def _set_train_variables(self, fixb, mro_set, alpha, slack): # , a_tch, b_tch, eps_tch):
         """
         This function sets the variables to be trained in the outer level problem.
         TODO (Amit): complete the docstrings (to Irina)
@@ -806,7 +806,7 @@ class RobustProblem(Problem):
         # else:
         #     variables = [a_tch, b_tch, alpha, slack]
 
-        variables = [alpha, slack]
+        variables = [alpha, slack]  # [a_tch, b_tch, alpha, slack]
 
         return variables
 
@@ -957,17 +957,21 @@ class RobustProblem(Problem):
             Coverage
         """
         coverage = 0
+        coverage2 = 0
+        # for each u, calculate for all y's
         for datind in range(dset.shape[0]):
-            coverage += torch.where(
-                torch.norm((a_tch.T@torch.linalg.inv(a_tch@a_tch.T
-                + 0.0001*torch.eye(a_tch.shape[0]))) @ (dset[datind]-
-                           b_tch))
-                # torch.norm(a_tch @ dset[datind] +
-                #            b_tch)
-                <= 1,
-                1,
-                0,
-            )
+            for datind2 in range(a_tch.shape[0]):
+                coverage2 += torch.where(
+                    torch.norm((a_tch[datind2].T@torch.linalg.inv(a_tch[datind2]@a_tch[datind2].T
+                    + 0.0001*torch.eye(a_tch[datind2].shape[0]))) @ (dset[datind]-
+                            b_tch[datind2]))
+                    # torch.norm(a_tch @ dset[datind] +
+                    #            b_tch)
+                    <= 1,
+                    1,
+                    0,
+                )
+            coverage += coverage2/a_tch.shape[0]
         return coverage/dset.shape[0]
 
     def _store_variables_parameters(self):
@@ -1138,8 +1142,9 @@ class RobustProblem(Problem):
         variables = self._set_train_variables(kwargs['fixb'],
                                               kwargs['mro_set'], alpha,
                                               slack)
-                                              # a_tch, b_tch, eps_tch)
+                                            #   a_tch, b_tch, eps_tch)
         variables.extend(list(predictor.parameters())) # add the weights parameters
+
         if kwargs['optimizer'] == "SGD":
             opt = settings.OPTIMIZERS[kwargs['optimizer']](
                 variables, lr=kwargs['lr'], momentum=kwargs['momentum'])
@@ -1203,10 +1208,10 @@ class RobustProblem(Problem):
                     a_tch_list.append(a_temp)
                     b_tch_list.append(b_temp)
 
-                # a_tch = a_tch_list[0]
-                # a_tch = torch.nn.Parameter(torch.stack(a_tch_list))
-                # b_tch = torch.nn.Parameter(torch.stack(b_tch_list))
+                a_tch = torch.nn.Parameter(torch.stack(a_tch_list))
+                b_tch = torch.nn.Parameter(torch.stack(b_tch_list))
 
+                # a_tch = a_tch_list[0]
                 # a_tch = torch.nn.Parameter(a_tch[0, :, :])
                 # b_tch = torch.nn.Parameter(b_tch[0, :])
                 # print(a_tch.size())
@@ -1262,6 +1267,19 @@ class RobustProblem(Problem):
                     var_values = kwargs['cvxpylayer'](*y_batch, a_tch,
                                                       solver_args=kwargs['solver_args'])
                 else:
+                    a_tch_list = []
+                    b_tch_list = []
+                    for y in y_batch[0]:
+                        a_temp, b_temp = predictor(y.view(-1, 1))
+                        if kwargs["predictor"] == "LINEAR":
+                            a_temp = a_temp.view(kwargs['u_size'], kwargs['u_size'])
+                        a_tch_list.append(a_temp)
+                        b_tch_list.append(b_temp)
+
+                    # use the saved weights to create A matrix for each y in the new y_batch
+                    a_tch = torch.nn.Parameter(torch.stack(a_tch_list))
+                    b_tch = torch.nn.Parameter(torch.stack(b_tch_list))
+
                     var_values = kwargs['cvxpylayer'](*y_batch, a_tch, b_tch,
                                                       solver_args=kwargs['solver_args'])
 
@@ -1491,12 +1509,14 @@ class RobustProblem(Problem):
 
         return_eps = param_vals[index_chosen][2]
         # return_b_value = unc_set.b.value if not mro_set else None
-        # return_b_history = b_history[index_chosen] if not mro_set else None
+        return_b_history = b_history[index_chosen] if not mro_set else None
         return_nn_weights = param_vals[index_chosen][4]
         return Result(self, self.new_prob, df[index_chosen],
                       df_test[index_chosen], return_nn_weights,
                       return_eps, param_vals[index_chosen][3],
-                      var_values[index_chosen])
+                      var_values[index_chosen],
+                      a_history=a_history[index_chosen],
+                      b_history=return_b_history)
         # return Result(self, self.new_prob, df[index_chosen],
         #               df_test[index_chosen], unc_set.a.value,
         #               return_b_value,

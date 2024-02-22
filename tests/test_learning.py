@@ -61,7 +61,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         constraints = [x @ (u + y) <= c, cp.norm(x) <= 2*c]
 
         prob = RobustProblem(objective, constraints)
-        prob.train(lr=0.001, num_iter=20, momentum=0.8, optimizer="SGD")
+        prob.train(lr=0.001, num_iter=20, momentum=0.8, optimizer="SGD", save_history=True)
+        print("done")
         # prob.solve()
 
     def test_portfolio_intro(self):
@@ -112,7 +113,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
                             init_alpha=0., test_percentage=test_p, kappa=kappa,
                             n_jobs=8, random_init=True,
                             num_random_init=5, parallel = True,
-                            position=False)
+                            position=False, save_history = True)
 
         timefin = time.time()
         timefin - timestart
