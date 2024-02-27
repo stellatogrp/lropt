@@ -60,6 +60,28 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         prob.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD")
         # prob.solve()
 
+
+    def test_multidim_learn(self):
+        # Setup
+        n = self.n
+        y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), self.N)
+
+        # Problem
+        # y = np.ones(n)
+        y = Parameter(n, data=y_data)
+        u = UncertainParameter(n, uncertainty_set=Ellipsoidal(data=self.data))
+
+        x = cp.Variable(n)
+
+        objective = cp.Maximize(y @ x)
+
+        constraints = [u>=0]
+        constraints += [np.ones(n)@u <= 10]
+
+        prob = RobustProblem(objective, constraints)
+        prob.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD")
+        # prob.solve()
+
     def test_portfolio_intro(self):
         timestart = time.time()
         n = 2

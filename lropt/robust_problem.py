@@ -78,7 +78,7 @@ class TrainLoopStats():
             Violation of learning constraint over train set
     """
 
-    def __init__(self, step_num, train_flag=True, num_g=1):
+    def __init__(self, step_num, train_flag=True, num_g_total=1):
         def __value_init__(self):
             """
             This is an internal function that either initiates a tensor or a list
@@ -96,7 +96,7 @@ class TrainLoopStats():
         self.prob_violation_train = __value_init__(self)
         self.violation_test = __value_init__(self)
         self.violation_train = __value_init__(self)
-        self.num_g = num_g
+        self.num_g_total = num_g_total
 
     def update_train_stats(self, temp_lagrangian, obj, prob_violation_train, train_constraint):
         """
@@ -112,7 +112,7 @@ class TrainLoopStats():
         # else:  # if self.train_flag
         self.trainval = obj[1].item()
         self.prob_violation_train = prob_violation_train.detach().numpy()
-        self.violation_train = sum(train_constraint).item()/self.num_g
+        self.violation_train = sum(train_constraint).item()/self.num_g_total
 
     def update_test_stats(self, obj_test, prob_violation_test, var_vio):
         """
@@ -129,7 +129,7 @@ class TrainLoopStats():
         self.testval = obj_test[1].item()
         self.upper_testval = obj_test[2].item()
         self.prob_violation_test = prob_violation_test.detach().numpy()
-        self.violation_test = sum(var_vio.detach().numpy())/self.num_g
+        self.violation_test = sum(var_vio.detach().numpy())/self.num_g_total
 
     def generate_train_row(self, a_tch, eps_tch, lam, mu, alpha, slack):
         """
@@ -243,10 +243,18 @@ class RobustProblem(Problem):
         self._store_variables_parameters()
         self.f, _ = self._gen_torch_exp(objective.expr)
         self.g = []
+        self.g_shapes = []
+        self.num_g_total = 0
         for constraint in constraints:
             g, has_uncertain_parameters = self._gen_torch_exp(constraint)
             if has_uncertain_parameters:
                 self.g.append(g)
+                if len(constraint.shape) >=1:
+                    self.g_shapes.append(constraint.shape[0])
+                    self.num_g_total += constraint.shape[0]
+                else:
+                    self.g_shapes.append(1)
+                    self.num_g_total += 1
         if eval_exp is None:
             self.eval = self.f
         else:
@@ -388,22 +396,22 @@ class RobustProblem(Problem):
                 # else:
                 #     res.append(eval_arg)
             return res
-        curr_result = torch.zeros(batch_int, dtype=settings.DTYPE)
+        curr_result ={}
         if eval_input_case != RobustProblem._EVAL_INPUT_CASE.MAX:
             for j in range(batch_int):
                 curr_eval_args = _sample_args(eval_args, j, items_to_sample)
                 curr_result[j] = eval_func(*curr_eval_args, **kwargs)
         if eval_input_case == RobustProblem._EVAL_INPUT_CASE.MEAN:
-            init_val = curr_result
+            init_val = torch.vstack([curr_result[v] for v in curr_result])
             # init_val /= self.num_ys
-            init_val = init_val.mean()
+            init_val = torch.mean(init_val,axis=0)
         elif eval_input_case == RobustProblem._EVAL_INPUT_CASE.EVALMEAN:
-            init_val = curr_result
+            init_val = torch.vstack([curr_result[v] for v in curr_result])
             # init_val /= self.num_ys
             bot_q, top_q = quantiles
-            init_val_lower = torch.quantile(init_val, bot_q)
-            init_val_mean = init_val.mean()
-            init_val_upper = torch.quantile(init_val, top_q)
+            init_val_lower = torch.quantile(init_val, bot_q, axis=0)
+            init_val_mean = torch.mean(init_val,axis=0)
+            init_val_upper = torch.quantile(init_val, top_q,axis=0)
             return (init_val_lower, init_val_mean, init_val_upper)
         elif eval_input_case == RobustProblem._EVAL_INPUT_CASE.MAX:
             # We want to see if there's a violation: either 1 from previous iterations,
@@ -413,7 +421,7 @@ class RobustProblem(Problem):
             # make a setting/variable
             for j in range(batch_int):
                 curr_eval_args = _sample_args(eval_args, j, items_to_sample)
-                init_val[j] = eval_func(*curr_eval_args, **kwargs)
+                init_val[:,j] = eval_func(*curr_eval_args, **kwargs)
             # init_val = eval_func(*eval_args, **kwargs)
             init_val = (init_val > settings.TOLERANCE_DEFAULT).float()
         return init_val
@@ -424,8 +432,7 @@ class RobustProblem(Problem):
                                 eval_input_case=RobustProblem._EVAL_INPUT_CASE.MEAN, quantiles=None)
 
     def train_constraint(self, batch_int,eval_args, items_to_sample, alpha, slack, eta, kappa):
-        num_g = len(self.h)
-        H = torch.zeros(num_g, dtype=settings.DTYPE)
+        H = torch.zeros(self.num_g_total, dtype=settings.DTYPE)
         for k, h_k in enumerate(self.h):
             init_val = self._eval_input(batch_int,h_k, eval_args, items_to_sample, 0,
                                         RobustProblem._EVAL_INPUT_CASE.MEAN, quantiles=None,
@@ -433,8 +440,10 @@ class RobustProblem(Problem):
             # init_val = self._eval_input(
             #     h_k, vars, y_params_mat, u_params_mat, 0, RobustProblem._EVAL_INPUT_CASE.MEAN,
             #     False, None, alpha, eta)
-            h_k_expectation = init_val + alpha - kappa + slack[k]
-            H[k] = h_k_expectation
+            h_k_expectation = init_val + alpha - kappa + \
+                slack[sum(self.g_shapes[:k]):sum(self.g_shapes[:(k+1)])]
+            H[sum(self.g_shapes[:k]):sum(self.g_shapes[:(k+1)])] \
+                = h_k_expectation
         return H
 
     def evaluation_metric(self, batch_int, eval_args, items_to_sample, quantiles):
@@ -450,13 +459,16 @@ class RobustProblem(Problem):
         """
         TODO (Amit): Irina, please complete the docstring
         """
-        G = torch.zeros((len(self.g), num_us),
+        G = torch.zeros((self.num_g_total, num_us),
                         dtype=settings.DTYPE)
         ind=0
-        for g_k in self.g:
-            G[ind] = self._eval_input(batch_int, eval_func=g_k, eval_args=eval_args,
-                                 items_to_sample=items_to_sample, init_val=G[ind],
-                                 eval_input_case=RobustProblem._EVAL_INPUT_CASE.MAX, quantiles=None)
+        for k, g_k in enumerate(self.g):
+            G[sum(self.g_shapes[:k]):sum(self.g_shapes[:(k+1)])] = \
+            self._eval_input(batch_int, eval_func=g_k, eval_args=eval_args,
+                                 items_to_sample=items_to_sample,
+                                 init_val=\
+                        G[sum(self.g_shapes[:k]):sum(self.g_shapes[:(k+1)])],
+            eval_input_case=RobustProblem._EVAL_INPUT_CASE.MAX, quantiles=None)
             ind +=1
 
         # G_max = torch.max(G,dim=0)[0]
@@ -777,7 +789,7 @@ class RobustProblem(Problem):
         #         a, requires_grad=self.train_flag, dtype=settings.DTYPE)
         alpha = torch.tensor(init_alpha, requires_grad=self.train_flag)
         slack = torch.zeros(
-            self.num_g, requires_grad=self.train_flag, dtype=settings.DTYPE)
+            self.num_g_total, requires_grad=self.train_flag, dtype=settings.DTYPE)
         return a_tch, b_tch, alpha, slack
 
     def _split_dataset(self, unc_set, y_orig_parameters, y_parameters, test_percentage, seed):
@@ -1111,7 +1123,7 @@ class RobustProblem(Problem):
                 *args
                     The arguments of torch_exp
             """
-            
+
             def _safe_increase_axis(expr: Expression, *args) -> int | None | bool:
                 """
                 This is an internal function that increases expr.axis by 1 if it is not negative.
@@ -1142,7 +1154,7 @@ class RobustProblem(Problem):
                     expr.axis += 1
 
                 return original_axis
-            
+
             args_to_pass = [None]*len(args_inds_to_pass)
             for key, value in args_inds_to_pass.items():
                 args_to_pass[value] = args[key]
@@ -1244,7 +1256,7 @@ class RobustProblem(Problem):
         # y's and cvxpylayer begin
         self.y_parameters()
         num_ys = kwargs["y_train_tch"][0].shape[0]
-        lam = kwargs['init_lam'] * torch.ones(self.num_g, dtype=settings.DTYPE)
+        lam = kwargs['init_lam'] * torch.ones(self.num_g_total, dtype=settings.DTYPE)
         mu = kwargs['init_mu']
         # use multiple initial points and training. pick lowest eval loss
         # if kwargs["position"]:
@@ -1258,7 +1270,7 @@ class RobustProblem(Problem):
         curr_cvar = np.inf
         for step_num in range(kwargs['num_iter']):
             train_stats = TrainLoopStats(
-                step_num=step_num, train_flag=self.train_flag, num_g=self.num_g)
+                step_num=step_num, train_flag=self.train_flag, num_g_total=self.num_g_total)
 
             # generate batched y and u
             # y_batch = self._gen_y_batch(
@@ -1297,7 +1309,7 @@ class RobustProblem(Problem):
                 if torch.norm(train_constraint_value) <= 0.99*curr_cvar:
                     curr_cvar= torch.norm(train_constraint_value)
                     lam = lam + torch.minimum(mu*train_constraint_value,
-                                        1000*torch.ones(self.num_g, dtype=settings.DTYPE))
+                                        1000*torch.ones(self.num_g_total, dtype=settings.DTYPE))
                 else:
                     mu = kwargs['mu_multiplier']*mu
 
@@ -1356,7 +1368,7 @@ class RobustProblem(Problem):
                 if kwargs['scheduler']:
                     scheduler_.step()
 
-        if sum(var_vio.detach().numpy())/self.num_g <= kwargs["kappa"]:
+        if sum(var_vio.detach().numpy())/self.num_g_total <= kwargs["kappa"]:
             fin_val = obj_test[1].item()
         else:
             fin_val = obj_test[1].item() + 10*abs(sum(var_vio.detach().numpy()))
@@ -1665,7 +1677,7 @@ class RobustProblem(Problem):
 
         grid_stats = GridStats()
 
-        lam = 1000 * torch.ones(self.num_g, dtype=settings.DTYPE)
+        lam = 1000 * torch.ones(self.num_g_total, dtype=settings.DTYPE)
         # initialize torches
         eps_tch = self._gen_eps_tch(1)
         a_tch_init, b_tch_init, alpha, slack = self._init_torches(1,
