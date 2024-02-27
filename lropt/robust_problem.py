@@ -1111,17 +1111,7 @@ class RobustProblem(Problem):
                 *args
                     The arguments of torch_exp
             """
-
-            def _is_batch(expr: Expression, *args) -> bool:
-                """
-                This is a helper function that returns True if any of args is in batched,
-                and false otherwise.
-                """
-                for i, arg in enumerate(*args):
-                    if len(arg.shape) == (len(expr.args[i].shape)+1):
-                        return True
-                return False
-
+            
             def _safe_increase_axis(expr: Expression, *args) -> int | None | bool:
                 """
                 This is an internal function that increases expr.axis by 1 if it is not negative.
@@ -1152,11 +1142,7 @@ class RobustProblem(Problem):
                     expr.axis += 1
 
                 return original_axis
-
-
-
-
-
+            
             args_to_pass = [None]*len(args_inds_to_pass)
             for key, value in args_inds_to_pass.items():
                 args_to_pass[value] = args[key]

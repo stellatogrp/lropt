@@ -320,10 +320,6 @@ def batchify(expr: Expression) -> Expression:
     
     #Recursively change all the args of this expression
     args = [batchify(arg) for arg in expr.args]
-    #DEBUG
-    # args = []
-    # for arg in expr.args:
-    #     args.append(batchify(arg))
     expr.args = args
     
     #Change this expression if necessary
