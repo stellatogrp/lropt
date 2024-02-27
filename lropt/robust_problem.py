@@ -296,13 +296,33 @@ class RobustProblem(Problem):
         return [v for v in problem.parameters() if isinstance(v, ShapeParameter)]
 
     def verify_y_parameters(self):
+        """
+        This function verifies that y and u are in the correct diemsnions.
+        """
+
         y_parameters = self.y_parameters()
+        u_parameters = self.uncertain_parameters()
         num_ys = 1
         if len(y_parameters) > 0:
             num_ys = y_parameters[0].data.shape[0]
-        for param in y_parameters:
-            if param.data.shape[0] != num_ys:
-                raise ValueError("shape inconsistency: num_ys")
+        #Check that both y and u dimensions are okay
+        for params in [y_parameters, u_parameters]:
+            for param in params:
+                #Fetch the current shape - different from Parameter and UncertainParameter
+                if params is y_parameters:
+                    curr_shape = param.data.shape[0]
+                else:
+                    #Skip the check if there is no data
+                    if param.uncertainty_set.data is None:
+                        continue
+                    #Skip the check if _train==False (MRO without training)
+                    train_mro = getattr(param.uncertainty_set, "_train", True)
+                    if not train_mro:
+                        continue
+                    curr_shape = param.uncertainty_set.data.shape[0]
+                if curr_shape != num_ys:
+                    raise ValueError(f"shape inconsistency: expected num_ys={num_ys}, "
+                                     f"but got {curr_shape}.")
         return num_ys
 
     def fg_to_lh(self):
