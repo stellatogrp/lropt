@@ -154,7 +154,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
     def test_torch_exp(self):
         # Setup
         n = 3
-        num_instances = 5
+        num_instances = self.N
         y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), num_instances)
 
         # Problem
