@@ -1536,17 +1536,19 @@ class RobustProblem(Problem):
         # Debugging code - one iteration
         # res = self._train_loop(0, **kwargs)
         # Debugging code - serial
-        # res = []
-        # for init_num in range(num_random_init):
-        #     res.append(self._train_loop(init_num, **kwargs))
+        if not parallel:
+            res = []
+            for init_num in range(num_random_init):
+                res.append(self._train_loop(init_num, **kwargs))
         # n_jobs = utils.get_n_processes() if parallel else 1
         # pool_obj = Pool(processes=n_jobs)
         # loop_fn = partial(self._train_loop, **kwargs)
         # res = pool_obj.map(loop_fn, range(num_random_init))
         # Joblib version
-        n_jobs = utils.get_n_processes() if parallel else 1
-        res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
-            init_num, **kwargs) for init_num in range(num_random_init))
+        else:
+            n_jobs = utils.get_n_processes() if parallel else 1
+            res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
+                init_num, **kwargs) for init_num in range(num_random_init))
         df, df_test, a_history, b_history, param_vals, \
             fin_val, var_values, mu_val = zip(*res)
         index_chosen = np.argmin(np.array(fin_val))
@@ -1566,8 +1568,13 @@ class RobustProblem(Problem):
             kwargs["lr"] = lr_size if lr_size else lr
             kwargs["num_iter"] = num_iter_size if num_iter_size else num_iter
             kwargs["init_mu"] = mu_val[index_chosen]
-            res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
-            init_num, **kwargs) for init_num in range(num_random_init))
+            if not parallel:
+                res = []
+                for init_num in range(num_random_init):
+                    res.append(self._train_loop(init_num, **kwargs))
+            else:
+                res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
+                init_num, **kwargs) for init_num in range(num_random_init))
             df_s, df_test_s, a_history_s, b_history_s, param_vals_s, \
                 fin_val_s, var_values_s, mu_s = zip(*res)
             return_eps = param_vals_s[0][2]
