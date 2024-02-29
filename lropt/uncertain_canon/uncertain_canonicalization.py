@@ -1,4 +1,5 @@
 from enum import Enum
+
 import numpy as np
 from cvxpy import Variable, problems
 from cvxpy.constraints.nonpos import Inequality
@@ -31,10 +32,12 @@ class RemoveUncertaintyMode():
         self._has_isolated = False
     
     def seen_matrix(self, seen):
-        if seen: self._has_matrix = True
+        if seen:
+            self._has_matrix = True
     
     def seen_isolated(self, seen):
-        if seen: self._has_isolated = True
+        if seen:
+            self._has_isolated = True
     
     def get_status(self) -> Status:
         if self._has_matrix:
@@ -367,11 +370,11 @@ class Uncertain_Canonicalization(Reduction):
         aux_constraint = []
         num_constr_cols = None #Default value to be overwritten later
         for ind in range(num_unc_expr):
-            curr_has_matrix, curr_has_isolated, num_constr_cols, aux_expr, aux_constraint, uvar, z_cons = \
-                        self._update_new_constraint(unc_lst=unc_lst,
-                        new_vars=new_vars, z_new_cons=z_new_cons, z_cons=z_cons,
-                        num_constr=num_constr, u_shape=u_shape, ind=ind, z=z, uvar=uvar,
-                        aux_expr=aux_expr, aux_constraint=aux_constraint)
+            curr_has_matrix, curr_has_isolated, num_constr_cols, aux_expr, \
+                    aux_constraint, uvar, z_cons = self._update_new_constraint(unc_lst=unc_lst,
+                    new_vars=new_vars, z_new_cons=z_new_cons, z_cons=z_cons,
+                    num_constr=num_constr, u_shape=u_shape, ind=ind, z=z, uvar=uvar,
+                    aux_expr=aux_expr, aux_constraint=aux_constraint)
             #Update has_matrix and has_isolated to True if the current result is True
             status.seen_matrix(curr_has_matrix)
             status.seen_isolated(curr_has_isolated)
