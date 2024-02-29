@@ -583,7 +583,6 @@ class RobustProblem(Problem):
             for idx in range(len(new_reductions)):
                 if type(new_reductions[idx]) in [Dcp2Cone, Qp2SymbolicQp]:
                     # Insert RemoveUncertainParameters before those reductions
-                    # new_reductions.insert(idx, Distribute_Uncertain_Params())
                     new_reductions.insert(idx, RemoveUncertainParameters())
                     break
         # return a chain instead (chain.apply, return the problem and inverse data)
@@ -1867,7 +1866,6 @@ class RobustProblem(Problem):
             unc_reductions = []
             if type(self.objective) == Maximize:
                 unc_reductions += [FlipObjective()]
-            # unc_reductions += [Distribute_Uncertain_Params()]
             unc_reductions += [RemoveUncertainParameters()]
             newchain = UncertainChain(self, reductions=unc_reductions)
             self.new_prob, self.inverse_data = newchain.apply(self)
