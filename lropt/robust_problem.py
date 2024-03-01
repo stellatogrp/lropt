@@ -399,8 +399,6 @@ class RobustProblem(Problem):
 
         if eval_input_case != RobustProblem._EVAL_INPUT_CASE.MAX:
             curr_result = eval_func(*eval_args, **kwargs)
-            if len(curr_result.shape) > 1:
-                curr_result = curr_result.T
         if eval_input_case == RobustProblem._EVAL_INPUT_CASE.MEAN:
             init_val = curr_result
             init_val = torch.mean(init_val,axis=0)
