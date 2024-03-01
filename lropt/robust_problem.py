@@ -28,8 +28,7 @@ from joblib import Parallel, delayed
 # from pathos.multiprocessing import ProcessPool as Pool
 import lropt.settings as settings
 from lropt import utils
-
-# from lropt.batch import batchify
+from lropt.batch import batchify
 from lropt.parameter import Parameter
 from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
 from lropt.shape_parameter import EpsParameter, ShapeParameter
@@ -333,6 +332,38 @@ class RobustProblem(Problem):
                                      f"but got {curr_shape}.")
         return num_ys
 
+    def gen_unique_y(self,y_batch):
+        # get unique y's
+        y_batch_array = [np.array(ele) for ele in y_batch]
+        all_indices = [np.unique(ele,axis=0, return_index=True)[1] for ele in y_batch_array]
+        unique_indices = np.unique(np.concatenate(all_indices))
+        num_unique_indices = len(unique_indices)
+        y_unique = [torch.tensor(ele, dtype=settings.DTYPE)[unique_indices] \
+                    for ele in y_batch_array]
+        y_unique_array = [ele[unique_indices] for ele in y_batch_array]
+        return y_batch_array, num_unique_indices, y_unique, y_unique_array
+
+    def gen_new_var_values(self, num_unique_indices,
+                y_unique_array, var_values, batch_int, y_batch_array):
+        # create dictionary from unique y's to var_values
+        y_to_var_values_dict = {}
+        for i in range(num_unique_indices):
+            y_to_var_values_dict[tuple(tuple(v[i].flatten())\
+                    for v in y_unique_array)] = [v[i] for v in var_values]
+        # initialize new var_values
+        shapes = [torch.tensor(v.shape) for v in var_values]
+        for i in range(len(shapes)):
+            shapes[i][0] = batch_int
+        new_var_values = [torch.zeros(*shape, dtype=settings.DTYPE) for shape in shapes]
+
+        # populate new_var_values using the dictionary
+        for i in range(batch_int):
+            values_list = y_to_var_values_dict[tuple(tuple(v[i].flatten())\
+                    for v in y_batch_array)]
+            for j in range(len(var_values)):
+                new_var_values[j][i] = values_list[j]
+        return new_var_values
+
     def fg_to_lh(self):
         """
         Returns l and h function pointers.
@@ -352,7 +383,7 @@ class RobustProblem(Problem):
         self.num_g = len(h_funcs)
 
     #BATCHED
-    def _eval_input_Batched(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
+    def _eval_input_b(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
                     eval_input_case, quantiles, **kwargs):
         """
         This function takes decision varaibles, y's, and u's,
@@ -368,15 +399,17 @@ class RobustProblem(Problem):
 
         if eval_input_case != RobustProblem._EVAL_INPUT_CASE.MAX:
             curr_result = eval_func(*eval_args, **kwargs)
+            if len(curr_result.shape) > 1:
+                curr_result = curr_result.T
         if eval_input_case == RobustProblem._EVAL_INPUT_CASE.MEAN:
             init_val = curr_result
-            init_val = init_val.mean()
+            init_val = torch.mean(init_val,axis=0)
         elif eval_input_case == RobustProblem._EVAL_INPUT_CASE.EVALMEAN:
             init_val = curr_result
             bot_q, top_q = quantiles
-            init_val_lower = torch.quantile(init_val, bot_q)
-            init_val_mean = init_val.mean()
-            init_val_upper = torch.quantile(init_val, top_q)
+            init_val_lower = torch.quantile(init_val, bot_q, axis=0)
+            init_val_mean = torch.mean(init_val,axis=0)
+            init_val_upper = torch.quantile(init_val, top_q,axis=0)
             return (init_val_lower, init_val_mean, init_val_upper)
         elif eval_input_case == RobustProblem._EVAL_INPUT_CASE.MAX:
             # We want to see if there's a violation: either 1 from previous iterations,
@@ -387,6 +420,8 @@ class RobustProblem(Problem):
             # for j in range(batch_int):
             #     curr_eval_args = _sample_args(eval_args, j, items_to_sample)
             init_val = eval_func(*eval_args, **kwargs)
+            if len(init_val.shape) > 1:
+                init_val = init_val.T
             init_val = (init_val > settings.TOLERANCE_DEFAULT).float()
         return init_val
 
@@ -1190,7 +1225,7 @@ class RobustProblem(Problem):
             return res
 
         # vars_dict contains a dictionary from variable/param -> index in *args (for the expression)
-        # expr = batchify(expr)
+        expr = batchify(expr)
         torch_exp, vars_dict = expr.gen_torch_exp()
 
 
@@ -1702,24 +1737,11 @@ class RobustProblem(Problem):
         a_tch_init, b_tch_init, alpha, slack = self._init_torches(1,
             init_A, init_b,init_alpha, unc_train_set, True)
 
-        # get unique y's
-        y_batch_array = [np.array(ele) for ele in y_batch]
-        all_indices = [np.unique(ele,axis=0, return_index=True)[1] for ele in y_batch_array]
-        unique_indices = np.unique(np.concatenate(all_indices))
-        num_unique_indices = len(unique_indices)
-        y_unique = [torch.tensor(ele, dtype=settings.DTYPE)[unique_indices] \
-                    for ele in y_batch_array]
-        y_unique_array = [ele[unique_indices] for ele in y_batch_array]
+        y_batch_array, num_unique_indices, y_unique, \
+            y_unique_array = self.gen_unique_y(y_batch)
 
-        y_batch_array_t = [np.array(ele) for ele in y_batch_train]
-        all_indices = [np.unique(ele,axis=0,
-              return_index=True)[1] for ele in y_batch_array_t]
-        unique_indices_t = np.unique(np.concatenate(all_indices))
-        num_unique_indices_t = len(unique_indices_t)
-        y_unique_t = [torch.tensor(ele, \
-                                   dtype=settings.DTYPE)[unique_indices_t] \
-                    for ele in y_batch_array_t]
-        y_unique_array_t = [ele[unique_indices_t] for ele in y_batch_array_t]
+        y_batch_array_t, num_unique_indices_t, y_unique_t, \
+            y_unique_array_t = self.gen_unique_y(y_batch_train)
 
         for init_eps in epslst:
             eps_tch = torch.tensor(
@@ -1743,44 +1765,15 @@ class RobustProblem(Problem):
                                          *y_unique_t, eps_tch*a_tch_init,
                                            b_tch_init,
                                         solver_args=solver_args)
-            # create dictionary from unique y's to var_values
-            y_to_var_values_dict = {}
-            for i in range(num_unique_indices):
-                y_to_var_values_dict[tuple(tuple(v[i].flatten())\
-                        for v in y_unique_array)] = [v[i] for v in var_values]
-            # initialize new var_values
-            shapes = [torch.tensor(v.shape) for v in var_values]
-            for i in range(len(shapes)):
-                shapes[i][0] = batch_int
-            new_var_values = [torch.zeros(*shape, dtype=settings.DTYPE) for shape in shapes]
 
-            # populate new_var_values using the dictionary
-            for i in range(batch_int):
-                values_list = y_to_var_values_dict[tuple(tuple(v[i].flatten())\
-                        for v in y_batch_array)]
-                for j in range(len(var_values)):
-                    new_var_values[j][i] = values_list[j]
-
-            # create dictionary from unique y's to var_values
-            y_to_var_values_dict_t = {}
-            for i in range(num_unique_indices_t):
-                y_to_var_values_dict_t[tuple(tuple(v[i].flatten())\
-                        for v in y_unique_array_t)] = [v[i] for v in var_values_t]
-            # initialize new var_values
-            shapes = [torch.tensor(v.shape) for v in var_values_t]
-            for i in range(len(shapes)):
-                shapes[i][0] = batch_int_train
-            new_var_values_t = [torch.zeros(*shape, dtype=settings.DTYPE) for shape in shapes]
-
-            # populate new_var_values using the dictionary
-            for i in range(batch_int_train):
-                values_list = y_to_var_values_dict_t[
-                    tuple(tuple(v[i].flatten()) for v in y_batch_array_t)]
-                for j in range(len(var_values_t)):
-                    new_var_values_t[j][i] = values_list[j]
+            new_var_values = self.gen_new_var_values(num_unique_indices,
+                    y_unique_array, var_values, batch_int, y_batch_array)
+            new_var_values_t = self.gen_new_var_values(num_unique_indices_t,
+                     y_unique_array_t, var_values_t, batch_int_train,
+                       y_batch_array_t)
 
             train_stats = TrainLoopStats(
-                step_num=np.NAN, train_flag=self.train_flag, num_g=self.num_g)
+                step_num=np.NAN, train_flag=self.train_flag, num_g_total=self.num_g_total)
             with torch.no_grad():
                 test_args, test_to_sample = self._order_args(
                     var_values=new_var_values,
