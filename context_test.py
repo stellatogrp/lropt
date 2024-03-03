@@ -195,8 +195,8 @@ np.random.seed(15)
 init_bvaln = np.mean(train, axis=0)
 
 # Train A and b - linear predictor
-result = prob.train(lr=0.001, num_iter=100, momentum=0.8,
-                    optimizer="SGD", predictor = "LINEAR",
+result = prob.train(lr=0.001, num_iter=20, momentum=0.8,
+                    optimizer="SGD", predictor = "CONSTANT",
                     seed=s, init_A=initn, init_b=init_bvaln,
                     init_lam=0.5, init_mu=0.01,
                     mu_multiplier=1.001, init_alpha=0., test_percentage=test_p, kappa=kappa,

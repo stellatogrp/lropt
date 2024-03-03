@@ -131,7 +131,7 @@ class TrainLoopStats():
         self.prob_violation_test = prob_violation_test.detach().numpy()
         self.violation_test = sum(var_vio.detach().numpy())/self.num_g
 
-    def generate_train_row(self, a_tch, lam, mu, alpha, slack):
+    def generate_train_row(self, a_tch, lam, mu, alpha, slack, variables):
         """
         This function generates a new row with the statistics
         """
@@ -150,8 +150,9 @@ class TrainLoopStats():
         row_dict["alpha"] = alpha.item(),
         row_dict["slack"] = slack.detach().numpy().copy(),
         row_dict["alphagrad"] = alpha.grad,
-        row_dict["dfnorm"] = np.linalg.norm(a_tch.grad),
-        row_dict["gradnorm"] = a_tch.grad,
+        row_dict["weightsgrad"] = variables[2].grad,
+        # row_dict["dfnorm"] = np.linalg.norm(a_tch.grad),
+        # row_dict["gradnorm"] = a_tch.grad,
         new_row = pd.Series(row_dict)
         return new_row
 
@@ -806,7 +807,7 @@ class RobustProblem(Problem):
         # else:
         #     variables = [a_tch, b_tch, alpha, slack]
 
-        variables = [alpha, slack]  # [a_tch, b_tch, alpha, slack]
+        variables = [alpha, slack] #, a_tch, b_tch]
 
         return variables
 
@@ -1142,7 +1143,7 @@ class RobustProblem(Problem):
         variables = self._set_train_variables(kwargs['fixb'],
                                               kwargs['mro_set'], alpha,
                                               slack)
-                                            #   a_tch, b_tch, eps_tch)
+                                              # a_tch, b_tch, eps_tch)
         variables.extend(list(predictor.parameters())) # add the weights parameters
 
         if kwargs['optimizer'] == "SGD":
@@ -1199,23 +1200,17 @@ class RobustProblem(Problem):
                 var_values = kwargs['cvxpylayer'](*y_batch, a_tch,
                                                   solver_args=kwargs['solver_args'])
             else:
-                a_tch_list = []
-                b_tch_list = []
-                for y in y_batch[0]:
-                    a_temp, b_temp = predictor(y.view(-1, 1))
-                    if kwargs["predictor"] == "LINEAR":
-                        a_temp = a_temp.view(kwargs['u_size'], kwargs['u_size'])
-                    a_tch_list.append(a_temp)
-                    b_tch_list.append(b_temp)
-
-                a_tch = torch.nn.Parameter(torch.stack(a_tch_list))
-                b_tch = torch.nn.Parameter(torch.stack(b_tch_list))
-
-                # a_tch = a_tch_list[0]
-                # a_tch = torch.nn.Parameter(a_tch[0, :, :])
-                # b_tch = torch.nn.Parameter(b_tch[0, :])
-                # print(a_tch.size())
-                # print(b_tch)
+                # a_tch_list = []
+                # b_tch_list = []
+                # for y in y_batch[0]:
+                #     a_temp, b_temp = predictor(y.view(-1, 1))
+                #     if kwargs["predictor"] == "LINEAR":
+                #         a_temp = a_temp.view(kwargs['u_size'], kwargs['u_size'])
+                #     a_tch_list.append(a_temp)
+                #     b_tch_list.append(b_temp)
+                # a_tch = torch.nn.Parameter(torch.stack(a_tch_list))
+                # b_tch = torch.nn.Parameter(torch.stack(b_tch_list))
+                a_tch, b_tch = predictor(y_batch[0])
                 var_values = kwargs['cvxpylayer'](*y_batch, a_tch, b_tch,
                                                   solver_args=kwargs['solver_args'])
 
@@ -1227,6 +1222,7 @@ class RobustProblem(Problem):
                                                                       eta=kwargs['eta'],
                                                                       kappa=kwargs['kappa'])
             temp_lagrangian.backward()
+            # print("check gradients here")
             with torch.no_grad():
                 obj = self.evaluation_metric(
                     eval_args, kwargs['quantiles'], num_ys)
@@ -1246,7 +1242,7 @@ class RobustProblem(Problem):
                     mu = kwargs['mu_multiplier']*mu
 
             new_row = train_stats.generate_train_row(
-                a_tch, lam, mu, alpha, slack)
+                a_tch, lam, mu, alpha, slack, variables)
             df = pd.concat(
                 [df, new_row.to_frame().T], ignore_index=True)
 
@@ -1267,19 +1263,19 @@ class RobustProblem(Problem):
                     var_values = kwargs['cvxpylayer'](*y_batch, a_tch,
                                                       solver_args=kwargs['solver_args'])
                 else:
-                    a_tch_list = []
-                    b_tch_list = []
-                    for y in y_batch[0]:
-                        a_temp, b_temp = predictor(y.view(-1, 1))
-                        if kwargs["predictor"] == "LINEAR":
-                            a_temp = a_temp.view(kwargs['u_size'], kwargs['u_size'])
-                        a_tch_list.append(a_temp)
-                        b_tch_list.append(b_temp)
+                    # a_tch_list = []
+                    # b_tch_list = []
+                    # for y in y_batch[0]:
+                    #     a_temp, b_temp = predictor(y.view(-1, 1))
+                    #     if kwargs["predictor"] == "LINEAR":
+                    #         a_temp = a_temp.view(kwargs['u_size'], kwargs['u_size'])
+                    #     a_tch_list.append(a_temp)
+                    #     b_tch_list.append(b_temp)
 
-                    # use the saved weights to create A matrix for each y in the new y_batch
-                    a_tch = torch.nn.Parameter(torch.stack(a_tch_list))
-                    b_tch = torch.nn.Parameter(torch.stack(b_tch_list))
-
+                    # # use the saved weights to create A matrix for each y in the new y_batch
+                    # a_tch = torch.nn.Parameter(torch.stack(a_tch_list))
+                    # b_tch = torch.nn.Parameter(torch.stack(b_tch_list))
+                    a_tch, b_tch = predictor(y_batch[0])
                     var_values = kwargs['cvxpylayer'](*y_batch, a_tch, b_tch,
                                                       solver_args=kwargs['solver_args'])
 
