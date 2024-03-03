@@ -7,9 +7,9 @@ app = marimo.App()
 @app.cell
 def _():
     import cvxpy as cp
-    import numpy as np
-    import matplotlib.pyplot as plt
     import marimo as mo
+    import matplotlib.pyplot as plt
+    import numpy as np
     return cp, mo, np, plt
 
 
@@ -17,7 +17,7 @@ def _():
 def _(mo):
     mo.md(
         r"""
-        CVXPY's conic form is 
+        CVXPY's conic form is
 
         $$
             \min\{ c^T x + d \,:\, x \in \mathbb{R}^{n},\, A x + b \in K \}
@@ -58,9 +58,9 @@ def _(mo):
 
         To obtain $A$ for a given parameter vector, we perform a dot product of $T$ with the parameter vector, and then sum over the third dimension (i.e., a tensor contraction).
 
-    Formally, let \( T_{:,:,i} \) denote the \( i \)-th slice of \( T \) along the third dimension for \( i = 1, \ldots, p \), and \( T_{:,:,p+1} \) denote the parameter-independent slice. Then, for a parameter vector \( \mathbf{v} = [v_1, v_2, \ldots, v_p]^\top \), the matrix \( A \) is obtained by:
+        Formally, let \( T_{:,:,i} \) denote the \( i \)-th slice of \( T \) along the third dimension for \( i = 1, \ldots, p \), and \( T_{:,:,p+1} \) denote the parameter-independent slice. Then, for a parameter vector \( \mathbf{v} = [v_1, v_2, \ldots, v_p]^\top \), the matrix \( A \) is obtained by:
 
-    \[ A = \sum_{i=1}^{p} (T_{:,:,i} \cdot v_i) + T_{:,:,p+1} \]
+        \[ A = \sum_{i=1}^{p} (T_{:,:,i} \cdot v_i) + T_{:,:,p+1} \]
         """
     )
     return
@@ -86,7 +86,7 @@ def _(data):
     # Since we can work with numpy in this example, we can reshape it back to 3D
 
     # param_cone_prog.A is the tensor
-    A_tensor = param_cone_prog.A.toarray().reshape((2,3,3), order='F')[:,:-1,:]  
+    A_tensor = param_cone_prog.A.toarray().reshape((2,3,3), order='F')[:,:-1,:]
     for i in range(3):
         print(A_tensor[:,:,i])
     return A_tensor, i, param_cone_prog
