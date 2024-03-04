@@ -15,6 +15,7 @@ from cvxpy import error
 from cvxpy import settings as s
 from cvxpy.expressions import cvxtypes
 from cvxpy.expressions.expression import Expression
+from cvxpy.expressions.leaf import Leaf
 from cvxpy.expressions.variable import Variable
 from cvxpy.problems.objective import Maximize
 from cvxpy.problems.problem import Problem
@@ -383,7 +384,7 @@ class RobustProblem(Problem):
         self.num_g = len(h_funcs)
 
     #BATCHED
-    def _eval_input_b(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
+    def _eval_input(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
                     eval_input_case, quantiles, **kwargs):
         """
         This function takes decision varaibles, y's, and u's,
@@ -423,8 +424,8 @@ class RobustProblem(Problem):
             init_val = (init_val > settings.TOLERANCE_DEFAULT).float()
         return init_val
 
-    #SERIAL - LEFT FOR DEBUGGING PURPOSES FOR NOW
-    def _eval_input(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
+    #SERIAL VERSION - TODO - DELETE WHEN _EVAL_INPUT IS VERIFIED TO WORK WELL
+    def _eval_input_SERIAL(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
                     eval_input_case, quantiles, **kwargs):
         """
         This function takes decision varaibles, y's, and u's,
@@ -449,7 +450,7 @@ class RobustProblem(Problem):
                 # else:
                 #     res.append(eval_arg)
             return res
-        curr_result ={}
+        curr_result = {}
         if eval_input_case != RobustProblem._EVAL_INPUT_CASE.MAX:
             for j in range(batch_int):
                 curr_eval_args = _sample_args(eval_args, j, items_to_sample)
@@ -1176,26 +1177,26 @@ class RobustProblem(Problem):
                     The arguments of torch_exp
             """
 
-            def _safe_increase_axis(expr: Expression, *args) -> int | None | bool:
+            def _safe_increase_axis(expr: Expression, arg_to_orig_axis: dict) -> None:
                 """
                 This is an internal function that increases expr.axis by 1 if it is not negative.
                 It is needed because we add a new dimension that is reserved for batching, and when
                 CVXPY atoms are created, they are unaware of that.
                 The increase happens only if batch mode is recognized.
-
-                Returns:
-                    original_axis (int | None | False):
-                        The original axis of the expression. It is needed to be able to revert back
-                        to the original axis. If the original expression has no axis, returns False.
-                        WARNING! None is returns when expr.axis=None, whereas False is returned
-                        when expr does not have an axis attribute.
                 """
 
-                # if not _is_batch(expr, *args):
-                #     return False
+                #Recursively increase the axis of the expression
+                for arg in expr.args:
+                    if isinstance(arg, Leaf):
+                        arg_to_orig_axis[arg] = False
+                        continue
+                    _safe_increase_axis(arg, arg_to_orig_axis)
+
                 if not hasattr(expr, "axis"):
-                    return False
+                    arg_to_orig_axis[expr] = False
+                    return
                 original_axis = expr.axis
+                arg_to_orig_axis[expr] = original_axis
 
                 #If axis=None is equivalent to 0. This is needed to make sure numeric functions
                 #do not flatten the inputs.
@@ -1205,7 +1206,18 @@ class RobustProblem(Problem):
                 if expr.axis>=0:
                     expr.axis += 1
 
-                return original_axis
+            def _restore_original_axis(expr: Expression, arg_to_orig_axis: dict) -> None:
+                """
+                This is an internal function restores the original axis to the expression and all
+                of its sub expressions.
+                """
+                for arg in expr.args:
+                    #Recursively restore original axis of the subexpressions
+                    _restore_original_axis(arg, arg_to_orig_axis)
+                    #Restore the original axis of this expression
+                original_axis = arg_to_orig_axis[expr]
+                if original_axis is not False:
+                    expr.axis = original_axis
 
             args_to_pass = [None]*len(args_inds_to_pass)
             for key, value in args_inds_to_pass.items():
@@ -1215,11 +1227,11 @@ class RobustProblem(Problem):
             #(if applicable). It is important to revert it back to the original value when done,
             #hence we save original_axis.
             expr = torch_exp.args[0]
-            original_axis = _safe_increase_axis(expr, args_to_pass)
+            arg_to_orig_axis = {} #Expression (arg) -> original axis dictionary
+            _safe_increase_axis(expr, arg_to_orig_axis)
             res = torch_exp(*args_to_pass)
             #Revert to the original axis if applicable. Note: None is a valid axis (unlike False).
-            if original_axis is not False:
-                expr.axis = original_axis
+            _restore_original_axis(expr, arg_to_orig_axis)
             return res
 
         # vars_dict contains a dictionary from variable/param -> index in *args (for the expression)
@@ -1774,8 +1786,7 @@ class RobustProblem(Problem):
                 step_num=np.NAN, train_flag=self.train_flag, num_g_total=self.num_g_total)
             with torch.no_grad():
                 test_args, test_to_sample = self._order_args(
-                    var_values=new_var_values,
-                y_batch=y_batch, u_batch=u_batch)
+                    var_values=new_var_values, y_batch=y_batch, u_batch=u_batch)
                 obj_test = self.evaluation_metric(batch_int,
                     test_args, test_to_sample, quantiles)
                 prob_violation_test = self.prob_constr_violation(batch_int,
