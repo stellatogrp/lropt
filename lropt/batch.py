@@ -31,12 +31,6 @@ class ElementwiseDotProduct(MulExpression):
     def __init__(self, *args):
         super().__init__(*args)
 
-    # def numeric(self, values):
-    #     """
-    #     Elementwise dot product
-    #     """
-    #     raise NotImplementedError("Numeric for ElementwiseDotProduct should not be used.")
-
     def torch_numeric(self, values: list[Tensor]):
         return self.elementwise_dotproduct(values[0], values[1])
 
@@ -245,12 +239,6 @@ class BatchedIndex(index):
     def __init__(self, expr, key, _orig_key, *args):
         super().__init__(expr, key, _orig_key, *args)
         self._orig_shape = self.args[0].shape
-
-    def numeric(self, values):
-        """
-        Elementwise dot product
-        """
-        raise NotImplementedError("Numeric for ElementwiseIndex should not be used.")
 
     def torch_numeric(self, values: list[Tensor]):
         def _is_batch(self, values: list[Tensor]) -> bool:
