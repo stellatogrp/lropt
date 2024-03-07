@@ -31,15 +31,15 @@ class ElementwiseDotProduct(MulExpression):
     def __init__(self, *args):
         super().__init__(*args)
 
-    def numeric(self, values):
-        """
-        Elementwise dot product
-        """
-        raise NotImplementedError("Numeric for ElementwiseDotProduct should not be used.")
-    
+    # def numeric(self, values):
+    #     """
+    #     Elementwise dot product
+    #     """
+    #     raise NotImplementedError("Numeric for ElementwiseDotProduct should not be used.")
+
     def torch_numeric(self, values: list[Tensor]):
         return self.elementwise_dotproduct(values[0], values[1])
-    
+
     def elementwise_dotproduct(self, *args) -> Tensor:
         """
         This function calculates the dot product between the rows of a and the
@@ -50,11 +50,11 @@ class ElementwiseDotProduct(MulExpression):
         Parameters:
             *args:
                 Input tensors. Should be exactly two.
-        
+
         Returns:
             res (torch.Tensor):
                 A torch tensor with the same dimensions as a and b.
-        
+
         Raises:
             ValueError if a and b are matrices not of the same size, or if not 2 tensors are passed.
         """
@@ -62,7 +62,7 @@ class ElementwiseDotProduct(MulExpression):
             """
             This helper function returns the number of batches for a tensor, or None if it is not
             batched. The batch size is always assumed to be the 1st dimension.
-            
+
             Raise:
                 ValueError if the shape of a does not match
             """
@@ -73,11 +73,11 @@ class ElementwiseDotProduct(MulExpression):
             if list(a_true_shape) != list(expr_arg_shape):
                 raise ValueError(f"Dimensions mismatch: got {a.shape} and {expr_arg_shape}.")
             return a.shape[0] if is_batch else None
-        
+
         def _get_batch_size(is_batch_vec: list) -> int:
             """
             This is a helper function that returns the batch size.
-            
+
             Raise:
                 ValueError if given multiple disagreeing batches
             """
@@ -102,7 +102,7 @@ class ElementwiseDotProduct(MulExpression):
                 else:
                     batched_args.append(args[i])
             return batched_args
-        
+
         def _gen_is_mat_vec(self) -> list[bool]:
             """
             This is a helper function that returns a boolean list of all the matrices indices
@@ -111,7 +111,7 @@ class ElementwiseDotProduct(MulExpression):
             for i, arg in enumerate(self.args):
                 is_mat_vec[i] = (len(arg.shape)>=2)
             return is_mat_vec
-        
+
         def _proprocess_args(self, args: tuple) -> list:
             """
             This function preprocess args: Converts it to a list, and re-transposes the RHS if BOTH:
@@ -131,7 +131,7 @@ class ElementwiseDotProduct(MulExpression):
             if is_vec_lhs and (not is_batched_vec_lhs) and is_batched_vec_rhs:
                 args[1] = args[1].T
             return args
-        
+
         def _is_vec(obj) -> bool:
             """
             This is a helper function that returns True if an object (tensor, CP.Variable, ...) is
@@ -157,24 +157,24 @@ class ElementwiseDotProduct(MulExpression):
         #If the dimensions match the saved dimensions - regular matmul
         if batch_size is None:
             return torch.matmul(*args)
-        
+
         #Else: batched matmul
         #If one of the args is not batched - stack it
         batched_args = _gen_batched_args(args, is_batch_vec)
-        
+
         #Check which argument is supposed to be a matrix
         is_mat_vec = _gen_is_mat_vec(self)
 
         #matrix-matrix
         if all(is_mat_vec):
             return torch.matmul(*batched_args)
-        
+
         #vector-vector
         elif not any(is_mat_vec):
             row_len = batched_args[0].shape[1]
             return torch.matmul(batched_args[0].view(batch_size,1,row_len),
                                 batched_args[1].view(batch_size,row_len,1)).reshape(-1)
-                        
+
         #vector-matrix / matrix-vector
         else:
             #Get the indices of the vector and the matrix
@@ -220,7 +220,7 @@ class ElementwiseDotProduct(MulExpression):
             """
             This is a helper function that checks if this expression needs to be transformed
             """
-            
+
             #Check if dot-product
             op_name = getattr(expr, "OP_NAME", None)
             return (op_name=="@") and (type(expr) != multiply)
@@ -229,7 +229,7 @@ class ElementwiseDotProduct(MulExpression):
         if not _should_transform(expr):
             return expr
         return ElementwiseDotProduct(*expr.args)
-    
+
     @staticmethod
     def get_args(expr: Expression) -> tuple:
         """
@@ -251,7 +251,7 @@ class BatchedIndex(index):
         Elementwise dot product
         """
         raise NotImplementedError("Numeric for ElementwiseIndex should not be used.")
-    
+
     def torch_numeric(self, values: list[Tensor]):
         def _is_batch(self, values: list[Tensor]) -> bool:
             """
@@ -259,7 +259,7 @@ class BatchedIndex(index):
             """
             curr_shape = len(values[0].shape)
             return (curr_shape - len(self._orig_shape)) == 1
-        
+
         def _create_slice(key: None | int | tuple | slice) -> tuple:
             """
             This is a helper function that adds a slice(None, None, None) to key to select all the
@@ -286,7 +286,7 @@ class BatchedIndex(index):
             #In batch mode, need to specify to take all the elements from the first dimension
             key = _create_slice(key)
         return values[0][key]
-    
+
     @staticmethod
     def inner_batchify(expr: Expression) -> Expression:
         """
@@ -298,14 +298,14 @@ class BatchedIndex(index):
             """
             This is a helper function that checks if this expression needs to be transformed
             """
-            
+
             return isinstance(expr, index)
 
         #Change this expression if necessary
         if not _should_transform(expr):
             return expr
         return BatchedIndex(*BatchedIndex.get_args(expr))
-    
+
     @staticmethod
     def get_args(expr: Expression) -> tuple:
         """
@@ -315,19 +315,19 @@ class BatchedIndex(index):
 
 def batchify(expr: Expression) -> Expression:
     """
-    This method returns a new expression where objects of target_class are transformed to 
+    This method returns a new expression where objects of target_class are transformed to
     """
-    
+
     #Recursively change all the args of this expression
     args = [batchify(arg) for arg in expr.args]
     expr.args = args
-    
+
     #Change this expression if necessary
     batched_type = SUPPORT_BATCH[type(expr)] if type(expr) in SUPPORT_BATCH else None
 
     if not batched_type:
         return expr
-    
+
     return batched_type.inner_batchify(expr)
 
 #This dictionary contains all the supported batched elements.

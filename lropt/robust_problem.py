@@ -787,12 +787,12 @@ class RobustProblem(Problem):
                 return sc.linalg.sqrtm(np.cov(train_set.T))
             return np.array([[np.cov(train_set.T)]])
 
-        scalar = init_eps if init_eps else 1
-        scalar = scalar if train_shape else 1
+        # scalar = init_eps if init_eps else 1
+        # scalar = scalar if train_shape else 1
         mat_shape = train_set.shape[1] if cov_len_cond else 1
         matrix = np.array(init_A) if (
             init_A is not None) else np.eye(mat_shape)
-        return scalar * matrix
+        return matrix
 
     def _init_torches(self, init_eps, init_A, init_b, init_alpha,\
                        train_set, train_shape):
@@ -1294,8 +1294,7 @@ class RobustProblem(Problem):
         df = pd.DataFrame(columns=["step"])
         df_test = pd.DataFrame(columns=["step"])
 
-        eps_tch = self._gen_eps_tch(
-            kwargs['init_eps']) if kwargs['trained_shape'] else kwargs["rho_mult_tch"][0]
+        eps_tch = self._gen_eps_tch(kwargs['init_eps'])
         a_tch, b_tch, \
             alpha, slack \
             = self._init_torches(kwargs['init_eps'], kwargs['init_A'],
@@ -1625,7 +1624,7 @@ class RobustProblem(Problem):
             kwargs["train_shape"] = False
             kwargs["init_A"] = unc_set.a.value
             kwargs["init_b"] = unc_set.b.value
-            kwargs["init_eps"] = 1
+            # kwargs["init_eps"] = 1
             kwargs["random_init"] = False
             kwargs["lr"] = lr_size if lr_size else lr
             kwargs["num_iter"] = num_iter_size if num_iter_size else num_iter
