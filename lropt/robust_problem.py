@@ -31,9 +31,9 @@ import lropt.settings as settings
 from lropt import utils
 from lropt.batch import batchify
 from lropt.parameter import Parameter
-from lropt.uncertain_canon.uncertain_canonicalization import Uncertain_Canonicalization
 from lropt.shape_parameter import EpsParameter, ShapeParameter
 from lropt.uncertain import UncertainParameter
+from lropt.uncertain_canon.uncertain_canonicalization import Uncertain_Canonicalization
 from lropt.uncertain_canon.uncertain_chain import UncertainChain
 from lropt.uncertainty_sets.mro import MRO
 
