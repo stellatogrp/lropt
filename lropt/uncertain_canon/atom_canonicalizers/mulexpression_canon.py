@@ -1,8 +1,9 @@
 import numpy as np
 
-# from cvxpy.atoms.affine.unary_operators import NegExpression
-from lropt.remove_uncertain.atom_canonicalizers.mul_canon import mul_canon_transform
 from lropt.uncertain import UncertainParameter
+
+# from cvxpy.atoms.affine.unary_operators import NegExpression
+from lropt.uncertain_canon.atom_canonicalizers.mul_canon import mul_canon_transform
 
 
 def mulexpression_canon(expr, args, var, cons):

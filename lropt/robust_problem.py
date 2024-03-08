@@ -31,7 +31,7 @@ import lropt.settings as settings
 from lropt import utils
 from lropt.batch import batchify
 from lropt.parameter import Parameter
-from lropt.remove_uncertain.remove_uncertain import RemoveUncertainParameters
+from lropt.uncertain_canon.uncertain_canonicalization import Uncertain_Canonicalization
 from lropt.shape_parameter import EpsParameter, ShapeParameter
 from lropt.uncertain import UncertainParameter
 from lropt.uncertain_canon.uncertain_chain import UncertainChain
@@ -616,8 +616,8 @@ class RobustProblem(Problem):
             # Find position of Dcp2Cone or Qp2SymbolicQp
             for idx in range(len(new_reductions)):
                 if type(new_reductions[idx]) in [Dcp2Cone, Qp2SymbolicQp]:
-                    # Insert RemoveUncertainParameters before those reductions
-                    new_reductions.insert(idx, RemoveUncertainParameters())
+                    # Insert Uncertain_Canonicalization before those reductions
+                    new_reductions.insert(idx, Uncertain_Canonicalization())
                     break
         # return a chain instead (chain.apply, return the problem and inverse data)
         return SolvingChain(reductions=new_reductions)
@@ -1867,7 +1867,7 @@ class RobustProblem(Problem):
             unc_reductions = []
             if type(self.objective) == Maximize:
                 unc_reductions += [FlipObjective()]
-            unc_reductions += [RemoveUncertainParameters()]
+            unc_reductions += [Uncertain_Canonicalization()]
             newchain = UncertainChain(self, reductions=unc_reductions)
             self.new_prob, self.inverse_data = newchain.apply(self)
             self.uncertain_chain = newchain

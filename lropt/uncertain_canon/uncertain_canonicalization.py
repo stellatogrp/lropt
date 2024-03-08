@@ -10,8 +10,9 @@ from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
 from cvxpy.reductions.solution import Solution
 
-from lropt.remove_uncertain.atom_canonicalizers.mul_canon import mul_canon_transform
 from lropt.uncertain import UncertainParameter
+from lropt.uncertain_canon.atom_canonicalizers import CANON_METHODS as remove_uncertain_methods
+from lropt.uncertain_canon.atom_canonicalizers.mul_canon import mul_canon_transform
 from lropt.uncertain_canon.remove_constant import REMOVE_CONSTANT_METHODS as rm_const_methods
 from lropt.uncertain_canon.separate_uncertainty import SEPARATION_METHODS as sep_methods
 from lropt.uncertainty_sets.mro import MRO
@@ -68,7 +69,7 @@ class Uncertain_Canonicalization(Reduction):
             A problem owned by this reduction.
     """
 
-    def __init__(self, canon_methods, problem=None) -> None:
+    def __init__(self, canon_methods=remove_uncertain_methods, problem=None) -> None:
         super(Uncertain_Canonicalization, self).__init__(problem=problem)
         self.canon_methods = canon_methods
 

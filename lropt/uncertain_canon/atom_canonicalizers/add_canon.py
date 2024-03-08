@@ -4,9 +4,9 @@ from lropt.uncertain import UncertainParameter
 
 # from cvxpy.atoms.affine.unary_operators import NegExpression
 
-# from lropt.remove_uncertain.atom_canonicalizers.mul_canon import \
+# from lropt.uncertain_canon.atom_canonicalizers.mul_canon import \
 # mul_canon_transform
-# from lropt.remove_uncertain.atom_canonicalizers.mulexpression_canon import \
+# from lropt.uncertain_canon.atom_canonicalizers.mulexpression_canon import \
 # mulexpression_canon_transform
 
 
