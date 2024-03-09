@@ -93,3 +93,55 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         constraints = [2 * (A_unc @ a + b_unc) @ x * 1 <= b]
         prob_robust = RobustProblem(objective, constraints)
         prob_robust.solve(solver=SOLVER)
+
+        # TODO (bart): not sure what we are testing here
+
+    def test_tensor(self):
+        b, x, n, objective, _, _ = \
+            self.b, self.x, self.n, self.objective, self.rho, self.p
+
+        np.random.rand(n, n)
+        bar_a = 0.1 * np.random.rand(n)
+
+        # Solve with cvxpy
+        # prob_cvxpy = cp.Problem(objective, [bar_a @ x + cp.norm(P @ x, p=2) <= b,  # RO
+        #                                     cp.sum(x) == 1, x >= 0])
+        prob_cvxpy = cp.Problem(objective, [bar_a @ x <= b, cp.sum(x) == 1, x >= 0]) # nominal
+        prob_cvxpy.solve(solver=SOLVER)
+        x_cvxpy = x.value
+
+        # Solve via tensor reformulation
+        a = cp.Parameter(n)
+        prob_tensor = cp.Problem(objective, [a @ x <= b, cp.sum(x) == 1, x >= 0])
+        data = prob_tensor.get_problem_data(solver=SOLVER)
+        param_prob = data[0]['param_prob']
+        n_var = param_prob.reduced_A.var_len
+        T_Ab = param_prob.A
+
+        # Tensor mapping (cvxpy works as follows)
+        # T_Ab @ (theta, 1) = vec([A | b])
+        vecAb = T_Ab @ np.hstack([bar_a, 1])
+        Ab = vecAb.reshape(-1, n_var + 1, order='F')
+        A_rec = -Ab[:, :-1] # note minus sign for different conic form
+        b_rec = Ab[:, -1]
+        s = cp.Variable(A_rec.shape[0])
+        constraints = [A_rec @ x + s == b_rec]
+        cones = data[0]['dims']
+
+        if cones.zero > 0:
+            constraints.append(cp.Zero(s[:cones.zero]))
+        if cones.nonneg > 0:
+            constraints.append(cp.NonNeg(s[cones.zero:cones.zero + cones.nonneg]))
+        # TODO: Add other cones
+
+        prob_recovered = cp.Problem(objective, constraints)
+        prob_recovered.solve(solver=SOLVER)
+        x_recovered = x.value
+
+
+        npt.assert_allclose(x_cvxpy, x_recovered, rtol=RTOL, atol=ATOL)
+
+        # TODO: adapt this example to handle RO formulation
+        # from both cvxpy and tensor reformulation
+
+        # TODO: handle parameters in objective as well

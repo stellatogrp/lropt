@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lropt"
-description="A package for decision-making under uncertainty, using data."
+description = "A package for decision-making under uncertainty, using data."
 readme = "README.md"
-license = {text = "Apache 2.0"}
+license = { text = "Apache 2.0" }
 dynamic = ["version"]
 authors = [
-{name = "Irina Wang", email="iywang@princeton.edu"},
-{name = "Cole Becker", email="colebecker@princeton.edu"},
-{name = "Bart Van Parys", email="vanparys@mit.edu"},
-{name = "Bartolomeo Stellato", email="bstellato@princeton.edu"}
+    { name = "Irina Wang", email = "iywang@princeton.edu" },
+    { name = "Cole Becker", email = "colebecker@princeton.edu" },
+    { name = "Bart Van Parys", email = "vanparys@mit.edu" },
+    { name = "Bartolomeo Stellato", email = "bstellato@princeton.edu" },
 ]
 dependencies = [
     "cvxpy @ git+https://github.com/AmitSolomonPrinceton/cvxpy@7f34e5bdc6ca0d3d846790e972a6af3d8993da5f",
@@ -22,24 +22,43 @@ dependencies = [
     "cvxpylayers @ git+https://github.com/cvxgrp/cvxpylayers@755d93fef4319bd1bdb8390f9c98ff0ebcf8bdea",
     "pandas",
     "tqdm",
-    "diffcp @ git+https://github.com/cvxgrp/diffcp@eaac7bc4d637e8854801929ebf01d7db45554f5d"
+    "diffcp @ git+https://github.com/cvxgrp/diffcp@eaac7bc4d637e8854801929ebf01d7db45554f5d",
 ]
 
+[tool.setuptools]
+packages = ["lropt"]
 
 [tool.setuptools_scm]
 # To infer version automatically from git
 write_to = "lropt/_version.py"
 
 
-
 [project.optional-dependencies]
-dev = ["pytest", "pre-commit", "ruff", "ruff-lsp",
-       "sphinx", "furo", "nbsphinx", "ipython",
-       "matplotlib", "jupyterlab"]
+dev = [
+    "pytest",
+    "pre-commit",
+    "ruff",
+    "ruff-lsp",
+    "sphinx",
+    "furo",
+    "nbsphinx",
+    "ipython",
+    "matplotlib",
+    "jupyterlab",
+    "ipdb",
+    "marimo",
+]
 
 
 [tool.ruff]
 select = ["E", "F", "I"]
 line-length = 100
-exclude = ["build", "examples", "instances", "docs", "*__init__.py"]
+exclude = [
+    "build",
+    "examples",
+    "instances",
+    "docs",
+    "cvxpy_dpp",
+    "*__init__.py",
+]
 target-version = "py310"
