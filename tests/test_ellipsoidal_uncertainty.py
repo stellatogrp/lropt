@@ -119,7 +119,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         T_Ab = param_prob.A
 
         # Tensor mapping (cvxpy works as follows)
-        # T_Ab @ (theta, 1) = vec([A | b])
+        # T_Ab @ (theta, 1) = vec([-A | b])
         vecAb = T_Ab @ np.hstack([bar_a, 1])
         Ab = vecAb.reshape(-1, n_var + 1, order='F')
         A_rec = -Ab[:, :-1] # note minus sign for different conic form
