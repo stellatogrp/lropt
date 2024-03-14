@@ -277,6 +277,10 @@ class RobustProblem(Problem):
         """Find y parameters"""
         return [v for v in self.parameters() if isinstance(v, Parameter)]
 
+    def y_parameter_shapes(self, y_params):
+        """Get the shape of all y parameters"""
+        return [v.shape[0] for v in y_params]
+
     def orig_yparams(self):
         """Find cvxpy y parameters"""
         return [v for v in self.parameters() if isinstance(v, OrigParameter)
@@ -937,7 +941,7 @@ class RobustProblem(Problem):
         b_history.append(b_tch.detach().numpy().copy())
 
     def _set_train_variables(self, fixb, alpha, slack, a_tch,
-                             b_tch, eps_tch, train_size):
+                             b_tch, eps_tch, train_size,contextual, model):
         """
         This function sets the variables to be trained in the outer level problem.
         TODO (Amit): complete the docstrings (to Irina)
@@ -948,6 +952,9 @@ class RobustProblem(Problem):
 
         if fixb:
             variables = [a_tch, alpha, slack]
+
+        elif contextual:
+            variables = [model.parameters(),alpha,slack]
         else:
             variables = [a_tch, b_tch, alpha, slack]
 
@@ -1282,6 +1289,27 @@ class RobustProblem(Problem):
         return args, item_to_sample
 
     def _train_loop(self, init_num, **kwargs):
+        def initialize_dimensions_linear(unc_set):
+            y_params = self.y_parameters()
+            y_shapes = self.y_parameter_shapes(y_params)
+            a_shape = unc_set._a.shape
+            b_shape = unc_set._b.shape
+            in_shape = sum(y_shapes)
+            out_shape = int(a_shape[0]*a_shape[1]+ b_shape[0])
+            return in_shape, out_shape
+
+        def create_tensors_linear(y_batch, model, unc_set):
+            a_shape = unc_set._a.shape
+            b_shape = unc_set._b.shape
+            input_tensors = torch.hstack(y_batch)
+            theta = model(input_tensors)
+
+            raw_a = theta[:,:a_shape[0]*a_shape[1]]
+            raw_b = theta[:,a_shape[0]*a_shape[1]:]
+            a_tch = torch.reshape(raw_a,(theta.shape[0],a_shape[0],a_shape[1]))
+            b_tch = torch.reshape(raw_b,(theta.shape[0],b_shape))
+            return a_tch, b_tch
+
         if kwargs['random_init'] and kwargs['train_shape']:
             if init_num >= 1:
                 np.random.seed(kwargs['seed']+init_num)
@@ -1304,9 +1332,17 @@ class RobustProblem(Problem):
         self._update_iters(kwargs['save_history'], a_history, b_history,
                                a_tch, b_tch, eps_tch)
 
+        in_shape, out_shape = initialize_dimensions_linear(kwargs["unc_set"])
+        linear = torch.nn.Linear(in_features = in_shape, out_features = out_shape)
+        model = torch.nn.Sequential(linear)
+
         variables = self._set_train_variables(kwargs['fixb'], alpha,
                                               slack,
-                                              a_tch, b_tch,eps_tch,kwargs["trained_shape"])
+                                              a_tch, b_tch,eps_tch,
+                                              kwargs["trained_shape"],
+                                            kwargs["contexual"], model)
+        variables += [model.parameters()]
+
         if kwargs['optimizer'] == "SGD":
             opt = settings.OPTIMIZERS[kwargs['optimizer']](
                 variables, lr=kwargs['lr'], momentum=kwargs['momentum'])
@@ -1316,8 +1352,9 @@ class RobustProblem(Problem):
         if kwargs['scheduler']:
             scheduler_ = torch.optim.lr_scheduler.StepLR(
                 opt, step_size=kwargs['lr_step_size'], gamma=kwargs['lr_gamma'])
-        # y's and cvxpylayer begin
-        self.y_parameters()
+
+
+
         num_ys = kwargs["y_train_tch"][0].shape[0]
         lam = kwargs['init_lam'] * torch.ones(self.num_g_total, dtype=settings.DTYPE)
         mu = kwargs['init_mu']
@@ -1480,7 +1517,8 @@ class RobustProblem(Problem):
         lr_step_size=settings.LR_STEP_SIZE,
         lr_gamma=settings.LR_GAMMA,
         position=False,
-        parallel=True
+        parallel=True,
+        contextual = False
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. lagrangian metric
@@ -1592,7 +1630,8 @@ class RobustProblem(Problem):
                   "lr_gamma": lr_gamma, "eta": eta,
                     "position": position, "test_percentage": test_percentage,
                     "y_train_tch": y_train_tchs, "y_test_tch": y_test_tchs,
-                    "y_orig_tch": y_orig_torches, "rho_mult_tch": rho_mult_tch}
+                    "y_orig_tch": y_orig_torches, "rho_mult_tch": rho_mult_tch,
+                    "contextual":contextual}
 
         # Debugging code - one iteration
         # res = self._train_loop(0, **kwargs)
