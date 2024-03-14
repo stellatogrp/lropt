@@ -1306,8 +1306,8 @@ class RobustProblem(Problem):
 
             raw_a = theta[:,:a_shape[0]*a_shape[1]]
             raw_b = theta[:,a_shape[0]*a_shape[1]:]
-            a_tch = torch.reshape(raw_a,(theta.shape[0],a_shape[0],a_shape[1]))
-            b_tch = torch.reshape(raw_b,(theta.shape[0],b_shape))
+            a_tch = raw_a.view(theta.shape[0],a_shape[0],a_shape[1])
+            b_tch = raw_b.view(theta.shape[0],b_shape)
             return a_tch, b_tch
 
         if kwargs['random_init'] and kwargs['train_shape']:
