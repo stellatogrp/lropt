@@ -1577,8 +1577,13 @@ class RobustProblem(Problem):
 
         else:
         # setup train and test data
-            train_set, _, train_tch, test_tch = self._split_dataset(
-                unc_set, test_percentage, seed)
+            # train_set, _, train_tch, test_tch = self._split_dataset(
+            #     unc_set, test_percentage, seed)
+
+            train_set, unc_test_set, unc_train_tch, test_tch, \
+            y_train_tchs, y_test_tchs = self._split_dataset(
+            unc_set, self.y_parameters(), test_percentage, seed)
+
 
         # create cvxpylayer
         cvxpylayer = CvxpyLayer(self.new_prob,
@@ -1587,9 +1592,12 @@ class RobustProblem(Problem):
                                 variables=self.variables())
 
         # use all y's
-        y_parameters = self.y_parameters()
+        self.y_parameters()
         num_ys = self.num_ys
-        y_batch, _ = self._gen_batch(num_ys, y_parameters, train_set, 1)
+        # y_batch, _ = self._gen_batch(num_ys, y_parameters, train_set, 1)
+        y_batch, u_batch = self._gen_batch(
+            num_ys, y_train_tchs, train_set, 1)
+
         grid_stats = GridStats()
 
         lam = 1000 * torch.ones(self.num_g, dtype=settings.DTYPE)
