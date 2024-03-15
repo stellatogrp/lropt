@@ -131,7 +131,8 @@ class TrainLoopStats():
         self.prob_violation_test = prob_violation_test.detach().numpy()
         self.violation_test = sum(var_vio.detach().numpy())/self.num_g_total
 
-    def generate_train_row(self, a_tch, eps_tch, lam, mu, alpha, slack):
+    def generate_train_row(self, a_tch, eps_tch, lam, mu, alpha,
+                           slack,contextual=False, linear = None):
         """
         This function generates a new row with the statistics
         """
@@ -150,19 +151,29 @@ class TrainLoopStats():
         row_dict["alpha"] = alpha.item()
         row_dict["slack"] = slack.detach().numpy().copy()
         row_dict["alphagrad"] = alpha.grad
-        row_dict["dfnorm"] = np.linalg.norm(a_tch.grad)
-        row_dict["gradnorm"] = a_tch.grad
+        if contextual:
+            row_dict["dfnorm"] = np.linalg.norm(linear.weight.grad) \
+                        + np.linalg.norm(linear.bias.grad)
+            row_dict["gradnorm"] = torch.hstack([linear.weight.grad,
+                                                 linear.bias.grad.view(
+                                            linear.bias.grad.shape[0],1)])
+        else:
+            row_dict["dfnorm"] = np.linalg.norm(a_tch.grad)
+            row_dict["gradnorm"] = a_tch.grad
         row_dict["Eps"] = eps_tch.detach().numpy().copy()
         new_row = pd.Series(row_dict)
+
+
+
         return new_row
 
     def generate_test_row(self, calc_coverage, a_tch, b_tch,
-                        alpha, test_tch, eps_tch, uncset, var_values= None):
+                        alpha, test_tch, eps_tch, uncset, var_values= None, contextual = False):
         """
         This function generates a new row with the statistics
         """
         coverage_test = calc_coverage(
-            test_tch, a_tch, b_tch, uncset._rho)
+            test_tch, a_tch, b_tch, uncset._rho,contextual)
         row_dict = {
             "Test_val":         self.testval,
             "Lower_test": self.lower_testval,
@@ -281,6 +292,27 @@ class RobustProblem(Problem):
         """Get the shape of all y parameters"""
         return [v.shape[0] for v in y_params]
 
+
+    def initialize_dimensions_linear(self, unc_set):
+        y_params = self.y_parameters()
+        y_shapes = self.y_parameter_shapes(y_params)
+        a_shape = unc_set._a.shape
+        b_shape = unc_set._b.shape
+        in_shape = sum(y_shapes)
+        out_shape = int(a_shape[0]*a_shape[1]+ b_shape[0])
+        return in_shape, out_shape
+
+    def create_tensors_linear(self,y_batch, linear, unc_set):
+        a_shape = unc_set._a.shape
+        b_shape = unc_set._b.shape
+        input_tensors = torch.hstack(y_batch)
+        theta = linear(input_tensors)
+        raw_a = theta[:,:a_shape[0]*a_shape[1]]
+        raw_b = theta[:,a_shape[0]*a_shape[1]:]
+        a_tch = raw_a.view(theta.shape[0],a_shape[0],a_shape[1])
+        b_tch = raw_b.view(theta.shape[0],b_shape[0])
+        return a_tch, b_tch
+
     def orig_yparams(self):
         """Find cvxpy y parameters"""
         return [v for v in self.parameters() if isinstance(v, OrigParameter)
@@ -349,25 +381,52 @@ class RobustProblem(Problem):
         return y_batch_array, num_unique_indices, y_unique, y_unique_array
 
     def gen_new_var_values(self, num_unique_indices,
-                y_unique_array, var_values, batch_int, y_batch_array):
+                y_unique_array, var_values, batch_int,
+            y_batch_array, contextual=False, a_tch=None, b_tch=None):
         # create dictionary from unique y's to var_values
-        y_to_var_values_dict = {}
-        for i in range(num_unique_indices):
-            y_to_var_values_dict[tuple(tuple(v[i].flatten())\
-                    for v in y_unique_array)] = [v[i] for v in var_values]
-        # initialize new var_values
-        shapes = [torch.tensor(v.shape) for v in var_values]
-        for i in range(len(shapes)):
-            shapes[i][0] = batch_int
-        new_var_values = [torch.zeros(*shape, dtype=settings.DTYPE) for shape in shapes]
+        if not contextual:
+            y_to_var_values_dict = {}
+            for i in range(num_unique_indices):
+                y_to_var_values_dict[tuple(tuple(v[i].flatten())\
+                        for v in y_unique_array)] = [v[i] for v in var_values]
+            # initialize new var_values
+            shapes = [torch.tensor(v.shape) for v in var_values]
+            for i in range(len(shapes)):
+                shapes[i][0] = batch_int
+            new_var_values = [torch.zeros(*shape, dtype=settings.DTYPE) for shape in shapes]
 
-        # populate new_var_values using the dictionary
-        for i in range(batch_int):
-            values_list = y_to_var_values_dict[tuple(tuple(v[i].flatten())\
-                    for v in y_batch_array)]
-            for j in range(len(var_values)):
-                new_var_values[j][i] = values_list[j]
-        return new_var_values
+            # populate new_var_values using the dictionary
+            for i in range(batch_int):
+                values_list = y_to_var_values_dict[tuple(tuple(v[i].flatten())\
+                        for v in y_batch_array)]
+                for j in range(len(var_values)):
+                    new_var_values[j][i] = values_list[j]
+            return new_var_values, a_tch, b_tch
+        else:
+            # create dictionary from unique y's to var_values
+            y_to_var_values_dict = {}
+            for i in range(num_unique_indices):
+                y_to_var_values_dict[tuple(tuple(v[i].flatten())\
+                        for v in y_unique_array)] = ([v[i] for v in var_values], a_tch[i], b_tch[i])
+            # initialize new var_values
+            shapes = [torch.tensor(v.shape) for v in var_values]
+            for i in range(len(shapes)):
+                shapes[i][0] = batch_int
+            new_var_values = [torch.zeros(*shape, dtype=settings.DTYPE) for shape in shapes]
+            ab_shapes = [torch.tensor(a_tch.shape),torch.tensor(b_tch.shape)]
+            ab_shapes[0][0] = batch_int
+            ab_shapes[1][0] = batch_int
+            new_a_tch = torch.zeros(*ab_shapes[0], dtype=settings.DTYPE)
+            new_b_tch = torch.zeros(*ab_shapes[1], dtype=settings.DTYPE)
+            # populate new_var_values using the dictionary
+            for i in range(batch_int):
+                values_list = y_to_var_values_dict[tuple(tuple(v[i].flatten())\
+                        for v in y_batch_array)]
+                for j in range(len(var_values)):
+                    new_var_values[j][i] = values_list[0][j]
+                new_a_tch[i] = values_list[1]
+                new_b_tch[i] = values_list[2]
+        return new_var_values, new_a_tch, new_b_tch
 
     def fg_to_lh(self):
         """
@@ -954,7 +1013,8 @@ class RobustProblem(Problem):
             variables = [a_tch, alpha, slack]
 
         elif contextual:
-            variables = [model.parameters(),alpha,slack]
+            variables = [alpha,slack]
+            variables.extend(list(model.parameters()))
         else:
             variables = [a_tch, b_tch, alpha, slack]
 
@@ -1090,7 +1150,7 @@ class RobustProblem(Problem):
             raise ValueError("Cannot train without uncertainty set data")
         return unc_set
 
-    def _calc_coverage(self, dset, a_tch, b_tch, rho=1):
+    def _calc_coverage(self, dset, a_tch, b_tch, rho=1,contextual=False):
         """
         This function calculates coverage.
 
@@ -1106,14 +1166,24 @@ class RobustProblem(Problem):
             Coverage
         """
         coverage = 0
-        for datind in range(dset.shape[0]):
-            coverage += torch.where(
-                torch.norm((a_tch.T@torch.linalg.inv(a_tch@a_tch.T)) @ (dset[datind]-
-                           b_tch))
-                <= rho,
-                1,
-                0,
-            )
+        if contextual:
+            for i in range(dset.shape[0]):
+                coverage += torch.where(
+                    torch.norm((a_tch[i].T@torch.linalg.inv(a_tch[i]@a_tch[i].T)) @ (dset[i]-
+                            b_tch[i]))
+                    <= rho,
+                    1,
+                    0,
+                )
+        else:
+            for datind in range(dset.shape[0]):
+                coverage += torch.where(
+                    torch.norm((a_tch.T@torch.linalg.inv(a_tch@a_tch.T)) @ (dset[datind]-
+                            b_tch))
+                    <= rho,
+                    1,
+                    0,
+                )
         return coverage/dset.shape[0]
 
     def _store_variables_parameters(self):
@@ -1289,27 +1359,6 @@ class RobustProblem(Problem):
         return args, item_to_sample
 
     def _train_loop(self, init_num, **kwargs):
-        def initialize_dimensions_linear(unc_set):
-            y_params = self.y_parameters()
-            y_shapes = self.y_parameter_shapes(y_params)
-            a_shape = unc_set._a.shape
-            b_shape = unc_set._b.shape
-            in_shape = sum(y_shapes)
-            out_shape = int(a_shape[0]*a_shape[1]+ b_shape[0])
-            return in_shape, out_shape
-
-        def create_tensors_linear(y_batch, model, unc_set):
-            a_shape = unc_set._a.shape
-            b_shape = unc_set._b.shape
-            input_tensors = torch.hstack(y_batch)
-            theta = model(input_tensors)
-
-            raw_a = theta[:,:a_shape[0]*a_shape[1]]
-            raw_b = theta[:,a_shape[0]*a_shape[1]:]
-            a_tch = raw_a.view(theta.shape[0],a_shape[0],a_shape[1])
-            b_tch = raw_b.view(theta.shape[0],b_shape)
-            return a_tch, b_tch
-
         if kwargs['random_init'] and kwargs['train_shape']:
             if init_num >= 1:
                 np.random.seed(kwargs['seed']+init_num)
@@ -1332,16 +1381,21 @@ class RobustProblem(Problem):
         self._update_iters(kwargs['save_history'], a_history, b_history,
                                a_tch, b_tch, eps_tch)
 
-        in_shape, out_shape = initialize_dimensions_linear(kwargs["unc_set"])
-        linear = torch.nn.Linear(in_features = in_shape, out_features = out_shape)
-        model = torch.nn.Sequential(linear)
-
+        if kwargs["contextual"]:
+            if kwargs["linear"] is None:
+                in_shape, out_shape = self.initialize_dimensions_linear(
+                    kwargs["unc_set"])
+                kwargs['linear'] = torch.nn.Linear(in_features = in_shape,
+                                            out_features = out_shape).double()
+            kwargs['model'] = torch.nn.Sequential(kwargs['linear'])
+        else:
+            kwargs['model'] = None
+            kwargs['linear'] = None
         variables = self._set_train_variables(kwargs['fixb'], alpha,
                                               slack,
                                               a_tch, b_tch,eps_tch,
                                               kwargs["trained_shape"],
-                                            kwargs["contexual"], model)
-        variables += [model.parameters()]
+                                            kwargs["contextual"], kwargs['linear'])
 
         if kwargs['optimizer'] == "SGD":
             opt = settings.OPTIMIZERS[kwargs['optimizer']](
@@ -1352,7 +1406,6 @@ class RobustProblem(Problem):
         if kwargs['scheduler']:
             scheduler_ = torch.optim.lr_scheduler.StepLR(
                 opt, step_size=kwargs['lr_step_size'], gamma=kwargs['lr_gamma'])
-
 
 
         num_ys = kwargs["y_train_tch"][0].shape[0]
@@ -1381,6 +1434,10 @@ class RobustProblem(Problem):
                     kwargs['batch_percentage'], max_size=30)
             # slack = torch.maximum(slack, torch.tensor(0.))
 
+            if kwargs["contextual"]:
+                a_tch, b_tch = self.create_tensors_linear(y_batch,
+                                            kwargs['model'],
+                                           kwargs["unc_set"])
             var_values = kwargs['cvxpylayer'](eps_tch, \
                                     *kwargs['y_orig_tch'], \
                 *y_batch, a_tch, b_tch,solver_args=kwargs['solver_args'])
@@ -1414,7 +1471,7 @@ class RobustProblem(Problem):
                     mu = kwargs['mu_multiplier']*mu
 
             new_row = train_stats.generate_train_row(
-                a_tch, eps_tch, lam, mu, alpha, slack)
+                a_tch, eps_tch, lam, mu, alpha, slack, kwargs["contextual"], kwargs['linear'])
             df = pd.concat(
                 [df, new_row.to_frame().T], ignore_index=True)
 
@@ -1425,6 +1482,9 @@ class RobustProblem(Problem):
                 batch_int, y_batch, u_batch = self._gen_batch(
                     kwargs["y_test_tch"][0].shape[0],
                     kwargs['y_test_tch'], kwargs['test_set'], 1,max_size=10)
+                if kwargs["contextual"]:
+                    a_tch, b_tch = self.create_tensors_linear(y_batch,
+                                        kwargs['linear'], kwargs["unc_set"])
                 var_values = kwargs['cvxpylayer'](
                     eps_tch,*kwargs['y_orig_tch'],\
                         *y_batch, a_tch, b_tch,
@@ -1451,7 +1511,7 @@ class RobustProblem(Problem):
                     obj_test, prob_violation_test, var_vio)
                 new_row = train_stats.generate_test_row(
                     self._calc_coverage, a_tch, b_tch, alpha,
-                    u_batch, eps_tch, kwargs['unc_set'], var_values)
+                    u_batch, eps_tch, kwargs['unc_set'], var_values, kwargs['contextual'])
                 df_test = pd.concat(
                     [df_test, new_row.to_frame().T], ignore_index=True)
 
@@ -1480,7 +1540,7 @@ class RobustProblem(Problem):
         # tqdm.write("Probability of constraint violation: {}".format(
         #            prob_violation_test))
         return df, df_test, a_history, b_history, \
-            param_vals, fin_val, var_values, mu
+            param_vals, fin_val, var_values, mu, kwargs["linear"]
 
     def train(
         self,
@@ -1518,7 +1578,8 @@ class RobustProblem(Problem):
         lr_gamma=settings.LR_GAMMA,
         position=False,
         parallel=True,
-        contextual = False
+        contextual = False,
+        linear = None
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. lagrangian metric
@@ -1591,6 +1652,10 @@ class RobustProblem(Problem):
 
         self._validate_uncertain_parameters()
 
+        if contextual and not train_shape:
+            if linear is None:
+                raise ValueError("You must a model if you do not train a model")
+
         unc_set = self._get_unc_set()
         self.dualize_constraints(override=True)
         self._validate_unc_set_T(unc_set)
@@ -1631,7 +1696,7 @@ class RobustProblem(Problem):
                     "position": position, "test_percentage": test_percentage,
                     "y_train_tch": y_train_tchs, "y_test_tch": y_test_tchs,
                     "y_orig_tch": y_orig_torches, "rho_mult_tch": rho_mult_tch,
-                    "contextual":contextual}
+                    "contextual":contextual, "linear": linear}
 
         # Debugging code - one iteration
         # res = self._train_loop(0, **kwargs)
@@ -1650,12 +1715,16 @@ class RobustProblem(Problem):
             res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
                 init_num, **kwargs) for init_num in range(num_random_init))
         df, df_test, a_history, b_history, param_vals, \
-            fin_val, var_values, mu_val = zip(*res)
+            fin_val, var_values, mu_val, linear_models = zip(*res)
         index_chosen = np.argmin(np.array(fin_val))
         self._trained = True
         unc_set._trained = True
-        unc_set.a.value = param_vals[index_chosen][0]
-        unc_set.b.value = param_vals[index_chosen][1]
+        if contextual:
+            unc_set.a.value = param_vals[index_chosen][0][0]
+            unc_set.b.value = param_vals[index_chosen][1][0]
+        else:
+            unc_set.a.value = param_vals[index_chosen][0]
+            unc_set.b.value = param_vals[index_chosen][1]
         return_eps = param_vals[index_chosen][2]
 
         if train_shape and train_size:
@@ -1670,13 +1739,13 @@ class RobustProblem(Problem):
             kwargs["init_mu"] = mu_val[index_chosen]
             if not parallel:
                 res = []
-                for init_num in range(num_random_init):
+                for init_num in range(1):
                     res.append(self._train_loop(init_num, **kwargs))
             else:
                 res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
-                init_num, **kwargs) for init_num in range(num_random_init))
+                init_num, **kwargs) for init_num in range(1))
             df_s, df_test_s, a_history_s, b_history_s, param_vals_s, \
-                fin_val_s, var_values_s, mu_s = zip(*res)
+                fin_val_s, var_values_s, mu_s, linear_models_s = zip(*res)
             return_eps = param_vals_s[0][2]
             return_df = pd.concat([df[index_chosen],df_s[0]])
             return_df_test = pd.concat([df_test[index_chosen], df_test_s[0]])
@@ -1688,14 +1757,16 @@ class RobustProblem(Problem):
                       return_eps, param_vals[0][3],
                       var_values[index_chosen] + var_values_s[0],
                       a_history=return_a_history,
-                      b_history=return_b_history)
+                      b_history=return_b_history,
+                      linear = linear_models_s[0])
         return Result(self, self.new_prob, df[index_chosen],
                       df_test[index_chosen], unc_set.a.value,
                       unc_set.b.value,
                       return_eps, param_vals[index_chosen][3],
                       var_values[index_chosen],
                       a_history=a_history[index_chosen],
-                      b_history=b_history[index_chosen])
+                      b_history=b_history[index_chosen],
+                      linear = linear_models[index_chosen])
 
     def grid(
         self,
@@ -1709,7 +1780,9 @@ class RobustProblem(Problem):
         solver_args=settings.LAYER_SOLVER,
         quantiles=settings.QUANTILES,
         newdata = None,
-        eta = settings.ETA_LAGRANGIAN_DEFAULT
+        eta = settings.ETA_LAGRANGIAN_DEFAULT,
+        contextual = False,
+        linear = None
     ):
         r"""
         Perform gridsearch to find optimal :math:`\epsilon`-ball around data.
@@ -1736,12 +1809,16 @@ class RobustProblem(Problem):
                 The epsilon value
         """
 
+        if contextual:
+            if linear is None:
+                raise ValueError("Missing NN-Model")
+
         self.train_flag = False
         self._validate_uncertain_parameters()
 
         unc_set = self._get_unc_set()
         self.dualize_constraints(override=True)
-        mro_set = self._is_mro_set(unc_set)
+        self._is_mro_set(unc_set)
 
         self._validate_unc_set_T(unc_set)
         df = pd.DataFrame(
@@ -1795,28 +1872,41 @@ class RobustProblem(Problem):
             eps_tch = torch.tensor(
                 init_eps, requires_grad=self.train_flag, dtype=settings.DTYPE)
 
-            if mro_set:
-                unc_set._rho_mult.value = init_eps
-                rho_mult_tch = self.gen_rho_mult_tch(rho_mult_params)
-                var_values = cvxpylayer(*rho_mult_tch, *y_orig_torches,
-                                        *y_unique, a_tch_init,b_tch_init,
-                                        solver_args=solver_args)
-                var_values_t = cvxpylayer(*rho_mult_tch, *y_orig_torches,
-                                        *y_unique_t, a_tch_init,b_tch_init,
-                                        solver_args=solver_args)
-            else:
-                var_values = cvxpylayer(*rho_mult_tch, *y_orig_torches,
-                                         *y_unique, eps_tch*a_tch_init,
-                                           b_tch_init,
-                                        solver_args=solver_args)
-                var_values_t = cvxpylayer(*rho_mult_tch, *y_orig_torches,
-                                         *y_unique_t, eps_tch*a_tch_init,
-                                           b_tch_init,
-                                        solver_args=solver_args)
 
-            new_var_values = self.gen_new_var_values(num_unique_indices,
-                    y_unique_array, var_values, batch_int, y_batch_array)
-            new_var_values_t = self.gen_new_var_values(num_unique_indices_t,
+            unc_set._rho_mult.value = init_eps
+            rho_mult_tch = self.gen_rho_mult_tch(rho_mult_params)
+            if contextual:
+                a_tch_init, b_tch_init = self.create_tensors_linear(
+                                        y_unique_t, linear, unc_set)
+            var_values_t = cvxpylayer(*rho_mult_tch, *y_orig_torches,
+                                    *y_unique_t, a_tch_init,b_tch_init,
+                                    solver_args=solver_args)
+            if contextual:
+                a_tch_init, b_tch_init = self.create_tensors_linear(
+                                        y_unique, linear, unc_set)
+            var_values = cvxpylayer(*rho_mult_tch, *y_orig_torches,
+                                    *y_unique, a_tch_init,b_tch_init,
+                                    solver_args=solver_args)
+            # else:
+            #     if contextual:
+            #         a_tch_init, b_tch_init = self.create_tensors_linear(self,
+            #                                 y_unique_t, model, unc_set)
+            #     var_values_t = cvxpylayer(*rho_mult_tch, *y_orig_torches,
+            #                              *y_unique_t, eps_tch*a_tch_init,
+            #                                b_tch_init,
+            #                             solver_args=solver_args)
+            #     if contextual:
+            #         a_tch_init, b_tch_init = self.create_tensors_linear(self,
+            #                                 y_unique, model, unc_set)
+            #     var_values = cvxpylayer(*rho_mult_tch, *y_orig_torches,
+            #                              *y_unique, eps_tch*a_tch_init,
+            #                                b_tch_init,
+            #                             solver_args=solver_args)
+
+            new_var_values, a_tch_init, b_tch_init = self.gen_new_var_values(
+                num_unique_indices,y_unique_array, var_values,
+                batch_int, y_batch_array, contextual,a_tch_init, b_tch_init )
+            new_var_values_t,_,_ = self.gen_new_var_values(num_unique_indices_t,
                      y_unique_array_t, var_values_t, batch_int_train,
                        y_batch_array_t)
 
@@ -1858,23 +1948,30 @@ class RobustProblem(Problem):
             train_stats.update_train_stats(None, obj_train,
                                 prob_violation_train,var_vio_train)
             grid_stats.update(train_stats, obj_test,
-                              eps_tch, eps_tch*a_tch_init, var_values[1])
+                              eps_tch, eps_tch*a_tch_init, var_values)
 
             new_row = train_stats.generate_test_row(
                 self._calc_coverage, eps_tch*a_tch_init,b_tch_init, alpha, unc_test_tch,
-                eps_tch, unc_set, var_values[1])
+                eps_tch, unc_set, var_values,contextual)
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
         self._trained = True
         unc_set._trained = True
-
-        unc_set.a.value = (
-            grid_stats.mineps * a_tch_init).detach().numpy().copy()
-        unc_set.b.value = (
-            b_tch_init).detach().numpy().copy()
+        if contextual:
+            unc_set.a.value = (
+                grid_stats.mineps * a_tch_init[0]).detach().numpy().copy()
+            unc_set.b.value = (
+                b_tch_init[0]).detach().numpy().copy()
+            b_value = unc_set.b.value[0]
+        else:
+            unc_set.a.value = (
+                grid_stats.mineps * a_tch_init).detach().numpy().copy()
+            unc_set.b.value = (
+                b_tch_init).detach().numpy().copy()
+            b_value = unc_set.b.value
         # else:
         #     unc_set.a.value = grid_stats.minT.detach().numpy().copy()
-        b_value = unc_set.b.value
+
         return Result(
             self,
             self.new_prob,
@@ -1998,7 +2095,7 @@ class RobustProblem(Problem):
 
 class Result(ABC):
     def __init__(self, prob, probnew, df, df_test, T, b, eps, obj, x, a_history=None,
-                 b_history=None):
+                 b_history=None, linear=None):
         self._reform_problem = probnew
         self._problem = prob
         self._df = df
@@ -2010,6 +2107,7 @@ class Result(ABC):
         self._eps = eps
         self._a_history = a_history
         self._b_history = b_history
+        self._linear = linear
 
     @property
     def problem(self):
