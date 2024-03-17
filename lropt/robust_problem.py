@@ -447,7 +447,7 @@ class RobustProblem(Problem):
         self.num_g = len(h_funcs)
 
     #BATCHED
-    def _eval_input(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
+    def _eval_input_b(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
                     eval_input_case, quantiles, **kwargs):
         """
         This function takes decision varaibles, y's, and u's,
@@ -488,7 +488,7 @@ class RobustProblem(Problem):
         return init_val
 
     #SERIAL VERSION - TODO - DELETE WHEN _EVAL_INPUT IS VERIFIED TO WORK WELL
-    def _eval_input_SERIAL(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
+    def _eval_input(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
                     eval_input_case, quantiles, **kwargs):
         """
         This function takes decision varaibles, y's, and u's,
