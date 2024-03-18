@@ -302,7 +302,7 @@ class RobustProblem(Problem):
         out_shape = int(a_shape[0]*a_shape[1]+ b_shape[0])
         return in_shape, out_shape
 
-    def create_tensors_linear(self,y_batch, linear, unc_set):
+    def create_tensors_linear(self,y_batch, linear, unc_set, requires_grad=True):
         a_shape = unc_set._a.shape
         b_shape = unc_set._b.shape
         input_tensors = torch.hstack(y_batch)
@@ -311,6 +311,9 @@ class RobustProblem(Problem):
         raw_b = theta[:,a_shape[0]*a_shape[1]:]
         a_tch = raw_a.view(theta.shape[0],a_shape[0],a_shape[1])
         b_tch = raw_b.view(theta.shape[0],b_shape[0])
+        if not requires_grad:
+            a_tch = torch.tensor(a_tch, requires_grad=False)
+            b_tch = torch.tensor(b_tch, requires_grad=False)
         return a_tch, b_tch
 
     def orig_yparams(self):
@@ -872,7 +875,7 @@ class RobustProblem(Problem):
         if init_b is not None:
             b_tch_data = np.array(init_b)
         else:
-            b_tch_data = -np.mean(train_set, axis=0)
+            b_tch_data = np.mean(train_set, axis=0)
         b_tch = torch.tensor(b_tch_data, requires_grad=self.train_flag,
                                 dtype=settings.DTYPE)
         a_tch = init_tensor
@@ -1385,8 +1388,21 @@ class RobustProblem(Problem):
             if kwargs["linear"] is None:
                 in_shape, out_shape = self.initialize_dimensions_linear(
                     kwargs["unc_set"])
+                np.random.seed(kwargs['seed']+init_num)
                 kwargs['linear'] = torch.nn.Linear(in_features = in_shape,
-                                            out_features = out_shape).double()
+                                        out_features = out_shape).double()
+                if init_num < 1:
+                    with torch.no_grad():
+                        torch_a = torch.tensor(a_tch,
+                                            dtype=settings.DTYPE,
+                                            requires_grad=True)
+                        torch_b = torch.tensor(b_tch,
+                                               dtype=settings.DTYPE,
+                                               requires_grad=True)
+                        torch_a = torch_a.flatten()
+                        torch_concat = torch.hstack([torch_a, torch_b])
+                    kwargs['linear'].weight.data.fill_(0.0001)
+                    kwargs['linear'].bias.data = torch_concat
             kwargs['model'] = torch.nn.Sequential(kwargs['linear'])
         else:
             kwargs['model'] = None
@@ -1534,7 +1550,7 @@ class RobustProblem(Problem):
             fin_val = obj_test[1].item() + 10*abs(sum(var_vio.detach().numpy()))
         a_val = a_tch.detach().numpy().copy()
         b_val = b_tch.detach().numpy().copy()
-        eps_val = eps_tch.detach().numpy().copy() if kwargs['trained_shape'] else 1
+        eps_val = eps_tch.detach().numpy().copy()
         param_vals = (a_val, b_val, eps_val, obj_test[1].item())
         # tqdm.write("Testing objective: {}".format(obj_test[1].item()))
         # tqdm.write("Probability of constraint violation: {}".format(
@@ -1877,13 +1893,13 @@ class RobustProblem(Problem):
             rho_mult_tch = self.gen_rho_mult_tch(rho_mult_params)
             if contextual:
                 a_tch_init, b_tch_init = self.create_tensors_linear(
-                                        y_unique_t, linear, unc_set)
+                                        y_unique_t, linear, unc_set, requires_grad=self.train_flag)
             var_values_t = cvxpylayer(*rho_mult_tch, *y_orig_torches,
                                     *y_unique_t, a_tch_init,b_tch_init,
                                     solver_args=solver_args)
             if contextual:
                 a_tch_init, b_tch_init = self.create_tensors_linear(
-                                        y_unique, linear, unc_set)
+                                        y_unique, linear, unc_set,requires_grad=self.train_flag)
             var_values = cvxpylayer(*rho_mult_tch, *y_orig_torches,
                                     *y_unique, a_tch_init,b_tch_init,
                                     solver_args=solver_args)
