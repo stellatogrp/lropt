@@ -1,18 +1,22 @@
 import torch
+from cvxpy.atoms.atom import Atom
 from cvxpy.atoms.affine.binary_operators import MulExpression, multiply
 from cvxpy.atoms.affine.index import index
+from cvxpy.atoms.affine.reshape import reshape
 from cvxpy.expressions.expression import Expression
 from torch import Tensor
 
 """
-This file contains all the new batch-supporting atoms. Such atom must have the following static
+This file contains all the new batch-supporting atoms. Such atom must have the following
 methods (see the examples below):
 
-1. "inner_batchify" that checks if an expression should be batchified, and if so, returns a new
-expression using the new batched atom.
+1. "inner_batchify" (staticmethod) that checks if an expression should be batchified, and if so,
+returns a new expression using the new batched atom.
 
-2. "get_args" that given an expression, produces a list called args that would be the inputs to
-the constructor.
+2. "get_args" (staticmethod) that given an expression, produces a list called args that would be the
+inputs to the constructor.
+
+3. "torch_numeric" that determines the actual torch numeric functionality of the atom.
 """
 
 class ElementwiseDotProduct(MulExpression):
@@ -241,13 +245,6 @@ class BatchedIndex(index):
         self._orig_shape = self.args[0].shape
 
     def torch_numeric(self, values: list[Tensor]):
-        def _is_batch(self, values: list[Tensor]) -> bool:
-            """
-            This is a helper function that returns True if this is batch mode
-            """
-            curr_shape = len(values[0].shape)
-            return (curr_shape - len(self._orig_shape)) == 1
-
         def _create_slice(key: None | int | tuple | slice) -> tuple:
             """
             This is a helper function that adds a slice(None, None, None) to key to select all the
@@ -268,7 +265,6 @@ class BatchedIndex(index):
                 return tuple(key)
 
         batch_flag = _is_batch(self, values)
-        # updated_key = _update_key(self, values, batch_flag)
         key = self._orig_key
         if batch_flag:
             #In batch mode, need to specify to take all the elements from the first dimension
@@ -281,25 +277,49 @@ class BatchedIndex(index):
         This method returns a new expression where index (slicing) opertaions are replaced with
         batched indexing.
         """
-
-        def _should_transform(expr: Expression):
-            """
-            This is a helper function that checks if this expression needs to be transformed
-            """
-
-            return isinstance(expr, index)
-
-        #Change this expression if necessary
-        if not _should_transform(expr):
-            return expr
-        return BatchedIndex(*BatchedIndex.get_args(expr))
+        return _inner_batchify(expr, BatchedIndex, index)
 
     @staticmethod
     def get_args(expr: Expression) -> tuple:
         """
-        This is a helper function that returns the requires args for the ElementwiseDotProduct atom.
+        This is a helper function that returns the requires args for the BatchedIndex atom.
         """
         return (expr.args[0], expr.key, expr._orig_key)
+    
+class BatchedReshape(reshape):
+    """
+    This is a reshaping atom that supports batched data. The first dimension is assumed to be the 
+    batched dimension (if batched data are given).
+    """
+
+    def __init__(self, expr, shape, *args):
+        super().__init__(expr, shape, *args)
+        self._orig_shape = self.args[0].shape
+
+    def torch_numeric(self, values: list[Tensor]):
+        batch_flag = _is_batch(self, values)
+        orig_shape = self._orig_shape
+        #In batch mode, need to reshape but keep the batch dimension (0-th element of values[0])
+        shape = [values[0].shape[0]] + list(orig_shape) if batch_flag else self._orig_shape
+        self._shape = shape #Update the atom's shape
+        result = super().torch_numeric(values)
+        self._shape = orig_shape #Restore the original shape of the atom
+        return result
+    
+    @staticmethod
+    def inner_batchify(expr: Expression) -> Expression:
+        """
+        This method returns a new expression where reshaping opertaions are replaced with
+        batched reshaping.
+        """
+        return _inner_batchify(expr, BatchedReshape, reshape)
+
+    @staticmethod
+    def get_args(expr: Expression) -> tuple:
+        """
+        This is a helper function that returns the requires args for the BatchedReshape atom.
+        """
+        return (expr.args[0], expr.shape, expr.order)
 
 def batchify(expr: Expression) -> Expression:
     """
@@ -318,8 +338,65 @@ def batchify(expr: Expression) -> Expression:
 
     return batched_type.inner_batchify(expr)
 
+def _is_batch(atom: Atom, values: list[Tensor]) -> bool:
+    """
+    This is a helper function that returns True if this is batch mode.
+    IMPORTANT: Should be used ONLY if:
+    1. self._orig_shape was updated.
+    2. The atom has only 1 input in values.
+    """
+    curr_shape = len(values[0].shape)
+    return (curr_shape - len(atom._orig_shape)) >= 1
+
+def _inner_batchify(expr: Expression, batch_type: type, parent_type: type) -> Expression:
+    """
+    This method returns a new expression where the atom's opertaions are replaced with
+    batched operations.
+    IMPORTANT: Should be used ONLY if:
+    1. The atom is supposed to work on a single tensor (e.g. sllicing) and not on multiple atoms
+    (e.g. matrix multiplication).
+    2. The atom has a static get_args function implemented (should be implemented anyway).
+
+    Parameters:
+        expr (Expression):
+            Input expression
+        batch_type (type):
+            Batched atom type (e.g. BatchedIndex)
+        parent_type (type):
+            The parent type of batch_type
+
+    Returns:
+        An expression using the batched atom (if relevant) or the regular one otherwise.
+    """
+
+    def _should_transform(expr: Expression, parent_type: type):
+        """
+        This is a helper function that checks if this expression needs to be transformed
+        """
+
+        return isinstance(expr, parent_type)
+
+    def _get_parent_type(batch_type: type):
+        """
+        This is an inner function that returns the parent type of batch_type, and raises an error
+        if there is not exactly 1 such parent.
+        """
+        parent_type = batch_type.__bases__
+        if len(parent_type) != 1:
+            raise ValueError(f"Expected {type(batch_type)} to have 1 parent, but {len(parent_type)}"
+                            f" were found.")
+        return parent_type[0]
+
+    parent_type = _get_parent_type(batch_type)
+    #Change this expression if necessary
+    if not _should_transform(expr, parent_type):
+        return expr
+    return batch_type(*batch_type.get_args(expr))
+
 #This dictionary contains all the supported batched elements.
 SUPPORT_BATCH = {
                 MulExpression:  ElementwiseDotProduct,
                 index:          BatchedIndex,
+                reshape:        BatchedReshape,
                 }
+
