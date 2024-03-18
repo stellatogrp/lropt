@@ -1,8 +1,8 @@
 import torch
-from cvxpy.atoms.atom import Atom
 from cvxpy.atoms.affine.binary_operators import MulExpression, multiply
 from cvxpy.atoms.affine.index import index
 from cvxpy.atoms.affine.reshape import reshape
+from cvxpy.atoms.atom import Atom
 from cvxpy.expressions.expression import Expression
 from torch import Tensor
 
