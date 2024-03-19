@@ -208,21 +208,21 @@ initn = np.eye(2) # sc.linalg.sqrtm(np.cov(train.T)) # * 100
 np.random.seed(15)
 init_bvaln = np.mean(train, axis=0)
 
-# Train A and b - linear predictor
-# result = prob.train(lr=0.001, num_iter=20, momentum=0.8,
-#                     optimizer="SGD", predictor = "CONSTANT",
-#                     seed=s, init_A=initn, init_b=init_bvaln,
-#                     init_lam=0.5, init_mu=0.01,
-#                     mu_multiplier=1.001, init_alpha=0., test_percentage=test_p, kappa=kappa,
-#                     parallel = False, random_init=True, num_random_init=1,
-#                     position = True, save_history = True)
+# Train A and b
+result = prob.train(lr=0.001, num_iter=20, momentum=0.8,
+                    optimizer="SGD", predictor = "LINEAR",
+                    seed=s, init_A=initn, init_b=init_bvaln,
+                    init_lam=0.5, init_mu=0.01,
+                    mu_multiplier=1.001, init_alpha=0., test_percentage=test_p, kappa=kappa,
+                    parallel = False, random_init=True, num_random_init=1,
+                    position = True, save_history = True)
 
 # Grid search epsilon
-eps_list = np.linspace(0.0001, 4, 15)
-result4 = prob.grid(epslst=eps_list, init_A=initn,
-                    init_b=init_bvaln, seed=8,
-                    init_alpha=0., test_percentage=test_p, quantiles = (0.4, 0.6))
-dfgrid = result4.df
+# eps_list = np.linspace(0.0001, 4, 15)
+# result4 = prob.grid(epslst=eps_list, init_A=initn,
+#                     init_b=init_bvaln, seed=8,
+#                     init_alpha=0., test_percentage=test_p, quantiles = (0.4, 0.6))
+# dfgrid = result4.df
 
 # plot_coverage_all(dfgrid, dfgrid, None, "Portlinear8",ind_1=(0,500),ind_2=(0,500),
 #                   logscale = False, zoom = False,legend = True)

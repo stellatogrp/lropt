@@ -93,8 +93,8 @@ def plot_coverage_all(df_standard,df_reshape,dfs,title,ind_1 = (0,100), ind_2 = 
             color="tab:orange", alpha=0.2)
     ax.set_xlabel("Probability of constraint violation")
     ax.axvline(x = 0.03, color = "green", linestyle = "-.",label = r"$\eta = 0.03$")
-    ax.scatter(0.03,y = np.mean([-0.26913068, -0.26968575,
-                                 -0.26027287, -0.05857202, -0.15843752]), color = "red")
+    # ax.scatter(0.03,y = np.mean([-0.26913068, -0.26968575,
+    #                              -0.26027287, -0.05857202, -0.15843752]), color = "red")
     # ax.axhline(y = np.mean([-0.26913068, -0.26968575, -0.26027287, -0.05857202, -0.15843752]),
     #            color = "red", linestyle = "-.",label = r"$MRO = 0.03$")
     ax.set_ylabel("Objective value")
