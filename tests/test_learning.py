@@ -20,16 +20,13 @@ from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
 from tests.settings import TESTS_ATOL as ATOL
 from tests.settings import TESTS_RTOL as RTOL
 
-# import pandas as pd
-# import torch
-
 
 class TestEllipsoidalUncertainty(unittest.TestCase):
 
     def setUp(self):
 
         self.n = 4
-        self.N = 30
+        self.N = 20
         norms = npr.multivariate_normal(
             np.zeros(self.n), np.eye(self.n), self.N)
         self.data = np.exp(norms)
@@ -40,7 +37,6 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
     def test_simple_learn(self):
         # Setup
         n = self.n
-        # num_instances = 5
         y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), self.N)
 
         # Problem
@@ -65,6 +61,27 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         print("done")
         # prob.solve()
 
+    def test_multidim_learn(self):
+        # Setup
+        n = self.n
+        y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), self.N)
+
+        # Problem
+        # y = np.ones(n)
+        y = Parameter(n, data=y_data)
+        u = UncertainParameter(n, uncertainty_set=Ellipsoidal(data=self.data))
+
+        x = cp.Variable(n)
+
+        objective = cp.Maximize(y @ x)
+
+        constraints = [u>=0]
+        constraints += [np.ones(n)@u <= 10]
+
+        prob = RobustProblem(objective, constraints)
+        prob.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD")
+        # prob.solve()
+
     def test_portfolio_intro(self):
         timestart = time.time()
         n = 2
@@ -75,7 +92,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
                 20, 15, 10, 10, 10, 10, 10, 10])/10)[:n]
 
         # formulate the family parameter
-        y_data = np.random.dirichlet(dist, 10)
+        y_data = np.random.dirichlet(dist, self.N)
         y = Parameter(n, data=y_data)
 
         def gen_demand_intro(N, seed):
@@ -86,7 +103,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
             return d_train
 
         # formulate the uncertain parameter
-        data = gen_demand_intro(10, seed=seed)
+        data = gen_demand_intro(self.N, seed=seed)
         u = UncertainParameter(n,uncertainty_set=Ellipsoidal(p=2,data=data))
 
         # formulate the Robust Problem
@@ -101,8 +118,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         test_p = 0.1
         train, _ = train_test_split(data, test_size=int(
             data.shape[0]*test_p), random_state=5)
-        init = sc.linalg.sqrtm(sc.linalg.inv(0.0001*np.eye(2) + np.cov(train.T)))
-        init_bval = -init@np.mean(train, axis=0)
+        init = sc.linalg.sqrtm(np.cov(train.T))
+        init_bval = np.mean(train, axis=0)
 
         # Train A and b
         result = prob.train(lr=0.0001, num_iter=100, momentum=0.8,
@@ -122,9 +139,9 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         # print(df)
         # # Grid search epsilon
-        # result4 = prob.grid(epslst=np.linspace(0.01, 5, 10), \
+        # result4 = prob.grid(epslst=np.linspace(0.01, 5, 50), \
         # init_A=init,
-        #                     init_b=init_bval, seed=s,
+        #                     init_b=init_bval, seed=5,
         #                     init_alpha=0., test_percentage=test_p)
         # dfgrid = result4.df
 
@@ -137,7 +154,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
     def test_torch_exp(self):
         # Setup
         n = 3
-        num_instances = 5
+        num_instances = self.N
         y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), num_instances)
 
         # Problem

@@ -34,6 +34,10 @@ class UncertainParameter(cp.Parameter):
         """Remove isolated uncertainty"""
         return self.uncertainty_set.isolated_unc(i, var, num_constr)
 
+    def isolated_unc_matrix(self, i, col, row, var, mat_var, num_col, num_row):
+        """Remove isolated uncertainty"""
+        return self.uncertainty_set.isolated_unc_matrix(i, col, row, var, mat_var, num_col, num_row)
+
     def conjugate(self, var, supp_var, shape, k_ind):
         """Reformulate uncertainty set"""
         return self.uncertainty_set.conjugate(var, supp_var, shape, k_ind)

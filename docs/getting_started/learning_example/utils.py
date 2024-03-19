@@ -13,14 +13,15 @@ def plot_iters(dftrain, dftest, title, steps=2000, logscale=True):
     len_train = len(dftrain["Violations_train"])
     ax1.plot(np.arange(0,len_train,10), dftest["Violations_test"][:steps],
              label="Out-of-sample empirical CVaR")
-    ax1.plot(dftrain["Violations_train"][:steps],
+    ax1.plot(np.arange(len_train),dftrain["Violations_train"][:steps],
              label="In-sample empirical CVaR", linestyle="--")
 
     ax1.set_xlabel("Iterations")
     ax1.hlines(xmin=0, xmax=dftrain["Violations_train"][:steps].shape[0],
                y=-0.0, linestyles="--", color="black", label="Target threshold: 0")
     ax1.legend()
-    ax2.plot(dftest["Test_val"][:steps], label="Objective value")
+    len_test = len(dftest["Test_val"])
+    ax2.plot(np.arange(len_test), dftest["Test_val"][:steps], label="Objective value")
     ax2.set_xlabel("Iterations")
     ax2.ticklabel_format(style="sci", axis='y',
                          scilimits=(0, 0), useMathText=True)
@@ -28,7 +29,8 @@ def plot_iters(dftrain, dftest, title, steps=2000, logscale=True):
     if logscale:
         ax1.set_xscale("log")
         ax2.set_xscale("log")
-    plt.savefig(title+"_iters.pdf", bbox_inches='tight')
+    plt.savefig(title+"_iters", bbox_inches='tight')
+    plt.show()
 
 def plot_coverage_all(df_standard,df_reshape,dfs,title,ind_1 = (0,100), ind_2 = (0,100), logscale = True, legend = False, zoom = False):
     plt.rcParams.update({
@@ -42,11 +44,11 @@ def plot_coverage_all(df_standard,df_reshape,dfs,title,ind_1 = (0,100), ind_2 = 
 
     fig, (ax, ax1,ax2) = plt.subplots(1, 3, figsize=(23, 3))
 
-    ax.plot(df_standard['Probability_violations_test'][beg1:end1], df_standard['Test_val'][beg1:end1], color="tab:blue", label=r"Mean-Var set")
-    ax.fill(np.append(df_standard['Probability_violations_test'][beg1:end1],df_standard['Probability_violations_test'][beg1:end1][::-1]), np.append(df_standard['Lower_test'][beg1:end1],df_standard['Upper_test'][beg1:end1][::-1]), color="tab:blue", alpha=0.2)
+    ax.plot(df_standard['Avg_prob_test'][beg1:end1], df_standard['Test_val'][beg1:end1], color="tab:blue", label=r"Mean-Var set")
+    ax.fill(np.append(df_standard['Avg_prob_test'][beg1:end1],df_standard['Avg_prob_test'][beg1:end1][::-1]), np.append(df_standard['Lower_test'][beg1:end1],df_standard['Upper_test'][beg1:end1][::-1]), color="tab:blue", alpha=0.2)
 
-    ax.plot(df_reshape['Probability_violations_test'][beg2:end2], df_reshape['Test_val'][beg2:end2], color="tab:orange", label=r"Reshaped set")
-    ax.fill(np.append(df_reshape['Probability_violations_test'][beg2:end2],df_reshape['Probability_violations_test'][beg2:end2][::-1]), np.append(df_reshape['Lower_test'][beg2:end2],df_reshape['Upper_test'][beg2:end2][::-1]), color="tab:orange", alpha=0.2)
+    ax.plot(df_reshape['Avg_prob_test'][beg2:end2], df_reshape['Test_val'][beg2:end2], color="tab:orange", label=r"Reshaped set")
+    ax.fill(np.append(df_reshape['Avg_prob_test'][beg2:end2],df_reshape['Avg_prob_test'][beg2:end2][::-1]), np.append(df_reshape['Lower_test'][beg2:end2],df_reshape['Upper_test'][beg2:end2][::-1]), color="tab:orange", alpha=0.2)
     ax.set_xlabel("Probability of constraint violation")
     ax.axvline(x = 0.03, color = "green", linestyle = "-.",label = r"$\eta = 0.03$")
     # ax.scatter(0.03,y = np.mean([-0.26913068, -0.26968575, -0.26027287, -0.05857202, -0.15843752]), color = "red")
@@ -79,13 +81,13 @@ def plot_coverage_all(df_standard,df_reshape,dfs,title,ind_1 = (0,100), ind_2 = 
     ax1.set_ylabel("Objective value")
     # ax1.legend()
 
-    ax2.plot(df_standard['Coverage_test'][beg1:end1], df_standard['Probability_violations_test'][beg1:end1], color="tab:blue", label=r"Mean-Var set")
+    ax2.plot(df_standard['Coverage_test'][beg1:end1], df_standard['Avg_prob_test'][beg1:end1], color="tab:blue", label=r"Mean-Var set")
 
-    ax2.plot(df_reshape['Coverage_test'][beg2:end2], df_reshape['Probability_violations_test'][beg2:end2], color="tab:orange", label=r"Reshaped set",alpha = 0.8)
+    ax2.plot(df_reshape['Coverage_test'][beg2:end2], df_reshape['Avg_prob_test'][beg2:end2], color="tab:orange", label=r"Reshaped set",alpha = 0.8)
     if dfs:
         for i in range(5):
-            ax2.plot(np.mean(np.vstack(dfs[i+1][0]['Coverage_test']),axis = 1)[beg1:end1], np.mean(np.vstack(dfs[i+1][0]['Probability_violations_test']),axis = 1)[beg1:end1], color="tab:blue", linestyle = "-")
-            ax2.plot(np.mean(np.vstack(dfs[i+1][1]['Coverage_test']),axis = 1)[beg2:end2],np.mean(np.vstack(dfs[i+1][1]['Probability_violations_test']),axis = 1)[beg2:end2], color = "tab:orange",linestyle = "-")
+            ax2.plot(np.mean(np.vstack(dfs[i+1][0]['Coverage_test']),axis = 1)[beg1:end1], np.mean(np.vstack(dfs[i+1][0]['Avg_prob_test']),axis = 1)[beg1:end1], color="tab:blue", linestyle = "-")
+            ax2.plot(np.mean(np.vstack(dfs[i+1][1]['Coverage_test']),axis = 1)[beg2:end2],np.mean(np.vstack(dfs[i+1][1]['Avg_prob_test']),axis = 1)[beg2:end2], color = "tab:orange",linestyle = "-")
     # ax2.plot(np.arange(100)/100, 1 - np.arange(100)/100, color = "red")
     # ax2.set_ylim([-0.05,0.25])
     ax2.axvline(x = 0.8, color = "black",linestyle = ":", label = "0.8 Coverage")
@@ -96,8 +98,8 @@ def plot_coverage_all(df_standard,df_reshape,dfs,title,ind_1 = (0,100), ind_2 = 
         axins = zoomed_inset_axes(ax2, 6, loc="upper center")
         axins.set_xlim(-0.005, 0.1)
         axins.set_ylim(-0.001,0.035)
-        axins.plot(np.mean(np.vstack(df_standard['Coverage_test']),axis = 1)[beg1:end1], np.mean(np.vstack(df_standard['Probability_violations_test']),axis = 1)[beg1:end1], color="tab:blue")
-        axins.plot(np.mean(np.vstack(df_reshape['Coverage_test']),axis = 1)[beg2:end2], np.mean(np.vstack(df_reshape['Probability_violations_test']),axis = 1)[beg2:end2], color="tab:orange",alpha = 0.8)
+        axins.plot(np.mean(np.vstack(df_standard['Coverage_test']),axis = 1)[beg1:end1], np.mean(np.vstack(df_standard['Avg_prob_test']),axis = 1)[beg1:end1], color="tab:blue")
+        axins.plot(np.mean(np.vstack(df_reshape['Coverage_test']),axis = 1)[beg2:end2], np.mean(np.vstack(df_reshape['Avg_prob_test']),axis = 1)[beg2:end2], color="tab:orange",alpha = 0.8)
         axins.axhline(y = 0.03, color = "green",linestyle = "-.", label = r"$\hat{\eta} = 0.03$")
         axins.set_xticks(ticks=[])
         axins.set_yticks(ticks=[])

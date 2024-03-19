@@ -10,7 +10,7 @@ class Box(Norm):
     Box uncertainty set defined as
 
     .. math::
-        \mathcal{U}_{\text{box}} = \{u \ | \ \| Au + b \|_\infty \le \rho\}
+        \mathcal{U}_{\text{box}} = \{Az+b \ | \ \|z\|_\infty \le \rho\}
 
     Parameters
     ----------
