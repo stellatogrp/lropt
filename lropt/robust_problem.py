@@ -1005,7 +1005,8 @@ class RobustProblem(Problem):
 
         return unc_train_set, unc_test_set, unc_train_tch, unc_test_tch, y_train_tchs, y_test_tchs
 
-    def _update_iters(self, save_history, a_history, b_history, a_tch, b_tch, eps_tch):
+    def _update_iters(self, save_history, a_history, b_history,
+                      eps_history,a_tch, b_tch, eps_tch):
         """
         This function updates a_history and b_history
 
@@ -1032,7 +1033,8 @@ class RobustProblem(Problem):
         if not save_history:
             return
         eps = eps_tch.detach().numpy().copy()
-        a_history.append(eps*a_tch.detach().numpy().copy())
+        eps_history.append(eps)
+        a_history.append(a_tch.detach().numpy().copy())
         b_history.append(b_tch.detach().numpy().copy())
 
     def _set_train_variables(self, fixb, alpha, slack, a_tch,
@@ -1046,13 +1048,13 @@ class RobustProblem(Problem):
             return variables
 
         if fixb:
-            variables = [a_tch, alpha, slack]
+            variables = [eps_tch, a_tch, alpha, slack]
 
         elif contextual:
-            variables = [alpha,slack]
+            variables = [eps_tch, alpha,slack]
             variables.extend(list(model.parameters()))
         else:
-            variables = [a_tch, b_tch, alpha, slack]
+            variables = [eps_tch, a_tch, b_tch, alpha, slack]
 
         return variables
 
@@ -1404,6 +1406,7 @@ class RobustProblem(Problem):
                 kwargs['init_b'] = np.mean(kwargs['train_set'], axis=0)
         a_history = []
         b_history = []
+        eps_history = []
         df = pd.DataFrame(columns=["step"])
         df_test = pd.DataFrame(columns=["step"])
 
@@ -1415,7 +1418,7 @@ class RobustProblem(Problem):
                                  kwargs['train_set'], kwargs['train_shape'])
 
         self._update_iters(kwargs['save_history'], a_history, b_history,
-                               a_tch, b_tch, eps_tch)
+                           eps_history, a_tch, b_tch, eps_tch)
 
         if kwargs["contextual"]:
             if kwargs["linear"] is None:
@@ -1458,14 +1461,9 @@ class RobustProblem(Problem):
             train_stats = TrainLoopStats(
                 step_num=step_num, train_flag=self.train_flag, num_g_total=self.num_g_total)
 
-            # generate batched y and u
-            # y_batch = self._gen_y_batch(
-            #     num_ys, y_parameters, kwargs['y_batch_percentage'])
-
             batch_int, y_batch, u_batch = self._gen_batch(num_ys,
                     kwargs['y_train_tch'], kwargs['train_set'],
                     kwargs['batch_percentage'], max_size=30)
-            # slack = torch.maximum(slack, torch.tensor(0.))
 
             if kwargs["contextual"]:
                 a_tch, b_tch = self.create_tensors_linear(y_batch,
@@ -1509,7 +1507,7 @@ class RobustProblem(Problem):
                 [df, new_row.to_frame().T], ignore_index=True)
 
             self._update_iters(kwargs['save_history'], a_history, b_history,
-                               a_tch, b_tch, eps_tch)
+                               eps_history,a_tch, b_tch, eps_tch)
 
             if step_num % kwargs['test_frequency'] == 0:
                 batch_int, y_batch, u_batch = self._gen_batch(
@@ -1572,7 +1570,7 @@ class RobustProblem(Problem):
         # tqdm.write("Testing objective: {}".format(obj_test[1].item()))
         # tqdm.write("Probability of constraint violation: {}".format(
         #            prob_violation_test))
-        return df, df_test, a_history, b_history, \
+        return df, df_test, a_history, b_history, eps_history, \
             param_vals, fin_val, var_values, mu, kwargs["linear"]
 
     def train(
@@ -1749,20 +1747,21 @@ class RobustProblem(Problem):
             n_jobs = utils.get_n_processes() if parallel else 1
             res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
                 init_num, **kwargs) for init_num in range(num_random_init))
-        df, df_test, a_history, b_history, param_vals, \
+        df, df_test, a_history, b_history, eps_history, param_vals, \
             fin_val, var_values, mu_val, linear_models = zip(*res)
         index_chosen = np.argmin(np.array(fin_val))
         self._trained = True
         unc_set._trained = True
+        return_eps = param_vals[index_chosen][2]
         if contextual:
             unc_set.a.value = param_vals[index_chosen][0][0]
             unc_set.b.value = param_vals[index_chosen][1][0]
         else:
             unc_set.a.value = param_vals[index_chosen][0]
             unc_set.b.value = param_vals[index_chosen][1]
-        return_eps = param_vals[index_chosen][2]
 
         if train_shape and train_size:
+            kwargs["init_eps"] = return_eps
             kwargs["trained_shape"] = True
             kwargs["train_shape"] = False
             kwargs["init_A"] = unc_set.a.value
@@ -1779,13 +1778,15 @@ class RobustProblem(Problem):
             else:
                 res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
                 init_num, **kwargs) for init_num in range(1))
-            df_s, df_test_s, a_history_s, b_history_s, param_vals_s, \
-                fin_val_s, var_values_s, mu_s, linear_models_s = zip(*res)
+            df_s, df_test_s, a_history_s, b_history_s,eps_history_s,\
+            param_vals_s, fin_val_s, var_values_s, mu_s, \
+                linear_models_s = zip(*res)
             return_eps = param_vals_s[0][2]
             return_df = pd.concat([df[index_chosen],df_s[0]])
             return_df_test = pd.concat([df_test[index_chosen], df_test_s[0]])
             return_a_history = a_history[index_chosen] + a_history_s[0]
             return_b_history = b_history[index_chosen] + b_history_s[0]
+            return_eps_history = eps_history[index_chosen] + eps_history_s[0]
             return Result(self, self.new_prob, return_df,
                       return_df_test, unc_set.a.value,
                       unc_set.b.value,
@@ -1793,6 +1794,7 @@ class RobustProblem(Problem):
                       var_values[index_chosen] + var_values_s[0],
                       a_history=return_a_history,
                       b_history=return_b_history,
+                      eps_history = return_eps_history,
                       linear = linear_models_s[0])
         return Result(self, self.new_prob, df[index_chosen],
                       df_test[index_chosen], unc_set.a.value,
@@ -1801,6 +1803,7 @@ class RobustProblem(Problem):
                       var_values[index_chosen],
                       a_history=a_history[index_chosen],
                       b_history=b_history[index_chosen],
+                      eps_history = eps_history[index_chosen],
                       linear = linear_models[index_chosen])
 
     def grid(
@@ -1809,6 +1812,7 @@ class RobustProblem(Problem):
         seed=settings.SEED_DEFAULT,
         init_A=settings.INIT_A_DEFAULT,
         init_b=settings.INIT_B_DEFAULT,
+        init_eps = settings.INIT_EPS_DEFAULT_GRID,
         init_alpha=settings.INIT_ALPHA_DEFAULT,
         test_percentage=settings.TEST_PERCENTAGE_DEFAULT,
         num_ys=settings.NUM_YS_DEFAULT,
@@ -1903,12 +1907,12 @@ class RobustProblem(Problem):
         y_batch_array_t, num_unique_indices_t, y_unique_t, \
             y_unique_array_t = self.gen_unique_y(y_batch_train)
 
-        for init_eps in epslst:
+        for eps in epslst:
             eps_tch = torch.tensor(
-                init_eps, requires_grad=self.train_flag, dtype=settings.DTYPE)
+                eps*init_eps, requires_grad=self.train_flag, dtype=settings.DTYPE)
 
 
-            unc_set._rho_mult.value = init_eps
+            unc_set._rho_mult.value = eps*init_eps
             rho_mult_tch = self.gen_rho_mult_tch(rho_mult_params)
             if contextual:
                 a_tch_init, b_tch_init = self.create_tensors_linear(
@@ -1986,7 +1990,7 @@ class RobustProblem(Problem):
                               eps_tch, eps_tch*a_tch_init, var_values)
 
             new_row = train_stats.generate_test_row(
-                self._calc_coverage, eps_tch*a_tch_init,b_tch_init, alpha, unc_test_tch,
+                self._calc_coverage, eps_tch*a_tch_init,b_tch_init, alpha, u_batch,
                 eps_tch, unc_set, var_values,contextual)
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
@@ -2129,8 +2133,9 @@ class RobustProblem(Problem):
         return self.value
 
 class Result(ABC):
-    def __init__(self, prob, probnew, df, df_test, T, b, eps, obj, x, a_history=None,
-                 b_history=None, linear=None):
+    def __init__(self, prob, probnew, df, df_test, T, b, eps, \
+                 obj, x, a_history=None,
+                 b_history=None, eps_history = None, linear=None):
         self._reform_problem = probnew
         self._problem = prob
         self._df = df
@@ -2142,6 +2147,7 @@ class Result(ABC):
         self._eps = eps
         self._a_history = a_history
         self._b_history = b_history
+        self._eps_history = eps_history
         self._linear = linear
 
     @property
@@ -2183,6 +2189,10 @@ class Result(ABC):
     @property
     def uncset_iters(self):
         return self._a_history, self._b_history
+    @property
+    def linear(self):
+        return self._linear
+
 
 @dataclass
 class SolverStats:
