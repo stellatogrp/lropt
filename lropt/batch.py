@@ -394,15 +394,18 @@ def batchify(expr: Expression) -> Expression:
 
     return batched_type.inner_batchify(expr)
 
-def _is_batch(atom: Atom, values: list[Tensor]) -> bool:
+def _is_batch(atom: Atom, values: list[Tensor], orig_shape_flag: bool=True) -> bool:
     """
     This is a helper function that returns True if this is batch mode.
     IMPORTANT: Should be used ONLY if:
-    1. self._orig_shape was updated.
+    1. self._orig_shape was updated (if not updated, orig_shape_flag=pass False)
     2. The atom has only 1 input in values.
     """
     curr_shape = len(values[0].shape)
-    atom_shape = atom.shape
+    if orig_shape_flag:
+        atom_shape = getattr(atom, "_orig_shape", atom.shape)
+    else:
+        atom_shape = atom.shape
     return (curr_shape - len(atom_shape)) >= 1
 
 def _inner_batchify(expr: Expression, batch_type: type) -> Expression:
@@ -531,7 +534,7 @@ def _torch_numeric_stack(self: BatchedHstack | BatchedVstack, values: list[Tenso
             """
             This is a helper function that returns True if an an arg is a batched vector.
             """
-            if not _is_batch(arg, [value]):
+            if not _is_batch(arg, [value], orig_shape_flag=False):
                 return False
             return len(arg.shape)<=1 #<=1 for vectors and scalars
         
