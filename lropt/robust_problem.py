@@ -294,15 +294,18 @@ class RobustProblem(Problem):
 
 
     def initialize_dimensions_linear(self, unc_set):
+        """Find the dimensions of the linear model"""
         y_params = self.y_parameters()
         y_shapes = self.y_parameter_shapes(y_params)
         a_shape = unc_set._a.shape
         b_shape = unc_set._b.shape
         in_shape = sum(y_shapes)
         out_shape = int(a_shape[0]*a_shape[1]+ b_shape[0])
-        return in_shape, out_shape
+        return in_shape, out_shape, a_shape[0]*a_shape[1]
 
-    def create_tensors_linear(self,y_batch, linear, unc_set, requires_grad=True):
+    def create_tensors_linear(self,y_batch, linear, unc_set, \
+                              requires_grad=True):
+        """Create the tensors of a's and b's using the trained linear model"""
         a_shape = unc_set._a.shape
         b_shape = unc_set._b.shape
         input_tensors = torch.hstack(y_batch)
@@ -316,6 +319,32 @@ class RobustProblem(Problem):
             b_tch = torch.tensor(b_tch, requires_grad=False)
         return a_tch, b_tch
 
+    def init_linear_model(self, kwargs,init_num,a_tch, b_tch):
+        """Initializes the linear model weights and bias"""
+        in_shape, out_shape, a_totsize = \
+                                    self.initialize_dimensions_linear(
+                    kwargs["unc_set"])
+        torch.manual_seed(kwargs['seed']+init_num)
+        lin_model = torch.nn.Linear(in_features = in_shape,
+                                out_features = out_shape).double()
+        lin_model.bias.data[a_totsize:] = b_tch
+        if not kwargs['random_init']:
+            with torch.no_grad():
+                torch_b = b_tch
+                torch_a = a_tch.flatten()
+                torch_concat = torch.hstack([torch_a, torch_b])
+            lin_model.weight.data.fill_(0.0001)
+            lin_model.bias.data = torch_concat
+            if kwargs['init_weight'] is not None:
+                lin_model.weight.data = torch.tensor(
+                    kwargs['init_weight'], dtype=settings.DTYPE,
+                                    requires_grad=True)
+            if kwargs['init_bias'] is not None:
+                lin_model.bias.data = torch.tensor(
+                        kwargs['init_bias'], dtype=settings.DTYPE,
+                                    requires_grad=True)
+        return lin_model
+
     def orig_yparams(self):
         """Find cvxpy y parameters"""
         return [v for v in self.parameters() if isinstance(v, OrigParameter)
@@ -323,9 +352,11 @@ class RobustProblem(Problem):
                            isinstance(v,UncertainParameter))]
 
     def rho_mult_param(self,problem):
+        """Get the rho multiplier parameter"""
         return [v for v in problem.parameters() if isinstance(v, EpsParameter)]
 
     def gen_y_orig(self,yparams):
+            """Get the value of the non-lropt parameters"""
             if yparams is not None:
                 return [torch.tensor(y.value,
                         dtype=settings.DTYPE,
@@ -334,12 +365,14 @@ class RobustProblem(Problem):
                 return []
 
     def gen_rho_mult_tch(self,rhoparams):
+        """Get the value of the rho multiplier """
         if rhoparams is not None:
             return [torch.tensor(rho.value,
                         dtype=settings.DTYPE,
                         requires_grad=self.train_flag) for rho in rhoparams]
 
     def shape_parameters(self, problem):
+        """Get the shape parameters (A,b)"""
         return [v for v in problem.parameters() if isinstance(v, ShapeParameter)]
 
     def verify_y_parameters(self):
@@ -1386,23 +1419,7 @@ class RobustProblem(Problem):
 
         if kwargs["contextual"]:
             if kwargs["linear"] is None:
-                in_shape, out_shape = self.initialize_dimensions_linear(
-                    kwargs["unc_set"])
-                np.random.seed(kwargs['seed']+init_num)
-                kwargs['linear'] = torch.nn.Linear(in_features = in_shape,
-                                        out_features = out_shape).double()
-                if init_num < 1:
-                    with torch.no_grad():
-                        torch_a = torch.tensor(a_tch,
-                                            dtype=settings.DTYPE,
-                                            requires_grad=True)
-                        torch_b = torch.tensor(b_tch,
-                                               dtype=settings.DTYPE,
-                                               requires_grad=True)
-                        torch_a = torch_a.flatten()
-                        torch_concat = torch.hstack([torch_a, torch_b])
-                    kwargs['linear'].weight.data.fill_(0.0001)
-                    kwargs['linear'].bias.data = torch_concat
+                kwargs['linear'] = self.init_linear_model(kwargs, init_num,a_tch, b_tch)
             kwargs['model'] = torch.nn.Sequential(kwargs['linear'])
         else:
             kwargs['model'] = None
@@ -1595,7 +1612,9 @@ class RobustProblem(Problem):
         position=False,
         parallel=True,
         contextual = False,
-        linear = None
+        linear = None,
+        init_weight = None,
+        init_bias = None
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. lagrangian metric
@@ -1712,8 +1731,8 @@ class RobustProblem(Problem):
                     "position": position, "test_percentage": test_percentage,
                     "y_train_tch": y_train_tchs, "y_test_tch": y_test_tchs,
                     "y_orig_tch": y_orig_torches, "rho_mult_tch": rho_mult_tch,
-                    "contextual":contextual, "linear": linear}
-
+                    "contextual":contextual, "linear": linear,
+                    'init_weight':init_weight, 'init_bias':init_bias}
         # Debugging code - one iteration
         # res = self._train_loop(0, **kwargs)
         # Debugging code - serial
