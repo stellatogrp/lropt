@@ -1,30 +1,17 @@
 import numpy as np
-from numpy import ndarray
-from torch import Tensor
-from cvxpy import Variable, problems, SCS, Constant, Zero, NonNeg
-from cvxpy.constraints.nonpos import Inequality
-from cvxpy.expressions import cvxtypes
+from cvxpy import SCS, NonNeg, Parameter, Variable, Zero
+from cvxpy.atoms.affine.hstack import Hstack
+from cvxpy.constraints.constraint import Constraint
 from cvxpy.expressions.expression import Expression
-from cvxpy.problems.objective import Minimize
 from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
-from cvxpy.reductions.solution import Solution
-from cvxpy.reductions.dcp2cone.cone_matrix_stuffing import ParamConeProg
-from cvxpy import Parameter
-from cvxpy.atoms.affine.hstack import Hstack
+from numpy import ndarray
 from scipy.sparse import csc_matrix, csr_matrix
-from cvxpy.constraints.constraint import Constraint
 from scipy.sparse._coo import coo_matrix
 
-from lropt.uncertain import UncertainParameter
-from lropt.uncertain_canon.atom_canonicalizers import CANON_METHODS as remove_uncertain_methods
-from lropt.uncertain_canon.atom_canonicalizers.mul_canon import mul_canon_transform
-from lropt.uncertain_canon.remove_constant import REMOVE_CONSTANT_METHODS as rm_const_methods
-from lropt.uncertain_canon.separate_uncertainty import SEPARATION_METHODS as sep_methods
-from lropt.uncertainty_sets.mro import MRO
-from lropt.utils import unique_list
-from lropt.uncertain_canon.utils import standard_invert
 from lropt.robust_problem import RobustProblem
+from lropt.uncertain import UncertainParameter
+from lropt.uncertain_canon.utils import standard_invert
 
 
 def tensor_reshaper(T_Ab: coo_matrix, n_var: int) -> np.ndarray:
@@ -161,7 +148,7 @@ class SeparateMatrix(Reduction):
                     running_param_size += param_size
                 
                 #Add the parameter-free element:
-                #The last element is always 1, represents the free element (not a parameter)                  
+                #The last element is always 1, represents the free element (not a parameter)
                 param_vec_certain.append(1)
                 T_Ab_certain.append(T_Ab[:, running_param_size:])
 
@@ -232,9 +219,11 @@ class SeparateMatrix(Reduction):
             for u, orig_canon in unc_canon_dict.values():
                 u.canonicalize = orig_canon
 
-        def _gen_basic_problem(problem: RobustProblem, A_rec_certain: ndarray, A_rec_uncertain: Expression, b_rec: ndarray) -> tuple:
+        def _gen_basic_problem(problem: RobustProblem, A_rec_certain: ndarray,
+                               A_rec_uncertain: Expression, b_rec: ndarray) -> tuple:
             """
-            This is a helper function that generates the new problem, new constraints (need to add cone constraints to it), and the new slack variable.
+            This is a helper function that generates the new problem, new constraints
+            (need to add cone constraints to it), and the new slack variable.
             """
             variables = problem.variables()
             new_objective = _gen_objective(problem)
@@ -263,7 +252,8 @@ class SeparateMatrix(Reduction):
         # new_objective = _gen_objective(problem)
         # new_constraints, s = _gen_constraints(A_rec_certain, A_rec_uncertain, b_rec, variables)
         # new_problem = RobustProblem(objective=new_objective, constraints=new_constraints)
-        new_objective, new_constraints, s = _gen_basic_problem(problem, A_rec_certain, A_rec_uncertain, b_rec)
+        new_objective, new_constraints, s = _gen_basic_problem(problem, A_rec_certain,
+                                                               A_rec_uncertain, b_rec)
 
         #Add cone constraints TODO: Creata a function for this
         cones = problem.get_problem_data(solver=solver)[0]["dims"]
