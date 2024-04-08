@@ -11,11 +11,10 @@ from cvxpy.constraints.constraint import Constraint
 from scipy.sparse import csc_matrix, csr_matrix
 from scipy.sparse._coo import coo_matrix
 
-import lropt
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
-from tests.settings import SOLVER
+from tests.settings import SOLVER, SOLVER_SETTINGS
 from tests.settings import TESTS_ATOL as ATOL
 from tests.settings import TESTS_RTOL as RTOL
 
@@ -25,7 +24,7 @@ from tests.settings import TESTS_RTOL as RTOL
 
 def tensor_reshaper(T_Ab: coo_matrix, n_var: int) -> np.ndarray:
     """
-    This function reshapes T_Ab so T_Ab@param_vec gives the constraints row by row instead of 
+    This function reshapes T_Ab so T_Ab@param_vec gives the constraints row by row instead of
     column by column. At the moment, it returns a dense matrix instead of a sparse one.
     """
     def _calc_source_row(target_row: int, num_constraints: int) -> int:
@@ -85,14 +84,14 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # Formulate robust problem explicitly with cvxpy
         constraints = [rho * cp.norm(x, p=p) <= b]
         prob_cvxpy = cp.Problem(objective, constraints)
-        prob_cvxpy.solve(solver=SOLVER)
+        prob_cvxpy.solve(solver=SOLVER, **SOLVER_SETTINGS)
         x_cvxpy = x.value
         # Formulate robust constraints with lropt
         a = UncertainParameter(n,
                                uncertainty_set=Ellipsoidal(rho=rho))
         constraints = [a @ x <= b]
         prob_robust = RobustProblem(objective, constraints)
-        prob_robust.solve(solver=SOLVER)
+        prob_robust.solve(solver=SOLVER, **SOLVER_SETTINGS)
         x_robust = x.value
 
         npt.assert_allclose(x_cvxpy, x_robust, rtol=RTOL, atol=ATOL)
@@ -108,7 +107,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # Formulate robust problem explicitly with cvxpy
         constraints = [-b_unc @ x + rho * cp.norm(-A_unc.T @ x, p=2) <= b]
         prob_cvxpy = cp.Problem(objective, constraints)
-        prob_cvxpy.solve(solver=SOLVER)
+        prob_cvxpy.solve(solver=SOLVER, **SOLVER_SETTINGS)
         x_cvxpy = x.value
         # Formulate robust constraints with lropt
         unc_set = Ellipsoidal(rho=rho)
@@ -116,7 +115,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
                                uncertainty_set=unc_set)
         constraints = [1*-(A_unc @ a + b_unc) @ x * 1 <= b]
         prob_robust = RobustProblem(objective, constraints)
-        prob_robust.solve(solver=SOLVER)
+        prob_robust.solve(solver=SOLVER, **SOLVER_SETTINGS)
         x_robust = x.value
 
         npt.assert_allclose(x_cvxpy, x_robust, rtol=RTOL, atol=ATOL)
@@ -133,7 +132,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
                                uncertainty_set=unc_set)
         constraints = [2 * (A_unc @ a + b_unc) @ x * 1 <= b]
         prob_robust = RobustProblem(objective, constraints)
-        prob_robust.solve(solver=SOLVER)
+        prob_robust.solve(solver=SOLVER, **SOLVER_SETTINGS)
 
         # TODO (bart): not sure what we are testing here
 
@@ -147,7 +146,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # prob_cvxpy = cp.Problem(objective, [bar_a @ x + cp.norm(P @ x, p=2) <= b,  # RO
         #                                     cp.sum(x) == 1, x >= 0])
         prob_cvxpy = cp.Problem(objective, [bar_a @ x <= b, cp.sum(x) == 1, x >= 0]) # nominal
-        prob_cvxpy.solve(solver=SOLVER)
+        prob_cvxpy.solve(solver=SOLVER, **SOLVER_SETTINGS)
         x_cvxpy = x.value
 
         # Solve via tensor reformulation
@@ -177,7 +176,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # TODO: Add other cones
 
         prob_recovered = cp.Problem(objective, constraints)
-        prob_recovered.solve(solver=SOLVER)
+        prob_recovered.solve(solver=SOLVER, **SOLVER_SETTINGS)
         x_recovered = x.value
 
 
@@ -198,7 +197,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # prob_cvxpy = cp.Problem(objective, [bar_a @ x + cp.norm(P @ x, p=2) <= b,  # RO
         #                                     cp.sum(x) == 1, x >= 0])
         prob_cvxpy = cp.Problem(objective, [bar_a @ x <= b, cp.sum(x) == 1, x >= 0]) # nominal
-        prob_cvxpy.solve(solver=SOLVER)
+        prob_cvxpy.solve(solver=SOLVER, **SOLVER_SETTINGS)
         x_cvxpy = x.value
 
         # Solve via tensor reformulation
@@ -229,7 +228,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # TODO: Add other cones
 
         prob_recovered = cp.Problem(objective, constraints)
-        prob_recovered.solve(solver=SOLVER)
+        prob_recovered.solve(solver=SOLVER, **SOLVER_SETTINGS)
         x_recovered = x.value
 
 

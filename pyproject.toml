@@ -49,10 +49,7 @@ dev = [
     "marimo",
 ]
 
-
 [tool.ruff]
-select = ["E", "F", "I"]
-line-length = 100
 exclude = [
     "build",
     "examples",
@@ -61,4 +58,8 @@ exclude = [
     "cvxpy_dpp",
     "*__init__.py",
 ]
+line-length = 100
 target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
