@@ -8,6 +8,7 @@ import numpy as np
 # import numpy.random as npr
 import numpy.testing as npt
 from cvxpy.constraints.constraint import Constraint
+from scipy.sparse import csc_matrix, csr_matrix
 from scipy.sparse._coo import coo_matrix
 
 import lropt
@@ -26,7 +27,6 @@ def tensor_reshaper(T_Ab: coo_matrix, n_var: int) -> np.ndarray:
     """
     This function reshapes T_Ab so T_Ab@param_vec gives the constraints row by row instead of 
     column by column. At the moment, it returns a dense matrix instead of a sparse one.
-    TODO: See if I can make it return a sparse matrix.
     """
     def _calc_source_row(target_row: int, num_constraints: int) -> int:
         """
@@ -39,11 +39,11 @@ def tensor_reshaper(T_Ab: coo_matrix, n_var: int) -> np.ndarray:
         return source_row
 
 
-    T_Ab = T_Ab.toarray()
+    T_Ab = csc_matrix(T_Ab)
     n_var_full = n_var+1 #Includes the free paramter
     num_rows = T_Ab.shape[0]
     num_constraints = num_rows//n_var_full
-    T_Ab_res = np.zeros(shape=(T_Ab.shape))
+    T_Ab_res = csr_matrix(T_Ab.shape)
     target_row = 0 #Counter for populating the new row of T_Ab_res
     for target_row in range(num_rows):
         source_row = _calc_source_row(target_row, num_constraints)
@@ -66,9 +66,9 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         """Setup basic problem"""
         np.random.seed(0)
         self.n = 5
-        c = np.random.rand(self.n)
+        c = np.arange(self.n)
         self.b = 10.
-        self.x = cp.Variable(self.n)
+        self.x = cp.Variable(self.n, name="x")
         self.objective = cp.Minimize(c @ self.x)
         # Robust set
         self.rho = 0.2
@@ -138,11 +138,15 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # TODO (bart): not sure what we are testing here
 
     def test_tensor(self):
+        SOLVER = "CLARABEL"
+        RTOL = 1e-5
+        ATOL = 1e-5
         b, x, n, objective, _, _ = \
             self.b, self.x, self.n, self.objective, self.rho, self.p
 
         np.random.rand(n, n)
         bar_a = 0.1 * np.random.rand(n)
+        lropt.UncertainParameter(n, uncertainty_set=lropt.Ellipsoidal(p=2))
 
         # Solve with cvxpy
         # prob_cvxpy = cp.Problem(objective, [bar_a @ x + cp.norm(P @ x, p=2) <= b,  # RO
@@ -153,15 +157,18 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         # Solve via tensor reformulation
         a = cp.Parameter(n)
-        prob_tensor = cp.Problem(objective, [a @ x <= b, cp.sum(x) == 1, x >= 0])
+        constraints = [a @ x <= b, cp.sum(x) == 1, x >= 0]
+        calc_num_constraints(constraints)
+        prob_tensor = cp.Problem(objective, constraints)
         data = prob_tensor.get_problem_data(solver=SOLVER)
         param_prob = data[0]['param_prob']
         n_var = param_prob.reduced_A.var_len
         T_Ab = param_prob.A
 
         # Tensor mapping (cvxpy works as follows)
-        # T_Ab @ (theta, 1) = vec([-A | b])
-        vecAb = T_Ab @ np.hstack([bar_a, 1])
+        # T_Ab @ (theta, 1) = vec([A | b])
+        param_vec = np.hstack([bar_a, 1])
+        vecAb = T_Ab @ param_vec
         Ab = vecAb.reshape(-1, n_var + 1, order='F')
         A_rec = -Ab[:, :-1] # note minus sign for different conic form
         b_rec = Ab[:, -1]
