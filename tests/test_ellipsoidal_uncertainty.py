@@ -138,15 +138,10 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # TODO (bart): not sure what we are testing here
 
     def test_tensor(self):
-        SOLVER = "CLARABEL"
-        RTOL = 1e-5
-        ATOL = 1e-5
         b, x, n, objective, _, _ = \
             self.b, self.x, self.n, self.objective, self.rho, self.p
 
-        np.random.rand(n, n)
         bar_a = 0.1 * np.random.rand(n)
-        lropt.UncertainParameter(n, uncertainty_set=lropt.Ellipsoidal(p=2))
 
         # Solve with cvxpy
         # prob_cvxpy = cp.Problem(objective, [bar_a @ x + cp.norm(P @ x, p=2) <= b,  # RO
@@ -158,7 +153,6 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # Solve via tensor reformulation
         a = cp.Parameter(n)
         constraints = [a @ x <= b, cp.sum(x) == 1, x >= 0]
-        calc_num_constraints(constraints)
         prob_tensor = cp.Problem(objective, constraints)
         data = prob_tensor.get_problem_data(solver=SOLVER)
         param_prob = data[0]['param_prob']
@@ -198,9 +192,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         b, x, n, objective, _, _ = \
             self.b, self.x, self.n, self.objective, self.rho, self.p
 
-        np.random.rand(n, n)
         bar_a = 0.1 * np.random.rand(n)
-        lropt.UncertainParameter(n, uncertainty_set=lropt.Ellipsoidal(p=2))
 
         # Solve with cvxpy
         # prob_cvxpy = cp.Problem(objective, [bar_a @ x + cp.norm(P @ x, p=2) <= b,  # RO
