@@ -61,8 +61,8 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "LRO objective value:  4.040464346468157 \n",
-      "LRO x:  [1.94415389 2.66248602 1.66223654 2.43049879]\n"
+      "LRO objective value:  5.703688799859293 \n",
+      "LRO x:  [2.52194501 2.86957233 2.80325758 2.77677025]\n"
      ]
     }
    ],
@@ -71,7 +71,7 @@
     "#restate the ellipsoidal set\n",
     "budget_u = lropt.UncertainParameter(m, \n",
     "                                    uncertainty_set = lropt.Budget(rho1=2., \n",
-    "                                                                   rho2 = 1., a1 = np.eye(m), a2 = np.eye(m)))\n",
+    "                                                                   rho2 = 1., a = np.eye(m)))\n",
     "n = 4\n",
     "# formulate cvxpy variable\n",
     "x_r = cp.Variable(n)\n",
@@ -121,8 +121,8 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "Cvxpy objective value:  4.040464346886484 \n",
-      "Cvxpy x:  [1.94415389 2.66248602 1.66223654 2.43049879]\n"
+      "Cvxpy objective value:  5.703688799264118 \n",
+      "Cvxpy x:  [2.52194501 2.86957233 2.80325758 2.77677025]\n"
      ]
     }
    ],
@@ -150,6 +150,13 @@
     "# assert x values are equal\n",
     "npt.assert_allclose(x_r.value, x_cvxpy.value, rtol=RTOL, atol=ATOL)\n"
    ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
   }
  ],
  "metadata": {

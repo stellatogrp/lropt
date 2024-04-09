@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
-    <!-- Generated with Sphinx 7.2.6 and Furo 2023.09.10 -->
+    <!-- Generated with Sphinx 7.2.6 and Furo 2024.01.29 -->
         <title>Deterministic Uncertainty Sets - Multiple uncertain constraints, polyhedral uncertainty - LROPT documentation documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
@@ -258,7 +258,7 @@
 <span class="n">D</span> <span class="o">=</span>  <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">m</span><span class="p">),</span> <span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">m</span><span class="p">)))</span>
 <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="mf">0.1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">m</span><span class="p">),</span> <span class="mf">0.1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">m</span><span class="p">)))</span>
 <span class="n">poly_u</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">m</span><span class="p">,</span>
-                                  <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">Polyhedral</span><span class="p">(</span><span class="n">D</span> <span class="o">=</span> <span class="n">D</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">d</span><span class="p">))</span>
+                                  <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">Polyhedral</span><span class="p">(</span><span class="n">lhs</span> <span class="o">=</span> <span class="n">D</span><span class="p">,</span> <span class="n">rhs</span> <span class="o">=</span> <span class="n">d</span><span class="p">))</span>
 <span class="n">n</span> <span class="o">=</span> <span class="mi">4</span>
 <span class="c1"># formulate cvxpy variable</span>
 <span class="n">x_r</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
@@ -292,8 +292,8 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  -4.798627721102846
-LRO x:  [ 5.         -7.0538186   5.         -2.54975653]
+LRO objective value:  -6.344703977452691
+LRO x:  [  5.           5.           4.52484486 -10.516037  ]
 </pre></div></div>
 </div>
 <p>We compare it with its direct reformulation, where each uncertain constraint is treated independently,</p>
@@ -344,8 +344,8 @@ LRO x:  [ 5.         -7.0538186   5.         -2.54975653]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -4.798627726070235
-Cvxpy x:  [ 5.         -7.05381843  5.         -2.54975655]
+Cvxpy objective value:  -6.344703981544437
+Cvxpy x:  [  5.           5.           4.52484485 -10.51603696]
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">

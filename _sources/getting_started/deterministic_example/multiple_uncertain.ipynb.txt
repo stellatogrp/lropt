@@ -55,19 +55,19 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 6,
+   "execution_count": 2,
    "metadata": {},
    "outputs": [
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "Box objective value:  -1.7309452384151238 \n",
-      "Box x:  [ 1.00000000e+00  5.22005762e-11  2.47146984e-01 -9.24851935e-12\n",
-      "  1.00000000e+00]\n",
-      "Ellipsoidal objective value:  -1.7309452384151234 \n",
-      "Ellipsoidal x:  [ 1.00000000e+00  5.22006297e-11  2.47146984e-01 -9.24852459e-12\n",
-      "  1.00000000e+00]\n"
+      "Box objective value:  -1.1690611480382893 \n",
+      "Box x:  [9.99999997e-01 1.26117061e-10 2.66262664e-11 9.99999911e-01\n",
+      " 7.95515949e-01]\n",
+      "Ellipsoidal objective value:  -1.169061148038289 \n",
+      "Ellipsoidal x:  [9.99999997e-01 1.26117061e-10 2.66262664e-11 9.99999911e-01\n",
+      " 7.95515949e-01]\n"
      ]
     }
    ],
@@ -144,16 +144,16 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 7,
+   "execution_count": 3,
    "metadata": {},
    "outputs": [
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "Cvxpy objective value:  -1.7309452384468336 \n",
-      "Cvxpy x:  [ 1.00000000e+00  1.41789166e-11  2.47146984e-01 -3.34758739e-13\n",
-      "  1.00000000e+00]\n"
+      "Cvxpy objective value:  -1.1690611481016053 \n",
+      "Cvxpy x:  [9.99999998e-01 1.16131756e-10 2.08500690e-11 9.99999927e-01\n",
+      " 7.95515936e-01]\n"
      ]
     }
    ],

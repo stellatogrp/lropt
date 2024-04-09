@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
-    <!-- Generated with Sphinx 7.2.6 and Furo 2023.09.10 -->
+    <!-- Generated with Sphinx 7.2.6 and Furo 2024.01.29 -->
         <title>Deterministic Uncertainty Sets - Direct comparison constraints, budget uncertainty - LROPT documentation documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
@@ -256,7 +256,7 @@
 <span class="c1">#restate the ellipsoidal set</span>
 <span class="n">budget_u</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">UncertainParameter</span><span class="p">(</span><span class="n">m</span><span class="p">,</span>
                                     <span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">lropt</span><span class="o">.</span><span class="n">Budget</span><span class="p">(</span><span class="n">rho1</span><span class="o">=</span><span class="mf">2.</span><span class="p">,</span>
-                                                                   <span class="n">rho2</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">a1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">m</span><span class="p">),</span> <span class="n">a2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">m</span><span class="p">)))</span>
+                                                                   <span class="n">rho2</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">m</span><span class="p">)))</span>
 <span class="n">n</span> <span class="o">=</span> <span class="mi">4</span>
 <span class="c1"># formulate cvxpy variable</span>
 <span class="n">x_r</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
@@ -288,8 +288,8 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-LRO objective value:  4.040464346468157
-LRO x:  [1.94415389 2.66248602 1.66223654 2.43049879]
+LRO objective value:  5.703688799859293
+LRO x:  [2.52194501 2.86957233 2.80325758 2.77677025]
 </pre></div></div>
 </div>
 <p>We compare this with its direct reformulation,</p>
@@ -336,9 +336,17 @@ LRO x:  [1.94415389 2.66248602 1.66223654 2.43049879]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  4.040464346886484
-Cvxpy x:  [1.94415389 2.66248602 1.66223654 2.43049879]
+Cvxpy objective value:  5.703688799264118
+Cvxpy x:  [2.52194501 2.86957233 2.80325758 2.77677025]
 </pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
 </div>
 </section>
 

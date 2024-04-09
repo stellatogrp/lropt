@@ -30,7 +30,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 2,
+   "execution_count": 1,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -53,15 +53,14 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 3,
+   "execution_count": 2,
    "metadata": {},
    "outputs": [],
    "source": [
     "n = 150 #Number of stocks\n",
     "i = np.arange(1, n+1) #Indices vector\n",
     "p_e = 1.15 + i*0.05/150 #Mean returns vector\n",
-    "sigma = np.array(0.05/450 * (2*i*n*(n+1))**0.5) #Uncertainty vector\n",
-    "Gamma = 5 #Budget TODO: Do we need this?"
+    "sigma = np.array(0.05/450 * (2*i*n*(n+1))**0.5) #Uncertainty vector"
    ]
   },
   {
@@ -70,39 +69,36 @@
    "source": [
     "The uncertain parameter $\\mathbf{p}$ is formulated using LROPT in the block below. We use the box uncertainty set, which is defined as follows:\n",
     "\n",
-    "Box uncertainty: $\\{ u \\mid\\| Au + b\\|_\\infty \\leq \\rho \\}$ \n",
+    "Box uncertainty: $\\{ u = Az+b \\mid\\| z\\|_\\infty \\leq \\rho  \\}$ \n",
     "\n",
-    "- $\\rho$ : float, optional  \n",
-    "  * Box scaling. Default 1.0.\n",
     "- $A$ : np.array, optional\n",
     "  * Scaling matrix for u. Default identity matrix.\n",
     "- $b$ : np.array, optional\n",
     "  * Relocation vector for u. Default None.\n",
     "\n",
-    "We define a helper uncertain variable $\\mathbf{u}$ that satisfies $-\\pmb{\\sigma}\\leq\\mathbf{u}\\leq\\pmb{\\sigma}$, so the uncertain paramater $\\mathbf{p}$ is defined as $\\mathbf{p} = \\mathbf{p_e} + \\mathbf{u}$."
+    "We define an uncertain parameter $\\mathbf{p}$ using the Box definition with $\\rho=1,\\mathbf{A}=\\text{diag}\\left( \\pmb{\\sigma}\\right), \\mathbf{b}=\\mathbf{p_e}$."
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 12,
+   "execution_count": 3,
    "metadata": {},
    "outputs": [
     {
      "data": {
       "text/plain": [
-       "1.1266846798960153"
+       "1.1266846824655197"
       ]
      },
-     "execution_count": 12,
+     "execution_count": 3,
      "metadata": {},
      "output_type": "execute_result"
     }
    ],
    "source": [
     "#Define a helper uncertainty variable u\n",
-    "uncertainty_set = Box(rho=1, a=np.diag(1/sigma))\n",
-    "u = UncertainParameter(n, uncertainty_set=uncertainty_set)\n",
-    "p = p_e+u\n",
+    "uncertainty_set = Box(rho=1, a=np.diag(sigma), b=p_e)\n",
+    "p = UncertainParameter(n, uncertainty_set=uncertainty_set)\n",
     "x = cp.Variable(n) #Optimization variable\n",
     "\n",
     "#Define and solve the problem\n",

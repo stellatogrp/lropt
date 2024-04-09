@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
-    <!-- Generated with Sphinx 7.2.6 and Furo 2023.09.10 -->
+    <!-- Generated with Sphinx 7.2.6 and Furo 2024.01.29 -->
         <title>Deterministic Uncertainty Sets - Multiple uncertain terms, box uncertainty - LROPT documentation documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
@@ -250,7 +250,7 @@
 <p>where again <span class="math notranslate nohighlight">\(c\)</span>, <span class="math notranslate nohighlight">\(P\)</span>, and <span class="math notranslate nohighlight">\(a\)</span> are constants, and <span class="math notranslate nohighlight">\(u\)</span> is the uncertain parameter from a box uncertainty set. We note that the uncertain parameter can appear more than once in the uncertain constraint.</p>
 <p>Note that using the box uncertainty set is equivalent to using the ellipsoidal uncertainty set with <span class="math notranslate nohighlight">\(p = \infty\)</span></p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#formulate using the box set</span>
@@ -316,12 +316,12 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Box objective value:  -1.7309452384151238
-Box x:  [ 1.00000000e+00  5.22005762e-11  2.47146984e-01 -9.24851935e-12
-  1.00000000e+00]
-Ellipsoidal objective value:  -1.7309452384151234
-Ellipsoidal x:  [ 1.00000000e+00  5.22006297e-11  2.47146984e-01 -9.24852459e-12
-  1.00000000e+00]
+Box objective value:  -1.1690611480382893
+Box x:  [9.99999997e-01 1.26117061e-10 2.66262664e-11 9.99999911e-01
+ 7.95515949e-01]
+Ellipsoidal objective value:  -1.169061148038289
+Ellipsoidal x:  [9.99999997e-01 1.26117061e-10 2.66262664e-11 9.99999911e-01
+ 7.95515949e-01]
 </pre></div></div>
 </div>
 <p>We compare the above with its explicit reformulation and solution</p>
@@ -333,7 +333,7 @@ Ellipsoidal x:  [ 1.00000000e+00  5.22006297e-11  2.47146984e-01 -9.24852459e-12
 \end{array}\end{split}\]</div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># formulate using cvxpy</span>
@@ -362,9 +362,9 @@ Ellipsoidal x:  [ 1.00000000e+00  5.22006297e-11  2.47146984e-01 -9.24852459e-12
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Cvxpy objective value:  -1.7309452384468336
-Cvxpy x:  [ 1.00000000e+00  1.41789166e-11  2.47146984e-01 -3.34758739e-13
-  1.00000000e+00]
+Cvxpy objective value:  -1.1690611481016053
+Cvxpy x:  [9.99999998e-01 1.16131756e-10 2.08500690e-11 9.99999927e-01
+ 7.95515936e-01]
 </pre></div></div>
 </div>
 </section>

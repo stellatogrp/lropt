@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
-    <!-- Generated with Sphinx 7.2.6 and Furo 2023.09.10 -->
+    <!-- Generated with Sphinx 7.2.6 and Furo 2024.01.29 -->
         <title>Robust Knapsack - LROPT documentation documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
@@ -245,14 +245,9 @@ end{align}` $$</p>
 </pre></div>
 </div>
 </div>
-<p>The uncertain parameter <span class="math notranslate nohighlight">\(\mathbf{w}\)</span> is formulated using LROPT in the block below. We use the box uncertainty set, which is defined as follows:</p>
-<p>Box uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid\| Au + b\|_\infty \leq \rho \}\)</span></p>
+<p>The uncertain parameter <span class="math notranslate nohighlight">\(\mathbf{p}\)</span> is formulated using LROPT in the block below. We use the box uncertainty set, which is defined as follows:</p>
+<p>Box uncertainty: <span class="math notranslate nohighlight">\(\{ u = Az+b \mid\| z\|_\infty \leq \rho \}\)</span></p>
 <ul class="simple">
-<li><p><span class="math notranslate nohighlight">\(\rho\)</span> : float, optional</p>
-<ul>
-<li><p>Box scaling. Default 1.0.</p></li>
-</ul>
-</li>
 <li><p><span class="math notranslate nohighlight">\(A\)</span> : np.array, optional</p>
 <ul>
 <li><p>Scaling matrix for u. Default identity matrix.</p></li>
@@ -264,15 +259,14 @@ end{align}` $$</p>
 </ul>
 </li>
 </ul>
-<p>We define a helper uncertain variable <span class="math notranslate nohighlight">\(\mathbf{u}\)</span> that satisfies <span class="math notranslate nohighlight">\(-\pmb{\delta}\leq\mathbf{u}\leq\pmb{\delta}\)</span>, so the uncertain paramater <span class="math notranslate nohighlight">\(\mathbf{w}\)</span> is defined as <span class="math notranslate nohighlight">\(\mathbf{w} = \mathbf{w_e} + \mathbf{u}\)</span>.</p>
+<p>We define an uncertain parameter <span class="math notranslate nohighlight">\(\mathbf{p}\)</span> using the Box definition with <span class="math notranslate nohighlight">\(\rho=1,\mathbf{A}=\text{diag}\left( \pmb{\delta}\right), \mathbf{b}=\mathbf{w_e}\)</span>.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#Define a helper uncertainty variable u</span>
-<span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">Box</span><span class="p">(</span><span class="n">rho</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">delta</span><span class="p">))</span>
-<span class="n">u</span> <span class="o">=</span> <span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">uncertainty_set</span><span class="p">)</span>
-<span class="n">w</span> <span class="o">=</span> <span class="n">w_e</span><span class="o">+</span><span class="n">u</span>
+<span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">Box</span><span class="p">(</span><span class="n">rho</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">delta</span><span class="p">),</span> <span class="n">b</span><span class="o">=</span><span class="n">w_e</span><span class="p">)</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">uncertainty_set</span><span class="p">)</span>
 <span class="n">x</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">boolean</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1">#Optimization variable</span>
 
 <span class="c1">#Define and solve the problem</span>

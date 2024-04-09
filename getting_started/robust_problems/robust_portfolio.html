@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
-    <!-- Generated with Sphinx 7.2.6 and Furo 2023.09.10 -->
+    <!-- Generated with Sphinx 7.2.6 and Furo 2024.01.29 -->
         <title>Robust Portfolio - LROPT documentation documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
@@ -218,7 +218,7 @@ max_{mathbf{x}} &amp;;mathbf{p}^T mathbf{x} nonumber \</p>
 end{align}` $$</p>
 <p>where there are <span class="math notranslate nohighlight">\(n\)</span> stocks, the unknown return of the stocks is denoted by <span class="math notranslate nohighlight">\(\mathbf{p}\)</span>, and <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> denotes the fraction fo wealth invested in the stocks. The expected return of the stocks are denoted by <span class="math notranslate nohighlight">\(\mathbf{p_e}\)</span>, and their uncertainties are captured by <span class="math notranslate nohighlight">\(\pmb{\sigma}\)</span>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cp</span>
@@ -234,25 +234,19 @@ end{align}` $$</p>
 </div>
 <p>We start by defining the relevant constants. We use the same values as given in the example in Section 6.2 of [1].</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n</span> <span class="o">=</span> <span class="mi">150</span> <span class="c1">#Number of stocks</span>
 <span class="n">i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="c1">#Indices vector</span>
 <span class="n">p_e</span> <span class="o">=</span> <span class="mf">1.15</span> <span class="o">+</span> <span class="n">i</span><span class="o">*</span><span class="mf">0.05</span><span class="o">/</span><span class="mi">150</span> <span class="c1">#Mean returns vector</span>
 <span class="n">sigma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mf">0.05</span><span class="o">/</span><span class="mi">450</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">i</span><span class="o">*</span><span class="n">n</span><span class="o">*</span><span class="p">(</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="c1">#Uncertainty vector</span>
-<span class="n">Gamma</span> <span class="o">=</span> <span class="mi">5</span> <span class="c1">#Budget TODO: Do we need this?</span>
 </pre></div>
 </div>
 </div>
 <p>The uncertain parameter <span class="math notranslate nohighlight">\(\mathbf{p}\)</span> is formulated using LROPT in the block below. We use the box uncertainty set, which is defined as follows:</p>
-<p>Box uncertainty: <span class="math notranslate nohighlight">\(\{ u \mid\| Au + b\|_\infty \leq \rho \}\)</span></p>
+<p>Box uncertainty: <span class="math notranslate nohighlight">\(\{ u = Az+b \mid\| z\|_\infty \leq \rho \}\)</span></p>
 <ul class="simple">
-<li><p><span class="math notranslate nohighlight">\(\rho\)</span> : float, optional</p>
-<ul>
-<li><p>Box scaling. Default 1.0.</p></li>
-</ul>
-</li>
 <li><p><span class="math notranslate nohighlight">\(A\)</span> : np.array, optional</p>
 <ul>
 <li><p>Scaling matrix for u. Default identity matrix.</p></li>
@@ -264,15 +258,14 @@ end{align}` $$</p>
 </ul>
 </li>
 </ul>
-<p>We define a helper uncertain variable <span class="math notranslate nohighlight">\(\mathbf{u}\)</span> that satisfies <span class="math notranslate nohighlight">\(-\pmb{\sigma}\leq\mathbf{u}\leq\pmb{\sigma}\)</span>, so the uncertain paramater <span class="math notranslate nohighlight">\(\mathbf{p}\)</span> is defined as <span class="math notranslate nohighlight">\(\mathbf{p} = \mathbf{p_e} + \mathbf{u}\)</span>.</p>
+<p>We define an uncertain parameter <span class="math notranslate nohighlight">\(\mathbf{p}\)</span> using the Box definition with <span class="math notranslate nohighlight">\(\rho=1,\mathbf{A}=\text{diag}\left( \pmb{\sigma}\right), \mathbf{b}=\mathbf{p_e}\)</span>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#Define a helper uncertainty variable u</span>
-<span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">Box</span><span class="p">(</span><span class="n">rho</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">sigma</span><span class="p">))</span>
-<span class="n">u</span> <span class="o">=</span> <span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">uncertainty_set</span><span class="p">)</span>
-<span class="n">p</span> <span class="o">=</span> <span class="n">p_e</span><span class="o">+</span><span class="n">u</span>
+<span class="n">uncertainty_set</span> <span class="o">=</span> <span class="n">Box</span><span class="p">(</span><span class="n">rho</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">sigma</span><span class="p">),</span> <span class="n">b</span><span class="o">=</span><span class="n">p_e</span><span class="p">)</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">UncertainParameter</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">uncertainty_set</span><span class="o">=</span><span class="n">uncertainty_set</span><span class="p">)</span>
 <span class="n">x</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="c1">#Optimization variable</span>
 
 <span class="c1">#Define and solve the problem</span>
@@ -287,12 +280,12 @@ end{align}` $$</p>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-1.1266846798960153
+1.1266846824655197
 </pre></div></div>
 </div>
 </section>
