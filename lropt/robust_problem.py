@@ -408,8 +408,10 @@ class RobustProblem(Problem):
     def gen_unique_y(self,y_batch):
         # get unique y's
         y_batch_array = [np.array(ele) for ele in y_batch]
-        all_indices = [np.unique(ele,axis=0, return_index=True)[1] for ele in y_batch_array]
-        unique_indices = np.unique(np.concatenate(all_indices))
+        stacked_array= np.vstack(\
+            [np.concatenate([ele[i].flatten() \
+            for ele in y_batch_array]) for i in range(len(y_batch_array[0]))])
+        unique_indices = np.unique(stacked_array,axis=0,return_index=True)[1]
         num_unique_indices = len(unique_indices)
         y_unique = [torch.tensor(ele, dtype=settings.DTYPE)[unique_indices] \
                     for ele in y_batch_array]
@@ -483,7 +485,7 @@ class RobustProblem(Problem):
         self.num_g = len(h_funcs)
 
     #BATCHED
-    def _eval_input(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
+    def _eval_input_b(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
                     eval_input_case, quantiles, **kwargs):
         """
         This function takes decision varaibles, y's, and u's,
@@ -524,7 +526,7 @@ class RobustProblem(Problem):
         return init_val
 
     #SERIAL VERSION - TODO - DELETE WHEN _EVAL_INPUT IS VERIFIED TO WORK WELL
-    def _eval_input_s(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
+    def _eval_input(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
                     eval_input_case, quantiles, **kwargs):
         """
         This function takes decision varaibles, y's, and u's,
@@ -1341,12 +1343,12 @@ class RobustProblem(Problem):
             #To make sure batched inputs are processed correctly, we need to update expr.axis
             #(if applicable). It is important to revert it back to the original value when done,
             #hence we save original_axis.
-            expr = torch_exp.args[0]
-            arg_to_orig_axis = {} #Expression (arg) -> original axis dictionary
-            _safe_increase_axis(expr, arg_to_orig_axis)
+            # expr = torch_exp.args[0]
+            # arg_to_orig_axis = {} #Expression (arg) -> original axis dictionary
+            # _safe_increase_axis(expr, arg_to_orig_axis)
             res = torch_exp(*args_to_pass)
             #Revert to the original axis if applicable. Note: None is a valid axis (unlike False).
-            _restore_original_axis(expr, arg_to_orig_axis)
+            # _restore_original_axis(expr, arg_to_orig_axis)
             return res
 
         # vars_dict contains a dictionary from variable/param -> index in *args (for the expression)
@@ -1836,7 +1838,7 @@ class RobustProblem(Problem):
         eta = settings.ETA_LAGRANGIAN_DEFAULT,
         contextual = False,
         linear = None
-    ):
+        ):
         r"""
         Perform gridsearch to find optimal :math:`\epsilon`-ball around data.
 
@@ -1959,6 +1961,7 @@ class RobustProblem(Problem):
             new_var_values, a_tch_init, b_tch_init = self.gen_new_var_values(
                 num_unique_indices,y_unique_array, var_values,
                 batch_int, y_batch_array, contextual,a_tch_init, b_tch_init )
+
             new_var_values_t,_,_ = self.gen_new_var_values(num_unique_indices_t,
                      y_unique_array_t, var_values_t, batch_int_train,
                        y_batch_array_t)
@@ -1979,7 +1982,6 @@ class RobustProblem(Problem):
                     lam,
                     1, eta
                 )
-
                 test_args_t, test_to_sample_t = self._order_args(
                     var_values=new_var_values_t,
                 y_batch=y_batch_train, u_batch=u_batch_train)
