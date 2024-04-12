@@ -17,8 +17,11 @@ from lropt.parameter import Parameter
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
-from tests.settings import TESTS_ATOL as ATOL
-from tests.settings import TESTS_RTOL as RTOL
+
+# from tests.settings import TESTS_ATOL as ATOL
+# from tests.settings import TESTS_RTOL as RTOL
+ATOL = 1e-5
+RTOL = 1e-5
 
 
 class TestEllipsoidalUncertainty(unittest.TestCase):
@@ -110,9 +113,9 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         x = cp.Variable(n)
         t = cp.Variable()
 
-        objective = cp.Minimize(t + 0.2*cp.norm(x - y, 1))
+        objective = cp.Minimize(t + 0.2*cp.norm(x - y,1,axis=0))
         constraints = [-x@u <= t, cp.sum(x) == 1, x >= 0]
-        eval_exp = -x @ u + 0.2*cp.norm(x-y, 1)
+        eval_exp = -x @ u + 0.2*cp.norm(x-y, 1,axis=0)
         prob = RobustProblem(objective, constraints, eval_exp=eval_exp)
         # initialize reshaping parameters
         test_p = 0.1
@@ -151,6 +154,61 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # dfgrid2 = result5.df
         # print(dfgrid2)
 
+
+    def test_norm1(self):
+        timestart = time.time()
+        n = 2
+        kappa = -0.01
+        seed = 15
+        np.random.seed(seed)
+        dist = (np.array([25, 10, 60, 50, 40, 30, 30, 20,
+                20, 15, 10, 10, 10, 10, 10, 10])/10)[:n]
+
+        # formulate the family parameter
+        y_data = np.random.dirichlet(dist, self.N)
+        y = Parameter(n, data=y_data)
+
+        def gen_demand_intro(N, seed):
+            np.random.seed(seed)
+            sig = np.array([[0.5, -0.3], [-0.3, 0.4]])
+            mu = np.array((0.3, 0.3))
+            d_train = np.random.multivariate_normal(mu, sig, N)
+            return d_train
+
+        # formulate the uncertain parameter
+        data = gen_demand_intro(self.N, seed=seed)
+        u = UncertainParameter(n,uncertainty_set=Ellipsoidal(p=2,data=data))
+
+        # formulate the Robust Problem
+        x = cp.Variable(n)
+        cp.Variable()
+
+        objective = cp.Minimize(cp.norm(y,1))
+        constraints = [-x@u <= 0, cp.sum(x) == 1, x >= 0]
+        eval_exp = cp.norm(y,1)
+        prob = RobustProblem(objective, constraints, eval_exp=eval_exp)
+        # initialize reshaping parameters
+        test_p = 0.1
+        train, _ = train_test_split(data, test_size=int(
+            data.shape[0]*test_p), random_state=5)
+        init = sc.linalg.sqrtm(np.cov(train.T))
+        init_bval = np.mean(train, axis=0)
+
+        # Train A and b
+        prob.train(lr=0.0001, num_iter=10, momentum=0.8,
+                            optimizer="SGD",
+                            seed=5, init_A=init, init_b=init_bval,
+                            init_lam=0.5, init_mu=0.01,
+                            mu_multiplier=1.001,
+                            init_alpha=0., test_percentage=test_p, kappa=kappa,
+                            n_jobs=8, random_init=True,
+                            num_random_init=5, parallel = True,
+                            position=False)
+
+        timefin = time.time()
+        timefin - timestart
+        # npt.assert_array_less(np.array(
+        #     result.df["Violations_train"])[-1], kappa)
     def test_torch_exp(self):
         # Setup
         n = 3
