@@ -1888,7 +1888,7 @@ class RobustProblem(Problem):
         if newdata is not None:
             train_set, y_set = newdata
             u_batch = torch.tensor(train_set, requires_grad=self.train_flag, dtype=settings.DTYPE)
-            if type(y_set) is not list:
+            if not isinstance(y_set, list):
                 y_batch = [torch.tensor(y_set, requires_grad=self.train_flag, dtype=settings.DTYPE)]
             else:
                 y_batch = [torch.tensor(y, requires_grad=self.train_flag,
