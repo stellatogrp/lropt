@@ -214,8 +214,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         """Setup basic problem"""
         np.random.seed(0)
         self.n = 5
-        c = np.arange(self.n)
-        self.b = 10.
+        c = np.random.rand(self.n)
+        self.b = 1.5
         self.x = cp.Variable(self.n, name="x")
         self.objective = cp.Minimize(c @ self.x)
         # Robust set
@@ -392,7 +392,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         b, x, n, objective, rho, _ = \
             self.b, self.x, self.n, self.objective, self.rho, self.p
 
-        bar_a = 0.1 * np.random.rand(n)
+        bar_a = np.array([0.1,0.1,0.1,0.3,1.2])
 
         # Solve with cvxpy
         # prob_cvxpy = cp.Problem(objective, [bar_a @ x + cp.norm(P @ x, p=2) <= b,  # RO
@@ -404,26 +404,27 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # Solve via tensor reformulation
         unc_set = Ellipsoidal(rho=rho)
         a = UParameter(n)
-        constraints = [a @ x <= b, cp.sum(x) == 1, x >= 0]
+        constraints = [((3*np.eye(n))@a + bar_a)@ x <= b, cp.sum(x) == 1, x >= 0]
         # num_constraints = calc_num_constraints(constraints)
         prob_tensor = cp.Problem(objective, constraints)
         data = prob_tensor.get_problem_data(solver=SOLVER)
         # A_rec_uncertain as a list of sparse matrices
         A_rec_certain, A_rec_uncertain, b_rec = _get_tensors(prob_tensor)
-        num_constrs = A_rec_certain.shape[0]
-        s = cp.Variable(num_constrs)
+        # num_constrs = A_rec_certain.shape[0]
+        cones = data[0]['dims']
+        # s = cp.Variable(num_constrs)
         newcons = []
         #cannot have equality with norms
-        newcons += [A_rec_certain[0]@x + s[0] == b_rec[0] ]
-        for i in range(1, num_constrs):
+        for i in range(cones.zero):
+            newcons += [A_rec_certain[i]@x == b_rec[i] ]
+        for i in range(cones.zero, cones.zero + cones.nonneg):
             newcons += [A_rec_certain[i]@x + \
-                    rho*cp.norm(A_rec_uncertain[i][0].T@x) + s[i] <= b_rec[i] ]
+                    rho*cp.norm(A_rec_uncertain[i][0].T@x) <= b_rec[i] ]
 
-        cones = data[0]['dims']
-        if cones.zero > 0:
-            newcons.append(cp.Zero(s[:cones.zero]))
-        if cones.nonneg > 0:
-            newcons.append(cp.NonNeg(s[cones.zero:cones.zero + cones.nonneg]))
+        # if cones.zero > 0:
+        #     newcons.append(cp.Zero(s[:cones.zero]))
+        # if cones.nonneg > 0:
+        #     newcons.append(cp.NonNeg(s[cones.zero:cones.zero + cones.nonneg]))
 
         prob_recovered = cp.Problem(objective, newcons)
         prob_recovered.solve(solver=SOLVER, **SOLVER_SETTINGS)
@@ -434,15 +435,18 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # TODO: isolate columns multiplying y (Ty) and multiplying u (Tu)
         # constraints = [v @ x + cp.norm(Tu.T @ x) + s == b_rec]
 
+
+        # Compare against current package
         unc_set = Ellipsoidal(rho=rho)
         a = UncertainParameter(n,
                                uncertainty_set=unc_set)
-        constraints = [a @ x <= b, cp.sum(x) == 1, x >= 0]
+        constraints = [((3*np.eye(n))@a + bar_a)@ x <= b, cp.sum(x) == 1, x >= 0]
         prob_robust = RobustProblem(objective, constraints)
         prob_robust.solve(solver=SOLVER, **SOLVER_SETTINGS)
         x_robust = x.value
 
-        constraints = [rho * cp.norm(x, p=2) <= b, cp.sum(x) == 1, x >= 0]
+        # Compare against CVXPY
+        constraints = [bar_a@x + rho * cp.norm((3*np.eye(n)).T@x, p=2) <= b, cp.sum(x) == 1, x >= 0]
         prob_cvxpy = cp.Problem(objective, constraints)
         prob_cvxpy.solve(solver=SOLVER, **SOLVER_SETTINGS)
         x_cvxpy = x.value
