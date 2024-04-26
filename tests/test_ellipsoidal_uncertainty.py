@@ -394,25 +394,18 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         bar_a = np.array([0.1,0.1,0.1,0.3,1.2])
 
-        # Solve with cvxpy
-        # prob_cvxpy = cp.Problem(objective, [bar_a @ x + cp.norm(P @ x, p=2) <= b,  # RO
-        #                                     cp.sum(x) == 1, x >= 0])
-        prob_cvxpy = cp.Problem(objective, [bar_a @ x <= b, cp.sum(x) == 1, x >= 0]) # nominal
-        prob_cvxpy.solve(solver=SOLVER, **SOLVER_SETTINGS)
-        x_cvxpy = x.value
-
         # Solve via tensor reformulation
-        unc_set = Ellipsoidal(rho=rho)
         a = UParameter(n)
         constraints = [((3*np.eye(n))@a + bar_a)@ x <= b, cp.sum(x) == 1, x >= 0]
         # num_constraints = calc_num_constraints(constraints)
         prob_tensor = cp.Problem(objective, constraints)
         data = prob_tensor.get_problem_data(solver=SOLVER)
+        cones = data[0]['dims']
+
         # A_rec_uncertain as a list of sparse matrices
         A_rec_certain, A_rec_uncertain, b_rec = _get_tensors(prob_tensor)
-        # num_constrs = A_rec_certain.shape[0]
-        cones = data[0]['dims']
-        # s = cp.Variable(num_constrs)
+        # s = cp.Variable(num_constraints)
+
         newcons = []
         #cannot have equality with norms
         for i in range(cones.zero):
@@ -420,11 +413,6 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         for i in range(cones.zero, cones.zero + cones.nonneg):
             newcons += [A_rec_certain[i]@x + \
                     rho*cp.norm(A_rec_uncertain[i][0].T@x) <= b_rec[i] ]
-
-        # if cones.zero > 0:
-        #     newcons.append(cp.Zero(s[:cones.zero]))
-        # if cones.nonneg > 0:
-        #     newcons.append(cp.NonNeg(s[cones.zero:cones.zero + cones.nonneg]))
 
         prob_recovered = cp.Problem(objective, newcons)
         prob_recovered.solve(solver=SOLVER, **SOLVER_SETTINGS)
@@ -434,7 +422,6 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # Tu = T_Ab_reshaped[:, :-1]
         # TODO: isolate columns multiplying y (Ty) and multiplying u (Tu)
         # constraints = [v @ x + cp.norm(Tu.T @ x) + s == b_rec]
-
 
         # Compare against current package
         unc_set = Ellipsoidal(rho=rho)
