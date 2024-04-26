@@ -7,19 +7,168 @@ import numpy as np
 
 # import numpy.random as npr
 import numpy.testing as npt
+import scipy as sc
+from cvxpy import SCS, Parameter
+from cvxpy.atoms.affine.hstack import Hstack
 from cvxpy.constraints.constraint import Constraint
+from cvxpy.expressions.expression import Expression
+from cvxpy.reductions.reduction import Reduction
+from numpy import ndarray
 from scipy.sparse import csc_matrix, csr_matrix
 from scipy.sparse._coo import coo_matrix
 
 from lropt.robust_problem import RobustProblem
+from lropt.shape_parameter import UParameter
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
-from tests.settings import SOLVER, SOLVER_SETTINGS
-from tests.settings import TESTS_ATOL as ATOL
-from tests.settings import TESTS_RTOL as RTOL
 
+# from tests.settings import SOLVER, SOLVER_SETTINGS
+# from tests.settings import TESTS_ATOL as ATOL
+# from tests.settings import TESTS_RTOL as RTOL
+
+
+ATOL = 1e-4
+RTOL = 1e-4
+SOLVER = cp.CLARABEL
+SOLVER_SETTINGS = { "equilibrate_enable": False, "verbose": False }
 # import pandas as pd
 # import torch
+
+
+def _get_tensors(problem: RobustProblem, solver = SCS) -> ndarray:
+    """
+    This inner function generates A_tensor: the 3D tensor of A. It also generates b,c
+    """
+    def _gen_param_vec(param_prob: Reduction) -> list:
+        """
+        This is a helper function that generates the parameters vector.
+        This vector will be multiplied by T_Ab to get a vector containing A and b of the
+        reformulated conic problem.
+        """
+        def _select_target(is_uncertain: bool, param_vec_certain: list,
+                            param_vec_uncertain: list, T_Ab_certain: list,
+                            T_Ab_uncertain: list) -> tuple[list, list]:
+            """
+            This is a helper function that determines whether to add the new parameter and
+            columns to the uncertain parameters or the certain parameters.
+            """
+            if is_uncertain:
+                return param_vec_uncertain, T_Ab_uncertain
+            else:
+                return param_vec_certain, T_Ab_certain
+
+        def _gen_param_value(param: Parameter | UParameter, is_uncertain: bool) -> \
+                                                np.ndarray | UParameter:
+            """
+            This is a helper function that returns the uncertain parameter if the input is
+            an uncertain parameter, or the parameter's value for known parameters.
+            """
+            #TODO: Originanlly was the block below, not sure if it should be it or just
+            #param. If just param, this function is redundant.
+            # return param
+            if is_uncertain:
+                return param
+            return param.value
+
+        def _safe_np_hstack(vec: list) -> np.ndarray:
+            """
+            This is a helper function that hstacks the elements of vec or returns None if
+            vec is empty.
+            """
+            #Empty vector - return None
+            if not vec:
+                return None
+            #A vector of uncertain parameters needs cvxpy hstack
+            if isinstance(vec[0], UncertainParameter):
+                return Hstack(*vec)
+            return np.hstack(vec)
+
+        def _safe_gen_vecAb(T_Ab: np.ndarray, param_vec: np.ndarray | Expression | None):
+            """
+            This function safely generates vecAb = T_Ab @ vec_param, or returns None if
+            vec_param is empty.
+            """
+            if param_vec is None or (isinstance(param_vec, ndarray) and len(param_vec)==0):
+                return None
+            return T_Ab @ param_vec
+
+        n_var = param_prob.reduced_A.var_len
+        T_Ab = param_prob.A
+        T_Ab = tensor_reshaper(T_Ab, n_var)
+        param_vec_certain   = []
+        param_vec_uncertain = []
+        T_Ab_certain   = []
+        T_Ab_uncertain = []
+        running_param_size = 0 #This is a running counter that keeps track of the total size
+                                #of all the parameters seen so far.
+        for param in param_prob.parameters:
+            param_size = param_prob.param_id_to_size[param.id]
+            is_uncertain = isinstance(param, UParameter)
+            param_vec_target, T_Ab_target = _select_target(is_uncertain, param_vec_certain,
+                                                            param_vec_uncertain,
+                                                            T_Ab_certain, T_Ab_uncertain)
+            param_val = _gen_param_value(param, is_uncertain)
+            param_vec_target.append(param_val)
+            T_Ab_target.append(T_Ab[:, running_param_size:running_param_size+param_size])
+            running_param_size += param_size
+
+        #Add the parameter-free element:
+        #The last element is always 1, represents the free element (not a parameter)
+        param_vec_certain.append(1)
+        T_Ab_certain.append(T_Ab[:, running_param_size:])
+
+        #Stack all variables. Certain is never empty - always has the free element
+        param_vec_uncertain = _safe_np_hstack(param_vec_uncertain)
+        param_vec_certain   = _safe_np_hstack(param_vec_certain)
+        T_Ab_uncertain      = _safe_np_hstack(T_Ab_uncertain)
+        T_Ab_certain        = _safe_np_hstack(T_Ab_certain)
+        vec_Ab_certain      = _safe_gen_vecAb(T_Ab_certain, param_vec_certain)
+        # vec_Ab_uncertain    = _safe_gen_vecAb(T_Ab_uncertain, param_vec_uncertain)
+
+        return vec_Ab_certain, T_Ab_uncertain
+
+    def _finalize_expressions(vec_Ab: ndarray | Expression, is_uncertain: bool, n_var: int)\
+                                                                                    -> tuple:
+        """
+        This is a helper function that generates A, b from vec_Ab.
+        """
+        if vec_Ab is None:
+            return None, None
+        Ab_dim = (-1, n_var+1) #+1 for the free parameter
+        Ab = vec_Ab.reshape(Ab_dim, order='C')
+        if not is_uncertain:
+            Ab = Ab.tocsr()
+        # note minus sign for different conic form in A_rec
+        A_rec = -Ab[:, :-1]
+        b_rec = None
+        if not is_uncertain:
+            b_rec = Ab[:, -1]
+        return A_rec, b_rec
+
+    def _finalize_expressions_uncertain(T_Ab,n_var):
+        """
+        This is a helper function that generates A_unc
+        """
+        if T_Ab is None:
+            return None, None
+        Ab_dim = (-1, n_var+1) #+1 for the free parameter
+        A_dic = {}
+        for i in range(n_var):
+            temp = T_Ab[0][:,i]
+            Ab = temp.reshape(Ab_dim, order='C')
+            Ab = Ab.tocsr()
+            shape = Ab.shape[0]
+            A_dic[i] = -Ab[:, :-1]
+        return np.vstack([sc.sparse.vstack([A_dic[i][j] \
+                        for i in range(n_var)]).T for j in range(shape)])
+
+    param_prob = problem.get_problem_data(solver=solver)[0]["param_prob"]
+    vec_Ab_certain, T_Ab_uncertain = _gen_param_vec(param_prob)
+    n_var = param_prob.reduced_A.var_len
+    A_rec_certain, b_rec = _finalize_expressions(vec_Ab_certain, is_uncertain=False,
+                                                    n_var=n_var)
+    A_rec_uncertain = _finalize_expressions_uncertain(T_Ab_uncertain, n_var=n_var)
+    return A_rec_certain, A_rec_uncertain, b_rec
 
 
 def tensor_reshaper(T_Ab: coo_matrix, n_var: int) -> np.ndarray:
@@ -211,6 +360,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         T_Ab = param_prob.A
         T_Ab_reshaped = tensor_reshaper(T_Ab, n_var)
 
+
         # Tensor mapping (cvxpy works as follows)
         param_vec = np.hstack([bar_a, 1])
         vecAb_reshaped = T_Ab_reshaped@param_vec
@@ -230,9 +380,76 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         prob_recovered = cp.Problem(objective, constraints)
         prob_recovered.solve(solver=SOLVER, **SOLVER_SETTINGS)
         x_recovered = x.value
-
-
         npt.assert_allclose(x_cvxpy, x_recovered, rtol=RTOL, atol=ATOL)
+
+        # TODO: adapt this example to handle RO formulation
+        # from both cvxpy and tensor reformulation
+
+        # TODO: handle parameters in objective as well
+
+
+    def test_tensor_uncertain(self):
+        b, x, n, objective, rho, _ = \
+            self.b, self.x, self.n, self.objective, self.rho, self.p
+
+        bar_a = 0.1 * np.random.rand(n)
+
+        # Solve with cvxpy
+        # prob_cvxpy = cp.Problem(objective, [bar_a @ x + cp.norm(P @ x, p=2) <= b,  # RO
+        #                                     cp.sum(x) == 1, x >= 0])
+        prob_cvxpy = cp.Problem(objective, [bar_a @ x <= b, cp.sum(x) == 1, x >= 0]) # nominal
+        prob_cvxpy.solve(solver=SOLVER, **SOLVER_SETTINGS)
+        x_cvxpy = x.value
+
+        # Solve via tensor reformulation
+        unc_set = Ellipsoidal(rho=rho)
+        a = UParameter(n)
+        constraints = [a @ x <= b, cp.sum(x) == 1, x >= 0]
+        # num_constraints = calc_num_constraints(constraints)
+        prob_tensor = cp.Problem(objective, constraints)
+        data = prob_tensor.get_problem_data(solver=SOLVER)
+        # A_rec_uncertain as a list of sparse matrices
+        A_rec_certain, A_rec_uncertain, b_rec = _get_tensors(prob_tensor)
+        num_constrs = A_rec_certain.shape[0]
+        s = cp.Variable(num_constrs)
+        newcons = []
+        #cannot have equality with norms
+        newcons += [A_rec_certain[0]@x + s[0] == b_rec[0] ]
+        for i in range(1, num_constrs):
+            newcons += [A_rec_certain[i]@x + \
+                    rho*cp.norm(A_rec_uncertain[i][0].T@x) + s[i] <= b_rec[i] ]
+
+        cones = data[0]['dims']
+        if cones.zero > 0:
+            newcons.append(cp.Zero(s[:cones.zero]))
+        if cones.nonneg > 0:
+            newcons.append(cp.NonNeg(s[cones.zero:cones.zero + cones.nonneg]))
+
+        prob_recovered = cp.Problem(objective, newcons)
+        prob_recovered.solve(solver=SOLVER, **SOLVER_SETTINGS)
+        x_recovered = x.value
+
+        # b_rec = T_Ab_reshaped[:, -1]
+        # Tu = T_Ab_reshaped[:, :-1]
+        # TODO: isolate columns multiplying y (Ty) and multiplying u (Tu)
+        # constraints = [v @ x + cp.norm(Tu.T @ x) + s == b_rec]
+
+        unc_set = Ellipsoidal(rho=rho)
+        a = UncertainParameter(n,
+                               uncertainty_set=unc_set)
+        constraints = [a @ x <= b, cp.sum(x) == 1, x >= 0]
+        prob_robust = RobustProblem(objective, constraints)
+        prob_robust.solve(solver=SOLVER, **SOLVER_SETTINGS)
+        x_robust = x.value
+
+        constraints = [rho * cp.norm(x, p=2) <= b, cp.sum(x) == 1, x >= 0]
+        prob_cvxpy = cp.Problem(objective, constraints)
+        prob_cvxpy.solve(solver=SOLVER, **SOLVER_SETTINGS)
+        x_cvxpy = x.value
+
+        npt.assert_allclose(x_robust, x_recovered, rtol=RTOL, atol=ATOL)
+        npt.assert_allclose(x_cvxpy, x_recovered, rtol=RTOL, atol=ATOL)
+
 
         # TODO: adapt this example to handle RO formulation
         # from both cvxpy and tensor reformulation

@@ -11,12 +11,14 @@ from scipy.sparse._coo import coo_matrix
 
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
-from lropt.uncertain_canon.utils import standard_invert
+
+# missing import? I do not see this file
+#from lropt.uncertain_canon.utils import standard_invert
 
 
 def tensor_reshaper(T_Ab: coo_matrix, n_var: int) -> np.ndarray:
     """
-    This function reshapes T_Ab so T_Ab@param_vec gives the constraints row by row instead of 
+    This function reshapes T_Ab so T_Ab@param_vec gives the constraints row by row instead of
     column by column. At the moment, it returns a dense matrix instead of a sparse one.
     """
     def _calc_source_row(target_row: int, num_constraints: int) -> int:
@@ -69,7 +71,7 @@ class SeparateMatrix(Reduction):
                 unc_canon_dict[i] = (u, u.canonicalize)
                 u.canonicalize = super(UncertainParameter, u).canonicalize
             return unc_canon_dict
-        
+
         def _get_tensors(problem: RobustProblem, solver = SCS) -> ndarray:
             """
             This inner function generates A_tensor: the 3D tensor of A. It also generates b,c
@@ -91,7 +93,7 @@ class SeparateMatrix(Reduction):
                         return param_vec_uncertain, T_Ab_uncertain
                     else:
                         return param_vec_certain, T_Ab_certain
-                
+
                 def _gen_param_value(param: Parameter | UncertainParameter, is_uncertain: bool) -> \
                                                         np.ndarray | UncertainParameter:
                     """
@@ -104,7 +106,7 @@ class SeparateMatrix(Reduction):
                     if is_uncertain:
                         return param
                     return param.value
-                
+
                 def _safe_np_hstack(vec: list) -> np.ndarray:
                     """
                     This is a helper function that hstacks the elements of vec or returns None if
@@ -146,7 +148,7 @@ class SeparateMatrix(Reduction):
                     param_vec_target.append(param_val)
                     T_Ab_target.append(T_Ab[:, running_param_size:running_param_size+param_size])
                     running_param_size += param_size
-                
+
                 #Add the parameter-free element:
                 #The last element is always 1, represents the free element (not a parameter)
                 param_vec_certain.append(1)
@@ -161,7 +163,7 @@ class SeparateMatrix(Reduction):
                 vec_Ab_uncertain    = _safe_gen_vecAb(T_Ab_uncertain, param_vec_uncertain)
 
                 return vec_Ab_certain, vec_Ab_uncertain
-            
+
             def _finalize_expressions(vec_Ab: ndarray | Expression, is_uncertain: bool, n_var: int)\
                                                                                          -> tuple:
                 """
@@ -190,8 +192,8 @@ class SeparateMatrix(Reduction):
         def _gen_objective(problem: RobustProblem) -> Expression:
             #TODO: update this function to reformulate the objective
             return problem.objective
-        
-        def _gen_constraints(A_rec_certain: ndarray, A_rec_uncertain: Expression, b_rec: ndarray, 
+
+        def _gen_constraints(A_rec_certain: ndarray, A_rec_uncertain: Expression, b_rec: ndarray,
                                         variables: list[Variable]) -> list[Expression]:
             """
             This is a helper function that generates a new constraint.
@@ -211,7 +213,7 @@ class SeparateMatrix(Reduction):
             # constraints[0].new_name = "_gen_constraints_<=" #TODO: DEBUG ONLY
             # constraints[1].new_name = "_gen_constraints_>=" #TODO: DEBUG ONLY
             return constraints, s
-        
+
         def _restore_param_canon(unc_canon_dict: dict) -> None:
             """
             This function restores the canonicalize function of each uncertain parameter.
@@ -234,7 +236,7 @@ class SeparateMatrix(Reduction):
 
         #Change uncertain paramter to use its original canonicalize
         unc_canon_dict = _unc_param_to_canon(problem)
-        
+
         #Get A, b tensors (A separated to uncertain and certain parts).
         A_rec_certain, A_rec_uncertain, b_rec = _get_tensors(problem, solver=solver)
 
@@ -274,4 +276,5 @@ class SeparateMatrix(Reduction):
     def invert(self, solution, inverse_data):
         #TODO: Go back to this function and make sure it is correct. If it is, need to write a new
         #function and consolidate with uncertain_canonicalization.invert
-        return standard_invert(solution=solution, inverse_data=inverse_data)
+        return
+        # return standard_invert(solution=solution, inverse_data=inverse_data)

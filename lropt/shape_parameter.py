@@ -8,3 +8,7 @@ class ShapeParameter(cp.Parameter):
 class EpsParameter(cp.Parameter):
     def __init__(self, *args, **kwargs):
         super(EpsParameter, self).__init__(*args, **kwargs)
+
+class UParameter(cp.Parameter):
+    def __init__(self, *args, **kwargs):
+        super(UParameter, self).__init__(*args, **kwargs)
