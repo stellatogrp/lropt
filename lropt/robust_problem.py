@@ -384,7 +384,7 @@ class RobustProblem(Problem):
         self.num_g = len(h_funcs)
 
     #BATCHED
-    def _eval_input(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
+    def _eval_input_b(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
                     eval_input_case, quantiles, **kwargs):
         """
         This function takes decision varaibles, y's, and u's,
@@ -425,7 +425,7 @@ class RobustProblem(Problem):
         return init_val
 
     #SERIAL VERSION - TODO - DELETE WHEN _EVAL_INPUT IS VERIFIED TO WORK WELL
-    def _eval_input_SERIAL(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
+    def _eval_input(self, batch_int,eval_func, eval_args, items_to_sample, init_val,
                     eval_input_case, quantiles, **kwargs):
         """
         This function takes decision varaibles, y's, and u's,
@@ -1226,12 +1226,12 @@ class RobustProblem(Problem):
             #To make sure batched inputs are processed correctly, we need to update expr.axis
             #(if applicable). It is important to revert it back to the original value when done,
             #hence we save original_axis.
-            expr = torch_exp.args[0]
-            arg_to_orig_axis = {} #Expression (arg) -> original axis dictionary
-            _safe_increase_axis(expr, arg_to_orig_axis)
+            # expr = torch_exp.args[0]
+            # arg_to_orig_axis = {} #Expression (arg) -> original axis dictionary
+            # _safe_increase_axis(expr, arg_to_orig_axis)
             res = torch_exp(*args_to_pass)
             #Revert to the original axis if applicable. Note: None is a valid axis (unlike False).
-            _restore_original_axis(expr, arg_to_orig_axis)
+            # _restore_original_axis(expr, arg_to_orig_axis)
             return res
 
         # vars_dict contains a dictionary from variable/param -> index in *args (for the expression)
@@ -1341,7 +1341,7 @@ class RobustProblem(Problem):
 
             batch_int, y_batch, u_batch = self._gen_batch(num_ys,
                     kwargs['y_train_tch'], kwargs['train_set'],
-                    kwargs['batch_percentage'], max_size=30)
+                    kwargs['batch_percentage'], max_size=kwargs["max_batch_size"])
             # slack = torch.maximum(slack, torch.tensor(0.))
 
             var_values = kwargs['cvxpylayer'](eps_tch, \
@@ -1368,11 +1368,15 @@ class RobustProblem(Problem):
 
             # lam = torch.maximum(lam + step_lam*train_constraint_value,
             #                    torch.zeros(self.num_g, dtype=settings.DTYPE))
-            if step_num % 20 == 0:
-                if torch.norm(train_constraint_value) <= 0.99*curr_cvar:
+
+            if step_num % kwargs['aug_lag_update_interval'] == 0:
+                if torch.norm(train_constraint_value) <= \
+                    kwargs['lambda_update_threshold']*curr_cvar:
                     curr_cvar= torch.norm(train_constraint_value)
                     lam = lam + torch.minimum(mu*train_constraint_value,
-                                        1000*torch.ones(self.num_g_total, dtype=settings.DTYPE))
+                                        kwargs['lambda_update_max']*\
+                                            torch.ones(self.num_g_total,
+                                                        dtype=settings.DTYPE))
                 else:
                     mu = kwargs['mu_multiplier']*mu
 
@@ -1387,7 +1391,7 @@ class RobustProblem(Problem):
             if step_num % kwargs['test_frequency'] == 0:
                 batch_int, y_batch, u_batch = self._gen_batch(
                     kwargs["y_test_tch"][0].shape[0],
-                    kwargs['y_test_tch'], kwargs['test_set'], 1,max_size=10)
+                    kwargs['y_test_tch'], kwargs['test_set'], 1,max_size=kwargs["max_batch_size"])
                 var_values = kwargs['cvxpylayer'](
                     eps_tch,*kwargs['y_orig_tch'],\
                         *y_batch, a_tch, b_tch,
@@ -1451,9 +1455,9 @@ class RobustProblem(Problem):
         train_shape=settings.TRAIN_SHAPE_DEFAULT,
         fixb=settings.FIXB_DEFAULT,
         num_iter=settings.NUM_ITER_DEFAULT,  # Used to be "step"
-        num_iter_size = None,
+        num_iter_size = settings.NUM_ITER_SIZE_DEFAULT,
         lr=settings.LR_DEFAULT,
-        lr_size = None,
+        lr_size = settings.LR_SIZE_DEFAULT,
         scheduler=settings.SCHEDULER_STEPLR_DEFAULT,
         momentum=settings.MOMENTUM_DEFAULT,
         optimizer=settings.OPT_DEFAULT,
@@ -1479,8 +1483,12 @@ class RobustProblem(Problem):
         quantiles=settings.QUANTILES,
         lr_step_size=settings.LR_STEP_SIZE,
         lr_gamma=settings.LR_GAMMA,
-        position=False,
-        parallel=True
+        position=settings.POSITION,
+        parallel=settings.PARALLEL,
+        aug_lag_update_interval = settings.UPDATE_INTERVAL,
+        lambda_update_threshold = settings.LAMBDA_UPDATE_THRESHOLD,
+        lambda_update_max = settings.LAMBDA_UPDATE_MAX,
+        max_batch_size = settings.MAX_BATCH_SIZE
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set w.r.t. lagrangian metric
@@ -1592,7 +1600,11 @@ class RobustProblem(Problem):
                   "lr_gamma": lr_gamma, "eta": eta,
                     "position": position, "test_percentage": test_percentage,
                     "y_train_tch": y_train_tchs, "y_test_tch": y_test_tchs,
-                    "y_orig_tch": y_orig_torches, "rho_mult_tch": rho_mult_tch}
+                    "y_orig_tch": y_orig_torches, "rho_mult_tch": rho_mult_tch,
+                    "aug_lag_update_interval": aug_lag_update_interval,
+                    "lambda_update_threshold":lambda_update_threshold,
+                    "lambda_update_max":lambda_update_max,
+                     "max_batch_size":max_batch_size }
 
         # Debugging code - one iteration
         # res = self._train_loop(0, **kwargs)
@@ -1669,7 +1681,7 @@ class RobustProblem(Problem):
         num_ys=settings.NUM_YS_DEFAULT,
         solver_args=settings.LAYER_SOLVER,
         quantiles=settings.QUANTILES,
-        newdata = None,
+        newdata = settings.NEWDATA_DEFAULT,
         eta = settings.ETA_LAGRANGIAN_DEFAULT
     ):
         r"""
@@ -1717,7 +1729,11 @@ class RobustProblem(Problem):
         if newdata is not None:
             train_set, y_set = newdata
             u_batch = torch.tensor(train_set, requires_grad=self.train_flag, dtype=settings.DTYPE)
-            y_batch = [torch.tensor(y_set, requires_grad=self.train_flag, dtype=settings.DTYPE)]
+            if not isinstance(y_set, list):
+                y_batch = [torch.tensor(y_set, requires_grad=self.train_flag, dtype=settings.DTYPE)]
+            else:
+                y_batch = [torch.tensor(y, requires_grad=self.train_flag,
+                                        dtype=settings.DTYPE) for y in y_set]
             batch_int = train_set.shape[0]
 
         else:
