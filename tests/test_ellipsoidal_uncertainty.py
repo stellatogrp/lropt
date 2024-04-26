@@ -446,3 +446,61 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # from both cvxpy and tensor reformulation
 
         # TODO: handle parameters in objective as well
+
+    def test_tensor_uncertain_concat(self):
+        b, x, n, objective, rho, _ = \
+            self.b, self.x, self.n, self.objective, self.rho, self.p
+
+        bar_a = np.array([0.1,0.1,0.1,0.3,1.2])
+
+        # Solve via tensor reformulation
+        a = UParameter(n)
+        constraints = [((3*np.eye(n))@a + bar_a)@ x <= b, cp.sum(x) == 1, x >= 0]
+        # num_constraints = calc_num_constraints(constraints)
+        prob_tensor = cp.Problem(objective, constraints)
+        data = prob_tensor.get_problem_data(solver=SOLVER)
+        cones = data[0]['dims']
+
+        # A_rec_uncertain as a list of sparse matrices
+        A_rec_certain, A_rec_uncertain, b_rec = _get_tensors(prob_tensor)
+        # s = cp.Variable(num_constraints)
+
+        newcons = []
+        #cannot have equality with norms
+        for i in range(cones.zero):
+            newcons += [A_rec_certain[i]@x == b_rec[i] ]
+        for i in range(cones.zero, cones.zero + cones.nonneg):
+            newcons += [A_rec_certain[i]@x + \
+                    rho*cp.norm(A_rec_uncertain[i][0].T@x) <= b_rec[i] ]
+
+        prob_recovered = cp.Problem(objective, newcons)
+        prob_recovered.solve(solver=SOLVER, **SOLVER_SETTINGS)
+        x_recovered = x.value
+
+
+        # turn new problem into Robust problem and solve
+        unc_set = Ellipsoidal(rho=rho)
+        a = UncertainParameter(n,
+                               uncertainty_set=unc_set)
+        newcons = []
+        for i in range(cones.zero):
+            newcons += [A_rec_certain[i].toarray()@x == b_rec[i].toarray() ]
+        for i in range(cones.zero, cones.zero + cones.nonneg):
+            newcons += [A_rec_certain[i].toarray()@x + (A_rec_uncertain[i][0].toarray()@a).T@x
+                     <= b_rec[i].toarray()]
+
+        prob_concat = RobustProblem(objective, newcons)
+        prob_concat.solve(solver=SOLVER, **SOLVER_SETTINGS)
+        x_concat = x.value
+
+        # Compare against current package
+        unc_set = Ellipsoidal(rho=rho)
+        a = UncertainParameter(n,
+                               uncertainty_set=unc_set)
+        constraints = [((3*np.eye(n))@a + bar_a)@ x <= b, cp.sum(x) == 1, x >= 0]
+        prob_robust = RobustProblem(objective, constraints)
+        prob_robust.solve(solver=SOLVER, **SOLVER_SETTINGS)
+        x_robust = x.value
+
+        npt.assert_allclose(x_robust, x_recovered, rtol=RTOL, atol=ATOL)
+        npt.assert_allclose(x_concat, x_recovered, rtol=RTOL, atol=ATOL)

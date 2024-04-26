@@ -19,10 +19,8 @@ from cvxpy.expressions.leaf import Leaf
 from cvxpy.expressions.variable import Variable
 from cvxpy.problems.objective import Maximize
 from cvxpy.problems.problem import Problem
-from cvxpy.reductions import Dcp2Cone, Qp2SymbolicQp
 from cvxpy.reductions.flip_objective import FlipObjective
 from cvxpy.reductions.solution import INF_OR_UNB_MESSAGE
-from cvxpy.reductions.solvers.solving_chain import SolvingChain, construct_solving_chain
 from cvxpylayers.torch import CvxpyLayer
 from joblib import Parallel, delayed
 
@@ -559,68 +557,68 @@ class RobustProblem(Problem):
         return F + lam @ H + (mu/2)*(torch.linalg.norm(H)**2), H.detach()
 
     # create function for only remove_uncertain reduction
-    def _construct_chain(
-        self,
-        solver: Optional[str] = None,
-        gp: bool = False,
-        enforce_dpp: bool = True,
-        ignore_dpp: bool = False,
-        solver_opts: Optional[dict] = None,
-        canon_backend: str | None = None,
-    ) -> SolvingChain:
-        """
-        Construct the chains required to reformulate and solve the problem.
-        In particular, this function
-        # finds the candidate solvers
-        # constructs the solving chain that performs the
-           numeric reductions and solves the problem.
+    # def _construct_chain(
+    #     self,
+    #     solver: Optional[str] = None,
+    #     gp: bool = False,
+    #     enforce_dpp: bool = True,
+    #     ignore_dpp: bool = False,
+    #     solver_opts: Optional[dict] = None,
+    #     canon_backend: str | None = None,
+    # ) -> SolvingChain:
+    #     """
+    #     Construct the chains required to reformulate and solve the problem.
+    #     In particular, this function
+    #     # finds the candidate solvers
+    #     # constructs the solving chain that performs the
+    #        numeric reductions and solves the problem.
 
-        Args:
+    #     Args:
 
-        solver : str, optional
-            The solver to use. Defaults to ECOS.
-        gp : bool, optional
-            If True, the problem is parsed as a Disciplined Geometric Program
-            instead of as a Disciplined Convex Program.
-        enforce_dpp : bool, optional
-            Whether to error on DPP violations.
-        ignore_dpp : bool, optional
-            When True, DPP problems will be treated as non-DPP,
-            which may speed up compilation. Defaults to False.
-        canon_backend : str, optional
-            'CPP' (default) | 'SCIPY'
-            Specifies which backend to use for canonicalization, which can affect
-            compilation time. Defaults to None, i.e., selecting the default
-            backend.
-        solver_opts: dict, optional
-            Additional arguments to pass to the solver.
+    #     solver : str, optional
+    #         The solver to use. Defaults to ECOS.
+    #     gp : bool, optional
+    #         If True, the problem is parsed as a Disciplined Geometric Program
+    #         instead of as a Disciplined Convex Program.
+    #     enforce_dpp : bool, optional
+    #         Whether to error on DPP violations.
+    #     ignore_dpp : bool, optional
+    #         When True, DPP problems will be treated as non-DPP,
+    #         which may speed up compilation. Defaults to False.
+    #     canon_backend : str, optional
+    #         'CPP' (default) | 'SCIPY'
+    #         Specifies which backend to use for canonicalization, which can affect
+    #         compilation time. Defaults to None, i.e., selecting the default
+    #         backend.
+    #     solver_opts: dict, optional
+    #         Additional arguments to pass to the solver.
 
-        Returns:
-            A solving chain
-        """
-        candidate_solvers = self._find_candidate_solvers(solver=solver, gp=gp)
-        self._sort_candidate_solvers(candidate_solvers)
-        solving_chain = construct_solving_chain(
-            self,
-            candidate_solvers,
-            gp=gp,
-            enforce_dpp=enforce_dpp,
-            ignore_dpp=ignore_dpp,
-            canon_backend=canon_backend,
-            solver_opts=solver_opts,
-        )
-        #
-        new_reductions = solving_chain.reductions
-        if self.uncertain_parameters():
-            # new_reductions = solving_chain.reductions
-            # Find position of Dcp2Cone or Qp2SymbolicQp
-            for idx in range(len(new_reductions)):
-                if type(new_reductions[idx]) in [Dcp2Cone, Qp2SymbolicQp]:
-                    # Insert Uncertain_Canonicalization before those reductions
-                    new_reductions.insert(idx, Uncertain_Canonicalization())
-                    break
-        # return a chain instead (chain.apply, return the problem and inverse data)
-        return SolvingChain(reductions=new_reductions)
+    #     Returns:
+    #         A solving chain
+    #     """
+    #     candidate_solvers = self._find_candidate_solvers(solver=solver, gp=gp)
+    #     self._sort_candidate_solvers(candidate_solvers)
+    #     solving_chain = construct_solving_chain(
+    #         self,
+    #         candidate_solvers,
+    #         gp=gp,
+    #         enforce_dpp=enforce_dpp,
+    #         ignore_dpp=ignore_dpp,
+    #         canon_backend=canon_backend,
+    #         solver_opts=solver_opts,
+    #     )
+    #     #
+    #     new_reductions = solving_chain.reductions
+    #     if self.uncertain_parameters():
+    #         # new_reductions = solving_chain.reductions
+    #         # Find position of Dcp2Cone or Qp2SymbolicQp
+    #         for idx in range(len(new_reductions)):
+    #             if type(new_reductions[idx]) in [Dcp2Cone, Qp2SymbolicQp]:
+    #                 # Insert Uncertain_Canonicalization before those reductions
+    #                 new_reductions.insert(idx, Uncertain_Canonicalization())
+    #                 break
+    #     # return a chain instead (chain.apply, return the problem and inverse data)
+    #     return SolvingChain(reductions=new_reductions)
 
     def unpack(self, solution) -> None:
         """Updates the problem state given a Solution.
@@ -1884,6 +1882,7 @@ class RobustProblem(Problem):
             if type(self.objective) == Maximize:
                 unc_reductions += [FlipObjective()]
             unc_reductions += [Uncertain_Canonicalization()]
+            #unc_reductions += [SeparateMatrix(),Uncertain_Canonicalization()]
             newchain = UncertainChain(self, reductions=unc_reductions)
             self.new_prob, self.inverse_data = newchain.apply(self)
             self.uncertain_chain = newchain

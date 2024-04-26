@@ -8,9 +8,16 @@ from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.box import Box
 from lropt.uncertainty_sets.polyhedral import Polyhedral
-from tests.settings import SOLVER
-from tests.settings import TESTS_ATOL as ATOL
-from tests.settings import TESTS_RTOL as RTOL
+
+# from tests.settings import SOLVER, SOLVER_SETTINGS
+# from tests.settings import TESTS_ATOL as ATOL
+# from tests.settings import TESTS_RTOL as RTOL
+
+
+ATOL = 1e-4
+RTOL = 1e-4
+SOLVER = cp.CLARABEL
+SOLVER_SETTINGS = { "equilibrate_enable": False, "verbose": False }
 
 # import pytest
 # import torch
@@ -55,7 +62,7 @@ class TestBoxUncertainty(unittest.TestCase):
         unc_set = Box(rho=0.1)
 
         a = UncertainParameter(n, uncertainty_set=unc_set)
-        constraints = [-2*(b_unc + np.eye(n)@(A_unc @ a)) @ x <= b]
+        constraints = [(-2*b_unc + -2*(A_unc @ a)) @ x <= b]
         prob_robust_box = RobustProblem(objective, constraints)
         prob_robust_box.solve(solver=SOLVER)
         x_robust_box = x.value
