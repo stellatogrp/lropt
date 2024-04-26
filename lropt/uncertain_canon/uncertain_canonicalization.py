@@ -17,6 +17,7 @@ from lropt.uncertain_canon.remove_constant import REMOVE_CONSTANT_METHODS as rm_
 from lropt.uncertain_canon.separate_uncertainty import SEPARATION_METHODS as sep_methods
 from lropt.uncertainty_sets.mro import MRO
 from lropt.utils import unique_list
+from lropt.uncertain_canon.utils import standard_invert
 
 
 class RemoveUncertaintyMode():
@@ -116,13 +117,7 @@ class Uncertain_Canonicalization(Reduction):
         return new_problem, inverse_data
 
     def invert(self, solution, inverse_data):
-        pvars = {vid: solution.primal_vars[vid] for vid in inverse_data.id_map
-                 if vid in solution.primal_vars}
-        dvars = {orig_id: solution.dual_vars[vid]
-                 for orig_id, vid in inverse_data.cons_id_map.items()
-                 if vid in solution.dual_vars}
-
-        return Solution(solution.status, solution.opt_val, pvars, dvars, solution.attr)
+        return standard_invert(solution=solution, inverse_data=inverse_data)
 
     def canonicalize_tree(self, expr, var, cons):
         """Recursively canonicalize an Expression."""
@@ -652,7 +647,7 @@ class Uncertain_Canonicalization(Reduction):
         #     raise ValueError("DRP error: Cannot have multiple uncertain params in the same expr")
         elif len(expr.args) == 0:
             assert (self.has_unc_param(expr))
-            return [expr], [], 0
+            return [expr], [], 0 
 
         elif type(expr) not in sep_methods:
             raise ValueError(
@@ -730,8 +725,6 @@ class Uncertain_Canonicalization(Reduction):
 
     def remove_constant(self, expr, constant=1):
         '''remove the constants at the beginning of an expression with uncertainty'''
-        # import ipdb
-        # ipdb.set_trace()
         if len(expr.args) == 0:
             return expr, constant
 
