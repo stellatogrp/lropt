@@ -1,5 +1,6 @@
-from cvxpy.reductions.solution import Solution
 from cvxpy.reductions.inverse_data import InverseData
+from cvxpy.reductions.solution import Solution
+
 
 def standard_invert(solution: Solution, inverse_data: InverseData) -> Solution:
     """
