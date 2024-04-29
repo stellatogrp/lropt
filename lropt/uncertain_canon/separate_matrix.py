@@ -1,4 +1,5 @@
 import numpy as np
+from cvxpy import hstack as cp_hstack
 from cvxpy import SCS, Parameter, Variable
 from cvxpy.atoms.affine.hstack import Hstack
 from cvxpy.constraints.constraint import Constraint
@@ -19,14 +20,13 @@ def tensor_reshaper(T_Ab: coo_matrix, n_var: int) -> np.ndarray:
     This function reshapes T_Ab so T_Ab@param_vec gives the constraints row by row instead of
     column by column. At the moment, it returns a dense matrix instead of a sparse one.
     """
-    def _calc_source_row(target_row: int, num_constraints: int) -> int:
+    def _calc_source_row(target_row: int, num_constraints: int, n_var: int) -> int:
         """
         This is a helper function that calculates the index of the source row of T_Ab for the
         reshaped target row.
         """
-        n_con = num_constraints -1
-        constraint_num = 0 if n_con == 0 else target_row%n_con
-        var_num = target_row if n_con == 0 else target_row//n_con
+        constraint_num = 0 if n_var == 0 else target_row%n_var
+        var_num = target_row if n_var == 0 else target_row//n_var
         source_row = constraint_num*num_constraints+var_num
         return source_row
 
@@ -36,9 +36,8 @@ def tensor_reshaper(T_Ab: coo_matrix, n_var: int) -> np.ndarray:
     num_rows = T_Ab.shape[0]
     num_constraints = num_rows//n_var_full
     T_Ab_res = csr_matrix(T_Ab.shape)
-    target_row = 0 #Counter for populating the new row of T_Ab_res
-    for target_row in range(num_rows):
-        source_row = _calc_source_row(target_row, num_constraints)
+    for target_row in range(num_rows): #Counter for populating the new row of T_Ab_res
+        source_row = _calc_source_row(target_row, num_constraints, n_var_full)
         T_Ab_res[target_row, :] = T_Ab[source_row, :]
     return T_Ab_res
 
@@ -116,7 +115,7 @@ class SeparateMatrix(Reduction):
                         return None
                     #A vector of uncertain parameters needs cvxpy hstack
                     if isinstance(vec[0], UncertainParameter):
-                        return Hstack(*vec)
+                        return cp_hstack(vec)
                     return np.hstack(vec)
 
                 def _safe_gen_vecAb(T_Ab: np.ndarray, param_vec: np.ndarray | Expression | None):
