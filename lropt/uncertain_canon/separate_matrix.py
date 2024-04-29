@@ -1,6 +1,6 @@
 import numpy as np
-from cvxpy import hstack as cp_hstack
 from cvxpy import SCS, Parameter, Variable
+from cvxpy import hstack as cp_hstack
 from cvxpy.atoms.affine.hstack import Hstack
 from cvxpy.constraints.constraint import Constraint
 from cvxpy.expressions.expression import Expression
