@@ -1,7 +1,6 @@
 import numpy as np
 from cvxpy import SCS, Parameter, Variable
 from cvxpy import hstack as cp_hstack
-from cvxpy.atoms.affine.hstack import Hstack
 from cvxpy.constraints.constraint import Constraint
 from cvxpy.expressions.expression import Expression
 from cvxpy.reductions.inverse_data import InverseData
@@ -208,12 +207,13 @@ class SeparateMatrix(Reduction):
             return problem.objective
 
         def _gen_constraints(A_rec_certain: ndarray, A_rec_uncertain: Expression, b_rec: ndarray,
-                                        variables: list[Variable], cones,u) -> list[Expression]:
+                                        variables: list[Variable], cones, u: UncertainParameter) \
+                                              -> list[Expression]:
             """
             This is a helper function that generates a new constraint.
             """
             # s = Variable(A_rec_certain.shape[0])
-            variables_stacked = Hstack(*variables)
+            variables_stacked = cp_hstack(variables)
             constraints = []
             for i in range(cones.zero):
                 constraints += [A_rec_certain[i].toarray()@variables_stacked == b_rec[i].toarray() ]
@@ -223,11 +223,9 @@ class SeparateMatrix(Reduction):
                                     @variables_stacked <= b_rec[i].toarray()]
             else:
                 for i in range(cones.zero, cones.zero + cones.nonneg):
-                    constraints += [A_rec_certain[i].toarray()\
-                                    @variables_stacked  + \
-                                    (A_rec_uncertain[i][0].toarray()@u\
-                                     ).T@variables_stacked
-                     <= b_rec[i].toarray()]
+                    constraints += [A_rec_certain[i].toarray()@variables_stacked +
+                                     (A_rec_uncertain[i][0].toarray()*u).T@variables_stacked 
+                                     <= b_rec[i].toarray()]
 
             # lhs_uncertain = 0 if A_rec_uncertain is None else A_rec_uncertain@variables_stacked
             # lhs = A_rec_certain@variables_stacked + lhs_uncertain
