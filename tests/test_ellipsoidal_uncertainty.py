@@ -231,13 +231,13 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         b, x, objective, n, rho, p = \
             self.b, self.x, self.objective, self.n, self.rho, self.p
         # Formulate robust problem explicitly with cvxpy
-        constraints = [rho * cp.norm(x, p=p) <= b]
+        constraints = [rho * cp.norm(x, p=2) <= b]
         prob_cvxpy = cp.Problem(objective, constraints)
         prob_cvxpy.solve(solver=SOLVER, **SOLVER_SETTINGS)
         x_cvxpy = x.value
         # Formulate robust constraints with lropt
         a = UncertainParameter(n,
-                               uncertainty_set=Ellipsoidal(rho=rho))
+                               uncertainty_set=Ellipsoidal(rho=rho, p=p))
         constraints = [a @ x <= b]
         prob_robust = RobustProblem(objective, constraints)
         prob_robust.solve(solver=SOLVER, **SOLVER_SETTINGS)

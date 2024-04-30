@@ -31,15 +31,15 @@ class RemoveUncertaintyMode():
     def __init__(self):
         self._has_matrix = False
         self._has_isolated = False
-    
+
     def seen_matrix(self, seen):
         if seen:
             self._has_matrix = True
-    
+
     def seen_isolated(self, seen):
         if seen:
             self._has_isolated = True
-    
+
     def get_status(self) -> Status:
         if self._has_matrix:
             return RemoveUncertaintyMode.Status.HAS_MATRIX
@@ -88,7 +88,7 @@ class Uncertain_Canonicalization(Reduction):
                 canon_objective = problem.objective
                 new_constraints = problem.constraints
             return canon_objective, new_constraints
-        
+
         inverse_data = InverseData(problem)
         # import ipdb
         # ipdb.set_trace()
@@ -97,7 +97,7 @@ class Uncertain_Canonicalization(Reduction):
 
         canon_objective, new_constraints = _gen_objective_constraints(problem)
         canon_constraints = []
-        
+
         for constraint in new_constraints:
             # canon_constr is the constraint rexpressed in terms of
             # its canonicalized arguments, and aux_constr are the constraints
@@ -173,6 +173,8 @@ class Uncertain_Canonicalization(Reduction):
             This is a helper function that returns True if the expression is a 2D matrix and false
             otherwise.
             """
+            if expr.shape == (1,1):
+                return False
             return len(expr.shape)==2
 
         def _gen_var_mat(self, new_expr, mat_flag):
@@ -186,7 +188,7 @@ class Uncertain_Canonicalization(Reduction):
             elif self.has_unc_param(new_expr.args[1]):
                 var_mat = new_expr.args[0]
             return var_mat
-        
+
         def _update_new_vars(mat_flag, ind, z_new_cons, col, new_vars, num_constr, u_shape):
             new_var_ind = Variable((num_constr, u_shape))
             if mat_flag:
@@ -196,7 +198,7 @@ class Uncertain_Canonicalization(Reduction):
                 new_vars[col][ind] = new_var_ind
             else:
                 new_vars[ind] = new_var_ind
-        
+
         def _gen_new_expr_constraint(uvar, total_inds, col, i, new_vars, ind, var_mat,
                                      num_constr_cols, num_constr):
             """
@@ -208,7 +210,7 @@ class Uncertain_Canonicalization(Reduction):
             else:
                 new_expr, new_constraint = uvar.isolated_unc(i, new_vars[ind][i],num_constr)
             return new_expr, new_constraint
-        
+
         def _update_z_new_cons(mat_flag, z_new_cons, new_vars, col, ind, i):
             """
             This is a helper function that updates z_new_cons.
@@ -243,7 +245,7 @@ class Uncertain_Canonicalization(Reduction):
             return has_matrix, has_isolated, num_constr_cols, aux_expr, aux_constraint, uvar, z_cons
         var_mat = _gen_var_mat(self, new_expr, mat_flag)
         total_inds = 0 #Total element (takes into account rows and columns). Used only if mat_flag.
-        
+
         for col in range(num_constr_cols):
             _update_new_vars(mat_flag, ind, z_new_cons, col, new_vars, num_constr, u_shape)
             for i in range(num_constr):
@@ -258,9 +260,9 @@ class Uncertain_Canonicalization(Reduction):
             has_matrix = True
         else:
             has_isolated = True
-        
+
         return has_matrix, has_isolated, num_constr_cols, aux_expr, aux_constraint, uvar, z_cons
-    
+
     def _gen_aux_constraint(self, status, std_lst, num_constr_cols, num_constr, u_shape,
                             smaller_u_shape, uvar, z_cons, z_new_cons, z_unc, supp_cons,
                             aux_expr, aux_constraint):
@@ -299,7 +301,7 @@ class Uncertain_Canonicalization(Reduction):
                         + uvar.uncertainty_set.a.T@supp_cons[0] == -z_unc[0]]
             else:
                 aux_constraint += [z_cons + supp_cons[0] == -z_unc[0]]
-        
+
         return aux_expr, aux_constraint
 
     def _conj_and_process(self, status, num_constr_cols, uvar, z_unc, supp_cons, num_constr, z_cons,
@@ -320,20 +322,20 @@ class Uncertain_Canonicalization(Reduction):
                     - supp_cons[col]@uvar.uncertainty_set.b
             if status.get_status() == RemoveUncertaintyMode.Status.HAS_MATRIX:
                 if col < num_constr_cols - 1:
-                    #TODO (Irina): Are matrix_expr_to_constr and 
+                    #TODO (Irina): Are matrix_expr_to_constr and
                     matrix_expr_to_constr = [aux_expr[:,col] + new_expr <=0]
                     aux_constraint = aux_constraint + new_constraint \
                         + matrix_expr_to_constr
 
         if status.get_status() == RemoveUncertaintyMode.Status.HAS_MATRIX:
             return aux_expr[:,col], aux_constraint + new_constraint, lmbda
-        
+
         if status.get_status() == RemoveUncertaintyMode.Status.HAS_MATRIX:
             #TODO (Irina): Originally this read aux_expr[:,col], and col is a iteration index. Was
             #this on purpose? At the last iteration we should get col==num_constr_cols-1
             #(it's not a good habbit using the loop index outside the loop)
-            aux_expr = aux_expr[:,num_constr_cols-1] 
-        else: 
+            aux_expr = aux_expr[:,num_constr_cols-1]
+        else:
             aux_expr = aux_expr + new_expr
         aux_constraint = aux_constraint + new_constraint
         return aux_expr, aux_constraint, lmbda
@@ -349,7 +351,7 @@ class Uncertain_Canonicalization(Reduction):
         #A status object that keeps track of whether we have seen a matrix or isolated
         status = RemoveUncertaintyMode()
         #If the uncertain list is empty,  only need to conjugate the uncertainty set.
-        if num_unc_expr==0: 
+        if num_unc_expr==0:
             aux_expr, aux_constraint, lmbda = uvar.conjugate(u_shape, 0, num_constr, k_ind=0)
             return aux_expr, aux_constraint, lmbda, status
 
@@ -373,7 +375,7 @@ class Uncertain_Canonicalization(Reduction):
             #Update has_matrix and has_isolated to True if the current result is True
             status.seen_matrix(curr_has_matrix)
             status.seen_isolated(curr_has_isolated)
-            
+
         #Create new dual variables for the uncertainty set and for the support
         z_unc = Variable((num_constr, smaller_u_shape))
         supp_cons = Variable((num_constr, u_shape))
@@ -395,8 +397,8 @@ class Uncertain_Canonicalization(Reduction):
         Canonicalize each term separately with inf convolution:
         It removes the uncertainty in a single constraint.
         This function creates a variable for each expression in a constraint,
-        and for the uncertainty set. 
-        If there are uncertain parameters after the initial canonicalize_tree call, we 
+        and for the uncertainty set.
+        If there are uncertain parameters after the initial canonicalize_tree call, we
         deal with the uncertain parameter through an additional procedure.
         After canonicalizing all terms, we return the new expression and constraints.
 
@@ -646,14 +648,14 @@ class Uncertain_Canonicalization(Reduction):
         #     raise ValueError("DRP error: Cannot have multiple uncertain params in the same expr")
         elif len(expr.args) == 0:
             assert (self.has_unc_param(expr))
-            return [expr], [], 0 
+            return [expr], [], 0
 
         elif type(expr) not in sep_methods:
             raise ValueError(
                 "DRP error: not able to process non multiplication/additions")
         func = sep_methods[type(expr)]
         return func(self, expr)
-    
+
     #TODO (Irina): Please fill/update/assert the docstrings of all the helper functions below
     # (just the description, no need to go over args/returns)
     def remove_uncertainty(self, unc_lst, std_lst, is_max, canon_constraints):
@@ -672,7 +674,7 @@ class Uncertain_Canonicalization(Reduction):
             else:
                 unc_lst_merged = unc_lst
             return unc_lst_merged
-        
+
         def _calc_constraint_shape(unc_lst_merged):
             """
             This function calculates the shape of the constraint.
@@ -693,14 +695,14 @@ class Uncertain_Canonicalization(Reduction):
             else:
                 unc_lst_pass = unc_lst[new_cons_idx]
                 std_lst_pass = std_lst[new_cons_idx]
-            
+
             if is_mro:
                 canon_constr, aux_constr, new_lmbda, new_sval = self.remove_uncertainty_mro(
                     unc_lst_pass, unc_params[0], std_lst_pass, constraint_shape)
             else:
                 canon_constr, aux_constr, new_lmbda = self.remove_uncertainty_simple(
                     unc_lst_pass, unc_params[0], std_lst_pass, constraint_shape)
-                
+
             if is_mro and new_cons_idx:
                 canon_constraints += aux_constr
                 canon_constraints += [lmbda == new_lmbda]

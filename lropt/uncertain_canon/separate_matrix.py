@@ -102,7 +102,9 @@ class SeparateMatrix(Reduction):
                     # return param
                     if is_uncertain:
                         return param
-                    return param.value
+                    if param.value is not None:
+                        return param.value
+                    return param
 
                 def _safe_np_hstack(vec: list) -> np.ndarray:
                     """
@@ -181,17 +183,23 @@ class SeparateMatrix(Reduction):
                 This is a helper function that generates A_unc
                 """
                 if T_Ab is None:
-                    return None
+                    return None,None
                 Ab_dim = (-1, n_var+1) #+1 for the free parameter
+                num = T_Ab[0].shape[1]
                 A_dic = {}
-                for i in range(n_var):
+                b_dic = {}
+                for i in range(num):
                     temp = T_Ab[0][:,i]
                     Ab = temp.reshape(Ab_dim, order='C')
                     Ab = Ab.tocsr()
                     shape = Ab.shape[0]
                     A_dic[i] = -Ab[:, :-1]
+                    b_dic[i] = Ab[:, -1]
                 return np.vstack([vstack([A_dic[i][j] \
-                                for i in range(n_var)]).T for j in range(shape)])
+                                for i in range(num)]).T for j in \
+                                    range(shape)]), \
+                                        np.vstack([vstack([b_dic[i][j] \
+                                for i in range(num)]).T for j in range(shape)])
 
             data = problem.get_problem_data(solver=solver)
             param_prob = data[0]["param_prob"]
@@ -199,22 +207,26 @@ class SeparateMatrix(Reduction):
             vec_Ab_certain, T_Ab_uncertain = _gen_param_vec(param_prob)
             n_var = param_prob.reduced_A.var_len
             A_rec_certain, b_rec = _finalize_expressions(vec_Ab_certain, n_var=n_var)
-            A_rec_uncertain = _finalize_expressions_uncertain(T_Ab_uncertain, n_var=n_var)
-            return A_rec_certain, A_rec_uncertain, b_rec, cones
+            A_rec_uncertain, b_unc = _finalize_expressions_uncertain(T_Ab_uncertain, n_var=n_var)
+            return A_rec_certain, A_rec_uncertain, b_rec, b_unc, cones
 
         def _gen_objective(problem: RobustProblem) -> Expression:
             #TODO: update this function to reformulate the objective
             return problem.objective
 
-        def _gen_constraints(A_rec_certain: ndarray, A_rec_uncertain: Expression, b_rec: ndarray,
-                                        variables: list[Variable], cones, u: UncertainParameter) \
+        def _gen_constraints(A_rec_certain: ndarray, \
+                             A_rec_uncertain: Expression, b_rec: ndarray, b_unc,
+                                        variables: list[Variable], cones,\
+                                              u: UncertainParameter) \
                                               -> list[Expression]:
             """
             This is a helper function that generates a new constraint.
             """
             # s = Variable(A_rec_certain.shape[0])
             variables_stacked = cp_hstack(variables)
+            # u = cp_hstack([u])
             constraints = []
+
             for i in range(cones.zero):
                 constraints += [A_rec_certain[i].toarray()@variables_stacked == b_rec[i].toarray() ]
             if A_rec_uncertain is None:
@@ -222,10 +234,27 @@ class SeparateMatrix(Reduction):
                     constraints += [A_rec_certain[i].toarray()\
                                     @variables_stacked <= b_rec[i].toarray()]
             else:
-                for i in range(cones.zero, cones.zero + cones.nonneg):
-                    constraints += [A_rec_certain[i].toarray()@variables_stacked +
-                                     (A_rec_uncertain[i][0].toarray()*u).T@variables_stacked 
-                                     <= b_rec[i].toarray()]
+                if len(u.shape)!=0 and u.shape[0]>1:
+                    for i in range(cones.zero, cones.zero + cones.nonneg):
+                        term_unc = 0 if A_rec_uncertain[i][0].nnz == 0 \
+                            else variables_stacked@\
+                                (A_rec_uncertain[i][0].toarray()@u)
+                        term_unc_b = 0 if b_unc[i][0].nnz == 0 else b_unc[i][0].toarray()@u
+                        constraints += [A_rec_certain[i].toarray()\
+                                        @variables_stacked + term_unc\
+                                              + term_unc_b
+                                        <= b_rec[i].toarray()]
+                else:
+                    for i in range(cones.zero, cones.zero + cones.nonneg):
+                        term_unc = 0 if A_rec_uncertain[i][0].nnz == 0 \
+                            else variables_stacked@\
+                                (A_rec_uncertain[i][0].toarray()*u)
+                        term_unc_b = 0 if b_unc[i][0].nnz == 0 else b_unc[i][0].toarray()*u
+                        constraints += [A_rec_certain[i].toarray()\
+                                        @variables_stacked  + \
+                                            term_unc + term_unc_b
+                                        <= b_rec[i].toarray()]
+
 
             # lhs_uncertain = 0 if A_rec_uncertain is None else A_rec_uncertain@variables_stacked
             # lhs = A_rec_certain@variables_stacked + lhs_uncertain
@@ -248,7 +277,7 @@ class SeparateMatrix(Reduction):
                 u.canonicalize = orig_canon
 
         def _gen_basic_problem(problem: RobustProblem, A_rec_certain: ndarray,
-                               A_rec_uncertain: Expression, b_rec: ndarray, cones) -> tuple:
+                               A_rec_uncertain: Expression, b_rec: ndarray, b_unc, cones) -> tuple:
             """
             This is a helper function that generates the new problem, new constraints
             (need to add cone constraints to it), and the new slack variable.
@@ -257,7 +286,7 @@ class SeparateMatrix(Reduction):
             u = problem.uncertain_parameters()[0]
             new_objective = _gen_objective(problem)
             new_constraints = _gen_constraints(A_rec_certain,
-                                    A_rec_uncertain, b_rec, variables, cones,u)
+                                    A_rec_uncertain, b_rec, b_unc,variables, cones,u)
             return new_objective, new_constraints
 
         inverse_data = InverseData(problem)
@@ -266,7 +295,7 @@ class SeparateMatrix(Reduction):
         unc_canon_dict = _unc_param_to_canon(problem)
 
         #Get A, b tensors (A separated to uncertain and certain parts).
-        A_rec_certain, A_rec_uncertain, b_rec, cones = _get_tensors(problem, solver=solver)
+        A_rec_certain, A_rec_uncertain, b_rec, b_unc,cones = _get_tensors(problem, solver=solver)
 
         #Change uncertain parameter to use its new canonicalize
         _restore_param_canon(unc_canon_dict)
@@ -283,7 +312,7 @@ class SeparateMatrix(Reduction):
         # new_constraints, s = _gen_constraints(A_rec_certain, A_rec_uncertain, b_rec, variables)
         # new_problem = RobustProblem(objective=new_objective, constraints=new_constraints)
         new_objective, new_constraints = _gen_basic_problem(problem, A_rec_certain,
-                                                               A_rec_uncertain, b_rec,cones)
+                                                               A_rec_uncertain, b_rec,b_unc,cones)
 
         # #Add cone constraints TODO: Creata a function for this
         # cones = problem.get_problem_data(solver=solver)[0]["dims"]

@@ -62,7 +62,7 @@ class TestBoxUncertainty(unittest.TestCase):
         unc_set = Box(rho=0.1)
 
         a = UncertainParameter(n, uncertainty_set=unc_set)
-        constraints = [(-2*b_unc + -2*(A_unc @ a)) @ x <= b]
+        constraints = [-2*(b_unc + (A_unc @ a)) @ x <= b]
         prob_robust_box = RobustProblem(objective, constraints)
         prob_robust_box.solve(solver=SOLVER)
         x_robust_box = x.value

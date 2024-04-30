@@ -17,9 +17,7 @@ from cvxpy.expressions import cvxtypes
 from cvxpy.expressions.expression import Expression
 from cvxpy.expressions.leaf import Leaf
 from cvxpy.expressions.variable import Variable
-from cvxpy.problems.objective import Maximize
 from cvxpy.problems.problem import Problem
-from cvxpy.reductions.flip_objective import FlipObjective
 from cvxpy.reductions.solution import INF_OR_UNB_MESSAGE
 from cvxpylayers.torch import CvxpyLayer
 from joblib import Parallel, delayed
@@ -1875,14 +1873,15 @@ class RobustProblem(Problem):
 
         None
         """
+        from lropt.uncertain_canon.separate_matrix import SeparateMatrix
         if (not override) and (self.new_prob):
             return
         if self.uncertain_parameters():
             unc_reductions = []
-            if type(self.objective) == Maximize:
-                unc_reductions += [FlipObjective()]
-            unc_reductions += [Uncertain_Canonicalization()]
-            #unc_reductions += [SeparateMatrix(),Uncertain_Canonicalization()]
+            # if type(self.objective) == Maximize:
+            #     unc_reductions += [FlipObjective()]
+            # unc_reductions += [Uncertain_Canonicalization()]
+            unc_reductions += [SeparateMatrix(),Uncertain_Canonicalization()]
             newchain = UncertainChain(self, reductions=unc_reductions)
             self.new_prob, self.inverse_data = newchain.apply(self)
             self.uncertain_chain = newchain

@@ -7,6 +7,7 @@ from cvxpy.atoms.affine.unary_operators import NegExpression
 from cvxpy.atoms.elementwise.maximum import maximum
 from cvxpy.constraints.nonpos import Inequality
 from cvxpy.atoms.affine.sum import Sum
+# from cvxpy.atoms.affine.transpose import transpose
 from lropt.batch import ElementwiseDotProduct, BatchedIndex
 # from cvxpy.atoms.quad_form import QuadForm
 from lropt.uncertain_atoms.quad_form import UncertainQuadForm
@@ -23,6 +24,8 @@ from lropt.uncertain_canon.separate_uncertainty.negexpression_sep import \
     negexpression_sep
 from lropt.uncertain_canon.separate_uncertainty.quadform_sep import \
     quadform_sep
+from lropt.uncertain_canon.separate_uncertainty.transpose_sep import \
+    transpose_sep
 from lropt.uncertain_canon.separate_uncertainty.promoteexpression_sep import \
     promoteexpression_sep
 
@@ -37,4 +40,5 @@ SEPARATION_METHODS = {
     UncertainQuadForm: quadform_sep,
     maximum: maximum_sep,
     Promote: promoteexpression_sep,
+    # Transpose: transpose_sep
     }
