@@ -29,7 +29,7 @@ from lropt.batch import batchify
 from lropt.parameter import Parameter
 from lropt.shape_parameter import EpsParameter, ShapeParameter
 from lropt.uncertain import UncertainParameter
-from lropt.uncertain_canon.uncertain_canonicalization import Uncertain_Canonicalization
+from lropt.uncertain_canon.remove_uncertainty import RemoveUncertainty
 from lropt.uncertain_canon.uncertain_chain import UncertainChain
 from lropt.uncertainty_sets.mro import MRO
 
@@ -227,7 +227,7 @@ class RobustProblem(Problem):
         super(RobustProblem, self).__init__(objective, constraints)
         self._trained = False
         self._values = None
-        self.new_prob = None
+        self.prob_no_uncertainty = None
         self.inverse_data = None
         self.uncertain_chain = None
         self._init = None
@@ -1558,7 +1558,7 @@ class RobustProblem(Problem):
         self._validate_uncertain_parameters()
 
         unc_set = self._get_unc_set()
-        self.dualize_constraints(override=True)
+        self.remove_uncertainty(override=True)
         self._validate_unc_set_T(unc_set)
         unc_train_set, unc_test_set, unc_train_tch, unc_test_tch, \
             y_train_tchs, y_test_tchs = self._split_dataset(
@@ -1566,13 +1566,13 @@ class RobustProblem(Problem):
         u_size = unc_train_set.shape[1]
         self._is_mro_set(unc_set)
         y_orig_torches = self.gen_y_orig(self.orig_yparams())
-        rho_mult_params = self.rho_mult_param(self.new_prob)
+        rho_mult_params = self.rho_mult_param(self.prob_no_uncertainty)
         rho_mult_tch = self.gen_rho_mult_tch(rho_mult_params)
 
-        cvxpylayer = CvxpyLayer(self.new_prob,
+        cvxpylayer = CvxpyLayer(self.prob_no_uncertainty,
                                 parameters=rho_mult_params + \
                                 self.orig_yparams() + self.y_parameters()
-                                + self.shape_parameters(self.new_prob),
+                                + self.shape_parameters(self.prob_no_uncertainty),
                                 variables=self.variables())
         num_random_init = num_random_init if random_init else 1
         num_random_init = num_random_init if train_shape else 1
@@ -1651,14 +1651,14 @@ class RobustProblem(Problem):
             return_df_test = pd.concat([df_test[index_chosen], df_test_s[0]])
             return_a_history = a_history[index_chosen] + a_history_s[0]
             return_b_history = b_history[index_chosen] + b_history_s[0]
-            return Result(self, self.new_prob, return_df,
+            return Result(self, self.prob_no_uncertainty, return_df,
                       return_df_test, unc_set.a.value,
                       unc_set.b.value,
                       return_eps, param_vals[0][3],
                       var_values[index_chosen] + var_values_s[0],
                       a_history=return_a_history,
                       b_history=return_b_history)
-        return Result(self, self.new_prob, df[index_chosen],
+        return Result(self, self.prob_no_uncertainty, df[index_chosen],
                       df_test[index_chosen], unc_set.a.value,
                       unc_set.b.value,
                       return_eps, param_vals[index_chosen][3],
@@ -1709,7 +1709,7 @@ class RobustProblem(Problem):
         self._validate_uncertain_parameters()
 
         unc_set = self._get_unc_set()
-        self.dualize_constraints(override=True)
+        self.remove_uncertainty(override=True)
         mro_set = self._is_mro_set(unc_set)
 
         self._validate_unc_set_T(unc_set)
@@ -1719,7 +1719,7 @@ class RobustProblem(Problem):
             y_train_tchs, y_test_tchs = self._split_dataset(
             unc_set, self.orig_yparams(), self.y_parameters(), test_percentage, seed)
         y_orig_torches = self.gen_y_orig(self.orig_yparams())
-        rho_mult_params = self.rho_mult_param(self.new_prob)
+        rho_mult_params = self.rho_mult_param(self.prob_no_uncertainty)
         rho_mult_tch = self.gen_rho_mult_tch(rho_mult_params)
 
         if newdata is not None:
@@ -1743,10 +1743,10 @@ class RobustProblem(Problem):
                                 y_train_tchs, unc_train_set,1)
         # create cvxpylayer
 
-        cvxpylayer = CvxpyLayer(self.new_prob,
+        cvxpylayer = CvxpyLayer(self.prob_no_uncertainty,
                                 parameters=rho_mult_params + \
                                 self.orig_yparams() + self.y_parameters() +
-                                self.shape_parameters(self.new_prob),
+                                self.shape_parameters(self.prob_no_uncertainty),
                                 variables=self.variables())
 
 
@@ -1850,7 +1850,7 @@ class RobustProblem(Problem):
         b_value = unc_set.b.value
         return Result(
             self,
-            self.new_prob,
+            self.prob_no_uncertainty,
             df,
             None,
             unc_set.a.value,
@@ -1860,30 +1860,31 @@ class RobustProblem(Problem):
             grid_stats.var_vals,
         )
 
-    def dualize_constraints(self,override = False):
+    def remove_uncertainty(self,override = False):
         """
-        This function canonizes a problem and saves it to self.new_prob
+        This function canonizes a problem and saves it to self.prob_no_uncertainty
 
         Args:
 
         override
-            If True, will override current new_prob. If false and new_prob exists, does nothing.
+            If True, will override current prob_no_uncertainty.
+            If False and prob_no_uncertainty exists, does nothing.
 
         Returns:
 
         None
         """
-        from lropt.uncertain_canon.separate_matrix.separate_matrix import SeparateMatrix
-        if (not override) and (self.new_prob):
+        from lropt.uncertain_canon.uncertain_canonicalization.uncertain_canonicalization import UncertainCanonicalization
+        if (not override) and (self.prob_no_uncertainty):
             return
         if self.uncertain_parameters():
             unc_reductions = []
             # if type(self.objective) == Maximize:
             #     unc_reductions += [FlipObjective()]
-            # unc_reductions += [Uncertain_Canonicalization()]
-            unc_reductions += [SeparateMatrix(),Uncertain_Canonicalization()]
+            # unc_reductions += [RemoveUncertainty()]
+            unc_reductions += [UncertainCanonicalization(),RemoveUncertainty()]
             newchain = UncertainChain(self, reductions=unc_reductions)
-            self.new_prob, self.inverse_data = newchain.apply(self)
+            self.prob_no_uncertainty, self.inverse_data = newchain.apply(self)
             self.uncertain_chain = newchain
 
     def solve(self,
@@ -1903,45 +1904,32 @@ class RobustProblem(Problem):
 
         Returns: the solution to the original problem
         """
-        if self.new_prob is not None:
-            # if already trained
-            return self._helper_solve(solver,warm_start,
-                                                verbose,gp,qcp,
-                                                requires_grad,
-                                                enforce_dpp,
-                                                ignore_dpp,
-                                                canon_backend,**kwargs)
-        elif self.uncertain_parameters():
-            # if no data is passed, no training is needed
-            if self.uncertain_parameters()[0].uncertainty_set.data is None:
-                self.dualize_constraints()
-            else:
-                # if not MRO set and not trained
-                if not type(self.uncertain_parameters()[0].uncertainty_set) == MRO:
-                    _ = self.train()
-                    for y in self.y_parameters():
-                        y.value = y.data[0]
-                # if MRO set and training needed
-                elif self.uncertain_parameters()[0].uncertainty_set._train:
-                    _ = self.train()
-                    for y in self.y_parameters():
-                        y.value = y.data[0]
+        if self.uncertain_parameters():
+            solver_func = self._helper_solve
+            if self.prob_no_uncertainty is None:
+                # if no data is passed, no training is needed
+                if self.uncertain_parameters()[0].uncertainty_set.data is None:
+                    self.remove_uncertainty()
                 else:
-                    # if MRO set and no training needed
-                    self.dualize_constraints()
-            return self._helper_solve(solver,warm_start,
-                                                verbose,gp,qcp,
-                                                requires_grad,
-                                                enforce_dpp,
-                                                ignore_dpp,
-                                                canon_backend,**kwargs)
-        # if not robust
-        return super(RobustProblem, self).solve(solver,warm_start,
-                                                verbose,gp,qcp,
-                                                requires_grad,
-                                                enforce_dpp,
-                                                ignore_dpp,
-                                                canon_backend,**kwargs)
+                    # if not MRO set and not trained
+                    if not type(self.uncertain_parameters()[0].uncertainty_set) == MRO:
+                        _ = self.train()
+                        for y in self.y_parameters():
+                            y.value = y.data[0]
+                    # if MRO set and training needed
+                    elif self.uncertain_parameters()[0].uncertainty_set._train:
+                        _ = self.train()
+                        for y in self.y_parameters():
+                            y.value = y.data[0]
+                    else:
+                        # if MRO set and no training needed
+                        self.remove_uncertainty()                
+        else:
+            solver_func = super(RobustProblem, self).solve
+        solver_func(solver=solver, warm_start=warm_start, verbose=verbose, gp=gp, qcp=qcp,
+                                            requires_grad=requires_grad, enforce_dpp=enforce_dpp,
+                                            ignore_dpp=ignore_dpp, canon_backend=canon_backend,
+                                            **kwargs)
 
     def _helper_solve(self,
                 solver: str = None,
@@ -1959,7 +1947,7 @@ class RobustProblem(Problem):
 
         Returns: the solution to the original problem
         """
-        prob = self.new_prob
+        prob = self.prob_no_uncertainty
         for y in prob.parameters():
             if y.value is None:
                 y.value = y.data[0]

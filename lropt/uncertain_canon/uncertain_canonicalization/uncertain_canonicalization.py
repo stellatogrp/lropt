@@ -2,8 +2,8 @@ import operator
 from typing import Union
 
 import numpy as np
+import cvxpy as cp
 from cvxpy import SCS, Parameter, Variable
-from cvxpy import hstack as cp_hstack
 from cvxpy.atoms.affine.hstack import Hstack
 from cvxpy.constraints.constraint import Constraint
 from cvxpy.expressions.expression import Expression
@@ -15,7 +15,7 @@ from scipy.sparse import csr_matrix, vstack
 from lropt import Parameter as LroptParameter
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
-from lropt.uncertain_canon.separate_matrix.utils import (
+from lropt.uncertain_canon.uncertain_canonicalization.utils import (
     tensor_reshaper,
     unsqueeze_expression,
 )
@@ -27,7 +27,7 @@ CERTAIN_PARAMETER_TYPES = (LroptParameter, Parameter)
 
 
 
-class SeparateMatrix(Reduction):
+class UncertainCanonicalization(Reduction):
     def apply(self, problem: RobustProblem, solver=SCS):
         """Separate the conic constraint into part with uncertainty and without."""
         def _unc_param_to_canon(problem:RobustProblem) -> dict:
@@ -83,7 +83,7 @@ class SeparateMatrix(Reduction):
                         return param.value
                     return param
 
-                def _safe_np_hstack(vec: list) -> np.ndarray | Hstack:
+                def _safe_hstack(vec: list) -> np.ndarray | Hstack:
                     """
                     This is a helper function that hstacks the elements of vec or returns None if
                     vec is empty.
@@ -93,7 +93,7 @@ class SeparateMatrix(Reduction):
                         return None
                     #A vector of uncertain parameters needs cvxpy hstack
                     if isinstance(vec[0], LROPT_PARAMETER_TYPES):
-                        return cp_hstack(vec)
+                        return cp.hstack(vec)
                     return np.hstack(vec)
 
                 def _safe_gen_vecAb(T_Ab_dict: dict, param_vec_dict: dict, 
@@ -140,8 +140,8 @@ class SeparateMatrix(Reduction):
 
                 #Stack all variables. Certain is never empty - always has the free element
                 for param_type in PARAM_TYPES:
-                    param_vec_dict[param_type] = _safe_np_hstack(param_vec_dict[param_type])
-                    T_Ab_dict[param_type] = _safe_np_hstack(T_Ab_dict[param_type])
+                    param_vec_dict[param_type] = _safe_hstack(param_vec_dict[param_type])
+                    T_Ab_dict[param_type] = _safe_hstack(T_Ab_dict[param_type])
                 vec_Ab_certain       = _safe_gen_vecAb(T_Ab_dict, param_vec_dict, Parameter)
                 vec_Ab_certain_param = _safe_gen_vecAb(T_Ab_dict, param_vec_dict, LroptParameter)
 
@@ -217,9 +217,12 @@ class SeparateMatrix(Reduction):
                 """
                 This is a helper function that appends the i-th constraint.
                 """
-                A =     A.toarray() if isinstance(A, csr_matrix) else A
+                #TODO: Leave dense for debugging, we need it for gen_torch_expression to work.
+                #In the future, we will have to remove the desnification.
+                A =     A.toarray() if isinstance(A, csr_matrix) else A 
                 b_rec = b_rec.toarray() if isinstance(b_rec, csr_matrix) else b_rec
                 constraints += [A@variables_stacked + term_unc + term_unc_b <= b_rec]
+
             def _gen_term_unc(cones_zero: int, u: UncertainParameter, A_rec_uncertain: np.ndarray,
                                                 i: int, variables_stacked: Hstack,
                                                 b_unc: np.ndarray) -> tuple:
@@ -245,8 +248,8 @@ class SeparateMatrix(Reduction):
                 return term_unc, term_unc_b
 
             # s = Variable(A_rec_certain.shape[0])
-            variables_stacked = cp_hstack(variables)
-            # u = cp_hstack([u])
+            variables_stacked = cp.hstack(variables)
+            # u = cp.hstack([u])
             constraints = []
 
             for i in range(cones.zero + cones.nonneg):
@@ -266,7 +269,7 @@ class SeparateMatrix(Reduction):
             for u, orig_canon in unc_canon_dict.values():
                 u.canonicalize = orig_canon
 
-        def _gen_basic_problem(problem: RobustProblem, A_rec_certain: ndarray,
+        def _gen_canon_robust_problem(problem: RobustProblem, A_rec_certain: ndarray,
                                A_rec_uncertain: Expression, b_rec: ndarray, b_unc, cones) -> tuple:
             """
             This is a helper function that generates the new problem, new constraints
@@ -297,7 +300,7 @@ class SeparateMatrix(Reduction):
         #Create a new problem with new objective and new constraint
 
 
-        new_objective, new_constraints = _gen_basic_problem(problem, A_rec_certain,
+        new_objective, new_constraints = _gen_canon_robust_problem(problem, A_rec_certain,
                                                                A_rec_uncertain, b_rec,b_unc,cones)
         new_problem = RobustProblem(objective=new_objective, constraints=new_constraints)
         #TODO: Update this

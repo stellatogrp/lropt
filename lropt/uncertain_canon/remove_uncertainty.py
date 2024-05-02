@@ -47,7 +47,7 @@ class RemoveUncertaintyMode():
             return RemoveUncertaintyMode.Status.HAS_ISOLATED
         return RemoveUncertaintyMode.Status.NONE
 
-class Uncertain_Canonicalization(Reduction):
+class RemoveUncertainty(Reduction):
     """Recursively canonicalize each expression in a problem.
     This reduction recursively canonicalizes every expression tree in a
     problem, visiting each node. At every node, this reduction first
@@ -70,7 +70,7 @@ class Uncertain_Canonicalization(Reduction):
     """
 
     def __init__(self, canon_methods=remove_uncertain_methods, problem=None) -> None:
-        super(Uncertain_Canonicalization, self).__init__(problem=problem)
+        super(RemoveUncertainty, self).__init__(problem=problem)
         self.canon_methods = canon_methods
 
     def apply(self, problem):

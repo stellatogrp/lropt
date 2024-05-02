@@ -1,22 +1,11 @@
-from typing import Union
 
 import numpy as np
-from cvxpy import SCS, Parameter, Variable
-from cvxpy import hstack as cp_hstack
 from cvxpy import reshape as cp_reshape
 from cvxpy.constraints.constraint import Constraint
 from cvxpy.expressions.expression import Expression
-from cvxpy.reductions.inverse_data import InverseData
-from cvxpy.reductions.reduction import Reduction
-from cvxpy.atoms.affine.hstack import Hstack
-from numpy import ndarray
-from scipy.sparse import csc_matrix, csr_matrix, vstack
+from scipy.sparse import csc_matrix, csr_matrix
 from scipy.sparse._coo import coo_matrix
 
-from lropt import Parameter as LroptParameter
-from lropt.robust_problem import RobustProblem
-from lropt.uncertain import UncertainParameter
-from lropt.uncertain_canon.utils import standard_invert
 
 def tensor_reshaper(T_Ab: coo_matrix, n_var: int) -> np.ndarray:
     """
