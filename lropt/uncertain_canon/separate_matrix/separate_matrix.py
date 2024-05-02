@@ -217,8 +217,9 @@ class SeparateMatrix(Reduction):
                 """
                 This is a helper function that appends the i-th constraint.
                 """
-                constraints += [A.toarray()@variables_stacked + term_unc + term_unc_b \
-                                                                    <= b_rec.toarray()]
+                A =     A.toarray() if isinstance(A, csr_matrix) else A
+                b_rec = b_rec.toarray() if isinstance(b_rec, csr_matrix) else b_rec
+                constraints += [A@variables_stacked + term_unc + term_unc_b <= b_rec]
             def _gen_term_unc(cones_zero: int, u: UncertainParameter, A_rec_uncertain: np.ndarray,
                                                 i: int, variables_stacked: Hstack,
                                                 b_unc: np.ndarray) -> tuple:
