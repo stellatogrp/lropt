@@ -1873,7 +1873,7 @@ class RobustProblem(Problem):
 
         None
         """
-        from lropt.uncertain_canon.separate_matrix import SeparateMatrix
+        from lropt.uncertain_canon.separate_matrix.separate_matrix import SeparateMatrix
         if (not override) and (self.new_prob):
             return
         if self.uncertain_parameters():
