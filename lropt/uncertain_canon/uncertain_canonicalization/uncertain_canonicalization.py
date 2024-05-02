@@ -1,8 +1,8 @@
 import operator
 from typing import Union
 
-import numpy as np
 import cvxpy as cp
+import numpy as np
 from cvxpy import SCS, Parameter, Variable
 from cvxpy.atoms.affine.hstack import Hstack
 from cvxpy.constraints.constraint import Constraint
@@ -10,7 +10,7 @@ from cvxpy.expressions.expression import Expression
 from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
 from numpy import ndarray
-from scipy.sparse import csr_matrix, vstack
+from scipy.sparse import csr_matrix
 
 from lropt import Parameter as LroptParameter
 from lropt.robust_problem import RobustProblem
@@ -96,7 +96,7 @@ class UncertainCanonicalization(Reduction):
                         return cp.hstack(vec)
                     return np.hstack(vec)
 
-                def _safe_gen_vecAb(T_Ab_dict: dict, param_vec_dict: dict, 
+                def _safe_gen_vecAb(T_Ab_dict: dict, param_vec_dict: dict,
                                     param_type: Union[CERTAIN_PARAMETER_TYPES]):
                     """
                     This function safely generates vecAb = T_Ab @ vec_param, or returns None if
@@ -168,22 +168,29 @@ class UncertainCanonicalization(Reduction):
                 """
                 if T_Ab is None:
                     return None,None
-                Ab_dim = (-1, n_var+1) #+1 for the free parameter
-                num = T_Ab[0].shape[1]
-                A_dic = {}
-                b_dic = {}
-                for i in range(num):
-                    temp = T_Ab[0][:,i]
-                    Ab = temp.reshape(Ab_dim, order='C')
-                    Ab = Ab.tocsr()
-                    shape = Ab.shape[0]
-                    A_dic[i] = -Ab[:, :-1]
-                    b_dic[i] = Ab[:, -1]
-                return np.vstack([vstack([A_dic[i][j] \
-                                for i in range(num)]).T for j in \
-                                    range(shape)]), \
-                                        np.vstack([vstack([b_dic[i][j] \
-                                for i in range(num)]).T for j in range(shape)])
+                # Ab_dim = (-1, n_var+1) #+1 for the free parameter
+                num_rows = T_Ab[0].shape[0]
+                num_constraints = num_rows//(n_var+1)
+                # num = T_Ab[0].shape[1]
+                A_list = []
+                b_list = []
+                for i in range(num_constraints):
+                    cur_T = -T_Ab[0][i*(n_var+1):(i+1)*(n_var+1),:]
+                    A_list.append(cur_T[:-1,])
+                    b_list.append(cur_T[-1,])
+                # for i in range(num):
+                #     temp = T_Ab[0][:n_var+1,i]
+                #     Ab = temp.reshape(Ab_dim, order='C')
+                #     Ab = Ab.tocsr()
+                #     shape = Ab.shape[0]
+                #     A_dic[i] = -Ab[:, :-1]
+                #     b_dic[i] = Ab[:, -1]
+                # return np.vstack([vstack([A_dic[i][j] \
+                #                 for i in range(num)]).T for j in \
+                #                     range(shape)]), \
+                #                         np.vstack([vstack([b_dic[i][j] \
+                #                 for i in range(num)]).T for j in range(shape)])
+                return A_list, b_list
 
             data = problem.get_problem_data(solver=solver)
             param_prob = data[0]["param_prob"]
@@ -219,7 +226,7 @@ class UncertainCanonicalization(Reduction):
                 """
                 #TODO: Leave dense for debugging, we need it for gen_torch_expression to work.
                 #In the future, we will have to remove the desnification.
-                A =     A.toarray() if isinstance(A, csr_matrix) else A 
+                A =     A.toarray() if isinstance(A, csr_matrix) else A
                 b_rec = b_rec.toarray() if isinstance(b_rec, csr_matrix) else b_rec
                 constraints += [A@variables_stacked + term_unc + term_unc_b <= b_rec]
 
@@ -233,17 +240,17 @@ class UncertainCanonicalization(Reduction):
                 term_unc_b = 0
                 if (i<cones_zero) or (A_rec_uncertain is None):
                     return term_unc, term_unc_b
-                
+
                 if len(u.shape)!=0 and u.shape[0]>1:
                     op = operator.matmul
                 else:
                     op = operator.mul
-                
-                if A_rec_uncertain[i][0].nnz != 0:
-                    term_unc = variables_stacked@(op(A_rec_uncertain[i][0].toarray(),u))
-                
-                if b_unc[i][0].nnz != 0:
-                    term_unc_b = op(b_unc[i][0].toarray(),u)
+
+                if A_rec_uncertain[i].nnz != 0:
+                    term_unc = variables_stacked@(op(A_rec_uncertain[i].toarray(),u))
+
+                if b_unc[i].nnz != 0:
+                    term_unc_b = op(b_unc[i].toarray(),u)
 
                 return term_unc, term_unc_b
 
