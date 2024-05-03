@@ -17,7 +17,7 @@ from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertain_canon.uncertain_canonicalization.utils import (
     tensor_reshaper,
-    unsqueeze_expression,
+    promote_expr,
 )
 from lropt.uncertain_canon.utils import standard_invert
 from lropt.utils import unique_list
@@ -131,7 +131,7 @@ class UncertainCanonicalization(Reduction):
                         T_Ab = T_Ab[0]
                         curr_vecAb = T_Ab @ param_vec
                         #For LROPT Parameters, need to pad 1D vectors into 2D vectors.
-                        return unsqueeze_expression(curr_vecAb)
+                        return promote_expr(curr_vecAb)
 
                 n_var = param_prob.reduced_A.var_len
                 T_Ab = param_prob.A
@@ -216,8 +216,8 @@ class UncertainCanonicalization(Reduction):
             A_rec_certain, b_rec = _finalize_expressions(vec_Ab_certain, n_var=n_var)
             A_rec_certain_param, b_rec_param = _finalize_expressions(vec_Ab_certain_param,
                                                                      n_var=n_var)
-            A_rec_certain_total = A_rec_certain + unsqueeze_expression(A_rec_certain_param)
-            b_rec_total = b_rec + unsqueeze_expression(b_rec_param)
+            A_rec_certain_total = A_rec_certain + promote_expr(A_rec_certain_param)
+            b_rec_total = b_rec + promote_expr(b_rec_param)
             A_rec_uncertain, b_unc = _finalize_expressions_uncertain(T_Ab_dict[UncertainParameter],
                                                                      n_var=n_var)
             return A_rec_certain_total, A_rec_uncertain, b_rec_total, b_unc, cones, canon_variables

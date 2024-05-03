@@ -1,6 +1,6 @@
 
 import numpy as np
-from cvxpy import reshape as cp_reshape
+import cvxpy as cp
 from cvxpy.constraints.constraint import Constraint
 from cvxpy.expressions.expression import Expression
 from scipy.sparse import csc_matrix, csr_matrix
@@ -42,7 +42,7 @@ def calc_num_constraints(constraints: list[Constraint]) -> int:
         num_constraints += constraint.size
     return num_constraints
 
-def unsqueeze_expression(expr: Expression | int) -> Expression | int:
+def promote_expr(expr: Expression | int) -> Expression | int:
     """
     This function unsqueezes an expression, converting it from a 1D expression to a 2D expression.
     """
@@ -52,4 +52,4 @@ def unsqueeze_expression(expr: Expression | int) -> Expression | int:
     if ndim > 1:
         return expr
     
-    return cp_reshape(expr, shape=(expr.size, 1))
+    return cp.reshape(expr, shape=(expr.size, 1))

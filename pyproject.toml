@@ -15,7 +15,7 @@ authors = [
     { name = "Bartolomeo Stellato", email = "bstellato@princeton.edu" },
 ]
 dependencies = [
-    "cvxpy @ git+https://github.com/AmitSolomonPrinceton/cvxpy@9ebddaba8f883f5eff974242776c881a2753bda3",
+    "cvxpy @ git+https://github.com/AmitSolomonPrinceton/cvxpy@6ee1e039a9da3e4f53c69592ed05d33739e4f8aa",
     "torch",
     "diffcp @ git+https://github.com/cvxgrp/diffcp@eaac7bc4d637e8854801929ebf01d7db45554f5d",
     "scikit-learn",
