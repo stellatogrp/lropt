@@ -238,7 +238,7 @@ class UncertainCanonicalization(Reduction):
                                    variables_stacked: Hstack, b_rec: csr_matrix,
                                    term_unc: Expression | int = 0, \
                                     term_unc_b: int = 0,\
-                                          zero: bool = False ) -> None:
+                                          zero: bool = False, cons_data: dict = None) -> None:
                 """
                 This is a helper function that appends the i-th constraint.
                 """
@@ -246,6 +246,13 @@ class UncertainCanonicalization(Reduction):
                 #In the future, we will have to remove the desnification.
                 A =     A.toarray() if isinstance(A, csr_matrix) else A
                 b_rec = b_rec.toarray() if isinstance(b_rec, csr_matrix) else b_rec
+
+                cons_data['has_uncertain_isolated'] = (not isinstance(term_unc_b, int))
+                cons_data['has_uncertain_mult'] = (not isinstance(term_unc, int))
+                cons_data['unc_lst'] = [term_unc] if cons_data['has_uncertain_mult'] else []
+                cons_data['unc_isolated'] = [term_unc_b] if \
+                    cons_data['has_uncertain_isolated'] else []
+                cons_data['std_lst'] = [A@variables_stacked - b_rec]
 
                 #TODO: update this to the version commented out. We need to edit gen_torch_exp
                 if zero:
@@ -284,6 +291,7 @@ class UncertainCanonicalization(Reduction):
             variables_stacked = cp.hstack(variables)
             # u = cp.hstack([u])
             constraints = []
+            cons_data = {}
 
             for i in range(cones.zero + cones.nonneg):
                 term_unc, term_unc_b = _gen_term_unc(cones_zero=cones.zero, u=u,
@@ -291,10 +299,13 @@ class UncertainCanonicalization(Reduction):
                                                      variables_stacked=variables_stacked,
                                                      b_unc=b_unc)
                 zero = (i < cones.zero)
+                cons_data[i] = {}
                 _append_constraint(constraints=constraints, A=A_rec_certain[i],
                                    variables_stacked=variables_stacked, b_rec=b_rec[i],
-                                   term_unc=term_unc, term_unc_b=term_unc_b,zero=zero)
-            return constraints
+                                   term_unc=term_unc, \
+                                    term_unc_b=term_unc_b,zero=zero, \
+                                        cons_data = cons_data[i])
+            return constraints, cons_data
 
         def _restore_param_canon(unc_canon_dict: dict) -> None:
             """
@@ -314,10 +325,10 @@ class UncertainCanonicalization(Reduction):
             # variables = problem.variables()
             u = problem.uncertain_parameters()[0]
             new_objective = _gen_objective(problem)
-            new_constraints = _gen_constraints(A_rec_certain=A_rec_certain,
+            new_constraints, cons_data = _gen_constraints(A_rec_certain=A_rec_certain,
                                     A_rec_uncertain=A_rec_uncertain, b_rec=b_rec, b_unc=b_unc,
                                     variables=variables, cones=cones, u=u)
-            return new_objective, new_constraints
+            return new_objective, new_constraints, cons_data
 
         problem = RobustProblem(problem.objective,
                                      problem.constraints)
@@ -342,9 +353,13 @@ class UncertainCanonicalization(Reduction):
         #Create a new problem with new objective and new constraint
 
 
-        new_objective, new_constraints = _gen_canon_robust_problem(epigraph_problem, A_rec_certain,\
+        new_objective, new_constraints, \
+            cons_data = _gen_canon_robust_problem(epigraph_problem, \
+                                                  A_rec_certain,\
                         A_rec_uncertain, b_rec,b_unc,cones,variables)
-        new_problem = RobustProblem(objective=new_objective, constraints=new_constraints)
+        new_problem = RobustProblem(objective=new_objective, \
+                                    constraints=new_constraints,\
+                                          cons_data = cons_data)
         #TODO: Update this
         # #Map the ids
         # inverse_data.cons_id_map.update({constraint.id: canon_constr.id})

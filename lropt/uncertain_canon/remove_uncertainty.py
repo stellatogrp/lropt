@@ -5,7 +5,6 @@ from cvxpy import Variable, problems
 from cvxpy.constraints.nonpos import Inequality
 from cvxpy.expressions import cvxtypes
 from cvxpy.expressions.expression import Expression
-from cvxpy.problems.objective import Minimize
 from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
 
@@ -75,19 +74,19 @@ class RemoveUncertainty(Reduction):
 
     def apply(self, problem):
         """Recursively canonicalize the objective and every constraint."""
-        def _gen_objective_constraints(problem):
-            """
-            This function generates canon objective and new constraints
-            """
-            if self.has_unc_param(problem.objective.expr):
-                epigraph_obj = Variable()
-                epi_cons = problem.objective.expr <= epigraph_obj
-                new_constraints = [epi_cons] + problem.constraints
-                canon_objective = Minimize(epigraph_obj)
-            else:
-                canon_objective = problem.objective
-                new_constraints = problem.constraints
-            return canon_objective, new_constraints
+        # def _gen_objective_constraints(problem):
+        #     """
+        #     This function generates canon objective and new constraints
+        #     """
+        #     if self.has_unc_param(problem.objective.expr):
+        #         epigraph_obj = Variable()
+        #         epi_cons = problem.objective.expr <= epigraph_obj
+        #         new_constraints = [epi_cons] + problem.constraints
+        #         canon_objective = Minimize(epigraph_obj)
+        #     else:
+        #         canon_objective = problem.objective
+        #         new_constraints = problem.constraints
+        #     return canon_objective, new_constraints
 
         inverse_data = InverseData(problem)
         # import ipdb
@@ -95,24 +94,30 @@ class RemoveUncertainty(Reduction):
         # canon_objective, canon_constraints = self.canonicalize_tree(
         #     problem.objective, 0, 1)
 
-        canon_objective, new_constraints = _gen_objective_constraints(problem)
+        # canon_objective, new_constraints = _gen_objective_constraints(problem)
         canon_constraints = []
 
-        for constraint in new_constraints:
+        for cons_num, constraint in enumerate(problem.constraints):
             # canon_constr is the constraint rexpressed in terms of
             # its canonicalized arguments, and aux_constr are the constraints
             # generated while canonicalizing the arguments of the original
             # constraint
             if self.has_unc_param(constraint):
-                unc_lst, std_lst, is_max = self.separate_uncertainty(constraint)
-                canon_constr = self.remove_uncertainty(unc_lst, std_lst, is_max, canon_constraints)
+                # unc_lst, std_lst, is_max = \
+                # self.separate_uncertainty(constraint)
+                # canon_constr = self.remove_uncertainty(unc_lst, std_lst, \
+                # is_max, canon_constraints)
+                cur_cons_data = problem._cons_data[cons_num]
+                canon_constr = self.remove_uncertainty(\
+                    cur_cons_data['unc_lst'] + cur_cons_data['unc_isolated'],\
+                          cur_cons_data['std_lst'], False, canon_constraints)
             else:
                 canon_constr = constraint
                 canon_constraints += [canon_constr]
 
             inverse_data.cons_id_map.update({constraint.id: canon_constr.id})
 
-        new_problem = problems.problem.Problem(canon_objective, canon_constraints)
+        new_problem = problems.problem.Problem(problem.objective, canon_constraints)
         return new_problem, inverse_data
 
     def invert(self, solution, inverse_data):
