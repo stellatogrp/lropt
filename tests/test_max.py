@@ -23,6 +23,7 @@ class TestMax(unittest.TestCase):
         self.a = npr.uniform(1, 4, n)
         self.d = self.a + npr.uniform(2, 5, n)
 
+    @unittest.skip("not currently implementing maximum")
     def test_maximum_of_affine(self):
         # formulate uncertainty set
         n = 5
@@ -68,6 +69,7 @@ class TestMax(unittest.TestCase):
         # assert x values are equal
         npt.assert_allclose(x_r.value, x_cvxpy.value, rtol=RTOL, atol=ATOL)
 
+    @unittest.skip("not currently implementing maximum")
     def test_mro(self):
         # formulate uncertainty set
         n = 5

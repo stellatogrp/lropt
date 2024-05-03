@@ -20,6 +20,7 @@ from lropt.uncertain_canon.uncertain_canonicalization.utils import (
     unsqueeze_expression,
 )
 from lropt.uncertain_canon.utils import standard_invert
+from lropt.utils import unique_list
 
 PARAM_TYPES = (UncertainParameter, LroptParameter, Parameter)
 LROPT_PARAMETER_TYPES = (UncertainParameter, LroptParameter)
@@ -46,6 +47,20 @@ class UncertainCanonicalization(Reduction):
                 unc_canon_dict[i] = (u, u.canonicalize)
                 u.canonicalize = super(UncertainParameter, u).canonicalize
             return unc_canon_dict
+
+        def _gen_objective_constraints(problem):
+            """
+            This function generates canon objective and new constraints
+            """
+            if self.has_unc_param(problem.objective.expr):
+                epigraph_obj = Variable()
+                epi_cons = problem.objective.expr <= epigraph_obj
+                new_constraints = [epi_cons] + problem.constraints
+                canon_objective = cp.Minimize(epigraph_obj)
+            else:
+                canon_objective = problem.objective
+                new_constraints = problem.constraints
+            return canon_objective, new_constraints
 
         def _get_tensors(problem: RobustProblem, solver = SCS) -> ndarray:
             """
@@ -195,6 +210,7 @@ class UncertainCanonicalization(Reduction):
             data = problem.get_problem_data(solver=solver)
             param_prob = data[0]["param_prob"]
             cones = data[0]["dims"]
+            canon_variables = param_prob.variables
             vec_Ab_certain, vec_Ab_certain_param, T_Ab_dict = _gen_param_vec(param_prob)
             n_var = param_prob.reduced_A.var_len
             A_rec_certain, b_rec = _finalize_expressions(vec_Ab_certain, n_var=n_var)
@@ -204,7 +220,7 @@ class UncertainCanonicalization(Reduction):
             b_rec_total = b_rec + unsqueeze_expression(b_rec_param)
             A_rec_uncertain, b_unc = _finalize_expressions_uncertain(T_Ab_dict[UncertainParameter],
                                                                      n_var=n_var)
-            return A_rec_certain_total, A_rec_uncertain, b_rec_total, b_unc, cones
+            return A_rec_certain_total, A_rec_uncertain, b_rec_total, b_unc, cones, canon_variables
 
         def _gen_objective(problem: RobustProblem) -> Expression:
             #TODO: update this function to reformulate the objective
@@ -220,7 +236,9 @@ class UncertainCanonicalization(Reduction):
             """
             def _append_constraint(constraints: list[Constraint], A: csr_matrix,
                                    variables_stacked: Hstack, b_rec: csr_matrix,
-                                   term_unc: Expression | int = 0, term_unc_b: int = 0, ) -> None:
+                                   term_unc: Expression | int = 0, \
+                                    term_unc_b: int = 0,\
+                                          zero: bool = False ) -> None:
                 """
                 This is a helper function that appends the i-th constraint.
                 """
@@ -228,7 +246,15 @@ class UncertainCanonicalization(Reduction):
                 #In the future, we will have to remove the desnification.
                 A =     A.toarray() if isinstance(A, csr_matrix) else A
                 b_rec = b_rec.toarray() if isinstance(b_rec, csr_matrix) else b_rec
-                constraints += [A@variables_stacked + term_unc + term_unc_b <= b_rec]
+
+                #TODO: update this to the version commented out. We need to edit gen_torch_exp
+                if zero:
+                    constraints += [A@variables_stacked == b_rec]
+                else:
+                    constraints += [A@variables_stacked + term_unc + term_unc_b <= b_rec]
+
+                # cons_func = cp.Zero if zero else cp.NonPos
+                # constraints += [cons_func(A@variables_stacked + term_unc + term_unc_b - b_rec)]
 
             def _gen_term_unc(cones_zero: int, u: UncertainParameter, A_rec_uncertain: np.ndarray,
                                                 i: int, variables_stacked: Hstack,
@@ -264,9 +290,10 @@ class UncertainCanonicalization(Reduction):
                                                      A_rec_uncertain=A_rec_uncertain, i=i,
                                                      variables_stacked=variables_stacked,
                                                      b_unc=b_unc)
+                zero = (i < cones.zero)
                 _append_constraint(constraints=constraints, A=A_rec_certain[i],
                                    variables_stacked=variables_stacked, b_rec=b_rec[i],
-                                   term_unc=term_unc, term_unc_b=term_unc_b)
+                                   term_unc=term_unc, term_unc_b=term_unc_b,zero=zero)
             return constraints
 
         def _restore_param_canon(unc_canon_dict: dict) -> None:
@@ -276,13 +303,15 @@ class UncertainCanonicalization(Reduction):
             for u, orig_canon in unc_canon_dict.values():
                 u.canonicalize = orig_canon
 
-        def _gen_canon_robust_problem(problem: RobustProblem, A_rec_certain: ndarray,
-                               A_rec_uncertain: Expression, b_rec: ndarray, b_unc, cones) -> tuple:
+        def _gen_canon_robust_problem(problem: RobustProblem, \
+                        A_rec_certain: ndarray,A_rec_uncertain: \
+                        Expression, b_rec: ndarray, b_unc, cones,
+                        variables) -> tuple:
             """
             This is a helper function that generates the new problem, new constraints
             (need to add cone constraints to it), and the new slack variable.
             """
-            variables = problem.variables()
+            # variables = problem.variables()
             u = problem.uncertain_parameters()[0]
             new_objective = _gen_objective(problem)
             new_constraints = _gen_constraints(A_rec_certain=A_rec_certain,
@@ -290,13 +319,19 @@ class UncertainCanonicalization(Reduction):
                                     variables=variables, cones=cones, u=u)
             return new_objective, new_constraints
 
+        problem = RobustProblem(problem.objective,
+                                     problem.constraints)
         inverse_data = InverseData(problem)
 
         #Change uncertain paramter to use its original canonicalize
         unc_canon_dict = _unc_param_to_canon(problem)
 
+        canon_objective, new_constraints = _gen_objective_constraints(problem)
+        epigraph_problem = RobustProblem(canon_objective,new_constraints)
+
         #Get A, b tensors (A separated to uncertain and certain parts).
-        A_rec_certain, A_rec_uncertain, b_rec, b_unc,cones = _get_tensors(problem, solver=solver)
+        A_rec_certain, A_rec_uncertain, b_rec, b_unc,cones,variables \
+            = _get_tensors(epigraph_problem, solver=solver)
 
         #Change uncertain parameter to use its new canonicalize
         _restore_param_canon(unc_canon_dict)
@@ -307,8 +342,8 @@ class UncertainCanonicalization(Reduction):
         #Create a new problem with new objective and new constraint
 
 
-        new_objective, new_constraints = _gen_canon_robust_problem(problem, A_rec_certain,
-                                                               A_rec_uncertain, b_rec,b_unc,cones)
+        new_objective, new_constraints = _gen_canon_robust_problem(epigraph_problem, A_rec_certain,\
+                        A_rec_uncertain, b_rec,b_unc,cones,variables)
         new_problem = RobustProblem(objective=new_objective, constraints=new_constraints)
         #TODO: Update this
         # #Map the ids
@@ -320,3 +355,14 @@ class UncertainCanonicalization(Reduction):
         #TODO: Go back to this function and make sure it is correct. If it is, need to write a new
         #function and consolidate with uncertain_canonicalization.invert
         return standard_invert(solution=solution, inverse_data=inverse_data)
+
+    def count_unq_uncertain_param(self, expr):
+        unc_params = [v for v in expr.parameters()
+                           if isinstance(v, UncertainParameter)]
+        return len(unique_list(unc_params))
+
+    def has_unc_param(self, expr):
+        if not isinstance(expr, int) and not isinstance(expr, float):
+            return self.count_unq_uncertain_param(expr) >= 1
+        else:
+            return 0

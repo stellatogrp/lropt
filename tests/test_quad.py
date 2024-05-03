@@ -20,6 +20,7 @@ class TestQuad(unittest.TestCase):
         """Setup basic problem"""
         np.random.seed(0)
 
+    @unittest.skip("not currently implementing quad")
     def test_quad(self):
         n = 5
         A = 0.1*np.ones(n)

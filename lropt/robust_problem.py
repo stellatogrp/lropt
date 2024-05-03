@@ -17,7 +17,9 @@ from cvxpy.expressions import cvxtypes
 from cvxpy.expressions.expression import Expression
 from cvxpy.expressions.leaf import Leaf
 from cvxpy.expressions.variable import Variable
+from cvxpy.problems.objective import Maximize
 from cvxpy.problems.problem import Problem
+from cvxpy.reductions.flip_objective import FlipObjective
 from cvxpy.reductions.solution import INF_OR_UNB_MESSAGE
 from cvxpylayers.torch import CvxpyLayer
 from joblib import Parallel, delayed
@@ -1874,13 +1876,15 @@ class RobustProblem(Problem):
 
         None
         """
-        from lropt.uncertain_canon.uncertain_canonicalization.uncertain_canonicalization import UncertainCanonicalization
+        from lropt.uncertain_canon.uncertain_canonicalization.uncertain_canonicalization import (
+            UncertainCanonicalization,
+        )
         if (not override) and (self.prob_no_uncertainty):
             return
         if self.uncertain_parameters():
             unc_reductions = []
-            # if type(self.objective) == Maximize:
-            #     unc_reductions += [FlipObjective()]
+            if type(self.objective) == Maximize:
+                unc_reductions += [FlipObjective()]
             # unc_reductions += [RemoveUncertainty()]
             unc_reductions += [UncertainCanonicalization(),RemoveUncertainty()]
             newchain = UncertainChain(self, reductions=unc_reductions)
@@ -1923,7 +1927,7 @@ class RobustProblem(Problem):
                             y.value = y.data[0]
                     else:
                         # if MRO set and no training needed
-                        self.remove_uncertainty()                
+                        self.remove_uncertainty()
         else:
             solver_func = super(RobustProblem, self).solve
         solver_func(solver=solver, warm_start=warm_start, verbose=verbose, gp=gp, qcp=qcp,

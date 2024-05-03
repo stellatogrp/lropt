@@ -46,12 +46,32 @@ class TestRobustPortfolio(unittest.TestCase):
 
         self.assertAlmostEqual(res1, res2, delta=self.TOL)
 
-    def test_toy(self):
+    def test_objective_uncertainty(self):
         cp.Variable(1)
         uncertainty_set = Box(rho=5)
         u = UncertainParameter(1, uncertainty_set=uncertainty_set)
 
         objective = cp.Minimize(u)
+        constraints = []
+        prob1 = RobustProblem(objective=objective, constraints=constraints)
+        res1 = prob1.solve()
+
+        t = cp.Variable()
+        objective = cp.Minimize(t)
+        constraints = [u<=t]
+        prob2 = RobustProblem(objective=objective, constraints=constraints)
+        res2 = prob2.solve()
+
+        self.assertAlmostEqual(res1, res2, delta=self.TOL)
+
+        pass
+
+    def test_objective_uncertainty_flip(self):
+        cp.Variable(1)
+        uncertainty_set = Box(rho=5)
+        u = UncertainParameter(1, uncertainty_set=uncertainty_set)
+
+        objective = cp.Maximize(-u)
         constraints = []
         prob1 = RobustProblem(objective=objective, constraints=constraints)
         res1 = prob1.solve()
