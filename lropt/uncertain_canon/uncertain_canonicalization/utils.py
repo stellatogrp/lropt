@@ -1,6 +1,6 @@
 
-import numpy as np
 import cvxpy as cp
+import numpy as np
 from cvxpy.constraints.constraint import Constraint
 from cvxpy.expressions.expression import Expression
 from scipy.sparse import csc_matrix, csr_matrix

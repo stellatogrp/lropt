@@ -16,8 +16,8 @@ from lropt import Parameter as LroptParameter
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertain_canon.uncertain_canonicalization.utils import (
-    tensor_reshaper,
     promote_expr,
+    tensor_reshaper,
 )
 from lropt.uncertain_canon.utils import standard_invert
 from lropt.utils import unique_list
