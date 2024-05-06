@@ -4,13 +4,13 @@ import cvxpy as cp
 import numpy as np
 import numpy.random as npr
 import numpy.testing as npt
+from settings import TESTS_ATOL as ATOL
+from settings import TESTS_RTOL as RTOL
 
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
 from lropt.uncertainty_sets.mro import MRO
-from tests.settings import TESTS_ATOL as ATOL
-from tests.settings import TESTS_RTOL as RTOL
 
 
 class TestMax(unittest.TestCase):

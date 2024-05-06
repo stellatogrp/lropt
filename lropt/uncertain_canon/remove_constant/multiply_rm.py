@@ -2,10 +2,11 @@ from cvxpy.atoms.affine.binary_operators import multiply
 from cvxpy.atoms.affine.diag import diag
 from cvxpy.atoms.affine.promote import Promote
 from cvxpy.atoms.affine.unary_operators import NegExpression
+from scipy.sparse import issparse
 
 
 def modify(constant):
-    while not (isinstance(constant,int) or isinstance(constant,float)):
+    while not (isinstance(constant,(int,float)) or (issparse(constant) and constant.shape==(1,1))):
         constant = constant[0]
     return constant
 

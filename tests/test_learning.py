@@ -9,6 +9,8 @@ import numpy.random as npr
 import numpy.testing as npt
 import scipy as sc
 import torch
+from settings import TESTS_ATOL as ATOL
+from settings import TESTS_RTOL as RTOL
 
 # from tests.settings import SOLVER
 from sklearn.model_selection import train_test_split
@@ -18,10 +20,8 @@ from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
 
-# from tests.settings import TESTS_ATOL as ATOL
-# from tests.settings import TESTS_RTOL as RTOL
-ATOL = 1e-5
-RTOL = 1e-5
+# ATOL = 1e-5
+# RTOL = 1e-5
 
 
 class TestEllipsoidalUncertainty(unittest.TestCase):

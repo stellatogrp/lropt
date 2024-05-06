@@ -4,14 +4,14 @@ import cvxpy as cp
 import numpy as np
 import numpy.testing as npt
 import scipy as sc
+from settings import TESTS_ATOL as ATOL
+from settings import TESTS_RTOL as RTOL
 from sklearn import datasets
 
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertain_atoms.quad_form import quad_form
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
-from tests.settings import TESTS_ATOL as ATOL
-from tests.settings import TESTS_RTOL as RTOL
 
 
 class TestQuad(unittest.TestCase):

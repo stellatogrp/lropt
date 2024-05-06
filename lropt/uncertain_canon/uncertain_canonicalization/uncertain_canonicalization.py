@@ -242,11 +242,6 @@ class UncertainCanonicalization(Reduction):
                 """
                 This is a helper function that appends the i-th constraint.
                 """
-                #TODO: Leave dense for debugging, we need it for gen_torch_expression to work.
-                #In the future, we will have to remove the desnification.
-                A =     A.toarray() if isinstance(A, csr_matrix) else A
-                b_rec = b_rec.toarray() if isinstance(b_rec, csr_matrix) else b_rec
-
                 cons_data['has_uncertain_isolated'] = (not isinstance(term_unc_b, int))
                 cons_data['has_uncertain_mult'] = (not isinstance(term_unc, int))
                 cons_data['unc_lst'] = [term_unc] if cons_data['has_uncertain_mult'] else []
@@ -280,10 +275,10 @@ class UncertainCanonicalization(Reduction):
                     op = operator.mul
 
                 if A_rec_uncertain[i].nnz != 0:
-                    term_unc = variables_stacked@(op(A_rec_uncertain[i].toarray(),u))
+                    term_unc = variables_stacked@(op(A_rec_uncertain[i],u))
 
                 if b_unc[i].nnz != 0:
-                    term_unc_b = op(b_unc[i].toarray(),u)
+                    term_unc_b = op(b_unc[i],u)
 
                 return term_unc, term_unc_b
 
