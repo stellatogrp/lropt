@@ -3,12 +3,12 @@ import unittest
 import cvxpy as cp
 import numpy as np
 import numpy.testing as npt
-from settings import TESTS_ATOL as ATOL
-from settings import TESTS_RTOL as RTOL
 
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.polyhedral import Polyhedral
+from tests.settings import TESTS_ATOL as ATOL
+from tests.settings import TESTS_RTOL as RTOL
 
 
 class TestPolyhedralUncertainty(unittest.TestCase):

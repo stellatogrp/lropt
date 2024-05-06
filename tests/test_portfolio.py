@@ -2,12 +2,12 @@ import unittest
 
 import cvxpy as cp
 import numpy as np
-from settings import TESTS_ATOL as ATOL
-from settings import TESTS_RTOL as RTOL
 
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.box import Box
+from tests.settings import TESTS_ATOL as ATOL
+from tests.settings import TESTS_RTOL as RTOL
 
 
 def generate_data(n, N):

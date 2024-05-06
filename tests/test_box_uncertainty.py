@@ -3,14 +3,14 @@ import unittest
 import cvxpy as cp
 import numpy as np
 import numpy.testing as npt
-from settings import SOLVER
-from settings import TESTS_ATOL as ATOL
-from settings import TESTS_RTOL as RTOL
 
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.box import Box
 from lropt.uncertainty_sets.polyhedral import Polyhedral
+from tests.settings import SOLVER
+from tests.settings import TESTS_ATOL as ATOL
+from tests.settings import TESTS_RTOL as RTOL
 
 # ATOL = 1e-4
 # RTOL = 1e-4

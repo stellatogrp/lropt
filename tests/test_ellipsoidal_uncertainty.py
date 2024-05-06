@@ -16,14 +16,14 @@ from cvxpy.reductions.reduction import Reduction
 from numpy import ndarray
 from scipy.sparse import csc_matrix, csr_matrix
 from scipy.sparse._coo import coo_matrix
-from settings import SOLVER, SOLVER_SETTINGS
-from settings import TESTS_ATOL as ATOL
-from settings import TESTS_RTOL as RTOL
 
 from lropt.robust_problem import RobustProblem
 from lropt.shape_parameter import UParameter
 from lropt.uncertain import UncertainParameter
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
+from tests.settings import SOLVER, SOLVER_SETTINGS
+from tests.settings import TESTS_ATOL as ATOL
+from tests.settings import TESTS_RTOL as RTOL
 
 # ATOL = 1e-4
 # RTOL = 1e-4

@@ -13,9 +13,6 @@ from lropt.uncertainty_sets.norm import Norm
 from lropt.uncertainty_sets.polyhedral import Polyhedral
 from lropt.uncertainty_sets.uncertainty_set import SUPPORT_TYPE
 
-# from tests.settings import TESTS_ATOL as ATOL
-# from tests.settings import TESTS_RTOL as RTOL
-
 
 class TestSupport(unittest.TestCase):
 
