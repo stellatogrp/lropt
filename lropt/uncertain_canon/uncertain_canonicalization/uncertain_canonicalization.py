@@ -250,13 +250,13 @@ class UncertainCanonicalization(Reduction):
                 cons_data['std_lst'] = [A@variables_stacked - b_rec]
 
                 #TODO: update this to the version commented out. We need to edit gen_torch_exp
-                if zero:
-                    constraints += [A@variables_stacked == b_rec]
-                else:
-                    constraints += [A@variables_stacked + term_unc + term_unc_b <= b_rec]
+                # if zero:
+                #     constraints += [A@variables_stacked == b_rec]
+                # else:
+                #     constraints += [A@variables_stacked + term_unc + term_unc_b <= b_rec]
 
-                # cons_func = cp.Zero if zero else cp.NonPos
-                # constraints += [cons_func(A@variables_stacked + term_unc + term_unc_b - b_rec)]
+                cons_func = cp.Zero if zero else cp.NonPos
+                constraints += [cons_func(A@variables_stacked + term_unc + term_unc_b - b_rec)]
 
             def _gen_term_unc(cones_zero: int, u: UncertainParameter, A_rec_uncertain: np.ndarray,
                                                 i: int, variables_stacked: Hstack,
