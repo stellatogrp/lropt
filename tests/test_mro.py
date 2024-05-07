@@ -5,18 +5,12 @@ import numpy as np
 import numpy.testing as npt
 
 import lropt
+from tests.settings import TESTS_ATOL as ATOL
+from tests.settings import TESTS_RTOL as RTOL
 
-# from tests.settings import SOLVER
-# from tests.settings import TESTS_ATOL as ATOL
-# from tests.settings import TESTS_RTOL as RTOL
-
-ATOL = 1e-4
-RTOL = 1e-4
-SOLVER = cp.CLARABEL
-SOLVER_SETTINGS = { "equilibrate_enable": False, "verbose": False }
-
-# import pytest
-# import torch
+# ATOL = 1e-4
+# RTOL = 1e-4
+# SOLVER = cp.CLARABEL
 
 class TestMROUncertainty(unittest.TestCase):
 

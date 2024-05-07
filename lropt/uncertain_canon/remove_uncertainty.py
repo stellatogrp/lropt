@@ -48,15 +48,13 @@ class RemoveUncertainty(Reduction):
         canon_constraints = []
         lmbda, sval = (None, None)
         for cons_num, constraint in enumerate(problem.constraints):
-            # canon_constr is the constraint rexpressed in terms of
-            # its canonicalized arguments, and aux_constr are the constraints
-            # generated while canonicalizing the arguments of the original
-            # constraint
+            # canon_constr is the constraint rexpressed in terms of its canonicalized arguments,
+            # and aux_constr are the constraints generated while canonicalizing the arguments of the
+            # original constraint
             if self.has_unc_param(constraint):
                 cur_cons_data = problem._cons_data[cons_num]
-                canon_constr, lmbda, sval = \
-                    self.remove_uncertainty(cur_cons_data,
-                                            canon_constraints,lmbda, sval)
+                canon_constr, lmbda, sval = self.remove_uncertainty(cur_cons_data,
+                                                                    canon_constraints, lmbda, sval)
             else:
                 canon_constr = constraint
                 canon_constraints += [canon_constr]
@@ -111,8 +109,7 @@ class RemoveUncertainty(Reduction):
             supp_cons[k_ind] = Variable(u_shape)
             if uvar.uncertainty_set.a is not None:
                 aux_constraint += [uvar.uncertainty_set.a.T@z_cons \
-                + uvar.uncertainty_set.a.T@supp_cons[k_ind] == \
-                    -z_unc[k_ind]]
+                + uvar.uncertainty_set.a.T@supp_cons[k_ind] == -z_unc[k_ind]]
             else:
                 aux_constraint += [z_cons + supp_cons[k_ind] == -z_unc[k_ind]]
         return aux_constraint, z_unc, supp_cons
@@ -125,8 +122,7 @@ class RemoveUncertainty(Reduction):
         for k_ind in range(k_num):
             terms = (z_unc[k_ind],supp_cons[k_ind],uvar.uncertainty_set.b) \
                 if has_uncertain else (u_shape,0,None)
-            new_expr, new_constraint, lmbda, sval = uvar.conjugate(
-                terms[0],terms[1], k_ind)
+            new_expr, new_constraint, lmbda, sval = uvar.conjugate(terms[0],terms[1], k_ind)
             aux_expr = aux_expr + new_expr
             if terms[2] is not None:
                 aux_expr = aux_expr - uvar.uncertainty_set.b@(z_cons) \
@@ -196,13 +192,11 @@ class RemoveUncertainty(Reduction):
     def count_unq_uncertain_param(self, expr):
         unc_params = []
         if isinstance(expr, Inequality):
-            unc_params += [v for v in expr.parameters()
-                           if isinstance(v, UncertainParameter)]
+            unc_params += [v for v in expr.parameters() if isinstance(v, UncertainParameter)]
             return len(unique_list(unc_params))
 
         else:
-            unc_params += [v for v in expr.parameters()
-                           if isinstance(v, UncertainParameter)]
+            unc_params += [v for v in expr.parameters() if isinstance(v, UncertainParameter)]
         return len(unique_list(unc_params))
 
     def has_unc_param(self, expr):
