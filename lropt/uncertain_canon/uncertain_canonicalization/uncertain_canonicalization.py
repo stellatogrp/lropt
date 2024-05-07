@@ -220,31 +220,43 @@ class UncertainCanonicalization(Reduction):
             """
             This is a helper function that generates a new constraint.
             """
-            def _append_constraint(constraints: list[Constraint], A: csr_matrix, 
+            def _append_constraint(constraints: list[Constraint], A: csr_matrix,
                                    variables_stacked: Hstack, b_rec: csr_matrix,
-                                   term_unc: Expression | int = 0, term_unc_b: int = 0,
-                                   zero: bool = False, cons_data: dict = None, u = u) -> None:
+                                   term_unc: Expression | int = 0, \
+                                    term_unc_b: int = 0,\
+                                          zero: bool = False, \
+                                            cons_data: dict = None) -> None:
                 """
                 This is a helper function that appends the i-th constraint.
                 """
-                cons_data['has_uncertain_isolated'] = (not isinstance(term_unc_b, int))
-                cons_data['has_uncertain_mult'] = (not isinstance(term_unc, int))
-                cons_data['unc_lst'] = [term_unc] if cons_data['has_uncertain_mult'] else []
-                cons_data['unc_isolated'] = [term_unc_b] if \
-                    cons_data['has_uncertain_isolated'] else []
+                # cons_data['has_uncertain_isolated'] = (not isinstance(term_unc_b, int))
+                # cons_data['has_uncertain_mult'] = (not isinstance(term_unc, int))
+                # cons_data['unc_lst'] = [term_unc] if cons_data['has_uncertain_mult'] else []
+                # cons_data['unc_isolated'] = [term_unc_b] if \
+                #     cons_data['has_uncertain_isolated'] else []
                 cons_data['std_lst'] = [A@variables_stacked - b_rec]
-                cons_data['unc_param'] = u
+                # cons_data['unc_param'] = u
+
+                #TODO: update this to the version commented out. We need to edit gen_torch_exp
+                # if zero:
+                #     constraints += [A@variables_stacked == b_rec]
+                # else:
+                #     constraints += [A@variables_stacked + term_unc + term_unc_b <= b_rec]
+
                 cons_func = cp.Zero if zero else cp.NonPos
                 constraints += [cons_func(A@variables_stacked + term_unc + term_unc_b - b_rec)]
 
             def _gen_term_unc(cones_zero: int, u: UncertainParameter, A_rec_uncertain: np.ndarray,
                                                 i: int, variables_stacked: Hstack,
-                                                b_unc: np.ndarray) -> tuple:
+                                                b_unc: np.ndarray, cons_data: dict) -> tuple:
                 """
                 This is a helper function that generates term_unc and term_unc_b.
                 """
                 term_unc = 0
                 term_unc_b = 0
+                cons_data['has_uncertain_isolated'] = False
+                cons_data['has_uncertain_mult'] = False
+                cons_data['unc_param'] = u
                 if (i<cones_zero) or (A_rec_uncertain is None):
                     return term_unc, term_unc_b
 
@@ -255,9 +267,15 @@ class UncertainCanonicalization(Reduction):
 
                 if A_rec_uncertain[i].nnz != 0:
                     term_unc = variables_stacked@(op(A_rec_uncertain[i],u))
+                    cons_data['has_uncertain_mult'] = True
+                    cons_data['var'] = variables_stacked
+                    cons_data['unc_term'] = A_rec_uncertain[i]
+
 
                 if b_unc[i].nnz != 0:
                     term_unc_b = op(b_unc[i],u)
+                    cons_data['has_uncertain_isolated'] = True
+                    cons_data['unc_isolated'] = b_unc[i]
 
                 return term_unc, term_unc_b
 
@@ -266,16 +284,18 @@ class UncertainCanonicalization(Reduction):
             cons_data = {}
 
             for i in range(cones.zero + cones.nonneg):
+                zero = (i < cones.zero)
+                cons_data[i] = {}
                 term_unc, term_unc_b = _gen_term_unc(cones_zero=cones.zero, u=u,
                                                      A_rec_uncertain=A_rec_uncertain, i=i,
                                                      variables_stacked=variables_stacked,
-                                                     b_unc=b_unc)
-                zero = (i < cones.zero)
-                cons_data[i] = {}
+                                                     b_unc=b_unc,
+                                                     cons_data=cons_data[i])
+
                 _append_constraint(constraints=constraints, A=A_rec_certain[i],
                                    variables_stacked=variables_stacked, b_rec=b_rec[i],
                                    term_unc=term_unc, term_unc_b=term_unc_b,zero=zero,
-                                   cons_data=cons_data[i], u=u)
+                                   cons_data=cons_data[i])
             return constraints, cons_data
 
         def _restore_param_canon(unc_canon_dict: dict) -> None:
@@ -305,7 +325,7 @@ class UncertainCanonicalization(Reduction):
         inverse_data = InverseData(problem)
 
         #Change uncertain paramter to use its original canonicalize
-        unc_canon_dict = _unc_param_to_canon(problem)
+        # unc_canon_dict = _unc_param_to_canon(problem)
 
         canon_objective, new_constraints = _gen_objective_constraints(problem)
         epigraph_problem = RobustProblem(canon_objective,new_constraints)
@@ -315,7 +335,7 @@ class UncertainCanonicalization(Reduction):
                                                 = _get_tensors(epigraph_problem, solver=solver)
 
         #Change uncertain parameter to use its new canonicalize
-        _restore_param_canon(unc_canon_dict)
+        # _restore_param_canon(unc_canon_dict)
 
         new_objective, new_constraints, cons_data = _gen_canon_robust_problem(epigraph_problem,
                                                 A_rec_certain, A_rec_uncertain, b_rec,b_unc,

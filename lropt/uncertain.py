@@ -26,9 +26,9 @@ class UncertainParameter(cp.Parameter):
                                               n, SUPPORT_TYPE.SUM_EQUALITY)
 
 
-    def canonicalize(self, x, var):
+    def remove_uncertain(self, x, var):
         """Reformulate uncertain parameter"""
-        return self.uncertainty_set.canonicalize(x, var)
+        return self.uncertainty_set.remove_uncertain(x, var)
 
     def isolated_unc(self,var):
         """Remove isolated uncertainty"""

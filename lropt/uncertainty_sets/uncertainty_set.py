@@ -108,7 +108,7 @@ class UncertaintySet(ABC):
             return lhs*rhs
         return lhs@rhs
 
-    def canonicalize(self, x, var):
+    def remove_uncertain(self, x, var):
         trans = self.affine_transform_temp
         new_expr = 0
         if trans:

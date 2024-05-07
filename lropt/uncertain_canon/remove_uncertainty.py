@@ -1,16 +1,16 @@
 
 import numpy as np
 from cvxpy import Variable, problems
+from cvxpy.atoms.affine.promote import Promote
 from cvxpy.constraints.nonpos import Inequality
-from cvxpy.expressions import cvxtypes
-from cvxpy.expressions.expression import Expression
 from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
 
 from lropt.uncertain import UncertainParameter
-from lropt.uncertain_canon.atom_canonicalizers import CANON_METHODS as remove_uncertain_methods
-from lropt.uncertain_canon.atom_canonicalizers.mul_canon import mul_canon_transform
-from lropt.uncertain_canon.remove_constant import REMOVE_CONSTANT_METHODS as rm_const_methods
+
+# from lropt.uncertain_canon.atom_canonicalizers import CANON_METHODS as remove_uncertain_methods
+# from lropt.uncertain_canon.atom_canonicalizers.mul_canon import mul_canon_transform
+# from lropt.uncertain_canon.remove_constant import REMOVE_CONSTANT_METHODS as rm_const_methods
 from lropt.uncertain_canon.utils import standard_invert
 from lropt.uncertainty_sets.mro import MRO
 from lropt.utils import unique_list
@@ -38,9 +38,9 @@ class RemoveUncertainty(Reduction):
             A problem owned by this reduction.
     """
 
-    def __init__(self, canon_methods=remove_uncertain_methods, problem=None) -> None:
+    def __init__(self, problem=None) -> None:
         super(RemoveUncertainty, self).__init__(problem=problem)
-        self.canon_methods = canon_methods
+        # self.canon_methods = canon_methods
 
     def apply(self, problem):
         """Recursively canonicalize the objective and every constraint."""
@@ -67,41 +67,8 @@ class RemoveUncertainty(Reduction):
     def invert(self, solution, inverse_data):
         return standard_invert(solution=solution, inverse_data=inverse_data)
 
-    def canonicalize_tree(self, expr, var, cons):
-        """Recursively canonicalize an Expression."""
-        # TODO don't copy affine expressions?
-        if type(expr) == cvxtypes.partial_problem():
-            canon_expr, constrs = self.canonicalize_tree(
-                expr.args[0].objective.expr, var, cons)
-            for constr in expr.args[0].constraints:
-                canon_constr, aux_constr = self.canonicalize_tree(
-                    constr, var, cons)
-                constrs += [canon_constr] + aux_constr
-        else:
-            canon_args = []
-            constrs = []
-            for arg in expr.args:
-                canon_arg, c = self.canonicalize_tree(arg, var, cons)
-                canon_args += [canon_arg]
-                constrs += c
-            canon_expr, c = self.canonicalize_expr(expr, canon_args, var, cons)
-            constrs += c
-        return canon_expr, constrs
-
-    def canonicalize_expr(self, expr, args, var, cons):
-        """Canonicalize an expression, w.r.t. canonicalized arguments."""
-        # Constant trees are collapsed, but parameter trees are preserved.
-        if isinstance(expr, Expression) and (
-                expr.is_constant() and not expr.parameters()):
-            return expr, []
-        elif type(expr) in self.canon_methods:
-            return self.canon_methods[type(expr)](expr, args, var, cons)
-        else:
-            return expr.copy(args), []
-
-
     def remove_uncertain_terms(self, uvar, k_num,z_cons, aux_constraint, u_shape, smaller_u_shape):
-        "add constraints for the uncertain term conjugates"
+        "add constraints for the conjugates of the uncertain terms"
         supp_cons = {}
         z_unc = {}
         for k_ind in range(k_num):
@@ -127,7 +94,7 @@ class RemoveUncertainty(Reduction):
             if terms[2] is not None:
                 aux_expr = aux_expr - uvar.uncertainty_set.b@(z_cons) \
                     - supp_cons[k_ind]@uvar.uncertainty_set.b
-            # add certian terms
+            # add certain terms
             for expr in cur_cons_data['std_lst']:
                 aux_expr = aux_expr + expr
             aux_constraint = aux_constraint + new_constraint
@@ -137,36 +104,77 @@ class RemoveUncertainty(Reduction):
                 fin_expr = uvar.uncertainty_set.rho*lmbda + uvar.uncertainty_set._w@sval
         return fin_expr, aux_constraint, lmbda, sval
 
+    def mulexpression_canon_transform(self,u, P):
+        "adjust affine transform by the data matrix"
+        if len(P.shape) == 1:
+            P = np.reshape(P,(1,P.shape[0]))
+        uset = u.uncertainty_set
+        if uset.affine_transform_temp:
+            uset.affine_transform_temp['b'] = P@uset.affine_transform_temp['b']
+            uset.affine_transform_temp['A'] = P@uset.affine_transform_temp['A']
+        else:
+            uset.affine_transform_temp = {'A': P, 'b': np.zeros(np.shape(P)[0])}
+        return u
+
+    def mul_canon_transform(self,u, c):
+        "adjust affine transform by the data scalar"
+        uset = u.uncertainty_set
+        if isinstance(c, Promote):
+            c = c.value[0]
+        if uset.affine_transform_temp:
+            uset.affine_transform_temp['b'] = c*uset.affine_transform_temp['b']
+            uset.affine_transform_temp['A'] = c*uset.affine_transform_temp['A']
+        else:
+            if len(u.shape) == 0:
+                uset.affine_transform_temp = {'A': c*np.eye(1), 'b': 0}
+            else:
+                uset.affine_transform_temp = {'A': c*np.eye(u.shape[0]), 'b': np.zeros(u.shape[0])}
+        return u
+
+    def canonicalize_mul(self, z_cons,u_shape,uvar,transform_data,
+                              aux_expr, aux_constraint,var,is_isolated):
+        """canonicalize the uncertain terms by adjusting the affine transform,
+        then applying the canon_method"""
+        z = Variable(u_shape)
+        if u_shape==1:
+            uvar = self.mul_canon_transform(uvar,transform_data)
+        else:
+            uvar = self.mulexpression_canon_transform(uvar,transform_data)
+        if is_isolated:
+            new_expr, new_constraint = uvar.isolated_unc(z)
+        else:
+            new_expr, new_constraint = uvar.remove_uncertain(var,z)
+        aux_expr = aux_expr + new_expr
+        aux_constraint += new_constraint
+        z_cons = z_cons + z
+        return z_cons, aux_expr, aux_constraint
+
     def remove_uncertainty_helper(self, cur_cons_data, uvar,is_mro):
-        "canonicalize each term separately with inf convolution"
+        "remove the uncertain terms and the uncertainty set"
         u_shape = self.get_u_shape(uvar)
         smaller_u_shape = uvar.uncertainty_set._dimension
         k_num = 1 if not is_mro else uvar.uncertainty_set._K
-        merged_list = cur_cons_data['unc_lst'] + cur_cons_data['unc_isolated']
-        num_unc_fns = len(merged_list)
         aux_constraint = []
         aux_expr = 0
-        if num_unc_fns > 0:
-            if u_shape == 1:
-                z = Variable(num_unc_fns)
-            else:
-                z = Variable((num_unc_fns, u_shape))
-            z_cons = np.zeros(u_shape)
+        z_cons = np.zeros(u_shape)
+        if cur_cons_data['has_uncertain_mult'] or ['has_uncertain_isolated']:
+            # canonicalize uncertain constraints that are multiplied againt x
+            if cur_cons_data['has_uncertain_mult']:
+                z_cons, aux_expr, aux_constraint = self.canonicalize_mul(
+                    z_cons = z_cons, u_shape=u_shape,uvar=uvar,
+                    transform_data= cur_cons_data["unc_term"],
+                    aux_expr=aux_expr, aux_constraint=aux_constraint,
+                    var = cur_cons_data["var"],is_isolated=False)
 
-            # generate conjugate variables and constraints for uncertain terms
-            for ind in range(num_unc_fns):
-                u_expr, constant = self.remove_constant(merged_list[ind])
-                new_expr, new_constraint = self.canonicalize_tree(
-                    u_expr, z[ind], constant)
+            # canonicalize isolated uncertian constrains
+            if cur_cons_data['has_uncertain_isolated']:
+                z_cons, aux_expr, aux_constraint = self.canonicalize_mul(
+                    z_cons = z_cons, u_shape=u_shape,uvar=uvar,
+                    transform_data= cur_cons_data["unc_isolated"],
+                    aux_expr=aux_expr, aux_constraint=aux_constraint,
+                    var = None,is_isolated=True)
 
-                if self.has_unc_param(new_expr):
-                    uvar = mul_canon_transform(uvar, constant)
-                    new_expr, new_constraint = uvar.isolated_unc(z[ind])
-
-                aux_expr = aux_expr + new_expr
-                aux_constraint += new_constraint
-                z_cons = z_cons + z[ind]
-
+            # relate the conjugate variables
             aux_constraint, z_unc, supp_cons = \
                 self.remove_uncertain_terms(uvar=uvar, k_num=k_num,
                         z_cons=z_cons, aux_constraint=aux_constraint,
@@ -181,7 +189,7 @@ class RemoveUncertainty(Reduction):
                 cur_cons_data = cur_cons_data,
                 is_mro= is_mro,has_uncertain=True)
         else:
-            # No uncertain term, conjudate only the uncertainty set
+            # No uncertain term, conjugate only the uncertainty set
             fin_expr, aux_constraint, lmbda, sval = \
                 self.remove_uncertainty_sets(uvar=uvar,u_shape=u_shape,
             k_num=k_num,z_cons = None,supp_cons= None, z_unc = None,
@@ -203,7 +211,7 @@ class RemoveUncertainty(Reduction):
         if not isinstance(expr, int) and not isinstance(expr, float):
             return self.count_unq_uncertain_param(expr) >= 1
         else:
-            return 0
+            return False
 
     def get_u_shape(self, uvar):
         trans = uvar.uncertainty_set.affine_transform
@@ -241,14 +249,3 @@ class RemoveUncertainty(Reduction):
                 canon_constraints += [sval == new_sval]
 
         return canon_constr, lmbda, sval
-
-    def remove_constant(self, expr, constant=1):
-        '''remove the constants at the beginning of an expression with uncertainty'''
-        if len(expr.args) == 0:
-            return expr, constant
-
-        if type(expr) not in rm_const_methods:
-            return expr, constant
-        else:
-            func = rm_const_methods[type(expr)]
-            return func(self, expr, constant)
