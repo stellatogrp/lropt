@@ -154,43 +154,31 @@ class Norm(UncertaintySet):
             return np.inf
         return 1. + 1. / (self.p - 1.)
 
-    def conjugate(self, var, supp_var, shape, k_ind=0):
+    def conjugate(self, var, supp_var, k_ind=0):
         if not self._define_support:
             if self._c is None:
                 if not isinstance(var, Variable):
                     self._c = np.zeros((var, var))
                 else:
-                    self._c = np.zeros((supp_var.shape[1], supp_var.shape[1]))
+                    self._c = np.zeros((supp_var.shape[0], supp_var.shape[0]))
             if self._d is None:
                 if not isinstance(var, Variable):
                     self._d = np.zeros(var)
                 else:
-                    self._d = np.zeros(supp_var.shape[1])
+                    self._d = np.zeros(supp_var.shape[0])
             self._define_support = True
         if not isinstance(var, Variable):
-            lmbda = Variable(shape)
+            lmbda = Variable()
             constr = [lmbda >= 0]
-            return self.rho_mult*self.rho*lmbda, constr, lmbda
+            return self.rho_mult*self.rho*lmbda, constr, lmbda, None
         else:
             # ushape = var.shape[1]  # shape of uncertainty
             # if self.b is None:
             #     self._b = np.zeros(ushape)
-            if shape == 1:
-                lmbda = Variable()
-                supp_newvar = Variable(len(self._d))
-                constr = [norm(var[0], p=self.dual_norm()) <= lmbda]
-                constr += [lmbda >= 0]
-                constr += [self._c.T@supp_newvar == supp_var[0]]
-                constr += [supp_newvar >= 0]
-                return self.rho_mult*self.rho * lmbda + self._d@supp_newvar, constr, lmbda
-            else:
-                constr = []
-                lmbda = Variable(shape)
-                constr += [lmbda >= 0]
-                supp_newvar = Variable((shape, len(self._d)))
-                constr += [supp_newvar >= 0]
-                for ind in range(shape):
-                    constr += [norm(var[ind],
-                                    p=self.dual_norm()) <= lmbda[ind]]
-                    constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-                return self.rho_mult*self.rho * lmbda + supp_newvar@self._d, constr, lmbda
+            lmbda = Variable()
+            supp_newvar = Variable(len(self._d))
+            constr = [norm(var, p=self.dual_norm()) <= lmbda]
+            constr += [lmbda >= 0]
+            constr += [self._c.T@supp_newvar == supp_var]
+            constr += [supp_newvar >= 0]
+            return self.rho_mult*self.rho * lmbda + self._d@supp_newvar, constr, lmbda, None

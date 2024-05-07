@@ -152,51 +152,37 @@ class Budget(UncertaintySet):
     def d(self):
         return self._d
 
-    def conjugate(self, var, supp_var, shape, k_ind=0):
+    def conjugate(self, var, supp_var, k_ind=0):
         if not self._define_support:
             if self._c is None:
                 if not isinstance(var, Variable):
                     self._c = np.zeros((var, var))
                 else:
-                    self._c = np.zeros((supp_var.shape[1], supp_var.shape[1]))
+                    self._c = np.zeros((supp_var.shape[0], supp_var.shape[0]))
             if self._d is None:
                 if not isinstance(var, Variable):
                     self._d = np.zeros(var)
                 else:
-                    self._d = np.zeros(supp_var.shape[1])
+                    self._d = np.zeros(supp_var.shape[0])
             self._define_support = True
         if isinstance(var, Variable):
-            ushape = var.shape[1]
-            newvar1 = Variable(var.shape)
-            newvar2 = Variable(var.shape)
+            ushape = var.shape
+            newvar1 = Variable(ushape)
+            newvar2 = Variable(ushape)
             constr = [newvar1 + newvar2 == var]
         else:
             ushape = var
             newvar1 = Variable(ushape)
             newvar2 = Variable(ushape)
             constr = [newvar1 + newvar2 == 0]
-        if shape == 1:
-            lmbda1 = Variable()
-            lmbda2 = Variable()
-            supp_newvar = Variable(len(self._d))
-            constr += [norm(newvar1[0], 1) <= lmbda1]
-            constr += [norm(newvar2[0], np.inf) <= lmbda2]
-            constr += [lmbda1 >= 0, lmbda2 >= 0]
-            constr += [self._c.T@supp_newvar == supp_var[0]]
-            constr += [supp_newvar >= 0]
-            return self.rho_mult*self.rho1*lmbda1 + self._d@supp_newvar +\
-                  self.rho_mult*self.rho2*lmbda2, \
-                constr, (lmbda1, lmbda2)
-        else:
-            lmbda1 = Variable(shape)
-            lmbda2 = Variable(shape)
-            supp_newvar = Variable((shape, len(self._d)))
-            constr += [lmbda1 >= 0, lmbda2 >= 0]
-            constr += [supp_newvar >= 0]
-            for ind in range(shape):
-                constr += [norm(newvar1[ind], p=1) <= lmbda1[ind]]
-                constr += [norm(newvar2[ind], p=np.inf) <= lmbda2[ind]]
-                constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-            return self.rho_mult*self.rho1*lmbda1 + \
-                supp_newvar@self._d + self.rho_mult*self.rho2*lmbda2, \
-                constr, (lmbda1, lmbda2)
+        lmbda1 = Variable()
+        lmbda2 = Variable()
+        supp_newvar = Variable(len(self._d))
+        constr += [norm(newvar1, 1) <= lmbda1]
+        constr += [norm(newvar2, np.inf) <= lmbda2]
+        constr += [lmbda1 >= 0, lmbda2 >= 0]
+        constr += [self._c.T@supp_newvar == supp_var]
+        constr += [supp_newvar >= 0]
+        return self.rho_mult*self.rho1*lmbda1 + self._d@supp_newvar +\
+                self.rho_mult*self.rho2*lmbda2, \
+            constr, (lmbda1, lmbda2), None

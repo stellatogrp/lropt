@@ -238,7 +238,9 @@ class UncertainCanonicalization(Reduction):
                                    variables_stacked: Hstack, b_rec: csr_matrix,
                                    term_unc: Expression | int = 0, \
                                     term_unc_b: int = 0,\
-                                          zero: bool = False, cons_data: dict = None) -> None:
+                                          zero: bool = False, \
+                                            cons_data: dict = None, \
+                                                u = u) -> None:
                 """
                 This is a helper function that appends the i-th constraint.
                 """
@@ -248,6 +250,7 @@ class UncertainCanonicalization(Reduction):
                 cons_data['unc_isolated'] = [term_unc_b] if \
                     cons_data['has_uncertain_isolated'] else []
                 cons_data['std_lst'] = [A@variables_stacked - b_rec]
+                cons_data['unc_param'] = u
 
                 #TODO: update this to the version commented out. We need to edit gen_torch_exp
                 # if zero:
@@ -299,7 +302,7 @@ class UncertainCanonicalization(Reduction):
                                    variables_stacked=variables_stacked, b_rec=b_rec[i],
                                    term_unc=term_unc, \
                                     term_unc_b=term_unc_b,zero=zero, \
-                                        cons_data = cons_data[i])
+                                        cons_data = cons_data[i], u = u)
             return constraints, cons_data
 
         def _restore_param_canon(unc_canon_dict: dict) -> None:

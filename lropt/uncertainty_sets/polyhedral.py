@@ -136,41 +136,31 @@ class Polyhedral(UncertaintySet):
         return self._sum_eq
 
 
-    def conjugate(self, var, supp_var, shape, k_ind=0):
+    def conjugate(self, var, supp_var, k_ind=0):
         constr = []
         if not self._define_support:
             if self._c is None:
                 if not isinstance(var, Variable):
                     self._c = np.zeros((var, var))
                 else:
-                    self._c = np.zeros((supp_var.shape[1], supp_var.shape[1]))
+                    self._c = np.zeros((supp_var.shape[0], supp_var.shape[0]))
             if self._d is None:
                 if not isinstance(var, Variable):
                     self._d = np.zeros(var)
                 else:
-                    self._d = np.zeros(supp_var.shape[1])
+                    self._d = np.zeros(supp_var.shape[0])
             self._define_support = True
         if isinstance(var, Variable):
-            if shape == 1:
-                supp_newvar = Variable(len(self._d))
-                lmbda = Variable(len(self.rhs))
-                constr += [lmbda >= 0]
-                constr += [self._c.T@supp_newvar == supp_var[0]]
-                constr += [supp_newvar >= 0]
-                if len(self.rhs) == 1:
-                    constr += [var[0] == lmbda*self.lhs]
-                    return self.rho_mult*lmbda*self.rhs + self._d@supp_newvar, constr, lmbda
-                else:
-                    constr += [var[0] == lmbda@self.lhs]
-                    return self.rho_mult*lmbda@self.rhs, constr, lmbda
+            supp_newvar = Variable(len(self._d))
+            lmbda = Variable(len(self.rhs))
+            constr += [lmbda >= 0]
+            constr += [self._c.T@supp_newvar == supp_var]
+            constr += [supp_newvar >= 0]
+            if len(self.rhs) == 1:
+                constr += [var == lmbda*self.lhs]
+                return self.rho_mult*lmbda*self.rhs + self._d@supp_newvar, constr, lmbda, None
             else:
-                lmbda = Variable((shape, len(self.rhs)))
-                supp_newvar = Variable((shape, len(self._d)))
-                constr += [supp_newvar >= 0]
-                constr += [lmbda >= 0]
-                for ind in range(shape):
-                    constr += [var[ind] == lmbda[ind]@self.lhs]
-                    constr += [self._c.T@supp_newvar[ind] == supp_var[ind]]
-                return self.rho_mult*lmbda@self.rhs+ supp_newvar@self._d, constr, lmbda
+                constr += [var == lmbda@self.lhs]
+                return self.rho_mult*lmbda@self.rhs, constr, lmbda, None
         else:
-            return 0, [], 0
+            return 0, [], 0, None

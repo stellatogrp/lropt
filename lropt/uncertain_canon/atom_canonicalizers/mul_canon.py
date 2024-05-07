@@ -14,7 +14,6 @@ def mul_canon(expr, args, var, cons):
         u, x = args
     elif isinstance(args[1], UncertainParameter):
         x, u = args
-
     else:
         # No uncertain variables
         return cp.multiply(args[0],args[1]), []
@@ -31,22 +30,6 @@ def mul_canon_transform(u, c):
         c = c.value[0]
     if uset.affine_transform_temp:
         uset.affine_transform_temp['b'] = c*uset.affine_transform_temp['b']
-        uset.affine_transform_temp['A'] = c*uset.affine_transform_temp['A']
-    else:
-        if len(u.shape) == 0:
-            uset.affine_transform_temp = {'A': c*np.eye(1), 'b': 0}
-        else:
-            uset.affine_transform_temp = {'A': c*np.eye(u.shape[0]), 'b': np.zeros(u.shape[0])}
-
-    return u
-
-
-def mul_convert(u, c):
-    # adjust affine transform
-    # import ipdb
-    # ipdb.set_trace()
-    uset = u.uncertainty_set
-    if uset.affine_transform_temp:
         uset.affine_transform_temp['A'] = c*uset.affine_transform_temp['A']
     else:
         if len(u.shape) == 0:
