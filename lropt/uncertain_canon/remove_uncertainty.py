@@ -8,7 +8,6 @@ from cvxpy.reductions.reduction import Reduction
 
 from lropt.uncertain import UncertainParameter
 
-# from lropt.uncertain_canon.atom_canonicalizers import CANON_METHODS as remove_uncertain_methods
 # from lropt.uncertain_canon.atom_canonicalizers.mul_canon import mul_canon_transform
 # from lropt.uncertain_canon.remove_constant import REMOVE_CONSTANT_METHODS as rm_const_methods
 from lropt.uncertain_canon.utils import standard_invert
@@ -22,7 +21,6 @@ class RemoveUncertainty(Reduction):
     problem, visiting each node. At every node, this reduction first
     canonicalizes its arguments; it then canonicalizes the node, using the
     canonicalized arguments.
-    The attribute `canon_methods` is a dictionary
     mapping node types to functions that canonicalize them; the signature
     of these canonicalizing functions must be
         def canon_func(expr, canon_args) --> (new_expr, constraints)
@@ -32,15 +30,9 @@ class RemoveUncertainty(Reduction):
     of constraints introduced while canonicalizing `expr`.
     Attributes:
     ----------
-        canon_methods : dict
-            A dictionary mapping node types to canonicalization functions.
         problem : Problem
             A problem owned by this reduction.
     """
-
-    def __init__(self, problem=None) -> None:
-        super(RemoveUncertainty, self).__init__(problem=problem)
-        # self.canon_methods = canon_methods
 
     def apply(self, problem):
         """Recursively canonicalize the objective and every constraint."""

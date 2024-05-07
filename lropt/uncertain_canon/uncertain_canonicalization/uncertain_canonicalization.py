@@ -31,22 +31,6 @@ CERTAIN_PARAMETER_TYPES = (LroptParameter, Parameter)
 class UncertainCanonicalization(Reduction):
     def apply(self, problem: RobustProblem, solver=SCS):
         """Separate the conic constraint into part with uncertainty and without."""
-        def _unc_param_to_canon(problem:RobustProblem) -> dict:
-            """
-            This function creates a dictionary from uncertain paramater index to the uncertain
-            parameter and its original canonicalize method, and changes the canonicalize method
-            to the one of cp.Parameter (instead of RobustProblem).
-            This is needed because we need to override the canonicalize function of each
-            uncertain parameter for the separation, but will need to restore the original
-            canonicalize function before returning from apply.
-            """
-            # Note: I save unc_canon_dict as a dictionary to make sure the keys are immutable
-            # objects (integers), even though we do not use the keys at any point.
-            unc_canon_dict = dict()
-            for i,u in enumerate(problem.uncertain_parameters()):
-                unc_canon_dict[i] = (u, u.canonicalize)
-                u.canonicalize = super(UncertainParameter, u).canonicalize
-            return unc_canon_dict
 
         def _gen_objective_constraints(problem):
             """
@@ -229,20 +213,7 @@ class UncertainCanonicalization(Reduction):
                 """
                 This is a helper function that appends the i-th constraint.
                 """
-                # cons_data['has_uncertain_isolated'] = (not isinstance(term_unc_b, int))
-                # cons_data['has_uncertain_mult'] = (not isinstance(term_unc, int))
-                # cons_data['unc_lst'] = [term_unc] if cons_data['has_uncertain_mult'] else []
-                # cons_data['unc_isolated'] = [term_unc_b] if \
-                #     cons_data['has_uncertain_isolated'] else []
                 cons_data['std_lst'] = [A@variables_stacked - b_rec]
-                # cons_data['unc_param'] = u
-
-                #TODO: update this to the version commented out. We need to edit gen_torch_exp
-                # if zero:
-                #     constraints += [A@variables_stacked == b_rec]
-                # else:
-                #     constraints += [A@variables_stacked + term_unc + term_unc_b <= b_rec]
-
                 cons_func = cp.Zero if zero else cp.NonPos
                 constraints += [cons_func(A@variables_stacked + term_unc + term_unc_b - b_rec)]
 
@@ -289,21 +260,13 @@ class UncertainCanonicalization(Reduction):
                 term_unc, term_unc_b = _gen_term_unc(cones_zero=cones.zero, u=u,
                                                      A_rec_uncertain=A_rec_uncertain, i=i,
                                                      variables_stacked=variables_stacked,
-                                                     b_unc=b_unc,
-                                                     cons_data=cons_data[i])
+                                                     b_unc=b_unc, cons_data=cons_data[i])
 
                 _append_constraint(constraints=constraints, A=A_rec_certain[i],
                                    variables_stacked=variables_stacked, b_rec=b_rec[i],
                                    term_unc=term_unc, term_unc_b=term_unc_b,zero=zero,
                                    cons_data=cons_data[i])
             return constraints, cons_data
-
-        def _restore_param_canon(unc_canon_dict: dict) -> None:
-            """
-            This function restores the canonicalize function of each uncertain parameter.
-            """
-            for u, orig_canon in unc_canon_dict.values():
-                u.canonicalize = orig_canon
 
         def _gen_canon_robust_problem(problem: RobustProblem, \
                         A_rec_certain: ndarray,A_rec_uncertain: \
@@ -324,18 +287,12 @@ class UncertainCanonicalization(Reduction):
         problem = RobustProblem(problem.objective, problem.constraints)
         inverse_data = InverseData(problem)
 
-        #Change uncertain paramter to use its original canonicalize
-        # unc_canon_dict = _unc_param_to_canon(problem)
-
         canon_objective, new_constraints = _gen_objective_constraints(problem)
         epigraph_problem = RobustProblem(canon_objective,new_constraints)
 
         #Get A, b tensors (A separated to uncertain and certain parts).
         A_rec_certain, A_rec_uncertain, b_rec, b_unc,cones,variables \
                                                 = _get_tensors(epigraph_problem, solver=solver)
-
-        #Change uncertain parameter to use its new canonicalize
-        # _restore_param_canon(unc_canon_dict)
 
         new_objective, new_constraints, cons_data = _gen_canon_robust_problem(epigraph_problem,
                                                 A_rec_certain, A_rec_uncertain, b_rec,b_unc,
