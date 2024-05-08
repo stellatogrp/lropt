@@ -150,12 +150,12 @@ class UncertainCanonicalization(Reduction):
                     return 0, 0
                 Ab_dim = (-1, n_var+1) #+1 for the free parameter
                 Ab = vec_Ab.reshape(Ab_dim, order='C')
-                # note minus sign for different conic form in A_rec
+                # note minus sign for different conic form in A
                 if not isinstance(Ab, Expression):
                     Ab = Ab.tocsr()
-                A_rec = -Ab[:, :-1]
-                b_rec = Ab[:, -1]
-                return A_rec, b_rec
+                A_certain = -Ab[:, :-1]
+                b_certain = Ab[:, -1]
+                return A_certain, b_certain
 
             def _finalize_expressions_uncertain(T_Ab,n_var):
                 """
@@ -179,21 +179,22 @@ class UncertainCanonicalization(Reduction):
             canon_variables = param_prob.variables
             vec_Ab_certain, vec_Ab_certain_param, T_Ab_dict = _gen_param_vec(param_prob)
             n_var = param_prob.reduced_A.var_len
-            A_rec_certain, b_rec = _finalize_expressions(vec_Ab_certain, n_var=n_var)
-            A_rec_certain_param, b_rec_param = _finalize_expressions(vec_Ab_certain_param,
+            A_certain, b_certain = _finalize_expressions(vec_Ab_certain, n_var=n_var)
+            A_certain_param, b_certain_param = _finalize_expressions(vec_Ab_certain_param,
                                                                      n_var=n_var)
-            A_rec_certain_total = A_rec_certain + promote_expr(A_rec_certain_param)
-            b_rec_total = b_rec + promote_expr(b_rec_param)
-            A_rec_uncertain, b_unc = _finalize_expressions_uncertain(T_Ab_dict[UncertainParameter],
-                                                                     n_var=n_var)
-            return A_rec_certain_total, A_rec_uncertain, b_rec_total, b_unc, cones, canon_variables
+            A_certain_total = A_certain + promote_expr(A_certain_param)
+            b_certain_total = b_certain + promote_expr(b_certain_param)
+            A_uncertain, b_uncertain = _finalize_expressions_uncertain(
+                                                    T_Ab_dict[UncertainParameter],n_var=n_var)
+            return A_certain_total, A_uncertain, b_certain_total, b_uncertain, cones, \
+                                                    canon_variables
 
         def _gen_objective(problem: RobustProblem) -> Expression:
             #TODO: update this function to reformulate the objective
             return problem.objective
 
-        def _gen_constraints(A_rec_certain: ndarray, \
-                             A_rec_uncertain: Expression, b_rec: ndarray, b_unc,
+        def _gen_constraints(A_certain: ndarray, \
+                             A_uncertain: Expression, b_certain: ndarray, b_uncertain,
                                         variables: list[Variable], cones,\
                                               u: UncertainParameter) \
                                               -> list[Expression]:
@@ -201,7 +202,7 @@ class UncertainCanonicalization(Reduction):
             This is a helper function that generates a new constraint.
             """
             def _append_constraint(constraints: list[Constraint], A: csr_matrix,
-                                   variables_stacked: Hstack, b_rec: csr_matrix,
+                                   variables_stacked: Hstack, b_certain: csr_matrix,
                                    term_unc: Expression | int = 0, \
                                     term_unc_b: int = 0,\
                                           zero: bool = False, \
@@ -209,13 +210,13 @@ class UncertainCanonicalization(Reduction):
                 """
                 This is a helper function that appends the i-th constraint.
                 """
-                cons_data['std_lst'] = [A@variables_stacked - b_rec]
+                cons_data['std_lst'] = [A@variables_stacked - b_certain]
                 cons_func = cp.Zero if zero else cp.NonPos
-                constraints += [cons_func(A@variables_stacked + term_unc + term_unc_b - b_rec)]
+                constraints += [cons_func(A@variables_stacked + term_unc + term_unc_b - b_certain)]
 
-            def _gen_term_unc(cones_zero: int, u: UncertainParameter, A_rec_uncertain: np.ndarray,
+            def _gen_term_unc(cones_zero: int, u: UncertainParameter, A_uncertain: np.ndarray,
                                                 i: int, variables_stacked: Hstack,
-                                                b_unc: np.ndarray, cons_data: dict) -> tuple:
+                                                b_uncertain: np.ndarray, cons_data: dict) -> tuple:
                 """
                 This is a helper function that generates term_unc and term_unc_b.
                 """
@@ -224,7 +225,7 @@ class UncertainCanonicalization(Reduction):
                 cons_data['has_uncertain_isolated'] = False
                 cons_data['has_uncertain_mult'] = False
                 cons_data['unc_param'] = u
-                if (i<cones_zero) or (A_rec_uncertain is None):
+                if (i<cones_zero) or (A_uncertain is None):
                     return term_unc, term_unc_b
 
                 if len(u.shape)!=0 and u.shape[0]>1:
@@ -232,17 +233,17 @@ class UncertainCanonicalization(Reduction):
                 else:
                     op = operator.mul
 
-                if A_rec_uncertain[i].nnz != 0:
-                    term_unc = variables_stacked@(op(A_rec_uncertain[i],u))
+                if A_uncertain[i].nnz != 0:
+                    term_unc = variables_stacked@(op(A_uncertain[i],u))
                     cons_data['has_uncertain_mult'] = True
                     cons_data['var'] = variables_stacked
-                    cons_data['unc_term'] = A_rec_uncertain[i]
+                    cons_data['unc_term'] = A_uncertain[i]
 
 
-                if b_unc[i].nnz != 0:
-                    term_unc_b = op(b_unc[i],u)
+                if b_uncertain[i].nnz != 0:
+                    term_unc_b = op(b_uncertain[i],u)
                     cons_data['has_uncertain_isolated'] = True
-                    cons_data['unc_isolated'] = b_unc[i]
+                    cons_data['unc_isolated'] = b_uncertain[i]
 
                 return term_unc, term_unc_b
 
@@ -254,19 +255,19 @@ class UncertainCanonicalization(Reduction):
                 zero = (i < cones.zero)
                 cons_data[i] = {}
                 term_unc, term_unc_b = _gen_term_unc(cones_zero=cones.zero, u=u,
-                                                     A_rec_uncertain=A_rec_uncertain, i=i,
+                                                     A_uncertain=A_uncertain, i=i,
                                                      variables_stacked=variables_stacked,
-                                                     b_unc=b_unc, cons_data=cons_data[i])
+                                                     b_uncertain=b_uncertain, cons_data=cons_data[i])
 
-                _append_constraint(constraints=constraints, A=A_rec_certain[i],
-                                   variables_stacked=variables_stacked, b_rec=b_rec[i],
+                _append_constraint(constraints=constraints, A=A_certain[i],
+                                   variables_stacked=variables_stacked, b_certain=b_certain[i],
                                    term_unc=term_unc, term_unc_b=term_unc_b,zero=zero,
                                    cons_data=cons_data[i])
             return constraints, cons_data
 
         def _gen_canon_robust_problem(problem: RobustProblem, \
-                        A_rec_certain: ndarray,A_rec_uncertain: \
-                        Expression, b_rec: ndarray, b_unc, cones,
+                        A_certain: ndarray,A_uncertain: \
+                        Expression, b_certain: ndarray, b_uncertain, cones,
                         variables) -> tuple:
             """
             This is a helper function that generates the new problem, new constraints
@@ -275,8 +276,8 @@ class UncertainCanonicalization(Reduction):
             # variables = problem.variables()
             u = problem.uncertain_parameters()[0]
             new_objective = _gen_objective(problem)
-            new_constraints, cons_data = _gen_constraints(A_rec_certain=A_rec_certain,
-                                    A_rec_uncertain=A_rec_uncertain, b_rec=b_rec, b_unc=b_unc,
+            new_constraints, cons_data = _gen_constraints(A_certain=A_certain,
+                                    A_uncertain=A_uncertain, b_certain=b_certain, b_uncertain=b_uncertain,
                                     variables=variables, cones=cones, u=u)
             return new_objective, new_constraints, cons_data
 
@@ -287,11 +288,11 @@ class UncertainCanonicalization(Reduction):
         epigraph_problem = RobustProblem(canon_objective,new_constraints)
 
         #Get A, b tensors (A separated to uncertain and certain parts).
-        A_rec_certain, A_rec_uncertain, b_rec, b_unc,cones,variables \
+        A_certain, A_uncertain, b_certain, b_uncertain, cones,variables \
                                                 = _get_tensors(epigraph_problem, solver=solver)
 
         new_objective, new_constraints, cons_data = _gen_canon_robust_problem(epigraph_problem,
-                                                A_rec_certain, A_rec_uncertain, b_rec,b_unc,
+                                                A_certain, A_uncertain, b_certain,b_uncertain,
                                                 cones, variables)
         new_problem = RobustProblem(objective=new_objective, constraints=new_constraints,
                                                 cons_data=cons_data)
