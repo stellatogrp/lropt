@@ -1,11 +1,12 @@
-from cvxpy.reductions.inverse_data import InverseData
-from cvxpy.reductions.solution import Solution
 import cvxpy as cp
 import numpy as np
 from cvxpy.constraints.constraint import Constraint
 from cvxpy.expressions.expression import Expression
+from cvxpy.reductions.inverse_data import InverseData
+from cvxpy.reductions.solution import Solution
 from scipy.sparse import csc_matrix, csr_matrix
 from scipy.sparse._coo import coo_matrix
+
 
 def standard_invert(solution: Solution, inverse_data: InverseData) -> Solution:
     """
