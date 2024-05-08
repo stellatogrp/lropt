@@ -8,7 +8,7 @@ import numpy.random as npr
 import numpy.testing as npt
 
 from lropt.robust_problem import RobustProblem
-from lropt.uncertain import UncertainParameter
+from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.box import Box
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
 from tests.settings import TESTS_ATOL as ATOL

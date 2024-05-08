@@ -6,7 +6,7 @@ import torch
 
 from lropt import Ellipsoidal
 from lropt.batch import batchify
-from lropt.uncertain import UncertainParameter
+from lropt.uncertain_parameter import UncertainParameter
 
 torch.manual_seed(1234)
 
@@ -24,7 +24,7 @@ class TestElementwiseDotproduct(unittest.TestCase):
         expr2 = batchify(expr2)
         torch_expr1, _ = expr1.gen_torch_exp()
         torch_expr2, _ = expr2.gen_torch_exp()
-        
+
         a = torch.tensor([[1.,2.,3.],[4.,5.,6.]])
         b = torch.tensor([[1.,2.,1.],[-1.,-2.,5.]])
         c = torch.tensor([[1.,2.,3.],[3.,4.,1.],[-1.,-2.,-1.]])
@@ -38,7 +38,7 @@ class TestElementwiseDotproduct(unittest.TestCase):
         res4 = torch_expr2(c,d)
         res5 = torch_expr1(e,f)
         res6 = torch_expr2(e,f)
-        
+
         self.assertTrue(torch.all(res1==torch.tensor([8,16])))
         self.assertTrue(torch.all(res2==torch.tensor([9,9,0])))
         self.assertTrue(torch.all(res3==torch.tensor([24,36])))
@@ -66,7 +66,7 @@ class TestElementwiseDotproduct(unittest.TestCase):
             for is_mat_batch in (False, True):
                 mat = cp.Variable((m,n)) if is_mat_batch else cp.Constant(np.ones((m,n)))
                 mat_val = mat_batch if is_mat_batch else mat_unbtc
-                
+
                 right_args = []
                 left_args = []
                 if is_mat_batch:
@@ -78,7 +78,7 @@ class TestElementwiseDotproduct(unittest.TestCase):
 
                 #Test this combination
                 expr_vec_right = mat@vec_right
-                expr_vec_left = vec_left@mat                
+                expr_vec_left = vec_left@mat
                 expr_vec_right = batchify(expr_vec_right)
                 expr_vec_left = batchify(expr_vec_left)
                 torch_expr_vec_right, _ = expr_vec_right.gen_torch_exp()
@@ -105,7 +105,7 @@ class TestElementwiseDotproduct(unittest.TestCase):
             for right_batch in (False, True):
                 mat_right = cp.Variable((n,k)) if right_batch else cp.Constant(np.ones((n,k)))
                 mat_right_val = mat_right_batch if right_batch else mat_right_unbtc
-                
+
                 args = []
                 if left_batch:
                     args.append(mat_left_val)
@@ -137,7 +137,7 @@ class TestElementwiseDotproduct(unittest.TestCase):
             for right_batch in (False, True):
                 vec_right = cp.Variable(n) if right_batch else cp.Constant(np.ones(n))
                 vec_right_val = vec_right_batch if right_batch else vec_right_unbtc
-                
+
                 args = []
                 if left_batch:
                     args.append(vec_left_val)

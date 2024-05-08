@@ -14,8 +14,8 @@ from scipy.sparse import csr_matrix
 
 from lropt import Parameter as LroptParameter
 from lropt.robust_problem import RobustProblem
-from lropt.uncertain import UncertainParameter
 from lropt.uncertain_canon.utils import promote_expr, standard_invert, tensor_reshaper
+from lropt.uncertain_parameter import UncertainParameter
 from lropt.utils import unique_list
 
 PARAM_TYPES = (UncertainParameter, LroptParameter, Parameter)

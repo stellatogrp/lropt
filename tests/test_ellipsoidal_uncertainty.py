@@ -18,8 +18,7 @@ from scipy.sparse import csc_matrix, csr_matrix
 from scipy.sparse._coo import coo_matrix
 
 from lropt.robust_problem import RobustProblem
-from lropt.shape_parameter import UParameter
-from lropt.uncertain import UncertainParameter
+from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
 from tests.settings import SOLVER, SOLVER_SETTINGS
 from tests.settings import TESTS_ATOL as ATOL
@@ -55,8 +54,8 @@ def _get_tensors(problem: RobustProblem, solver = SCS) -> ndarray:
             else:
                 return param_vec_certain, T_Ab_certain
 
-        def _gen_param_value(param: Parameter | UParameter, is_uncertain: bool) -> \
-                                                np.ndarray | UParameter:
+        def _gen_param_value(param: Parameter | UncertainParameter, is_uncertain: bool) -> \
+                                                np.ndarray | UncertainParameter:
             """
             This is a helper function that returns the uncertain parameter if the input is
             an uncertain parameter, or the parameter's value for known parameters.
@@ -101,7 +100,7 @@ def _get_tensors(problem: RobustProblem, solver = SCS) -> ndarray:
                                 #of all the parameters seen so far.
         for param in param_prob.parameters:
             param_size = param_prob.param_id_to_size[param.id]
-            is_uncertain = isinstance(param, UParameter)
+            is_uncertain = isinstance(param, UncertainParameter)
             param_vec_target, T_Ab_target = _select_target(is_uncertain, param_vec_certain,
                                                             param_vec_uncertain,
                                                             T_Ab_certain, T_Ab_uncertain)
@@ -393,7 +392,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         bar_a = np.array([0.1,0.1,0.1,0.3,1.2])
 
         # Solve via tensor reformulation
-        a = UParameter(n)
+        a = UncertainParameter(n, uncertainty_set = Ellipsoidal(rho=rho))
         constraints = [((3*np.eye(n))@a + bar_a)@ x <= b, cp.sum(x) == 1, x >= 0]
         # num_constraints = calc_num_constraints(constraints)
         prob_tensor = cp.Problem(objective, constraints)
@@ -454,7 +453,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         bar_a = np.array([0.1,0.1,0.1,0.3,1.2])
 
         # Solve via tensor reformulation
-        a = UParameter(n)
+        a = UncertainParameter(n,uncertainty_set = Ellipsoidal(rho=rho))
         constraints = [((3*np.eye(n))@a + bar_a)@ x <= b, cp.sum(x) == 1, x >= 0]
         # num_constraints = calc_num_constraints(constraints)
         prob_tensor = cp.Problem(objective, constraints)

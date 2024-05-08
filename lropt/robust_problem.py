@@ -29,10 +29,9 @@ from joblib import Parallel, delayed
 import lropt.settings as settings
 from lropt import utils
 from lropt.batch import batchify
-from lropt.parameter import Parameter
-from lropt.shape_parameter import EpsParameter, ShapeParameter
-from lropt.uncertain import UncertainParameter
+from lropt.parameter import EpsParameter, Parameter, ShapeParameter
 from lropt.uncertain_canon.remove_uncertainty import RemoveUncertainty
+from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.mro import MRO
 
 torch.manual_seed(0)

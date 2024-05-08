@@ -18,3 +18,12 @@ class Parameter(cp.Parameter):
         assert (data.shape[0] > 0)
 
         self.data = data
+
+
+class ShapeParameter(cp.Parameter):
+    def __init__(self, *args, **kwargs):
+        super(ShapeParameter, self).__init__(*args, **kwargs)
+
+class EpsParameter(cp.Parameter):
+    def __init__(self, *args, **kwargs):
+        super(EpsParameter, self).__init__(*args, **kwargs)

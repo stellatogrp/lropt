@@ -1,7 +1,7 @@
 import numpy as np
 from cvxpy import Variable
 
-from lropt.shape_parameter import EpsParameter, ShapeParameter
+from lropt.parameter import EpsParameter, ShapeParameter
 from lropt.uncertainty_sets.uncertainty_set import UncertaintySet
 from lropt.utils import check_affine_transform
 
