@@ -8,12 +8,12 @@ from sklearn import datasets
 
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain import UncertainParameter
-from lropt.uncertain_atoms.quad_form import quad_form
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
 from tests.settings import TESTS_ATOL as ATOL
 from tests.settings import TESTS_RTOL as RTOL
 
 
+#TODO: We used to have lropt.quad_form but we no longer have
 class TestQuad(unittest.TestCase):
 
     def setUp(self):
@@ -42,7 +42,8 @@ class TestQuad(unittest.TestCase):
         objective = cp.Minimize(t)
 
         # formulate constraints
-        constraints = [cp.sum([-0.5*quad_form(u, P[i]*x_r[i])
+        #TODO: This cp.quad_form used to be lropt.quad_form, it was changed so Linter wouldn't cry
+        constraints = [cp.sum([-0.5*cp.quad_form(u, P[i]*x_r[i])
                               for i in range(n)]) <= t]
         constraints += [cp.sum(x_r) == 4]
         constraints += [x_r >= 0.6, x_r <= 1]
