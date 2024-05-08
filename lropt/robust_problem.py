@@ -26,10 +26,10 @@ from cvxpylayers.torch import CvxpyLayer
 from joblib import Parallel, delayed
 
 # from pathos.multiprocessing import ProcessPool as Pool
-import lropt.settings as settings
-from lropt import utils
-from lropt.batch import batchify
-from lropt.parameter import EpsParameter, Parameter, ShapeParameter
+import lropt.train.settings as settings
+from lropt.train import utils
+from lropt.train.batch import batchify
+from lropt.train.parameter import EpsParameter, Parameter, ShapeParameter
 from lropt.uncertain_canon.remove_uncertainty import RemoveUncertainty
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.mro import MRO

@@ -13,8 +13,8 @@ import torch
 # from tests.settings import SOLVER
 from sklearn.model_selection import train_test_split
 
-from lropt.parameter import Parameter
 from lropt.robust_problem import RobustProblem
+from lropt.train.parameter import Parameter
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
 from tests.settings import TESTS_ATOL as ATOL

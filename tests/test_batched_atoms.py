@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 from lropt import Ellipsoidal
-from lropt.batch import batchify
+from lropt.train.batch import batchify
 from lropt.uncertain_parameter import UncertainParameter
 
 torch.manual_seed(1234)

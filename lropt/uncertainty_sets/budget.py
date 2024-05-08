@@ -1,7 +1,7 @@
 import numpy as np
 from cvxpy import Variable, norm
 
-from lropt.parameter import EpsParameter, ShapeParameter
+from lropt.train.parameter import EpsParameter, ShapeParameter
 from lropt.uncertainty_sets.uncertainty_set import UncertaintySet
 
 

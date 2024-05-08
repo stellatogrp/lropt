@@ -8,10 +8,9 @@ from cvxpy.reductions.reduction import Reduction
 
 # from lropt.uncertain_canon.atom_canonicalizers.mul_canon import mul_canon_transform
 # from lropt.uncertain_canon.remove_constant import REMOVE_CONSTANT_METHODS as rm_const_methods
-from lropt.uncertain_canon.utils import standard_invert
+from lropt.uncertain_canon.utils import standard_invert, unique_list
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.mro import MRO
-from lropt.utils import unique_list
 
 
 class RemoveUncertainty(Reduction):
