@@ -1877,9 +1877,7 @@ class RobustProblem(Problem):
 
         None
         """
-        from lropt.uncertain_canon.uncertain_canonicalization.uncertain_canonicalization import (
-            UncertainCanonicalization,
-        )
+        from lropt.uncertain_canon.uncertain_canonicalization import UncertainCanonicalization
         if (not override) and (self.prob_no_uncertainty):
             return
         if self.uncertain_parameters():
