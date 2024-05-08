@@ -257,7 +257,8 @@ class UncertainCanonicalization(Reduction):
                 term_unc, term_unc_b = _gen_term_unc(cones_zero=cones.zero, u=u,
                                                      A_uncertain=A_uncertain, i=i,
                                                      variables_stacked=variables_stacked,
-                                                     b_uncertain=b_uncertain, cons_data=cons_data[i])
+                                                     b_uncertain=b_uncertain,
+                                                     cons_data=cons_data[i])
 
                 _append_constraint(constraints=constraints, A=A_certain[i],
                                    variables_stacked=variables_stacked, b_certain=b_certain[i],
@@ -277,8 +278,8 @@ class UncertainCanonicalization(Reduction):
             u = problem.uncertain_parameters()[0]
             new_objective = _gen_objective(problem)
             new_constraints, cons_data = _gen_constraints(A_certain=A_certain,
-                                    A_uncertain=A_uncertain, b_certain=b_certain, b_uncertain=b_uncertain,
-                                    variables=variables, cones=cones, u=u)
+                                    A_uncertain=A_uncertain, b_certain=b_certain,
+                                    b_uncertain=b_uncertain, variables=variables, cones=cones, u=u)
             return new_objective, new_constraints, cons_data
 
         problem = RobustProblem(problem.objective, problem.constraints)

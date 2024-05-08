@@ -19,6 +19,7 @@ from cvxpy.expressions.leaf import Leaf
 from cvxpy.expressions.variable import Variable
 from cvxpy.problems.objective import Maximize
 from cvxpy.problems.problem import Problem
+from cvxpy.reductions.chain import Chain
 from cvxpy.reductions.flip_objective import FlipObjective
 from cvxpy.reductions.solution import INF_OR_UNB_MESSAGE
 from cvxpylayers.torch import CvxpyLayer
@@ -32,7 +33,6 @@ from lropt.parameter import Parameter
 from lropt.shape_parameter import EpsParameter, ShapeParameter
 from lropt.uncertain import UncertainParameter
 from lropt.uncertain_canon.remove_uncertainty import RemoveUncertainty
-from lropt.uncertain_canon.uncertain_chain import UncertainChain
 from lropt.uncertainty_sets.mro import MRO
 
 torch.manual_seed(0)
@@ -1886,7 +1886,7 @@ class RobustProblem(Problem):
                 unc_reductions += [FlipObjective()]
             # unc_reductions += [RemoveUncertainty()]
             unc_reductions += [UncertainCanonicalization(),RemoveUncertainty()]
-            newchain = UncertainChain(self, reductions=unc_reductions)
+            newchain = Chain(self, reductions=unc_reductions)
             self.prob_no_uncertainty, self.inverse_data = newchain.apply(self)
             self.uncertain_chain = newchain
 
