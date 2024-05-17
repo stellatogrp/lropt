@@ -14,7 +14,7 @@ from scipy.sparse import csr_matrix
 
 from lropt import Parameter as LroptParameter
 from lropt.robust_problem import RobustProblem
-from lropt.uncertain_canon.utils import promote_expr, standard_invert, tensor_reshaper, unique_list
+from lropt.uncertain_canon.utils import promote_expr, standard_invert, tensor_reshaper
 from lropt.uncertain_parameter import UncertainParameter
 
 PARAM_TYPES = (UncertainParameter, LroptParameter, Parameter)
@@ -26,20 +26,6 @@ CERTAIN_PARAMETER_TYPES = (LroptParameter, Parameter)
 class UncertainCanonicalization(Reduction):
     def apply(self, problem: RobustProblem, solver=SCS):
         """Separate the conic constraint into part with uncertainty and without."""
-
-        def _gen_objective_constraints(problem):
-            """
-            This function generates canon objective and new constraints
-            """
-            if self.has_unc_param(problem.objective.expr):
-                epigraph_obj = Variable()
-                epi_cons = problem.objective.expr <= epigraph_obj
-                new_constraints = [epi_cons] + problem.constraints
-                canon_objective = cp.Minimize(epigraph_obj)
-            else:
-                canon_objective = problem.objective
-                new_constraints = problem.constraints
-            return canon_objective, new_constraints
 
         def _get_tensors(problem: RobustProblem, solver = SCS) -> ndarray:
             """
@@ -281,17 +267,13 @@ class UncertainCanonicalization(Reduction):
                                     b_uncertain=b_uncertain, variables=variables, cones=cones, u=u)
             return new_objective, new_constraints, cons_data
 
-        problem = RobustProblem(problem.objective, problem.constraints)
         inverse_data = InverseData(problem)
-
-        canon_objective, new_constraints = _gen_objective_constraints(problem)
-        epigraph_problem = RobustProblem(canon_objective,new_constraints)
 
         #Get A, b tensors (A separated to uncertain and certain parts).
         A_certain, A_uncertain, b_certain, b_uncertain, cones,variables \
-                                                = _get_tensors(epigraph_problem, solver=solver)
+                                                = _get_tensors(problem, solver=solver)
 
-        new_objective, new_constraints, cons_data = _gen_canon_robust_problem(epigraph_problem,
+        new_objective, new_constraints, cons_data = _gen_canon_robust_problem(problem,
                                                 A_certain, A_uncertain, b_certain,b_uncertain,
                                                 cones, variables)
         new_problem = RobustProblem(objective=new_objective, constraints=new_constraints,
@@ -301,13 +283,3 @@ class UncertainCanonicalization(Reduction):
 
     def invert(self, solution, inverse_data):
         return standard_invert(solution=solution, inverse_data=inverse_data)
-
-    def count_unq_uncertain_param(self, expr) -> int:
-        unc_params = [v for v in expr.parameters() if isinstance(v, UncertainParameter)]
-        return len(unique_list(unc_params))
-
-    def has_unc_param(self, expr) -> bool:
-        if not isinstance(expr, int) and not isinstance(expr, float):
-            return self.count_unq_uncertain_param(expr) >= 1
-        else:
-            return False

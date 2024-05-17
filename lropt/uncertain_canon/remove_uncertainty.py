@@ -92,7 +92,7 @@ class RemoveUncertainty(Reduction):
             if is_mro:
                 aux_constraint += [aux_expr <= 0]
                 fin_expr = uvar.uncertainty_set.rho_mult*\
-                    uvar.uncertainty_set.rho*lmbda + uvar.uncertainty_set_w@sval
+                    uvar.uncertainty_set.rho*lmbda + uvar.uncertainty_set._w@sval
         return fin_expr, aux_constraint, lmbda, sval
 
     def mulexpression_canon_transform(self,u, P):

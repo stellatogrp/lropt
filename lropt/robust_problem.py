@@ -1876,6 +1876,7 @@ class RobustProblem(Problem):
 
         None
         """
+        from lropt.uncertain_canon.remove_uncertain_maximum import RemoveSumOfMaxOfUncertain
         from lropt.uncertain_canon.uncertain_canonicalization import UncertainCanonicalization
         if (not override) and (self.prob_no_uncertainty):
             return
@@ -1884,7 +1885,8 @@ class RobustProblem(Problem):
             if type(self.objective) == Maximize:
                 unc_reductions += [FlipObjective()]
             # unc_reductions += [RemoveUncertainty()]
-            unc_reductions += [UncertainCanonicalization(),RemoveUncertainty()]
+            unc_reductions += [RemoveSumOfMaxOfUncertain(), \
+                               UncertainCanonicalization(),RemoveUncertainty()]
             newchain = Chain(self, reductions=unc_reductions)
             self.prob_no_uncertainty, self.inverse_data = newchain.apply(self)
             self.uncertain_chain = newchain
