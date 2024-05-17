@@ -11,6 +11,13 @@ from cvxpy.utilities import scopes
 class sum_of_max_of_uncertain(Constraint):
 
     def __init__(self, lst, term_not_in_max=0, constr_id=None) -> None:
+        """Represents the sum of the maximums of uncertain atoms,upper bounded
+        by 0, where the terms in each maximum expression is in a list, and the
+        input is a list of lists. An additional expression not in the sums can
+        be passed as a second input.
+        For example, $\max\{a(u),b(u)\} + \max\{c(u),d(u)\} + e(u) \leq b$
+        can be passed as sum_of_max_of_uncertain([[a(u),b(u)],[c(u),d(u)]],
+        e(u)-b)"""
         if not isinstance(lst,list):
             raise ValueError("Input must contain a list of lists")
         max_num_elements = 0

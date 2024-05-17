@@ -11,10 +11,12 @@ from lropt.uncertain_parameter import UncertainParameter
 
 class RemoveSumOfMaxOfUncertain(Reduction):
     def apply(self, problem: RobustProblem, solver=SCS):
-        """Separate the conic constraint into part with uncertainty and without."""
+        """Removes sum_of_max_of_uncertain constraints by creating
+        a copy of the constraint for each term in the maximum."""
         def _gen_objective_constraints(problem):
             """
             This function generates canon objective and new constraints
+            to deal with uncertainty in the objective
             """
             if self.has_unc_param(problem.objective.expr):
                 epigraph_obj = Variable()
