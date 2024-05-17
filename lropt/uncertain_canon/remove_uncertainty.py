@@ -32,6 +32,9 @@ class RemoveUncertainty(Reduction):
             A problem owned by this reduction.
     """
 
+    def accepts(self,problem):
+        return True
+
     def apply(self, problem):
         """Recursively canonicalize the objective and every constraint."""
         inverse_data = InverseData(problem)

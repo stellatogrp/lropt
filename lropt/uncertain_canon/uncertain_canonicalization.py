@@ -24,6 +24,8 @@ CERTAIN_PARAMETER_TYPES = (LroptParameter, Parameter)
 
 
 class UncertainCanonicalization(Reduction):
+    def accepts(self,problem):
+        return True
     def apply(self, problem: RobustProblem, solver=SCS):
         """Separate the conic constraint into part with uncertainty and without."""
 

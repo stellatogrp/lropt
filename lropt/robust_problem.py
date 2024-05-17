@@ -1888,6 +1888,7 @@ class RobustProblem(Problem):
             unc_reductions += [RemoveSumOfMaxOfUncertain(), \
                                UncertainCanonicalization(),RemoveUncertainty()]
             newchain = Chain(self, reductions=unc_reductions)
+            newchain.accepts(self)
             self.prob_no_uncertainty, self.inverse_data = newchain.apply(self)
             self.uncertain_chain = newchain
 
