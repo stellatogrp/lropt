@@ -137,8 +137,8 @@ class UncertaintySet(ABC):
 
         e = np.eye(num_constr)[i]
 
-        # if self.b is not None:
-        #     new_expr = new_expr + cp.multiply(e, self._safe_mul(-self.b,var))
+        if self.b is not None:
+            new_expr = new_expr + cp.multiply(e, self._safe_mul(-self.b,var))
 
         if trans:
             lhs = -trans['A']
