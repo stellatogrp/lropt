@@ -5,7 +5,9 @@ from cvxpy.atoms.affine.unary_operators import NegExpression
 
 
 def multiply_rm(unc_canon, expr, constant):
-    if expr.args[0].is_constant() and not unc_canon.has_unc_param(expr.args[0]):
+    if expr.args[0].is_constant() and not \
+        unc_canon.has_unc_param(expr.args[0]) and \
+            not unc_canon.has_lropt_param(expr.args[0]):
         if expr.args[0].is_scalar():
             constant = (constant*expr.args[0]).value
         elif isinstance(expr.args[0], Promote):
@@ -13,7 +15,9 @@ def multiply_rm(unc_canon, expr, constant):
         else:
             return diag(expr.args[0])@expr.args[1], constant
         return unc_canon.remove_constant(expr.args[1], constant)
-    if expr.args[1].is_constant() and not unc_canon.has_unc_param(expr.args[1]):
+    if expr.args[1].is_constant() and not \
+        unc_canon.has_unc_param(expr.args[1]) and not \
+            unc_canon.has_lropt_param(expr.args[1]):
         if expr.args[1].is_scalar():
             constant = (constant*expr.args[1]).value
         elif isinstance(expr.args[1], Promote):

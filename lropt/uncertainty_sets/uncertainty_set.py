@@ -116,7 +116,10 @@ class UncertaintySet(ABC):
             lhs = -trans['A']
             if not x.is_scalar():
                 lhs = lhs.T
-            new_constraints = [var == self._safe_mul(lhs, x)]
+            newrhs = self._safe_mul(lhs, x)
+            if newrhs.shape[0]==1:
+                newrhs = newrhs[0]
+            new_constraints = [var == newrhs]
         else:
             new_constraints = [var == -x]
 
@@ -134,8 +137,8 @@ class UncertaintySet(ABC):
 
         e = np.eye(num_constr)[i]
 
-        if self.b is not None:
-            new_expr = new_expr + cp.multiply(e, self._safe_mul(-self.b,var))
+        # if self.b is not None:
+        #     new_expr = new_expr + cp.multiply(e, self._safe_mul(-self.b,var))
 
         if trans:
             lhs = -trans['A']
