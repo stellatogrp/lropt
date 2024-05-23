@@ -8,13 +8,14 @@ from lropt.robust_problem import RobustProblem
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.box import Box
 from lropt.uncertainty_sets.polyhedral import Polyhedral
-from tests.settings import SOLVER
-from tests.settings import TESTS_ATOL as ATOL
-from tests.settings import TESTS_RTOL as RTOL
 
-# ATOL = 1e-4
-# RTOL = 1e-4
-# SOLVER = cp.CLARABEL
+# from tests.settings import SOLVER
+# from tests.settings import TESTS_ATOL as ATOL
+# from tests.settings import TESTS_RTOL as RTOL
+
+ATOL = 1e-4
+RTOL = 1e-4
+SOLVER = cp.CLARABEL
 
 
 class TestBoxUncertainty(unittest.TestCase):

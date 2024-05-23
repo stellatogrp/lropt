@@ -20,14 +20,15 @@ from scipy.sparse._coo import coo_matrix
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
-from tests.settings import SOLVER, SOLVER_SETTINGS
-from tests.settings import TESTS_ATOL as ATOL
-from tests.settings import TESTS_RTOL as RTOL
 
-# ATOL = 1e-4
-# RTOL = 1e-4
-# SOLVER = cp.CLARABEL
-# SOLVER_SETTINGS = { "equilibrate_enable": False, "verbose": False }
+# from tests.settings import SOLVER, SOLVER_SETTINGS
+# from tests.settings import TESTS_ATOL as ATOL
+# from tests.settings import TESTS_RTOL as RTOL
+
+ATOL = 1e-4
+RTOL = 1e-4
+SOLVER = cp.CLARABEL
+SOLVER_SETTINGS = { "equilibrate_enable": False, "verbose": False }
 # import pandas as pd
 # import torch
 
