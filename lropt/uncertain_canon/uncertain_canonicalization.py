@@ -77,6 +77,8 @@ class UncertainCanonicalization(Reduction):
                     #A vector of uncertain parameters needs cvxpy hstack
                     if isinstance(vec[0], LROPT_PARAMETER_TYPES):
                         return cp.hstack(vec)
+                    if not scsparse.issparse(vec[0]):
+                        return csr_matrix(np.hstack(vec))
                     return scsparse.hstack(vec,format='csr')
 
                 def _safe_gen_vecAb(T_Ab_dict: dict, param_vec_dict: dict,
