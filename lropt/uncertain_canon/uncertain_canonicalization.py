@@ -3,7 +3,7 @@ from typing import Union
 
 import cvxpy as cp
 import numpy as np
-import scipy.sparse as scs
+import scipy.sparse as scsparse
 from cvxpy import SCS, Parameter, Variable
 from cvxpy.atoms.affine.hstack import Hstack
 from cvxpy.constraints.constraint import Constraint
@@ -11,6 +11,7 @@ from cvxpy.expressions.expression import Expression
 from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
 from numpy import ndarray
+from scipy.sparse import csr_matrix
 
 from lropt import Parameter as LroptParameter
 from lropt.robust_problem import RobustProblem
@@ -83,7 +84,7 @@ class UncertainCanonicalization(Reduction):
                     #         return np.hstack(vec)[0]
                     #     else:
                     #         return np.hstack(vec)
-                    return scs.hstack(vec,format='csr')
+                    return scsparse.hstack(vec,format='csr')
 
                 def _safe_gen_vecAb(T_Ab_dict: dict, param_vec_dict: dict,
                                     param_type: Union[CERTAIN_PARAMETER_TYPES]):
@@ -196,9 +197,9 @@ class UncertainCanonicalization(Reduction):
             This is a helper function that generates a new constraint.
             """
             def _append_constraint(constraints: list[Constraint],
-                                   A: scs.csr_matrix,
+                                   A: csr_matrix,
                                    variables_stacked: Hstack,
-                                   b_certain: scs.csr_matrix,
+                                   b_certain: csr_matrix,
                                    term_unc: Expression | int = 0, \
                                     term_unc_b: int = 0,\
                                           zero: bool = False, \
