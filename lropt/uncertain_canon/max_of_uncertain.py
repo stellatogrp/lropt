@@ -50,12 +50,12 @@ class sum_of_max_of_uncertain(Atom):
     def numeric(self, values):
         """Returns the elementwise maximum.
         """
-        values = [arg.numeric() for arg in self.args]
+        # values = [arg.numeric() for arg in self.args]
         return reduce(np.maximum, values)
 
     def torch_numeric(self, values):
         import torch
-        values = [arg.torch_numeric() for arg in self.args]
+        # values = [arg.torch_numeric() for arg in self.args]
         return reduce(torch.maximum, values)
 
     def sign_from_args(self) -> Tuple[bool, bool]:

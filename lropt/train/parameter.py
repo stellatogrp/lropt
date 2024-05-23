@@ -18,6 +18,7 @@ class Parameter(cp.Parameter):
         assert (data.shape[0] > 0)
 
         self.data = data
+        self.value = data[0]
 
 
 class ShapeParameter(cp.Parameter):

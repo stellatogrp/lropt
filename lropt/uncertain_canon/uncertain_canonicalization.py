@@ -3,6 +3,7 @@ from typing import Union
 
 import cvxpy as cp
 import numpy as np
+import scipy.sparse as scs
 from cvxpy import SCS, Parameter, Variable
 from cvxpy.atoms.affine.hstack import Hstack
 from cvxpy.constraints.constraint import Constraint
@@ -10,7 +11,6 @@ from cvxpy.expressions.expression import Expression
 from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
 from numpy import ndarray
-from scipy.sparse import csr_matrix
 
 from lropt import Parameter as LroptParameter
 from lropt.robust_problem import RobustProblem
@@ -76,7 +76,7 @@ class UncertainCanonicalization(Reduction):
                     #A vector of uncertain parameters needs cvxpy hstack
                     if isinstance(vec[0], LROPT_PARAMETER_TYPES):
                         return cp.hstack(vec)
-                    return np.hstack(vec)
+                    return scs.hstack(vec)
 
                 def _safe_gen_vecAb(T_Ab_dict: dict, param_vec_dict: dict,
                                     param_type: Union[CERTAIN_PARAMETER_TYPES]):
@@ -95,7 +95,7 @@ class UncertainCanonicalization(Reduction):
                     elif param_type == LroptParameter:
                         #For LROPT Parameters need to be treated like Uncertain Parameters in
                         #this function.
-                        T_Ab = T_Ab[0]
+                        #T_Ab = T_Ab[0]
                         curr_vecAb = T_Ab @ param_vec
                         #For LROPT Parameters, need to pad 1D vectors into 2D vectors.
                         return promote_expr(curr_vecAb)
@@ -150,12 +150,12 @@ class UncertainCanonicalization(Reduction):
                 """
                 if T_Ab is None:
                     return None,None
-                num_rows = T_Ab[0].shape[0]
+                num_rows = T_Ab.shape[0]
                 num_constraints = num_rows//(n_var+1)
                 A_list = []
                 b_list = []
                 for i in range(num_constraints):
-                    cur_T = -T_Ab[0][i*(n_var+1):(i+1)*(n_var+1),:]
+                    cur_T = -T_Ab[i*(n_var+1):(i+1)*(n_var+1),:]
                     A_list.append(cur_T[:-1,])
                     b_list.append(cur_T[-1,])
                 return A_list, b_list
@@ -188,8 +188,10 @@ class UncertainCanonicalization(Reduction):
             """
             This is a helper function that generates a new constraint.
             """
-            def _append_constraint(constraints: list[Constraint], A: csr_matrix,
-                                   variables_stacked: Hstack, b_certain: csr_matrix,
+            def _append_constraint(constraints: list[Constraint],
+                                   A: scs.csr_matrix,
+                                   variables_stacked: Hstack,
+                                   b_certain: scs.csr_matrix,
                                    term_unc: Expression | int = 0, \
                                     term_unc_b: int = 0,\
                                           zero: bool = False, \
