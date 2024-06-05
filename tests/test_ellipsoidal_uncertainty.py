@@ -61,9 +61,6 @@ def _get_tensors(problem: RobustProblem, solver = SCS) -> ndarray:
             This is a helper function that returns the uncertain parameter if the input is
             an uncertain parameter, or the parameter's value for known parameters.
             """
-            #TODO: Originanlly was the block below, not sure if it should be it or just
-            #param. If just param, this function is redundant.
-            # return param
             if is_uncertain:
                 return param
             return param.value

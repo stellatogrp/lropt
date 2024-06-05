@@ -21,7 +21,7 @@ def standard_invert(solution: Solution, inverse_data: InverseData) -> Solution:
 
     return Solution(solution.status, solution.opt_val, pvars, dvars, solution.attr)
 
-def tensor_reshaper(T_Ab: coo_matrix, n_var: int) -> np.ndarray:
+def reshape_tensor(T_Ab: coo_matrix, n_var: int) -> np.ndarray:
     """
     This function reshapes T_Ab so T_Ab@param_vec gives the constraints row by row instead of
     column by column. At the moment, it returns a dense matrix instead of a sparse one.
@@ -41,7 +41,7 @@ def tensor_reshaper(T_Ab: coo_matrix, n_var: int) -> np.ndarray:
     n_var_full = n_var+1 #Includes the free paramter
     num_rows = T_Ab.shape[0]
     num_constraints = num_rows//n_var_full
-    T_Ab_res = csr_matrix(T_Ab.shape)
+    T_Ab_res = csr_matrix(T_Ab.shape) #TODO: This changes csc to csr, might be inefficient
     for target_row in range(num_rows): #Counter for populating the new row of T_Ab_res
         source_row = _calc_source_row(target_row, num_constraints, n_var_full)
         T_Ab_res[target_row, :] = T_Ab[source_row, :]
@@ -77,3 +77,22 @@ def unique_list(duplicates_list):
     unique = [x for x in duplicates_list if not (x in used or used.add(x))]
 
     return unique
+
+def scalarize(arg: Expression) -> Expression:
+    """
+    This function trnasforms an expression to a scalar (shape=(,)) if it's a scalar, or doesn't
+    change it otherwise.
+
+    Parameter:
+        arg (Expression):
+            A CVXPY expression.
+    
+    Returns:
+        A CVXPY expression with shape=(,) if it has a single element, or the original one otherwise.
+    """
+    #Safety check
+    if not hasattr(arg, "size"):
+        return arg
+    if arg.size==1:
+        arg = cp.reshape(arg, ())
+    return arg

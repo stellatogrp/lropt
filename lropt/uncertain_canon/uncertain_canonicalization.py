@@ -15,7 +15,7 @@ from scipy.sparse import csr_matrix
 
 from lropt import Parameter as LroptParameter
 from lropt.robust_problem import RobustProblem
-from lropt.uncertain_canon.utils import promote_expr, standard_invert, tensor_reshaper
+from lropt.uncertain_canon.utils import promote_expr, standard_invert, reshape_tensor, scalarize
 from lropt.uncertain_parameter import UncertainParameter
 
 PARAM_TYPES = (UncertainParameter, LroptParameter, Parameter)
@@ -105,7 +105,7 @@ class UncertainCanonicalization(Reduction):
 
                 n_var = param_prob.reduced_A.var_len
                 T_Ab = param_prob.A
-                T_Ab = tensor_reshaper(T_Ab, n_var)
+                T_Ab = reshape_tensor(T_Ab, n_var)
                 param_vec_dict = {param_type: [] for param_type in PARAM_TYPES}
                 T_Ab_dict = {param_type: [] for param_type in PARAM_TYPES}
                 running_param_size = 0 #This is a running counter that keeps track of the total size
@@ -142,7 +142,7 @@ class UncertainCanonicalization(Reduction):
                 Ab = vec_Ab.reshape(Ab_dim, order='C')
                 # note minus sign for different conic form in A
                 if not isinstance(Ab, Expression):
-                    Ab = Ab.tocsr()
+                    Ab = Ab.tocsr() #TODO: This changes coo_matrix to csr, might be inefficient
                 A_certain = -Ab[:, :-1]
                 b_certain = Ab[:, -1]
                 return A_certain, b_certain
@@ -183,27 +183,25 @@ class UncertainCanonicalization(Reduction):
             #TODO: update this function to reformulate the objective
             return problem.objective
 
-        def _gen_constraints(A_certain: ndarray, \
-                             A_uncertain: Expression, b_certain: ndarray, b_uncertain,
-                                        variables: list[Variable], cones,\
-                                              u: UncertainParameter) \
-                                              -> list[Expression]:
+        def _gen_constraints(A_certain: ndarray, A_uncertain: Expression, b_certain: ndarray, 
+                            b_uncertain, variables: list[Variable], cones, u: UncertainParameter)\
+                            -> list[Expression]:
             """
             This is a helper function that generates a new constraint.
             """
-            def _append_constraint(constraints: list[Constraint],
-                                   A: csr_matrix,
-                                   variables_stacked: Hstack,
-                                   b_certain: csr_matrix,
-                                   term_unc: Expression | int = 0, \
-                                    term_unc_b: int = 0,\
-                                          zero: bool = False, \
-                                            cons_data: dict = None) -> None:
+            def _append_constraint(constraints: list[Constraint], A: csr_matrix, variables_stacked:
+                                   Hstack, b_certain: csr_matrix, term_unc: Expression | int = 0,
+                                   term_unc_b: int = 0, zero: bool = False, cons_data: dict = None)\
+                                                                                            -> None:
                 """
                 This is a helper function that appends the i-th constraint.
                 """
                 cons_data['std_lst'] = [A@variables_stacked - b_certain]
                 cons_func = cp.Zero if zero else cp.NonPos
+                #Variables with dimension (1,) (as opposed to ()) cause issues later with
+                #broadcasting, so need to reshape them into scalars.
+                b_certain = scalarize(b_certain)
+                term_unc_b = scalarize(term_unc_b)
                 constraints += [cons_func(A@variables_stacked + term_unc + term_unc_b - b_certain)]
 
             def _gen_term_unc(cones_zero: int, u: UncertainParameter, A_uncertain: np.ndarray,
@@ -258,10 +256,8 @@ class UncertainCanonicalization(Reduction):
                                    cons_data=cons_data[i])
             return constraints, cons_data
 
-        def _gen_canon_robust_problem(problem: RobustProblem, \
-                        A_certain: ndarray,A_uncertain: \
-                        Expression, b_certain: ndarray, b_uncertain, cones,
-                        variables) -> tuple:
+        def _gen_canon_robust_problem(problem: RobustProblem, A_certain: ndarray, A_uncertain: \
+                        Expression, b_certain: ndarray, b_uncertain, cones, variables) -> tuple:
             """
             This is a helper function that generates the new problem, new constraints
             (need to add cone constraints to it), and the new slack variable.
