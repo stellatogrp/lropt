@@ -94,6 +94,8 @@ class UncertainCanonicalization(Reduction):
                         return None
                     if param_type == Parameter:
                         #No need to check if it's 0 because param_vec is never empty
+                        if param_vec.size > 1:
+                            return T_Ab @ param_vec.T
                         return T_Ab @ param_vec
                     elif param_type == LroptParameter:
                         #For LROPT Parameters need to be treated like Uncertain Parameters in
@@ -183,7 +185,7 @@ class UncertainCanonicalization(Reduction):
             #TODO: update this function to reformulate the objective
             return problem.objective
 
-        def _gen_constraints(A_certain: ndarray, A_uncertain: Expression, b_certain: ndarray, 
+        def _gen_constraints(A_certain: ndarray, A_uncertain: Expression, b_certain: ndarray,
                             b_uncertain, variables: list[Variable], cones, u: UncertainParameter)\
                             -> list[Expression]:
             """

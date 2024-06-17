@@ -222,7 +222,7 @@ class RobustProblem(Problem):
 
         self.num_ys = self.verify_y_parameters()
         self._store_variables_parameters()
-        
+
         #DEBUG ONLY
         # self.f, _ = self._gen_torch_exp(objective.expr)
         # self.g = []
@@ -683,7 +683,7 @@ class RobustProblem(Problem):
             if cov_len_cond:
                 return sc.linalg.sqrtm(np.cov(train_set.T))
             return np.array([[np.cov(train_set.T)]])
-        
+
         mat_shape = train_set.shape[1] if cov_len_cond else 1
         matrix = np.array(init_A) if (
             init_A is not None) else np.eye(mat_shape)
@@ -1218,7 +1218,7 @@ class RobustProblem(Problem):
                                                 test_args,num_us=len(u_batch))
                     _, var_vio = train_problem.lagrangian(batch_int,test_args, alpha, slack, lam,
                                                 mu, eta=kwargs['eta'], kappa=kwargs['kappa'])
-                    
+
                 train_stats.update_test_stats(
                     obj_test, prob_violation_test, var_vio)
                 new_row = train_stats.generate_test_row(
@@ -1531,9 +1531,9 @@ class RobustProblem(Problem):
             columns=["Eps"])
         unc_train_set, unc_test_set, unc_train_tch, unc_test_tch,\
             y_train_tchs, y_test_tchs = self._split_dataset(
-            unc_set, self.orig_yparams(), self.y_parameters(), test_percentage, seed)
+            unc_set, test_percentage, seed)
         y_orig_torches = self.gen_y_orig(self.orig_yparams())
-        rho_mult_params = self.rho_mult_param(self.problem_canon)
+        rho_mult_params = self.rho_mult_param(self.problem_no_unc)
         rho_mult_tch = self.gen_rho_mult_tch(rho_mult_params)
         train_problem = self.problem_canon
 
@@ -1558,11 +1558,11 @@ class RobustProblem(Problem):
                                 y_train_tchs, unc_train_set,1)
         # create cvxpylayer
 
-        cvxpylayer = CvxpyLayer(self.problem_canon,
+        cvxpylayer = CvxpyLayer(self.problem_no_unc,
                                 parameters=rho_mult_params + \
-                                self.orig_yparams() + self.y_parameters() +
-                                self.shape_parameters(self.problem_canon),
-                                variables=self.variables())
+                                self.orig_yparams() + self.y_parameters()
+                                + self.shape_parameters(self.problem_no_unc),
+                                variables=self.problem_canon.variables())
 
 
         grid_stats = GridStats()
@@ -1617,7 +1617,9 @@ class RobustProblem(Problem):
                 obj_test = train_problem.evaluation_metric(batch_int, test_args, quantiles)
                 prob_violation_test = train_problem.prob_constr_violation(batch_int, test_args,
                                                                   num_us=batch_int)
-                _, var_vio = self.lagrangian(batch_int, test_args, alpha, slack, lam, 1, eta
+                _, var_vio = train_problem.lagrangian(batch_int, \
+                                                      test_args, alpha, \
+                                                        slack, lam, 1, eta
                 )
 
                 test_args_t = RobustProblem.order_args(problem=train_problem,
@@ -1659,7 +1661,7 @@ class RobustProblem(Problem):
             grid_stats.mineps.detach().numpy().copy(),
             grid_stats.minval,
             grid_stats.var_vals,
-        )   
+        )
 
 
     def _gen_all_torch_expressions(self):
@@ -1711,7 +1713,7 @@ class RobustProblem(Problem):
                     The constructed reduction chain.
                 problem_canon (RobustProblem):
                     The canonicalized robust problem.
-                inverse_data 
+                inverse_data
             """
             reductions_canon = []
             if type(problem.objective) == Maximize:
@@ -1731,7 +1733,7 @@ class RobustProblem(Problem):
             #Uncertain Canonicalization
             self.chain_canon, self.problem_canon, self.inverse_data_canon = \
                                         _uncertain_canonicalization(self)
-            
+
             #Generating torch expressions and batchify
             self.problem_canon._gen_all_torch_expressions()
             self.num_g_total = self.problem_canon.num_g_total
