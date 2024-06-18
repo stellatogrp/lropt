@@ -700,7 +700,7 @@ class RobustProblem(Problem):
         if init_b is not None:
             b_tch_data = np.array(init_b)
         else:
-            b_tch_data = -np.mean(train_set, axis=0)
+            b_tch_data = np.mean(train_set, axis=0)
         b_tch = torch.tensor(b_tch_data, requires_grad=self.train_flag, dtype=settings.DTYPE)
         a_tch = init_tensor
 
@@ -1636,9 +1636,9 @@ class RobustProblem(Problem):
             train_stats.update_train_stats(None, obj_train, prob_violation_train,var_vio_train)
             grid_stats.update(train_stats, obj_test, eps_tch, eps_tch*a_tch_init, var_values[1])
 
-            new_row = train_stats.generate_test_row(self._calc_coverage, eps_tch*a_tch_init,
-                                                    b_tch_init, alpha, unc_test_tch,
-                                                    eps_tch, unc_set, var_values[1])
+            new_row = train_stats.generate_test_row(
+                self._calc_coverage, eps_tch*a_tch_init,b_tch_init,
+                alpha, u_batch,eps_tch, unc_set, var_values[1])
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
         self._trained = True
