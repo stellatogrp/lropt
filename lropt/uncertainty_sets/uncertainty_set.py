@@ -102,7 +102,7 @@ class UncertaintySet(ABC):
                 return rhs.is_scalar()
             return not len(rhs)>1
 
-        if _is_scalar(rhs):
+        if _is_scalar(rhs) or isinstance(lhs, int):
             if (not isinstance(lhs, int)) and len(lhs.shape) == 2 and lhs.shape[1]==1:
                 lhs = cp.reshape(lhs,(lhs.shape[0],))
             return lhs*rhs

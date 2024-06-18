@@ -76,7 +76,7 @@ class UncertainCanonicalization(Reduction):
                         return None
                     #A vector of uncertain parameters needs cvxpy hstack
                     if isinstance(vec[0], LROPT_PARAMETER_TYPES):
-                        return cp.hstack(vec)
+                        return cp.hstack([cp.vec(param) for param in vec])
                     if not scsparse.issparse(vec[0]):
                         return csr_matrix(np.hstack(vec))
                     return scsparse.hstack(vec,format='csr')
@@ -239,7 +239,7 @@ class UncertainCanonicalization(Reduction):
 
                 return term_unc, term_unc_b
 
-            variables_stacked = cp.hstack(variables)
+            variables_stacked = cp.hstack([cp.vec(var) for var in variables])
             constraints = []
             cons_data = {}
 
