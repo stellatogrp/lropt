@@ -65,7 +65,6 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         prob.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD")
         # prob.solve()
 
-
     def test_multidim_learn(self):
         # Setup
         n = self.n

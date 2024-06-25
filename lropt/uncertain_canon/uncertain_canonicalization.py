@@ -191,20 +191,35 @@ class UncertainCanonicalization(Reduction):
             """
             This is a helper function that generates a new constraint.
             """
-            def _append_constraint(constraints: list[Constraint], A: csr_matrix, variables_stacked:
-                                   Hstack, b_certain: csr_matrix, term_unc: Expression | int = 0,
-                                   term_unc_b: int = 0, zero: bool = False, cons_data: dict = None)\
+            def _append_constraint(constraints: list[Constraint], A: any, variables_stacked:
+                                   Hstack, b_certain: any, term_unc: any,
+                                   term_unc_b: any, cons_case: str,
+                                   cons_size: int, cons_data: dict)\
                                                                                             -> None:
                 """
                 This is a helper function that appends the i-th constraint.
                 """
-                cons_data['std_lst'] = [A@variables_stacked - b_certain]
-                cons_func = cp.Zero if zero else cp.NonPos
-                #Variables with dimension (1,) (as opposed to ()) cause issues later with
-                #broadcasting, so need to reshape them into scalars.
-                b_certain = scalarize(b_certain)
-                term_unc_b = scalarize(term_unc_b)
-                constraints += [cons_func(A@variables_stacked + term_unc + term_unc_b - b_certain)]
+                if cons_case == "soc":
+                    cons_data['std_lst'] = []
+                    soc_vec = []
+                    for j in range(cons_size):
+                        cons_data['std_lst'].append(A[j]@variables_stacked - b_certain[j])
+                        soc_vec.append(A[j]@variables_stacked + term_unc[j]
+                                       + scalarize(term_unc_b[j])
+                                         - scalarize(b_certain[j]))
+                    if soc_vec[0].shape == (1,1):
+                        epi_term = -soc_vec[0][0]
+                    else:
+                        epi_term = -soc_vec[0]
+                    constraints += [cp.SOC(epi_term, cp.vstack(soc_vec[1:]))]
+
+                else:
+                    cons_data['std_lst'] = [A@variables_stacked - b_certain]
+                    cons_func = cp.Zero if (cons_case == "zero") else cp.NonPos
+                    term_unc_b = scalarize(term_unc_b)
+                    b_certain = scalarize(b_certain)
+                    constraints += [cons_func(A@variables_stacked \
+                                    + term_unc + term_unc_b - b_certain)]
 
             def _gen_term_unc(cones_zero: int, u: UncertainParameter, A_uncertain: np.ndarray,
                                                 i: int, variables_stacked: Hstack,
@@ -214,9 +229,10 @@ class UncertainCanonicalization(Reduction):
                 """
                 term_unc = 0
                 term_unc_b = 0
-                cons_data['has_uncertain_isolated'] = False
-                cons_data['has_uncertain_mult'] = False
-                cons_data['unc_param'] = u
+                if 'has_uncertain_isolated' not in cons_data:
+                    cons_data['has_uncertain_isolated'] = False
+                    cons_data['has_uncertain_mult'] = False
+                    cons_data['unc_param'] = u
                 if (i<cones_zero) or (A_uncertain is None):
                     return term_unc, term_unc_b
 
@@ -227,35 +243,80 @@ class UncertainCanonicalization(Reduction):
 
                 if A_uncertain[i].nnz != 0:
                     term_unc = variables_stacked@(op(A_uncertain[i],u))
-                    cons_data['has_uncertain_mult'] = True
-                    cons_data['var'] = variables_stacked
-                    cons_data['unc_term'] = A_uncertain[i]
-
+                    if cons_data['has_uncertain_mult']:
+                        cons_data['unc_term'].append(A_uncertain[i])
+                    else:
+                        cons_data['has_uncertain_mult'] = True
+                        cons_data['var'] = variables_stacked
+                        cons_data['unc_term'] = [A_uncertain[i]]
 
                 if b_uncertain[i].nnz != 0:
                     term_unc_b = op(b_uncertain[i],u)
-                    cons_data['has_uncertain_isolated'] = True
-                    cons_data['unc_isolated'] = b_uncertain[i]
+                    if cons_data['has_uncertain_isolated']:
+                        cons_data['unc_isolated'].append(b_uncertain[i])
+                    else:
+                        cons_data['has_uncertain_isolated'] = True
+                        cons_data['unc_isolated'] = [b_uncertain[i]]
 
                 return term_unc, term_unc_b
 
             variables_stacked = cp.hstack([cp.vec(var) for var in variables])
             constraints = []
             cons_data = {}
+            running_ind = 0
+            for i in range(cones.zero + cones.nonneg + len(cones.soc)):
+                if (i < cones.zero):
+                    cons_case = "zero"
+                elif (i < (cones.zero + cones.nonneg)):
+                    cons_case = "nonneg"
+                elif (i < (cones.zero + cones.nonneg + len(cones.soc))):
+                    cons_case = "soc"
+                    cur_size = cones.soc[i-(cones.zero + cones.nonneg)]
 
-            for i in range(cones.zero + cones.nonneg):
-                zero = (i < cones.zero)
                 cons_data[i] = {}
-                term_unc, term_unc_b = _gen_term_unc(cones_zero=cones.zero, u=u,
-                                                     A_uncertain=A_uncertain, i=i,
-                                                     variables_stacked=variables_stacked,
-                                                     b_uncertain=b_uncertain,
-                                                     cons_data=cons_data[i])
+                if cons_case == "soc":
+                    term_unc = []
+                    term_unc_b = []
+                    for j in range(cur_size):
+                        term_unc_temp, term_unc_b_temp \
+                            = _gen_term_unc(cones_zero=cones.zero,
+                                            u=u,A_uncertain=A_uncertain,
+                                        i=int(running_ind+j),
+                                        variables_stacked=variables_stacked,
+                                         b_uncertain=b_uncertain,
+                                         cons_data=cons_data[i])
+                        term_unc.append(term_unc_temp)
+                        term_unc_b.append(term_unc_b_temp)
 
-                _append_constraint(constraints=constraints, A=A_certain[i],
-                                   variables_stacked=variables_stacked, b_certain=b_certain[i],
-                                   term_unc=term_unc, term_unc_b=term_unc_b,zero=zero,
-                                   cons_data=cons_data[i])
+                    _append_constraint(constraints=constraints,
+                        A=A_certain[running_ind:(running_ind+cur_size)],
+                        variables_stacked=variables_stacked,
+                        b_certain=b_certain[running_ind:(running_ind+cur_size)],
+                                    term_unc=term_unc, term_unc_b=term_unc_b,
+                                    cons_case=cons_case,cons_size=cur_size,
+                                    cons_data=cons_data[i])
+
+                else:
+                    term_unc, term_unc_b = _gen_term_unc(cones_zero=cones.zero,
+                                                 u=u,
+                                             A_uncertain=A_uncertain, i=i,
+                                            variables_stacked=variables_stacked,
+                                            b_uncertain=b_uncertain,
+                                            cons_data=cons_data[i])
+
+                    _append_constraint(constraints=constraints,
+                                       A=A_certain[running_ind],
+                                       variables_stacked=variables_stacked,
+                                       b_certain=b_certain[running_ind],
+                                    term_unc=term_unc, term_unc_b=term_unc_b,
+                                    cons_case=cons_case,cons_size=1,
+                                    cons_data=cons_data[i])
+
+                if i < (cones.zero + cones.nonneg):
+                    running_ind += 1
+                else:
+                    running_ind += cur_size
+
             return constraints, cons_data
 
         def _gen_canon_robust_problem(problem: RobustProblem, A_certain: ndarray, A_uncertain: \
