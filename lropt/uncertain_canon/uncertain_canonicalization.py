@@ -204,14 +204,17 @@ class UncertainCanonicalization(Reduction):
                     soc_vec = []
                     for j in range(cons_size):
                         cons_data['std_lst'].append(A[j]@variables_stacked - b_certain[j])
+                        if isinstance(b_certain[j],csr_matrix):
+                            b_term = b_certain[j].toarray()[0][0]
+                        else:
+                            b_term = scalarize(b_certain[j])
                         soc_vec.append(A[j]@variables_stacked + term_unc[j]
-                                       + scalarize(term_unc_b[j])
-                                         - scalarize(b_certain[j]))
-                    if soc_vec[0].shape == (1,1):
-                        epi_term = -soc_vec[0][0]
-                    else:
-                        epi_term = -soc_vec[0]
-                    constraints += [cp.SOC(epi_term, cp.vstack(soc_vec[1:]))]
+                                       + scalarize(term_unc_b[j])- b_term)
+                    # if soc_vec[0].shape == (1,1):
+                    #     epi_term = -soc_vec[0][0]
+                    # else:
+                    #     epi_term = -soc_vec[0]
+                    constraints += [cp.SOC(-soc_vec[0], cp.vstack(soc_vec[1:]))]
 
                 else:
                     cons_data['std_lst'] = [A@variables_stacked - b_certain]
