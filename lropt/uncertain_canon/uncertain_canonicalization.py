@@ -62,8 +62,8 @@ class UncertainCanonicalization(Reduction):
 
                     if isinstance(param, LROPT_PARAMETER_TYPES):
                         return param
-                    elif param.value is not None:
-                        return param.value
+                    # elif param.value is not None:
+                    #     return param.value
                     return param
 
                 def _safe_hstack(vec: list) -> np.ndarray | Hstack:
@@ -75,7 +75,8 @@ class UncertainCanonicalization(Reduction):
                     if not vec:
                         return None
                     #A vector of uncertain parameters needs cvxpy hstack
-                    if isinstance(vec[0], LROPT_PARAMETER_TYPES):
+                    if isinstance(vec[0], LROPT_PARAMETER_TYPES) or \
+                        isinstance(vec[0], CERTAIN_PARAMETER_TYPES):
                         return cp.hstack([cp.vec(param) for param in vec])
                     if not scsparse.issparse(vec[0]):
                         return csr_matrix(np.hstack(vec))
@@ -92,18 +93,18 @@ class UncertainCanonicalization(Reduction):
                     param_vec = param_vec_dict[param_type]
                     if param_vec is None or (isinstance(param_vec, ndarray) and len(param_vec)==0):
                         return None
-                    if param_type == Parameter:
-                        #No need to check if it's 0 because param_vec is never empty
-                        if param_vec.size > 1:
-                            return T_Ab @ param_vec.T
-                        return T_Ab @ param_vec
-                    elif param_type == LroptParameter:
-                        #For LROPT Parameters need to be treated like Uncertain Parameters in
-                        #this function.
-                        #T_Ab = T_Ab[0]
-                        curr_vecAb = T_Ab @ param_vec
-                        #For LROPT Parameters, need to pad 1D vectors into 2D vectors.
-                        return promote_expr(curr_vecAb)
+                    # if param_type == Parameter:
+                    #     #No need to check if it's 0 because param_vec is never empty
+                    #     if param_vec.size > 1:
+                    #         return T_Ab @ param_vec.T
+                    #     return T_Ab @ param_vec
+                    # elif param_type == LroptParameter:
+                    #For LROPT Parameters need to be treated like Uncertain Parameters in
+                    #this function.
+                    #T_Ab = T_Ab[0]
+                    curr_vecAb = T_Ab @ param_vec
+                    #For LROPT Parameters, need to pad 1D vectors into 2D vectors.
+                    return promote_expr(curr_vecAb)
 
                 n_var = param_prob.reduced_A.var_len
                 T_Ab = param_prob.A
