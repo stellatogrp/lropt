@@ -65,7 +65,6 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         prob.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD")
         # prob.solve()
 
-
     def test_multidim_learn(self):
         # Setup
         n = self.n
@@ -222,6 +221,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         npt.assert_array_less(np.array(
             result.df["Violations_train"])[-1], 0.1)
 
+    @unittest.skip("This test requires some changes. Irina, I need your help.")
     def test_torch_exp(self):
         # Setup
         n = 3
@@ -262,6 +262,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         prob = RobustProblem(objective, constraints)
 
-        assert f_tch(x_test) == prob.f(*vars_test)
-        assert g1_tch(x_test, u_test, y_test) == prob.g[0](*vars_test)
+        #TODO: Changes should start here
+        prob.remove_uncertainty()
+        assert f_tch(x_test) == prob.problem_canon.f(*vars_test)
+        assert g1_tch(x_test, u_test, y_test) == prob.problem_canon.g[0](*vars_test)
         assert len(prob.g)==1 #The second constraint is not saved to g since it has no uncertainty

@@ -156,7 +156,7 @@ class RemoveUncertainty(Reduction):
             if cur_cons_data['has_uncertain_mult']:
                 z_cons, aux_expr, aux_constraint = self.canonicalize_mul(
                     z_cons = z_cons, u_shape=u_shape,uvar=uvar,
-                    transform_data= cur_cons_data["unc_term"],
+                    transform_data= cur_cons_data["unc_term"][0],
                     aux_expr=aux_expr, aux_constraint=aux_constraint,
                     var = cur_cons_data["var"],is_isolated=False)
 
@@ -164,7 +164,7 @@ class RemoveUncertainty(Reduction):
             if cur_cons_data['has_uncertain_isolated']:
                 z_cons, aux_expr, aux_constraint = self.canonicalize_mul(
                     z_cons = z_cons, u_shape=u_shape,uvar=uvar,
-                    transform_data= cur_cons_data["unc_isolated"],
+                    transform_data= cur_cons_data["unc_isolated"][0],
                     aux_expr=aux_expr, aux_constraint=aux_constraint,
                     var = None,is_isolated=True)
 
