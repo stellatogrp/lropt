@@ -61,6 +61,9 @@ def _get_tensors(problem: RobustProblem, solver = SCS) -> ndarray:
             This is a helper function that returns the uncertain parameter if the input is
             an uncertain parameter, or the parameter's value for known parameters.
             """
+            #TODO: Originanlly was the block below, not sure if it should be it or just
+            #param. If just param, this function is redundant.
+            # return param
             if is_uncertain:
                 return param
             return param.value
@@ -212,7 +215,10 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         c = np.random.rand(self.n)
         self.b = 1.5
         self.x = cp.Variable(self.n, name="x")
-        self.objective = cp.Minimize(c @ self.x)
+        param_val = cp.Parameter()
+        param_val.value = 0
+        self.param_val = param_val
+        self.objective = cp.Minimize(c @ self.x + param_val)
         # Robust set
         self.rho = 0.2
         self.p = 2
@@ -239,6 +245,32 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         x_robust = x.value
 
         npt.assert_allclose(x_cvxpy, x_robust, rtol=RTOL, atol=ATOL)
+
+    def test_robust_norm_lp_param(self):
+        b, x, objective, n, rho, p = \
+            self.b, self.x, self.objective, self.n, self.rho, self.p
+        # Formulate robust problem explicitly with cvxpy
+        constraints = [rho * cp.norm(x, p=2) <= b]
+        prob_cvxpy = cp.Problem(objective, constraints)
+        prob_cvxpy.solve(solver=SOLVER, **SOLVER_SETTINGS)
+        x_cvxpy = x.value
+        # Formulate robust constraints with lropt
+        a = UncertainParameter(n,
+                               uncertainty_set=Ellipsoidal(rho=rho, p=p))
+        constraints = [a @ x <= b]
+        prob_robust = RobustProblem(objective, constraints)
+        prob_robust.solve(solver=SOLVER, **SOLVER_SETTINGS)
+        x_robust = x.value
+        obj_val = prob_robust.objective.value
+        npt.assert_allclose(x_cvxpy, x_robust, rtol=RTOL, atol=ATOL)
+
+        self.param_val.value = 1
+        prob_robust.solve(solver=SOLVER, **SOLVER_SETTINGS)
+        obj_val2 = prob_robust.objective.value
+        npt.assert_allclose(obj_val+1, obj_val2, rtol=RTOL, atol=ATOL)
+
+
+
 
     def test_robust_norm_lp_affine_transform(self):
         # import ipdb
@@ -304,7 +336,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         # Tensor mapping (cvxpy works as follows)
         # T_Ab @ (theta, 1) = vec([A | b])
-        param_vec = np.hstack([bar_a, 1])
+        param_vec = np.hstack([0,bar_a, 1])
         vecAb = T_Ab @ param_vec
         Ab = vecAb.reshape(-1, n_var + 1, order='F')
         A_rec = -Ab[:, :-1] # note minus sign for different conic form
@@ -357,7 +389,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
 
         # Tensor mapping (cvxpy works as follows)
-        param_vec = np.hstack([bar_a, 1])
+        param_vec = np.hstack([0,bar_a, 1])
         vecAb_reshaped = T_Ab_reshaped@param_vec
         Ab_reshaped = vecAb_reshaped.reshape(num_constraints, n_var + 1, order='C')
         A_rec = -Ab_reshaped[:, :-1] # note minus sign for different conic form
