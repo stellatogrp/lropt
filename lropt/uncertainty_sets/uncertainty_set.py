@@ -106,6 +106,8 @@ class UncertaintySet(ABC):
             if (not isinstance(lhs, int)) and len(lhs.shape) == 2 and lhs.shape[1]==1:
                 lhs = cp.reshape(lhs,(lhs.shape[0],))
             return lhs*rhs
+        elif isinstance(lhs, int):
+            return lhs*rhs
         return lhs@rhs
 
     def remove_uncertain(self, x, var):

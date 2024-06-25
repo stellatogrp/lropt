@@ -53,14 +53,14 @@ class RemoveSumOfMaxOfUncertain(Reduction):
             This function generates canon objective and new constraints
             to deal with uncertainty in the objective
             """
-            if self.has_unc_param(problem.objective.expr):
-                epigraph_obj = Variable()
-                epi_cons = problem.objective.expr <= epigraph_obj
-                new_constraints = [epi_cons] + problem.constraints
-                canon_objective = cp.Minimize(epigraph_obj)
-            else:
-                canon_objective = problem.objective
-                new_constraints = problem.constraints
+            # if self.has_unc_param(problem.objective.expr):
+            epigraph_obj = Variable()
+            epi_cons = problem.objective.expr <= epigraph_obj
+            new_constraints = [epi_cons] + problem.constraints
+            canon_objective = cp.Minimize(epigraph_obj)
+            # else:
+            #     canon_objective = problem.objective
+            #     new_constraints = problem.constraints
             return canon_objective, new_constraints
 
 
