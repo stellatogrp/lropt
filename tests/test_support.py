@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from lropt.uncertain import UncertainParameter
+from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.box import Box
 from lropt.uncertainty_sets.budget import Budget
 
@@ -12,9 +12,6 @@ from lropt.uncertainty_sets.mro import MRO
 from lropt.uncertainty_sets.norm import Norm
 from lropt.uncertainty_sets.polyhedral import Polyhedral
 from lropt.uncertainty_sets.uncertainty_set import SUPPORT_TYPE
-
-# from tests.settings import TESTS_ATOL as ATOL
-# from tests.settings import TESTS_RTOL as RTOL
 
 
 class TestSupport(unittest.TestCase):
