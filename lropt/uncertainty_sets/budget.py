@@ -64,7 +64,10 @@ class Budget(UncertaintySet):
             raise ValueError("You must provide a loss function")
 
         if data is not None:
-            dat_shape = data.shape[1]
+            if isinstance(data,list):
+                dat_shape = data[0].shape[1]
+            else:
+                dat_shape = data.shape[1]
             if dimension is None:
                 dimension = dat_shape
             a = ShapeParameter((dat_shape, dimension))

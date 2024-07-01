@@ -52,7 +52,10 @@ class Polyhedral(UncertaintySet):
         self.affine_transform = affine_transform
 
         if data is not None:
-            dat_shape = data.shape[1]
+            if isinstance(data,list):
+                dat_shape = data[0].shape[1]
+            else:
+                dat_shape = data.shape[1]
             if dimension is None:
                 dimension = dat_shape
             a = ShapeParameter((dat_shape, dimension))

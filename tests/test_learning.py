@@ -210,8 +210,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         init = sc.linalg.sqrtm(np.cov(train.T))
         init_bval = np.mean(train, axis=0)
         result = prob.train(lr=0.0001, train_size = False,
-                num_iter=3, optimizer="SGD",seed=8, init_A=init,
-                init_b=init_bval, init_lam=1, init_mu=1,
+                num_iter=10, optimizer="SGD",seed=8, init_A=init,
+                init_b=init_bval, init_lam=0.1, init_mu=0.1,
                 mu_multiplier=1.001, kappa=0., init_alpha=0.,
                 test_percentage = test_p,save_history = True,
                 quantiles = (0.4,0.6), lr_step_size = 50,

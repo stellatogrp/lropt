@@ -8,17 +8,24 @@ class Parameter(cp.Parameter):
 
         if data is None:
             raise ValueError("You must provide data")
-        assert isinstance(data, np.ndarray), "not a numpy array"
+        assert (isinstance(data, np.ndarray) or isinstance(data, list)), "not a numpy array or list"
         #Convert to a 2D np.array
-        if len(data.shape)==1:
-            data = np.expand_dims(data, axis=0)
-        super(Parameter, self).__init__(*args, **kwargs)
+        if isinstance(data, list):
+            for j in range(len(data)):
+                if len(data[j].shape)==1:
+                    data[j] = np.expand_dims(data[j], axis=0)
+            super(Parameter, self).__init__(*args, **kwargs)
 
-        assert (data.shape[1:] == self.shape)
-        assert (data.shape[0] > 0)
+        else:
+            if len(data.shape)==1:
+                data = np.expand_dims(data, axis=0)
+            super(Parameter, self).__init__(*args, **kwargs)
+
+            assert (data.shape[1:] == self.shape)
+            assert (data.shape[0] > 0)
 
         self.data = data
-        self.value = data[0]
+        self.value = data[0] if not isinstance(data, list) else data[0][0]
 
 
 class ShapeParameter(cp.Parameter):

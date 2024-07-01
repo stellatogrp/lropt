@@ -21,7 +21,8 @@ class MRO(UncertaintySet):
         if data is None:
             raise ValueError("You must provide data")
 
-        self._dimension = data.shape[1]
+        self._dimension = data.shape[1] if not isinstance(data,list) \
+            else data[0].shape[1]
         if train:
             a = ShapeParameter((self._dimension, self._dimension))
             b = ShapeParameter(self._dimension)
@@ -40,7 +41,8 @@ class MRO(UncertaintySet):
         self.affine_transform_temp = None
         self.affine_transform = None
         self._data = data
-        self._N = data.shape[0]
+        self._N = data.shape[0] if not isinstance(data,list) \
+            else data[0].shape[0]
         self._loss = loss
         self._K = K
         self._power = power
