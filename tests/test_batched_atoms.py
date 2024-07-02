@@ -3,12 +3,35 @@ import unittest
 import cvxpy as cp
 import numpy as np
 import torch
+from cvxpy.utilities.torch_utils import tensor_reshape_fortran
 
 from lropt import Ellipsoidal
 from lropt.train.batch import batchify
 from lropt.uncertain_parameter import UncertainParameter
 
 torch.manual_seed(1234)
+
+def reshape_tensor(x: torch.Tensor, shape: tuple[int], order: str, batch: bool):
+    """
+    This functions reshapes x into shape. Supports order="F" (Fortran) order.
+    """
+    if order=="F":
+        if batch:
+            batch_size = x.shape[0]
+            return (torch.stack([tensor_reshape_fortran(x[b, :], shape=shape[1:]) for b in range(batch_size)]))
+        return tensor_reshape_fortran(x, shape)
+    else:
+        return x.reshape(shape)
+    
+
+def _check_expr(test, expr, input, desired_output):
+        """
+        This is an internal function that helps automate the tests.
+        """
+        expr = batchify(expr)
+        torch_expr, _ = expr.gen_torch_exp()
+        output = torch_expr(input)
+        test.assertTrue(torch.all(output==desired_output))
 
 class TestElementwiseDotproduct(unittest.TestCase):
     def test_elementwise_dotproduct(self):
@@ -170,68 +193,89 @@ class TestSlicing(unittest.TestCase):
         self.input_vec_batch = torch.randn((self.b, self.n))
         self.input_mat_batch = torch.randn((self.b, self.n, self.n))
 
-    def _check_expr(self, expr, input, desired_output):
-        """
-        This is an internal function that helps automate the tests.
-        """
-        expr = batchify(expr)
-        torch_expr, _ = expr.gen_torch_exp()
-        output = torch_expr(input)
-        self.assertTrue(torch.all(output==desired_output))
-
     def test_no_slicing(self):
         #No batch
-        self._check_expr(self.expr0, self.input_vec, self.input_vec)
-        self._check_expr(self.expr1, self.input_vec, self.k*self.input_vec)
-        self._check_expr(self.expr2, self.input_mat, self.j+self.input_mat)
+        _check_expr(self, self.expr0, self.input_vec, self.input_vec)
+        _check_expr(self, self.expr1, self.input_vec, self.k*self.input_vec)
+        _check_expr(self, self.expr2, self.input_mat, self.j+self.input_mat)
         #Batch
-        self._check_expr(self.expr0, self.input_vec_batch, self.input_vec_batch)
-        self._check_expr(self.expr1, self.input_vec_batch, self.k*self.input_vec_batch)
-        self._check_expr(self.expr2, self.input_mat_batch, self.j+self.input_mat_batch)
+        _check_expr(self, self.expr0, self.input_vec_batch, self.input_vec_batch)
+        _check_expr(self, self.expr1, self.input_vec_batch, self.k*self.input_vec_batch)
+        _check_expr(self, self.expr2, self.input_mat_batch, self.j+self.input_mat_batch)
 
     def test_single_slice(self):
         #No batch
-        self._check_expr(self.expr0[1], self.input_vec, self.input_vec[1])
-        self._check_expr(self.expr0[-5:-2], self.input_vec, self.input_vec[-5:-2])
-        self._check_expr(self.expr1[-1], self.input_vec, self.k*self.input_vec[-1])
-        self._check_expr(self.expr1[:3], self.input_vec, self.k*self.input_vec[:3])
-        self._check_expr(self.expr1[slice(0, self.n, 2)], self.input_vec,
+        _check_expr(self, self.expr0[1], self.input_vec, self.input_vec[1])
+        _check_expr(self, self.expr0[-5:-2], self.input_vec, self.input_vec[-5:-2])
+        _check_expr(self, self.expr1[-1], self.input_vec, self.k*self.input_vec[-1])
+        _check_expr(self, self.expr1[:3], self.input_vec, self.k*self.input_vec[:3])
+        _check_expr(self, self.expr1[slice(0, self.n, 2)], self.input_vec,
                          self.k*self.input_vec[slice(0, self.n, 2)])
-        self._check_expr(self.expr2[-1,:], self.input_mat, self.j+self.input_mat[-1,:])
-        self._check_expr(self.expr2[:,0], self.input_mat, self.j+self.input_mat[:,0])
-        self._check_expr(self.expr2[:,:4], self.input_mat, self.j+self.input_mat[:,:4])
+        _check_expr(self, self.expr2[-1,:], self.input_mat, self.j+self.input_mat[-1,:])
+        _check_expr(self, self.expr2[:,0], self.input_mat, self.j+self.input_mat[:,0])
+        _check_expr(self, self.expr2[:,:4], self.input_mat, self.j+self.input_mat[:,:4])
         #Batch
-        self._check_expr(self.expr0[1], self.input_vec_batch, self.input_vec_batch[:,1])
-        self._check_expr(self.expr0[-3], self.input_vec_batch, self.input_vec_batch[:,-3])
-        self._check_expr(self.expr1[-1], self.input_vec_batch, self.k*self.input_vec_batch[:,-1])
-        self._check_expr(self.expr1[0], self.input_vec_batch, self.k*self.input_vec_batch[:,0])
-        self._check_expr(self.expr1[3:7], self.input_vec_batch, self.k*self.input_vec_batch[:,3:7])
-        self._check_expr(self.expr1[slice(1, self.n, 3)],
+        _check_expr(self, self.expr0[1], self.input_vec_batch, self.input_vec_batch[:,1])
+        _check_expr(self, self.expr0[-3], self.input_vec_batch, self.input_vec_batch[:,-3])
+        _check_expr(self, self.expr1[-1], self.input_vec_batch, self.k*self.input_vec_batch[:,-1])
+        _check_expr(self, self.expr1[0], self.input_vec_batch, self.k*self.input_vec_batch[:,0])
+        _check_expr(self, self.expr1[3:7], self.input_vec_batch, self.k*self.input_vec_batch[:,3:7])
+        _check_expr(self, self.expr1[slice(1, self.n, 3)],
                          self.input_vec_batch, self.k*self.input_vec_batch[:,slice(1, self.n, 3)])
-        self._check_expr(self.expr2[-1,:], self.input_mat_batch,
+        _check_expr(self, self.expr2[-1,:], self.input_mat_batch,
                          self.j+self.input_mat_batch[:,-1,:])
-        self._check_expr(self.expr2[:,0], self.input_mat_batch, self.j+self.input_mat_batch[:,:,0])
-        self._check_expr(self.expr2[-5:,:], self.input_mat_batch,
+        _check_expr(self, self.expr2[:,0], self.input_mat_batch, self.j+self.input_mat_batch[:,:,0])
+        _check_expr(self, self.expr2[-5:,:], self.input_mat_batch,
                          self.j+self.input_mat_batch[:,-5:,:])
-        self._check_expr(self.expr2[:-3,:], self.input_mat_batch,
+        _check_expr(self, self.expr2[:-3,:], self.input_mat_batch,
                          self.j+self.input_mat_batch[:,:-3,:])
 
     def test_double_slice(self):
         #No batch
-        self._check_expr(self.expr2[-2,0], self.input_mat, self.j+self.input_mat[-2,0])
-        self._check_expr(self.expr2[3,4], self.input_mat, self.j+self.input_mat[3,4])
-        self._check_expr(self.expr2[0,-3], self.input_mat, self.j+self.input_mat[0,-3])
-        self._check_expr(self.expr2[1:-1,2:4], self.input_mat, self.j+self.input_mat[1:-1,2:4])
-        self._check_expr(self.expr2[slice(3, 6, 2),-3:], self.input_mat,
+        _check_expr(self, self.expr2[-2,0], self.input_mat, self.j+self.input_mat[-2,0])
+        _check_expr(self, self.expr2[3,4], self.input_mat, self.j+self.input_mat[3,4])
+        _check_expr(self, self.expr2[0,-3], self.input_mat, self.j+self.input_mat[0,-3])
+        _check_expr(self, self.expr2[1:-1,2:4], self.input_mat, self.j+self.input_mat[1:-1,2:4])
+        _check_expr(self, self.expr2[slice(3, 6, 2),-3:], self.input_mat,
                          self.j+self.input_mat[slice(3, 6, 2),-3:])
         #Batch
-        self._check_expr(self.expr2[-4,3], self.input_mat_batch,
+        _check_expr(self, self.expr2[-4,3], self.input_mat_batch,
                          self.j+self.input_mat_batch[:,-4,3])
-        self._check_expr(self.expr2[1,1], self.input_mat_batch, self.j+self.input_mat_batch[:,1,1])
-        self._check_expr(self.expr2[:4,6], self.input_mat_batch,
+        _check_expr(self, self.expr2[1,1], self.input_mat_batch, self.j+self.input_mat_batch[:,1,1])
+        _check_expr(self, self.expr2[:4,6], self.input_mat_batch,
                          self.j+self.input_mat_batch[:,:4,6])
-        self._check_expr(self.expr2[-3:,slice(2, 7, 3)],
+        _check_expr(self, self.expr2[-3:,slice(2, 7, 3)],
             self.input_mat_batch, self.j+self.input_mat_batch[:,-3:,slice(2, 7, 3)])
-        self._check_expr(self.expr2[slice(None, None, None),slice(0, self.n, 1)],
+        _check_expr(self, self.expr2[slice(None, None, None),slice(0, self.n, 1)],
             self.input_mat_batch,
             self.j+self.input_mat_batch[:,slice(None, None, None),slice(0, self.n, 1)])
+
+class TestReshape(unittest.TestCase):
+    def setUp(self):
+        self.n = 6 #Dimension
+        self.p = 8 #Second dimension
+        self.k = 2 #Multiplicative constant
+        self.j = 3 #Additive constnat
+        self.b = 5 #Batch size
+        self.x = cp.Variable(self.n)
+        self.y = cp.Variable((self.p,self.n))
+        self.expr0 = self.x
+        self.expr1 = self.j + self.k*self.x
+        self.expr2 = self.k*self.y
+        self.input_vec = torch.randn(self.n)
+        self.input_mat = torch.randn((self.p, self.n))
+        self.input_vec_batch = torch.randn((self.b, self.n))
+        self.input_mat_batch = torch.randn((self.b, self.p, self.n))
+
+    def test_reshape(self):
+        for order in ["C", "F"]:
+            #No batch
+            _check_expr(self, cp.reshape(self.expr0, (self.n//2, 2), order=order), self.input_vec, reshape_tensor(self.input_vec, (self.n//2, 2), order=order, batch=False))
+            _check_expr(self, cp.reshape(self.expr1, (2, self.n//2), order=order), self.input_vec, reshape_tensor(self.j+self.k*self.input_vec, (2, self.n//2), order=order, batch=False))
+            _check_expr(self, cp.reshape(self.expr2, (self.n, self.p), order=order), self.input_mat, reshape_tensor(self.k*self.input_mat, (self.n, self.p), order=order, batch=False))
+            #Batch
+            _check_expr(self, cp.reshape(self.expr0, (self.n//2, 2), order=order), self.input_vec_batch, reshape_tensor(self.input_vec_batch, (self.b, self.n//2, 2), order=order, batch=True))
+            _check_expr(self, cp.reshape(self.expr1, (2, self.n//2), order=order), self.input_vec_batch, reshape_tensor(self.j+self.k*self.input_vec_batch, (self.b, 2, self.n//2), order=order, batch=True))
+            _check_expr(self, cp.reshape(self.expr2, (self.n, self.p), order=order), self.input_mat_batch, reshape_tensor(self.k*self.input_mat_batch, (self.b, self.n, self.p), order=order, batch=True))
+
+#TODO: Add tests for BatchedHstack, BatchedVstack, BatchedAddExpression
