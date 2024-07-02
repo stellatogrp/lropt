@@ -346,8 +346,9 @@ class UncertainCanonicalization(Reduction):
         new_objective, new_constraints, cons_data = _gen_canon_robust_problem(problem,
                                                 A_certain, A_uncertain, b_certain,b_uncertain,
                                                 cones, variables)
+        eval_exp = getattr(problem, "eval_exp", None)
         new_problem = RobustProblem(objective=new_objective, constraints=new_constraints,
-                                                cons_data=cons_data)
+                                                cons_data=cons_data, eval_exp=eval_exp)
 
         return new_problem, inverse_data
 

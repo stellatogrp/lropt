@@ -202,7 +202,7 @@ class RobustProblem(Problem):
 
     def __init__(
         self, objective, constraints,
-        eval_exp=None, train_flag=True, cons_data = None
+        eval_exp=None, train_flag=True, cons_data = None,
     ):
         self._trained = False
         self._values = None
@@ -238,9 +238,14 @@ class RobustProblem(Problem):
         #         else:
         #             self.g_shapes.append(1)
         #             self.num_g_total += 1
-        if eval_exp is None:
-            eval_exp = objective.expr
-        self.eval, _ = self._gen_torch_exp(eval_exp, batch_flag=False)
+        # if eval_exp_torch:
+        #     self.eval = eval_exp_torch
+        # else:
+        #     if eval_exp is None:
+        #         eval_exp = objective.expr
+        #     self.eval_exp = eval_exp #This is needed for when RobustProblem() is called in a reduction
+        #     self.eval, _ = self._gen_torch_exp(eval_exp, batch_flag=False)
+        self.eval_exp = eval_exp
         # self.fg_to_lh()
 
     @property
@@ -1699,7 +1704,7 @@ class RobustProblem(Problem):
         )
 
 
-    def _gen_all_torch_expressions(self):
+    def _gen_all_torch_expressions(self, eval_exp: Expression | None = None):
         """
         This function generates torch expressions for the canonicalized objective and constraints.
         """
@@ -1717,7 +1722,11 @@ class RobustProblem(Problem):
                 else:
                     self.g_shapes.append(1)
                     self.num_g_total += 1
-        self.eval = self.f #This function should be called on the canonicalized problem, so this
+        if self.eval_exp is None:
+            self.eval_exp = self.objective.expr
+        # self.eval_exp = eval_exp #This is needed for when RobustProblem() is called in a reduction
+        self.eval, _ = self._gen_torch_exp(self.eval_exp, batch_flag=False)
+        # self.eval = self.f #This function should be called on the canonicalized problem, so this
                             #instance of self.eval should not be used.
         self.fg_to_lh()
 
@@ -1758,7 +1767,7 @@ class RobustProblem(Problem):
             reductions_canon += [RemoveSumOfMaxOfUncertain(), UncertainCanonicalization()]
             chain_canon, problem_canon, inverse_data_canon = gen_and_apply_chain(problem=problem,
                                                                         reductions=reductions_canon)
-            problem_canon.eval = problem.eval #The evaluation expression is not canonicalized
+            # problem_canon.eval = problem.eval #The evaluation expression is not canonicalized
             return chain_canon, problem_canon, inverse_data_canon
 
         from lropt.uncertain_canon.remove_uncertain_maximum import RemoveSumOfMaxOfUncertain

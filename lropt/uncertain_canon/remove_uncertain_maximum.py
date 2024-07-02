@@ -64,11 +64,12 @@ class RemoveSumOfMaxOfUncertain(Reduction):
             return canon_objective, new_constraints
 
 
-        problem = RobustProblem(problem.objective, problem.constraints)
+        # problem = RobustProblem(problem.objective, problem.constraints, eval_exp=problem.eval_exp)
         inverse_data = InverseData(problem)
 
         canon_objective, new_constraints = _gen_objective_constraints(problem)
-        epigraph_problem = RobustProblem(canon_objective,new_constraints)
+        eval_exp = getattr(problem, "eval_exp", None)
+        epigraph_problem = RobustProblem(canon_objective,new_constraints, eval_exp=eval_exp)
 
         new_constraints = []
         for constraint in epigraph_problem.constraints:
@@ -90,8 +91,9 @@ class RemoveSumOfMaxOfUncertain(Reduction):
             else:
                 new_constraints += [constraint]
 
+        eval_exp = getattr(problem, "eval_exp", None)
         new_problem = RobustProblem(objective=epigraph_problem.objective, \
-                                    constraints=new_constraints)
+                                    constraints=new_constraints, eval_exp=eval_exp)
 
         return new_problem, inverse_data
 
