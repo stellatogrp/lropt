@@ -1928,7 +1928,7 @@ class RobustProblem(Problem):
                                 parameters=rho_mult_params + \
                                 self.orig_yparams() + self.y_parameters() +
                                 self.shape_parameters(self.problem_no_unc),
-                                variables=self.variables())
+                                variables=self.problem_canon.variables())
 
         grid_stats = GridStats()
 
