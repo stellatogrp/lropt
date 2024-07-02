@@ -1,4 +1,19 @@
+"""
+This file contains all the new batch-supporting atoms. Such atom must have the following
+methods (see the examples below):
+
+1. "transform" (static method) that checks if an expression should be batchified, and if so,
+returns a new expression using the new batched atom.
+
+2. "get_args" (static method) that given an expression, produces a tuple called args that would be
+the inputs to the constructor.
+
+3. "torch_numeric" that determines the actual torch numeric functionality of the atom.
+"""
+
+import numpy as np
 import torch
+from cvxpy.atoms.affine.add_expr import AddExpression
 from cvxpy.atoms.affine.binary_operators import MulExpression, multiply
 from cvxpy.atoms.affine.hstack import Hstack
 from cvxpy.atoms.affine.index import index
@@ -8,18 +23,8 @@ from cvxpy.atoms.atom import Atom
 from cvxpy.expressions.expression import Expression
 from torch import Tensor
 
-"""
-This file contains all the new batch-supporting atoms. Such atom must have the following
-methods (see the examples below):
+from lropt.train.utils import expand_tensor, inner_transform, recursive_apply, stack_tensor
 
-1. "inner_batchify" (static method) that checks if an expression should be batchified, and if so,
-returns a new expression using the new batched atom.
-
-2. "get_args" (static method) that given an expression, produces a list called args that would be
-the inputs to the constructor.
-
-3. "torch_numeric" that determines the actual torch numeric functionality of the atom.
-"""
 
 class ElementwiseDotProduct(MulExpression):
     """
@@ -98,7 +103,7 @@ class ElementwiseDotProduct(MulExpression):
             batched_args = []
             for i, is_batch in enumerate(is_batch_vec):
                 if is_batch is None:
-                    batched_args.append(args[i].expand(size=([batch_size] + list(args[i].shape))))
+                    batched_args.append(expand_tensor(args[i], batch_size))
                 else:
                     batched_args.append(args[i])
             return batched_args
@@ -210,7 +215,7 @@ class ElementwiseDotProduct(MulExpression):
                     return torch.matmul(batched_args[vec_ind], args[mat_ind])
 
     @staticmethod
-    def inner_batchify(expr: Expression) -> Expression:
+    def transform(expr: Expression) -> Expression:
         """
         This method returns a new expression where matrix multiplications are replaced with
         elementwise dot products if the args are vectors.
@@ -266,7 +271,7 @@ class BatchedIndex(index):
                 key.insert(0, add_slice)
                 return tuple(key)
 
-        batch_flag = _is_batch(self, values)
+        batch_flag = is_batch(self, values)
         key = self._orig_key
         if batch_flag:
             #In batch mode, need to specify to take all the elements from the first dimension
@@ -274,12 +279,12 @@ class BatchedIndex(index):
         return values[0][key]
 
     @staticmethod
-    def inner_batchify(expr: Expression) -> Expression:
+    def transform(expr: Expression) -> Expression:
         """
         This method returns a new expression where index (slicing) opertaions are replaced with
         batched indexing.
         """
-        return _inner_batchify(expr, BatchedIndex)
+        return inner_transform(expr, BatchedIndex)
 
     @staticmethod
     def get_args(expr: Expression) -> tuple:
@@ -299,22 +304,49 @@ class BatchedReshape(reshape):
         self._orig_shape = self.args[0].shape
 
     def torch_numeric(self, values: list[Tensor]):
-        batch_flag = _is_batch(self, values)
-        orig_shape = self._shape
+        def _calc_shape(self, values: list[Tensor], batch_flag: bool) -> list:
+            """
+            This is a helper function that calculates the desired shape, taking into account
+            the batched reshaping.
+            """
+            if batch_flag and not already_padded(self.args[0], values[0]):
+                shape = [values[0].shape[0]] + list(self.shape)
+            else:
+                shape = self.shape
+            return shape
+        
+        def _apply_batched_reshape(self, values: list[Tensor]) -> Tensor:
+            """
+            This is a helper function that reshapes a tensor.
+            """
+            #In batch mode, split the tensor into batches.
+            batch_size = get_batch_size(self, values[0])
+            #Need to break this to not add unnecessary dimensions to un-batched tensors
+            if batch_size>1:
+                #If batch mode, split the input tensor into batches
+                values = torch.split(values[0], [1 for _ in range(batch_size)])
+                res = torch.stack([super(BatchedReshape, self).torch_numeric(value) \
+                                                    for value in values])
+            else:
+                res = super().torch_numeric(values)
+            return res
+        
+        batch_flag = is_batch(self, values)
+        orig_shape = self._shape #Keep the original shape
         #In batch mode, need to reshape but keep the batch dimension (0-th element of values[0])
-        shape = [values[0].shape[0]] + list(self.shape) if batch_flag else self._orig_shape
+        shape = _calc_shape(self, values, batch_flag)
         self._shape = shape #Update the atom's shape
-        result = super().torch_numeric(values)
+        res = _apply_batched_reshape(self, values)
         self._shape = orig_shape
-        return result
+        return res
     
     @staticmethod
-    def inner_batchify(expr: Expression) -> Expression:
+    def transform(expr: Expression) -> Expression:
         """
         This method returns a new expression where reshaping opertaions are replaced with
         batched reshaping.
         """
-        return _inner_batchify(expr, BatchedReshape)
+        return inner_transform(expr, BatchedReshape)
 
     @staticmethod
     def get_args(expr: Expression) -> tuple:
@@ -333,15 +365,15 @@ class BatchedHstack(Hstack):
         super().__init__(*args)
 
     def torch_numeric(self, values: list[Tensor]) -> Tensor:
-        return _torch_numeric_stack(self, values)
+        return torch_numeric_stack(self, values)
     
     @staticmethod
-    def inner_batchify(expr: Expression) -> Expression:
+    def transform(expr: Expression) -> Expression:
         """
         This method returns a new expression where reshaping opertaions are replaced with
         batched reshaping.
         """
-        return _inner_batchify(expr, BatchedHstack)
+        return inner_transform(expr, BatchedHstack)
 
     @staticmethod
     def get_args(expr: Expression) -> tuple:
@@ -360,15 +392,15 @@ class BatchedVstack(Vstack):
         super().__init__(*args)
 
     def torch_numeric(self, values: list[Tensor]) -> Tensor:
-        return _torch_numeric_stack(self, values)
+        return torch_numeric_stack(self, values)
     
     @staticmethod
-    def inner_batchify(expr: Expression) -> Expression:
+    def transform(expr: Expression) -> Expression:
         """
         This method returns a new expression where reshaping opertaions are replaced with
         batched reshaping.
         """
-        return _inner_batchify(expr, BatchedVstack)
+        return inner_transform(expr, BatchedVstack)
 
     @staticmethod
     def get_args(expr: Expression) -> tuple:
@@ -377,24 +409,98 @@ class BatchedVstack(Vstack):
         """
         return expr.args
 
+class BatchedAddExpression(AddExpression):
+    """
+    This is an AddExpression atom that supports sparse matrix addition. It supports any combination
+    of sparse/dense tensor added to a sparse/dense tensor.
+    """
+
+    def __init__(self, *args):
+        super().__init__(*args)
+
+    def torch_numeric(self, values: list[Tensor]) -> Tensor:
+        def _order_inputs(values: list[Tensor]) -> list[Tensor]:
+            """
+            This function generates the LHS and RHS of the addition.
+            It is needed because sparse + dense is not allowed in Pytorch.
+            """
+            if values[0].is_sparse and not values[1].is_sparse:
+                lhs = values[1]
+                rhs = values[0]
+            else:
+                lhs = values[0]
+                rhs = values[1]
+            return lhs, rhs
+        
+        def _stack_for_broadcast(lhs: Tensor, rhs: Tensor) -> list[Tensor]:
+            """
+            This helper function stacks the unbatched input to match the dimension of the batched
+            input.
+            It is needed because currently Pytorch (v2.3.0) does not support broadcasting between
+            sparse and dense matrices.
+            """
+            if len(lhs.shape) > len(rhs.shape):
+                rhs = stack_tensor(rhs, lhs.shape[0])
+            else:
+                lhs = stack_tensor(lhs, rhs.shape[0])
+            return lhs, rhs
+
+
+        lhs, rhs = _order_inputs(values)
+        #Execute the following as a try-catch block, because currently Pytorch does not support
+        #sparse-dense broadcasting, but this might change in later versions.
+        try:
+            return super(BatchedAddExpression, self).numeric([lhs, rhs])
+        except RuntimeError:
+            #Stack the tensors and retry
+            lhs, rhs = _stack_for_broadcast(lhs, rhs)
+            return super(BatchedAddExpression, self).numeric([lhs, rhs])
+
+    @staticmethod
+    def transform(expr: Expression) -> Expression:
+        """
+        This method returns a new expression where additions are replaced with additions that
+        support sparse-by-dense matrix (not supported by default by Pytorch)
+        """
+        return inner_transform(expr, BatchedAddExpression)
+    
+    @staticmethod
+    def get_args(expr: Expression) -> tuple:
+        """
+        This is a helper function that returns the requires args for the SparseAddExpression atom.
+        """
+        return (expr.args, )
+
 def batchify(expr: Expression) -> Expression:
     """
-    This method returns a new expression where objects of target_class are transformed to
+    This function returns a new expression where atoms of expr are replaced with their batched
+    counterparts.
+
+    Parameters:
+        expr (Expression):
+            A CVXPY Expression to batchify.
+    
+    Returns:
+        expr (Expression):
+            A CVXPY Expression where atoms in SUPPORT_BATCH are replaced with their batched
+            counterparts.
     """
+    return recursive_apply(expr, SUPPORT_BATCH)
 
-    #Recursively change all the args of this expression
-    args = [batchify(arg) for arg in expr.args]
-    expr.args = args
+#This dictionary contains all the supported batched elements.
+SUPPORT_BATCH = {
+                MulExpression:  ElementwiseDotProduct,
+                index:          BatchedIndex,
+                reshape:        BatchedReshape,
+                Hstack:         BatchedHstack,
+                Vstack:         BatchedVstack,
+                AddExpression:  BatchedAddExpression,
+                }
 
-    #Change this expression if necessary
-    batched_type = SUPPORT_BATCH[type(expr)] if type(expr) in SUPPORT_BATCH else None
-
-    if not batched_type:
-        return expr
-
-    return batched_type.inner_batchify(expr)
-
-def _is_batch(atom: Atom, values: list[Tensor], orig_shape_flag: bool=True) -> bool:
+##########################
+#Batch utilitiy functions
+##########################
+def is_batch(atom: Atom, values: list[Tensor], orig_shape_flag: bool=True) -> bool:
     """
     This is a helper function that returns True if this is batch mode.
     IMPORTANT: Should be used ONLY if:
@@ -406,54 +512,9 @@ def _is_batch(atom: Atom, values: list[Tensor], orig_shape_flag: bool=True) -> b
         atom_shape = getattr(atom, "_orig_shape", atom.shape)
     else:
         atom_shape = atom.shape
-    return (curr_shape - len(atom_shape)) >= 1
+    return ((curr_shape - len(atom_shape)) >= 1) or np.prod(values[0].shape) > np.prod(atom_shape)
 
-def _inner_batchify(expr: Expression, batch_type: type) -> Expression:
-    """
-    This method returns a new expression where the atom's opertaions are replaced with
-    batched operations.
-    IMPORTANT: Should be used ONLY if:
-    1. The atom is supposed to work on a single tensor (e.g. sllicing) and not on multiple atoms
-    (e.g. matrix multiplication).
-    2. The atom has a static get_args function implemented (should be implemented anyway).
-
-    Parameters:
-        expr (Expression):
-            Input expression
-        batch_type (type):
-            Batched atom type (e.g. BatchedIndex)
-        parent_type (type):
-            The parent type of batch_type
-
-    Returns:
-        An expression using the batched atom (if relevant) or the regular one otherwise.
-    """
-
-    def _should_transform(expr: Expression, parent_type: type):
-        """
-        This is a helper function that checks if this expression needs to be transformed
-        """
-
-        return isinstance(expr, parent_type)
-
-    def _get_parent_type(batch_type: type):
-        """
-        This is an inner function that returns the parent type of batch_type, and raises an error
-        if there is not exactly 1 such parent.
-        """
-        parent_type = batch_type.__bases__
-        if len(parent_type) != 1:
-            raise ValueError(f"Expected {type(batch_type)} to have 1 parent, but {len(parent_type)}"
-                            f" were found.")
-        return parent_type[0]
-
-    parent_type = _get_parent_type(batch_type)
-    #Change this expression if necessary
-    if not _should_transform(expr, parent_type):
-        return expr
-    return batch_type(*batch_type.get_args(expr))
-
-def _permute_tensors(values: list[Tensor], forward: bool) -> None:
+def permute_tensors(values: list[Tensor], forward: bool) -> None:
     """
     This helper function permutes each tensor in values:
         If forward==True, the 0-th dimension (which corresponds to the batch dimension) is moved to
@@ -484,7 +545,7 @@ def _permute_tensors(values: list[Tensor], forward: bool) -> None:
         dims = _calc_dims(value, forward)
         values[i] = torch.permute(value, dims)
             
-def _torch_numeric_stack(self: BatchedHstack | BatchedVstack, values: list[Tensor]) -> Tensor:
+def torch_numeric_stack(self: BatchedHstack | BatchedVstack, values: list[Tensor]) -> Tensor:
     """
     This function implements torch_numeric for either BatchedHstack or BatchedVstack.
     """
@@ -497,6 +558,7 @@ def _torch_numeric_stack(self: BatchedHstack | BatchedVstack, values: list[Tenso
         n = len(values)
         is_batch_vec = [False]*n
         batch_size = None
+        curr_batch_size = None
         for i in range(n):
             is_batch_vec[i] = (len(values[i].shape) > len(self.args[i].shape))
             if is_batch_vec[i]:
@@ -534,12 +596,12 @@ def _torch_numeric_stack(self: BatchedHstack | BatchedVstack, values: list[Tenso
             """
             This is a helper function that returns True if an an arg is a batched vector.
             """
-            if not _is_batch(arg, [value], orig_shape_flag=False):
+            if not is_batch(arg, [value], orig_shape_flag=False):
                 return False
             return len(arg.shape)<=1 #<=1 for vectors and scalars
-        
+
         for i, val in enumerate(values):
-            if _is_batched_vec(self.args[i], val):
+            if _is_batched_vec(self.args[i], val) and (not already_padded(self.args[i], val)):
                 values[i] = val.unsqueeze(0)
 
     #Check which element is batched
@@ -547,7 +609,7 @@ def _torch_numeric_stack(self: BatchedHstack | BatchedVstack, values: list[Tenso
     
     #If none are batched, normal stack and return
     if batch_size is None:
-        return self.torch_numeric(values)
+        return super(type(self), self).torch_numeric(values)
     
     #Duplicate all non-batched elements (e.g. constants)
     _duplicate_tensors(values, is_batch_vec, batch_size)
@@ -555,24 +617,35 @@ def _torch_numeric_stack(self: BatchedHstack | BatchedVstack, values: list[Tenso
     #Unsqueeze all batched vectors in the 0-th dimension
     _pad_batched_vectors(self, values)
 
-    #Permute such that the batch is the last element
-    _permute_tensors(values, forward=True)
+    #Originally I did this, I'm not sure why the last element needs to be the batched one?
+    #Might be BatchedVstack thing.
+    # #Permute such that the batch is the last element
+    # permute_tensors(values, forward=True)
 
     #Apply torch_numeric
     res = super(type(self), self).torch_numeric(values)
         
-    #Re-permute the inputs (not sure if needed)
-    _permute_tensors(values, forward=False)
+    # #Re-permute the inputs (not sure if needed)
+    # permute_tensors(values, forward=False)
         
     #Return the values of torch_numeric
     return res
 
-#This dictionary contains all the supported batched elements.
-SUPPORT_BATCH = {
-                MulExpression:  ElementwiseDotProduct,
-                index:          BatchedIndex,
-                reshape:        BatchedReshape,
-                Hstack:         BatchedHstack,
-                Vstack:         BatchedVstack,
-                }
+def already_padded(arg: Expression, value: Tensor) -> bool:
+    """
+    This is a helper function that returns True if the value has already been padded.
+    It is important to avoid padding the same tensor more than once.
+    """
+    return len(arg.shape) < len(value.shape)
 
+def get_batch_size(arg: Expression, value: Tensor) -> int:
+    """
+    This function returns the batch size of the input tensor, or 1 if it is not batched.
+    """
+    #No batch is equivalent to batch of size 1.
+    if not is_batch(arg, [value]):
+        return 1
+
+    #The 0-th dimension is always assumed to have the batched data.
+    return value.shape[0]
+    
