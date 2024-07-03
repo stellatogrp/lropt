@@ -1712,11 +1712,19 @@ class RobustProblem(Problem):
         self.g = []
         self.g_shapes = []
         self.num_g_total = 0
+        #TODO (AMIT): WORK HERE!!!
+        #Suppose constraint has an attribute called constraint.max_id (either None or a unique ID)
+        #I need to group all constraints with the same max_id
+        #For each max_id, select all the constraints with this max_id:
+        #   Each of these constraints is NonPos, so constraint.args[0] is an expression.
+        #   Create an object (list) that has all constraint.args[0] from all these constraints.
+        #   new_constraint = cp.NonPos(cp.Maximum(all of these expressions))
+        #   new_constraint is fed to _gen_torch_exp, but I shouldn't modify self.constraints
         for constraint in self.constraints:
             g, has_uncertain_parameters = self._gen_torch_exp(constraint)
             if has_uncertain_parameters:
                 self.g.append(g)
-                if len(constraint.shape) >=1:
+                if len(constraint.shape) >= 1:
                     self.g_shapes.append(constraint.shape[0])
                     self.num_g_total += constraint.shape[0]
                 else:

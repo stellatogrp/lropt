@@ -71,6 +71,11 @@ class RemoveSumOfMaxOfUncertain(Reduction):
         eval_exp = getattr(problem, "eval_exp", None)
         epigraph_problem = RobustProblem(canon_objective,new_constraints, eval_exp=eval_exp)
 
+        #TODO (AMIT): WORK HERE!!
+        #Need to keep track of three types of constraints: certain constraints, uncertain constraints with max, and uncertain constraints without max.
+        #For constraints with max, we need to keep track with constraints contribute to it.
+        #At the end we create a new robust problems, whose constraints are the concatenation of all of these constraints.
+        #The new problem has: problem.constraints (all three), and three separate lists.
         new_constraints = []
         for constraint in epigraph_problem.constraints:
             if self.has_max_uncertain(constraint):
