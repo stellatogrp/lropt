@@ -1,3 +1,5 @@
+from enum import Enum
+
 import cvxpy as cp
 import numpy as np
 from cvxpy.constraints.constraint import Constraint
@@ -7,6 +9,7 @@ from cvxpy.reductions.solution import Solution
 from scipy.sparse import csc_matrix, csr_matrix
 from scipy.sparse._coo import coo_matrix
 
+CONSTRAINT_TYPE = Enum("CONSTRAINT_TYPE", "CERTAIN UNCERTAIN_NO_MAX CERTAIN_MAX")
 
 def standard_invert(solution: Solution, inverse_data: InverseData) -> Solution:
     """
@@ -67,16 +70,6 @@ def promote_expr(expr: Expression | int) -> Expression | int:
         return expr
     
     return cp.reshape(expr, shape=(expr.size, 1))
-
-def unique_list(duplicates_list):
-    """
-    Return unique list preserving the order.
-    https://stackoverflow.com/a/480227
-    """
-    used = set()
-    unique = [x for x in duplicates_list if not (x in used or used.add(x))]
-
-    return unique
 
 def scalarize(arg: Expression) -> Expression:
     """

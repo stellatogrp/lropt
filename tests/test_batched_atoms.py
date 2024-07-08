@@ -18,7 +18,8 @@ def reshape_tensor(x: torch.Tensor, shape: tuple[int], order: str, batch: bool):
     if order=="F":
         if batch:
             batch_size = x.shape[0]
-            return (torch.stack([tensor_reshape_fortran(x[b, :], shape=shape[1:]) for b in range(batch_size)]))
+            return (torch.stack([tensor_reshape_fortran(x[b, :], shape=shape[1:]) \
+                                    for b in range(batch_size)]))
         return tensor_reshape_fortran(x, shape)
     else:
         return x.reshape(shape)
@@ -270,12 +271,23 @@ class TestReshape(unittest.TestCase):
     def test_reshape(self):
         for order in ["C", "F"]:
             #No batch
-            _check_expr(self, cp.reshape(self.expr0, (self.n//2, 2), order=order), self.input_vec, reshape_tensor(self.input_vec, (self.n//2, 2), order=order, batch=False))
-            _check_expr(self, cp.reshape(self.expr1, (2, self.n//2), order=order), self.input_vec, reshape_tensor(self.j+self.k*self.input_vec, (2, self.n//2), order=order, batch=False))
-            _check_expr(self, cp.reshape(self.expr2, (self.n, self.p), order=order), self.input_mat, reshape_tensor(self.k*self.input_mat, (self.n, self.p), order=order, batch=False))
+            _check_expr(self, cp.reshape(self.expr0, (self.n//2, 2), order=order), self.input_vec,
+                        reshape_tensor(self.input_vec, (self.n//2, 2), order=order, batch=False))
+            _check_expr(self, cp.reshape(self.expr1, (2, self.n//2), order=order), self.input_vec,
+                        reshape_tensor(self.j+self.k*self.input_vec, (2, self.n//2), order=order,
+                        batch=False))
+            _check_expr(self, cp.reshape(self.expr2, (self.n, self.p), order=order), self.input_mat,
+                        reshape_tensor(self.k*self.input_mat, (self.n, self.p), order=order,
+                        batch=False))
             #Batch
-            _check_expr(self, cp.reshape(self.expr0, (self.n//2, 2), order=order), self.input_vec_batch, reshape_tensor(self.input_vec_batch, (self.b, self.n//2, 2), order=order, batch=True))
-            _check_expr(self, cp.reshape(self.expr1, (2, self.n//2), order=order), self.input_vec_batch, reshape_tensor(self.j+self.k*self.input_vec_batch, (self.b, 2, self.n//2), order=order, batch=True))
-            _check_expr(self, cp.reshape(self.expr2, (self.n, self.p), order=order), self.input_mat_batch, reshape_tensor(self.k*self.input_mat_batch, (self.b, self.n, self.p), order=order, batch=True))
+            _check_expr(self, cp.reshape(self.expr0, (self.n//2, 2), order=order),
+                        self.input_vec_batch, reshape_tensor(self.input_vec_batch,
+                        (self.b, self.n//2, 2), order=order, batch=True))
+            _check_expr(self, cp.reshape(self.expr1, (2, self.n//2), order=order),
+                        self.input_vec_batch, reshape_tensor(self.j+self.k*self.input_vec_batch,
+                        (self.b, 2, self.n//2), order=order, batch=True))
+            _check_expr(self, cp.reshape(self.expr2, (self.n, self.p), order=order),
+                        self.input_mat_batch, reshape_tensor(self.k*self.input_mat_batch,
+                        (self.b, self.n, self.p), order=order, batch=True))
 
 #TODO: Add tests for BatchedHstack, BatchedVstack, BatchedAddExpression

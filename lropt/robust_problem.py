@@ -243,7 +243,7 @@ class RobustProblem(Problem):
         # else:
         #     if eval_exp is None:
         #         eval_exp = objective.expr
-        #     self.eval_exp = eval_exp #This is needed for when RobustProblem() is called in a reduction
+        #     self.eval_exp = eval_exp #This is needed when RobustProblem() is called in a reduction
         #     self.eval, _ = self._gen_torch_exp(eval_exp, batch_flag=False)
         self.eval_exp = eval_exp
         # self.fg_to_lh()

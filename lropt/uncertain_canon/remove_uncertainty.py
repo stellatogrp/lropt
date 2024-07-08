@@ -2,15 +2,15 @@
 import numpy as np
 from cvxpy import Variable, problems
 from cvxpy.atoms.affine.promote import Promote
-from cvxpy.constraints.nonpos import Inequality
 from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
 
+from lropt.uncertain_canon.utils import standard_invert
+from lropt.uncertainty_sets.mro import MRO
+
 # from lropt.uncertain_canon.atom_canonicalizers.mul_canon import mul_canon_transform
 # from lropt.uncertain_canon.remove_constant import REMOVE_CONSTANT_METHODS as rm_const_methods
-from lropt.uncertain_canon.utils import standard_invert, unique_list
-from lropt.uncertain_parameter import UncertainParameter
-from lropt.uncertainty_sets.mro import MRO
+from lropt.utils import has_unc_param
 
 
 class RemoveUncertainty(Reduction):
@@ -44,7 +44,7 @@ class RemoveUncertainty(Reduction):
             # canon_constr is the constraint rexpressed in terms of its canonicalized arguments,
             # and aux_constr are the constraints generated while canonicalizing the arguments of the
             # original constraint
-            if self.has_unc_param(constraint):
+            if has_unc_param(constraint):
                 cur_cons_data = problem._cons_data[cons_num]
                 canon_constr, lmbda, sval = self.remove_uncertainty(cur_cons_data,
                                                                     canon_constraints, lmbda, sval)
@@ -190,22 +190,6 @@ class RemoveUncertainty(Reduction):
             aux_expr = aux_expr, aux_constraint=aux_constraint,
             cur_cons_data = cur_cons_data, is_mro= is_mro, has_uncertain=False)
         return fin_expr <= 0, aux_constraint, lmbda, sval
-
-    def count_unq_uncertain_param(self, expr):
-        unc_params = []
-        if isinstance(expr, Inequality):
-            unc_params += [v for v in expr.parameters() if isinstance(v, UncertainParameter)]
-            return len(unique_list(unc_params))
-
-        else:
-            unc_params += [v for v in expr.parameters() if isinstance(v, UncertainParameter)]
-        return len(unique_list(unc_params))
-
-    def has_unc_param(self, expr):
-        if not isinstance(expr, int) and not isinstance(expr, float):
-            return self.count_unq_uncertain_param(expr) >= 1
-        else:
-            return False
 
     def get_u_shape(self, uvar):
         trans = uvar.uncertainty_set.affine_transform
