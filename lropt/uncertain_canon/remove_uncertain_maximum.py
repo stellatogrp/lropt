@@ -6,8 +6,8 @@ from cvxpy.reductions.reduction import Reduction
 
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain_canon.max_of_uncertain import sum_of_max_of_uncertain
-from lropt.uncertain_canon.utils import CONSTRAINT_TYPE, standard_invert
-from lropt.utils import has_unc_param
+from lropt.uncertain_canon.utils import UNCERTAIN_NO_MAX_ID, CERTAIN_ID, standard_invert
+from lropt.utils import has_unc_param, has_unc_param_constraint
 
 
 class RemoveSumOfMaxOfUncertain(Reduction):
@@ -77,15 +77,13 @@ class RemoveSumOfMaxOfUncertain(Reduction):
         #At the end we create a new robust problems, whose constraints are the concatenation of all of these constraints.
         #The new problem has: problem.constraints (all three), and three separate lists.
         new_constraints = []
-        #constraints_by_type holds all constraints of the new problem and sets them apart based on
-        #the type of constraint: certain constraints, uncertain constraints without max, and
-        #uncertain constraints with max. The first two are lists of all the constraints.
-        #uncertain constraints with max is a dictionary from constraint ID to all of the constraints
-        #that contribute to it.
-        constraints_by_type = {t: [] for t in CONSTRAINT_TYPE}
-        constraints_by_type[CONSTRAINT_TYPE.CERTAIN_MAX] = {}
-        for max_id, constraint in enumerate(epigraph_problem.constraints):
+        #constraints_by_type is a dictionary from ID of the uncertain max constraint to all of its
+        #constraints. There are two special IDs: UNCERTAIN_NO_MAX_ID and CERTAIN_ID for the list of
+        #all uncertain non-max constraints/certain constraints, respectively.
+        constraints_by_type = {}
+        for max_id, constraint in enumerate(epigraph_problem.constraints): #max_id >= 0
             if self.has_max_uncertain(constraint):
+                constraints_by_type[max_id] = []
                 other_args = 0
                 if isinstance(constraint,Inequality):
                     cur_constraint = constraint.args[0] - constraint.args[1]
@@ -100,13 +98,16 @@ class RemoveSumOfMaxOfUncertain(Reduction):
                     canon_constr = arg + other_args <= 0
                     new_constraints += [canon_constr]
                     inverse_data.cons_id_map.update({constraint.id: canon_constr.id})
+                    constraints_by_type[max_id].append(canon_constr)
             else:
-                #constraints_by_type[CONSTRAINT_TYPE.CERTAIN] += [constraint]
+                type_id = UNCERTAIN_NO_MAX_ID if has_unc_param_constraint(constraint) else CERTAIN_ID
+                constraints_by_type[type_id] += [constraint]
                 new_constraints += [constraint]
 
         eval_exp = getattr(problem, "eval_exp", None)
         new_problem = RobustProblem(objective=epigraph_problem.objective, \
                                     constraints=new_constraints, eval_exp=eval_exp)
+        new_problem.constraints_by_type = constraints_by_type
 
         return new_problem, inverse_data
 

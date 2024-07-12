@@ -15,7 +15,8 @@ from scipy.sparse import csr_matrix
 
 from lropt import Parameter as LroptParameter
 from lropt.robust_problem import RobustProblem
-from lropt.uncertain_canon.utils import promote_expr, reshape_tensor, scalarize, standard_invert
+from lropt.uncertain_canon.utils import promote_expr, reshape_tensor, scalarize, standard_invert, \
+                            CERTAIN_ID
 from lropt.uncertain_parameter import UncertainParameter
 
 PARAM_TYPES = (UncertainParameter, LroptParameter, Parameter)
@@ -195,8 +196,7 @@ class UncertainCanonicalization(Reduction):
             def _append_constraint(constraints: list[Constraint], A: any, variables_stacked:
                                    Hstack, b_certain: any, term_unc: any,
                                    term_unc_b: any, cons_case: str,
-                                   cons_size: int, cons_data: dict)\
-                                                                                            -> None:
+                                   cons_size: int, cons_data: dict) -> None:
                 """
                 This is a helper function that appends the i-th constraint.
                 """
@@ -337,6 +337,22 @@ class UncertainCanonicalization(Reduction):
                                     b_uncertain=b_uncertain, variables=variables, cones=cones, u=u)
             return new_objective, new_constraints, cons_data
 
+        def _gen_dummy_problem(objective: Expression, constraints: list[Constraint]) \
+                                                -> RobustProblem:
+            """
+            This internal function creates a dummy problem from a given problem and a list of
+            constraints.
+            """
+            dummy_problem = RobustProblem(objective=objective, constraints=constraints)
+            #Get A, b tensors (A separated to uncertain and certain parts).
+            A_certain, A_uncertain, b_certain, b_uncertain, cones,variables \
+                                                = _get_tensors(dummy_problem, solver=solver)
+
+            new_objective, new_constraints, cons_data = _gen_canon_robust_problem(dummy_problem,
+                                                    A_certain, A_uncertain, b_certain,b_uncertain,
+                                                    cones, variables)
+            return new_constraints, cons_data
+
         inverse_data = InverseData(problem)
 
         #TODO (AMIT) WORK HERE!!
@@ -345,20 +361,34 @@ class UncertainCanonicalization(Reduction):
         #Then another single dummy problem whose constraints are all the uncertain constraints without max.
         #Total number of dummy problems: #max + 1. I just need to take all the constraints of all the dummy problems.
         
-        #Get A, b tensors (A separated to uncertain and certain parts).
-        A_certain, A_uncertain, b_certain, b_uncertain, cones,variables \
-                                                = _get_tensors(problem, solver=solver)
+        cons_data = {} #TODO (Amit): Irina, right now cons_data is not populated, and eventually we pass an empty dictionary. Please fix this.
+        new_constraints = []
+        #constraints_by_type is a dictionary from ID of the uncertain max constraint to all of its
+        #constraints. There are two special IDs: UNCERTAIN_NO_MAX_ID and CERTAIN_ID for the list of
+        #all uncertain non-max constraints/certain constraints, respectively.
+        constraints_by_type = {}
+        for id in problem.constraints_by_type.keys():
+            if id==CERTAIN_ID:
+                constraints_by_type[id] = problem.constraints_by_type[CERTAIN_ID]
+                continue
+            dummy_constraints, dummy_cons_data = _gen_dummy_problem(objective=problem.objective, constraints=problem.constraints_by_type[id])
+            new_constraints += dummy_constraints
+            constraints_by_type[id] = dummy_constraints
+            # A_certain, A_uncertain, b_certain, b_uncertain, cones,variables \
+            #                                         = _get_tensors(problem, solver=solver)
 
-        new_objective, new_constraints, cons_data = _gen_canon_robust_problem(problem,
-                                                A_certain, A_uncertain, b_certain,b_uncertain,
-                                                cones, variables)
+            # new_objective, new_constraints, cons_data = _gen_canon_robust_problem(problem,
+            #                                         A_certain, A_uncertain, b_certain,b_uncertain,
+            #                                         cones, variables)
         eval_exp = getattr(problem, "eval_exp", None)
         #TODO (AMIT): WORK HERE!!!
         #The constraints of the returned problem is all the constraints of the dummy problem plus the certain constraints. The objective is unchanged.
-        new_problem = RobustProblem(objective=new_objective, constraints=new_constraints,
+        new_problem = RobustProblem(objective=problem.objective, constraints=new_constraints,
                                                 cons_data=cons_data, eval_exp=eval_exp)
+        new_problem.constraints_by_type = constraints_by_type
 
         return new_problem, inverse_data
 
     def invert(self, solution, inverse_data):
         return standard_invert(solution=solution, inverse_data=inverse_data)
+    

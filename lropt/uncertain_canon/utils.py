@@ -1,5 +1,3 @@
-from enum import Enum
-
 import cvxpy as cp
 import numpy as np
 from cvxpy.constraints.constraint import Constraint
@@ -9,7 +7,8 @@ from cvxpy.reductions.solution import Solution
 from scipy.sparse import csc_matrix, csr_matrix
 from scipy.sparse._coo import coo_matrix
 
-CONSTRAINT_TYPE = Enum("CONSTRAINT_TYPE", "CERTAIN UNCERTAIN_NO_MAX CERTAIN_MAX")
+UNCERTAIN_NO_MAX_ID = -1 #Use this ID for all uncertain constraints without max
+CERTAIN_ID = -2 #Use this ID for all certain constraints
 
 def standard_invert(solution: Solution, inverse_data: InverseData) -> Solution:
     """

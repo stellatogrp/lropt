@@ -1715,7 +1715,7 @@ class RobustProblem(Problem):
         #TODO (AMIT): WORK HERE!!!
         #Suppose constraint has an attribute called constraint.max_id (either None or a unique ID)
         #I need to group all constraints with the same max_id
-        #For each max_id, select all the constraints with this max_id:
+        #For each max_id, select all the constraints with this max_id: (THE RESULTS OF THE DUMMY PROBLEMS - NOT REMOVE_UNCERTAIN_MAXIMUM)
         #   Each of these constraints is NonPos, so constraint.args[0] is an expression.
         #   Create an object (list) that has all constraint.args[0] from all these constraints.
         #   new_constraint = cp.NonPos(cp.Maximum(all of these expressions))

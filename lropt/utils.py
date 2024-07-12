@@ -1,6 +1,8 @@
 from cvxpy.problems.problem import Problem
 from cvxpy.reductions.chain import Chain
 from cvxpy.reductions.reduction import Reduction
+from cvxpy.expressions.expression import Expression
+from cvxpy.constraints.constraint import Constraint
 
 from lropt.uncertain_parameter import UncertainParameter
 
@@ -40,12 +42,21 @@ def gen_and_apply_chain(problem: Problem, reductions: list[Reduction]) -> \
     new_problem, inverse_data = chain.apply(problem)
     return chain, new_problem, inverse_data
 
-def count_unq_uncertain_param(expr) -> int:
+def count_unq_uncertain_param(expr: Expression) -> int:
     unc_params = [v for v in expr.parameters() if isinstance(v, UncertainParameter)]
     return len(unique_list(unc_params))
 
-def has_unc_param(expr) -> bool:
+def has_unc_param(expr: Expression) -> bool:
     if not isinstance(expr, int) and not isinstance(expr, float):
         return count_unq_uncertain_param(expr) >= 1
     else:
         return False
+
+def has_unc_param_constraint(constr: Constraint) -> bool:
+    """
+    This function returns True if the constraint contains uncertain parameters and False otherwise.
+    """
+    for arg in constr.args:
+        if has_unc_param(arg):
+            return True
+    return False
