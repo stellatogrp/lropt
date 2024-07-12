@@ -15,8 +15,13 @@ from scipy.sparse import csr_matrix
 
 from lropt import Parameter as LroptParameter
 from lropt.robust_problem import RobustProblem
-from lropt.uncertain_canon.utils import promote_expr, reshape_tensor, scalarize, standard_invert, \
-                            CERTAIN_ID
+from lropt.uncertain_canon.utils import (
+    CERTAIN_ID,
+    promote_expr,
+    reshape_tensor,
+    scalarize,
+    standard_invert,
+)
 from lropt.uncertain_parameter import UncertainParameter
 
 PARAM_TYPES = (UncertainParameter, LroptParameter, Parameter)
@@ -187,24 +192,31 @@ class UncertainCanonicalization(Reduction):
             #TODO: update this function to reformulate the objective
             return problem.objective
 
-        def _gen_constraints(A_certain: ndarray, A_uncertain: Expression, b_certain: ndarray,
-                            b_uncertain, variables: list[Variable], cones, u: UncertainParameter)\
+        def _gen_constraints(A_certain: ndarray, A_uncertain: Expression,
+                        b_certain: ndarray,b_uncertain,
+                        variables: list[Variable], cones,
+                        cons_data: dict, initial_index: int,
+                        u: UncertainParameter)\
                             -> list[Expression]:
             """
             This is a helper function that generates a new constraint.
+            Each constraint is associated with a dictionary, cons_data, that
+            contains information on the uncertain terms within it.
             """
             def _append_constraint(constraints: list[Constraint], A: any, variables_stacked:
                                    Hstack, b_certain: any, term_unc: any,
                                    term_unc_b: any, cons_case: str,
-                                   cons_size: int, cons_data: dict) -> None:
+                                   cons_size: int, cons_uncertain_data_dict: dict)\
+                                                                                            -> None:
                 """
                 This is a helper function that appends the i-th constraint.
                 """
                 if cons_case == "soc":
-                    cons_data['std_lst'] = []
+                    cons_uncertain_data_dict['std_lst'] = []
                     soc_vec = []
                     for j in range(cons_size):
-                        cons_data['std_lst'].append(A[j]@variables_stacked - b_certain[j])
+                        cons_uncertain_data_dict['std_lst'].append(
+                            A[j]@variables_stacked - b_certain[j])
                         if isinstance(b_certain[j],csr_matrix):
                             b_term = b_certain[j].toarray()[0][0]
                         else:
@@ -218,25 +230,28 @@ class UncertainCanonicalization(Reduction):
                     constraints += [cp.SOC(-soc_vec[0], cp.vstack(soc_vec[1:]))]
 
                 else:
-                    cons_data['std_lst'] = [A@variables_stacked - b_certain]
+                    cons_uncertain_data_dict['std_lst'] = [A@variables_stacked - b_certain]
                     cons_func = cp.Zero if (cons_case == "zero") else cp.NonPos
                     term_unc_b = scalarize(term_unc_b)
                     b_certain = scalarize(b_certain)
                     constraints += [cons_func(A@variables_stacked \
                                     + term_unc + term_unc_b - b_certain)]
 
-            def _gen_term_unc(cones_zero: int, u: UncertainParameter, A_uncertain: np.ndarray,
-                                                i: int, variables_stacked: Hstack,
-                                                b_uncertain: np.ndarray, cons_data: dict) -> tuple:
+            def _gen_term_unc(cones_zero: int, u: UncertainParameter,
+                        A_uncertain: np.ndarray,i: int,
+                        variables_stacked: Hstack,
+                     b_uncertain: np.ndarray,
+                     cons_uncertain_data_dict: dict) -> tuple:
                 """
                 This is a helper function that generates term_unc and term_unc_b.
+                The dictionary cons_uncertain_data is populated with these uncertain terms.
                 """
                 term_unc = 0
                 term_unc_b = 0
-                if 'has_uncertain_isolated' not in cons_data:
-                    cons_data['has_uncertain_isolated'] = False
-                    cons_data['has_uncertain_mult'] = False
-                    cons_data['unc_param'] = u
+                if 'has_uncertain_isolated' not in cons_uncertain_data_dict:
+                    cons_uncertain_data_dict['has_uncertain_isolated'] = False
+                    cons_uncertain_data_dict['has_uncertain_mult'] = False
+                    cons_uncertain_data_dict['unc_param'] = u
                 if (i<cones_zero) or (A_uncertain is None):
                     return term_unc, term_unc_b
 
@@ -247,37 +262,37 @@ class UncertainCanonicalization(Reduction):
 
                 if A_uncertain[i].nnz != 0:
                     term_unc = variables_stacked@(op(A_uncertain[i],u))
-                    if cons_data['has_uncertain_mult']:
-                        cons_data['unc_term'].append(A_uncertain[i])
+                    if cons_uncertain_data_dict['has_uncertain_mult']:
+                        cons_uncertain_data_dict['unc_term'].append(A_uncertain[i])
                     else:
-                        cons_data['has_uncertain_mult'] = True
-                        cons_data['var'] = variables_stacked
-                        cons_data['unc_term'] = [A_uncertain[i]]
+                        cons_uncertain_data_dict['has_uncertain_mult'] = True
+                        cons_uncertain_data_dict['var'] = variables_stacked
+                        cons_uncertain_data_dict['unc_term'] = [A_uncertain[i]]
 
                 if b_uncertain[i].nnz != 0:
                     term_unc_b = op(b_uncertain[i],u)
-                    if cons_data['has_uncertain_isolated']:
-                        cons_data['unc_isolated'].append(b_uncertain[i])
+                    if cons_uncertain_data_dict['has_uncertain_isolated']:
+                        cons_uncertain_data_dict['unc_isolated'].append(b_uncertain[i])
                     else:
-                        cons_data['has_uncertain_isolated'] = True
-                        cons_data['unc_isolated'] = [b_uncertain[i]]
+                        cons_uncertain_data_dict['has_uncertain_isolated'] = True
+                        cons_uncertain_data_dict['unc_isolated'] = [b_uncertain[i]]
 
                 return term_unc, term_unc_b
 
             variables_stacked = cp.hstack([cp.vec(var) for var in variables])
             constraints = []
-            cons_data = {}
             running_ind = 0
-            for i in range(cones.zero + cones.nonneg + len(cones.soc)):
+            total_constraint_num = cones.zero + cones.nonneg + len(cones.soc)
+            for i in range(total_constraint_num):
                 if (i < cones.zero):
                     cons_case = "zero"
                 elif (i < (cones.zero + cones.nonneg)):
                     cons_case = "nonneg"
-                elif (i < (cones.zero + cones.nonneg + len(cones.soc))):
+                elif (i < (total_constraint_num)):
                     cons_case = "soc"
                     cur_size = cones.soc[i-(cones.zero + cones.nonneg)]
 
-                cons_data[i] = {}
+                cons_data[initial_index+i] = {}
                 if cons_case == "soc":
                     term_unc = []
                     term_unc_b = []
@@ -288,7 +303,7 @@ class UncertainCanonicalization(Reduction):
                                         i=int(running_ind+j),
                                         variables_stacked=variables_stacked,
                                          b_uncertain=b_uncertain,
-                                         cons_data=cons_data[i])
+                                         cons_uncertain_data_dict=cons_data[initial_index+i])
                         term_unc.append(term_unc_temp)
                         term_unc_b.append(term_unc_b_temp)
 
@@ -298,7 +313,7 @@ class UncertainCanonicalization(Reduction):
                         b_certain=b_certain[running_ind:(running_ind+cur_size)],
                                     term_unc=term_unc, term_unc_b=term_unc_b,
                                     cons_case=cons_case,cons_size=cur_size,
-                                    cons_data=cons_data[i])
+                                    cons_uncertain_data_dict=cons_data[initial_index+i])
 
                 else:
                     term_unc, term_unc_b = _gen_term_unc(cones_zero=cones.zero,
@@ -306,7 +321,7 @@ class UncertainCanonicalization(Reduction):
                                              A_uncertain=A_uncertain, i=i,
                                             variables_stacked=variables_stacked,
                                             b_uncertain=b_uncertain,
-                                            cons_data=cons_data[i])
+                                            cons_uncertain_data_dict=cons_data[initial_index+i])
 
                     _append_constraint(constraints=constraints,
                                        A=A_certain[running_ind],
@@ -314,17 +329,19 @@ class UncertainCanonicalization(Reduction):
                                        b_certain=b_certain[running_ind],
                                     term_unc=term_unc, term_unc_b=term_unc_b,
                                     cons_case=cons_case,cons_size=1,
-                                    cons_data=cons_data[i])
+                                    cons_uncertain_data_dict=cons_data[initial_index+i])
 
                 if i < (cones.zero + cones.nonneg):
                     running_ind += 1
                 else:
                     running_ind += cur_size
 
-            return constraints, cons_data
+            return constraints, cons_data, int(total_constraint_num+initial_index)
 
-        def _gen_canon_robust_problem(problem: RobustProblem, A_certain: ndarray, A_uncertain: \
-                        Expression, b_certain: ndarray, b_uncertain, cones, variables) -> tuple:
+        def _gen_canon_robust_problem(problem: RobustProblem,
+                                      A_certain: ndarray, A_uncertain: \
+                        Expression, b_certain: ndarray, b_uncertain, cones,
+                        variables,cons_data: dict, initial_index: int) -> tuple:
             """
             This is a helper function that generates the new problem, new constraints
             (need to add cone constraints to it), and the new slack variable.
@@ -332,12 +349,19 @@ class UncertainCanonicalization(Reduction):
             # variables = problem.variables()
             u = problem.uncertain_parameters()[0]
             new_objective = _gen_objective(problem)
-            new_constraints, cons_data = _gen_constraints(A_certain=A_certain,
-                                    A_uncertain=A_uncertain, b_certain=b_certain,
-                                    b_uncertain=b_uncertain, variables=variables, cones=cones, u=u)
-            return new_objective, new_constraints, cons_data
+            new_constraints, cons_data_updated, total_cons_num =\
+                _gen_constraints(A_certain=A_certain,
+                                    A_uncertain=A_uncertain,
+                                    b_certain=b_certain,
+                                    b_uncertain=b_uncertain,
+                                    variables=variables, cones=cones,
+                                    cons_data=cons_data,
+                                    initial_index=initial_index,u=u)
+            return new_objective, new_constraints, cons_data_updated, total_cons_num
 
-        def _gen_dummy_problem(objective: Expression, constraints: list[Constraint]) \
+        def _gen_dummy_problem(objective: Expression,
+                        constraints: list[Constraint],
+                        cons_data: dict, initial_index: int) \
                                                 -> RobustProblem:
             """
             This internal function creates a dummy problem from a given problem and a list of
@@ -348,20 +372,32 @@ class UncertainCanonicalization(Reduction):
             A_certain, A_uncertain, b_certain, b_uncertain, cones,variables \
                                                 = _get_tensors(dummy_problem, solver=solver)
 
-            new_objective, new_constraints, cons_data = _gen_canon_robust_problem(dummy_problem,
-                                                    A_certain, A_uncertain, b_certain,b_uncertain,
-                                                    cones, variables)
-            return new_constraints, cons_data
+            new_objective, new_constraints, cons_data_updated, total_cons_num \
+                = _gen_canon_robust_problem(dummy_problem,
+                                                    A_certain, A_uncertain,
+                                                    b_certain,b_uncertain,
+                                                    cones, variables,cons_data,
+                                                    initial_index)
+            return new_constraints, cons_data_updated, total_cons_num
 
         inverse_data = InverseData(problem)
 
         #TODO (AMIT) WORK HERE!!
-        #_get_tensors and _gen_canon_robust_problem need to be called, instead of problem, on a new dummy problem which has the same objective and only one constraint.
-        #I create these dummy problems for every uncertain constraint with max, whose constraints are all the previous constraints that have the id of this max uncertain.
-        #Then another single dummy problem whose constraints are all the uncertain constraints without max.
-        #Total number of dummy problems: #max + 1. I just need to take all the constraints of all the dummy problems.
-        
-        cons_data = {} #TODO (Amit): Irina, right now cons_data is not populated, and eventually we pass an empty dictionary. Please fix this.
+        #_get_tensors and _gen_canon_robust_problem need to be called, instead
+        # of problem, on a new dummy problem which has the same objective and
+        # only one constraint.
+        #I create these dummy problems for every uncertain constraint with max,
+        # whose constraints are all the previous constraints that have the id
+        # of this max uncertain.
+        #Then another single dummy problem whose constraints are all the
+        # uncertain constraints without max.
+        #Total number of dummy problems: #max + 1. I just need to take all the
+        # constraints of all the dummy problems.
+
+        # Dictionary to store the uncertainty status and information of each
+        # constraint. Index by the constraint number
+        cons_data = {}
+        total_cons_number = 0
         new_constraints = []
         #constraints_by_type is a dictionary from ID of the uncertain max constraint to all of its
         #constraints. There are two special IDs: UNCERTAIN_NO_MAX_ID and CERTAIN_ID for the list of
@@ -371,7 +407,11 @@ class UncertainCanonicalization(Reduction):
             if id==CERTAIN_ID:
                 constraints_by_type[id] = problem.constraints_by_type[CERTAIN_ID]
                 continue
-            dummy_constraints, dummy_cons_data = _gen_dummy_problem(objective=problem.objective, constraints=problem.constraints_by_type[id])
+            dummy_constraints, cons_data, total_cons_number = \
+                _gen_dummy_problem(objective=problem.objective,
+                                 constraints=problem.constraints_by_type[id],
+                                 cons_data=cons_data,
+                                 initial_index = total_cons_number)
             new_constraints += dummy_constraints
             constraints_by_type[id] = dummy_constraints
             # A_certain, A_uncertain, b_certain, b_uncertain, cones,variables \
@@ -382,7 +422,9 @@ class UncertainCanonicalization(Reduction):
             #                                         cones, variables)
         eval_exp = getattr(problem, "eval_exp", None)
         #TODO (AMIT): WORK HERE!!!
-        #The constraints of the returned problem is all the constraints of the dummy problem plus the certain constraints. The objective is unchanged.
+        # The constraints of the returned problem is all the constraints of the
+        # dummy problem plus the certain constraints. The objective is
+        # unchanged.
         new_problem = RobustProblem(objective=problem.objective, constraints=new_constraints,
                                                 cons_data=cons_data, eval_exp=eval_exp)
         new_problem.constraints_by_type = constraints_by_type
@@ -391,4 +433,3 @@ class UncertainCanonicalization(Reduction):
 
     def invert(self, solution, inverse_data):
         return standard_invert(solution=solution, inverse_data=inverse_data)
-    
