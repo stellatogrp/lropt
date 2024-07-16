@@ -203,7 +203,7 @@ class RobustProblem(Problem):
 
     def __init__(
         self, objective, constraints,
-        eval_exp=None, train_flag=True, cons_data = None,
+        eval_exp=None, train_flag=True, cons_data = None, verify_y_parameters: bool = True
     ):
         self._trained = False
         self._values = None
@@ -221,7 +221,7 @@ class RobustProblem(Problem):
         self._status = None
         self._cons_data = cons_data
 
-        self.num_ys = self.verify_y_parameters()
+        self.num_ys = self.verify_y_parameters() if verify_y_parameters else None
         self._store_variables_parameters()
 
         #DEBUG ONLY

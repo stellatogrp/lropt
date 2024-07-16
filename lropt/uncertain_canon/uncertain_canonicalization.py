@@ -368,7 +368,7 @@ class UncertainCanonicalization(Reduction):
             This internal function creates a dummy problem from a given problem and a list of
             constraints.
             """
-            dummy_problem = RobustProblem(objective=objective, constraints=constraints)
+            dummy_problem = RobustProblem(objective=objective, constraints=constraints, verify_y_parameters=False)
             #Get A, b tensors (A separated to uncertain and certain parts).
             A_certain, A_uncertain, b_certain, b_uncertain, cones,variables \
                                                 = _get_tensors(dummy_problem, solver=solver)
