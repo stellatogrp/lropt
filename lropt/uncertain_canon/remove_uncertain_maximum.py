@@ -6,7 +6,8 @@ from cvxpy.reductions.reduction import Reduction
 
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain_canon.max_of_uncertain import sum_of_max_of_uncertain
-from lropt.uncertain_canon.utils import UNCERTAIN_NO_MAX_ID, CERTAIN_ID, standard_invert
+from lropt.uncertain_canon.utils import UNCERTAIN_NO_MAX_ID, CERTAIN_ID, standard_invert, \
+    gen_constraint_by_type
 from lropt.utils import has_unc_param, has_unc_param_constraint
 
 
@@ -80,7 +81,7 @@ class RemoveSumOfMaxOfUncertain(Reduction):
         #constraints_by_type is a dictionary from ID of the uncertain max constraint to all of its
         #constraints. There are two special IDs: UNCERTAIN_NO_MAX_ID and CERTAIN_ID for the list of
         #all uncertain non-max constraints/certain constraints, respectively.
-        constraints_by_type = {}
+        constraints_by_type = gen_constraint_by_type()
         for max_id, constraint in enumerate(epigraph_problem.constraints): #max_id >= 0
             if self.has_max_uncertain(constraint):
                 constraints_by_type[max_id] = []

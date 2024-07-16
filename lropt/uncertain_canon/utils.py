@@ -88,3 +88,10 @@ def scalarize(arg: Expression) -> Expression:
     if arg.size==1:
         arg = cp.reshape(arg, ())
     return arg
+
+def gen_constraint_by_type() -> dict:
+    """
+    This helper function generates a dictionary to be populated by constraints (constraints_by_type)
+    It also generates two pairs: UNCERTAIN_NO_MAX_ID -> [], CERTAIN_ID -> [].
+    """
+    return {x: [] for x in [UNCERTAIN_NO_MAX_ID, CERTAIN_ID]}

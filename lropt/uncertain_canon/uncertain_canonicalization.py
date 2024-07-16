@@ -21,6 +21,7 @@ from lropt.uncertain_canon.utils import (
     reshape_tensor,
     scalarize,
     standard_invert,
+    gen_constraint_by_type,
 )
 from lropt.uncertain_parameter import UncertainParameter
 
@@ -402,16 +403,16 @@ class UncertainCanonicalization(Reduction):
         #constraints_by_type is a dictionary from ID of the uncertain max constraint to all of its
         #constraints. There are two special IDs: UNCERTAIN_NO_MAX_ID and CERTAIN_ID for the list of
         #all uncertain non-max constraints/certain constraints, respectively.
-        constraints_by_type = {}
+        constraints_by_type = gen_constraint_by_type()
         for id in problem.constraints_by_type.keys():
             if id==CERTAIN_ID:
-                constraints_by_type[id] = problem.constraints_by_type[CERTAIN_ID]
-                continue
-            dummy_constraints, cons_data, total_cons_number = \
-                _gen_dummy_problem(objective=problem.objective,
-                                 constraints=problem.constraints_by_type[id],
-                                 cons_data=cons_data,
-                                 initial_index = total_cons_number)
+                dummy_constraints = problem.constraints_by_type[CERTAIN_ID]
+            else:
+                dummy_constraints, cons_data, total_cons_number = \
+                    _gen_dummy_problem(objective=problem.objective,
+                                    constraints=problem.constraints_by_type[id],
+                                    cons_data=cons_data,
+                                    initial_index = total_cons_number)
             new_constraints += dummy_constraints
             constraints_by_type[id] = dummy_constraints
             # A_certain, A_uncertain, b_certain, b_uncertain, cones,variables \
