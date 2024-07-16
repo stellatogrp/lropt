@@ -32,6 +32,7 @@ from lropt.uncertain_canon.remove_uncertainty import RemoveUncertainty
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.mro import MRO
 from lropt.utils import gen_and_apply_chain
+from lropt.uncertain_canon.utils import UNCERTAIN_NO_MAX_ID, CERTAIN_ID
 
 torch.manual_seed(0) #TODO: Remove all seed setters
 
@@ -1720,16 +1721,34 @@ class RobustProblem(Problem):
         #   Create an object (list) that has all constraint.args[0] from all these constraints.
         #   new_constraint = cp.NonPos(cp.Maximum(all of these expressions))
         #   new_constraint is fed to _gen_torch_exp, but I shouldn't modify self.constraints
-        for constraint in self.constraints:
-            g, has_uncertain_parameters = self._gen_torch_exp(constraint)
-            if has_uncertain_parameters:
-                self.g.append(g)
+        for max_id in self.constraints_by_type.keys():
+            if max_id==CERTAIN_ID: #Nothing to do with certain constraints
+                continue
+            elif max_id==UNCERTAIN_NO_MAX_ID:
+                constraints = self.constraints_by_type[max_id]
+            else:
+                #Create a constraint from all the constraints of this max_id
+                args = [constraint.args[0] for constraint in self.constraints_by_type[max_id]]
+                constraints = [cp.NonPos(cp.maximum(*args))]
+            for constraint in constraints: #NOT self.constraints: these are the new constraints
+                g, has_uncertain_parameters = self._gen_torch_exp(constraint)
+                self.g.append(g) #Always has uncertainty, no need to check
                 if len(constraint.shape) >= 1:
                     self.g_shapes.append(constraint.shape[0])
                     self.num_g_total += constraint.shape[0]
                 else:
                     self.g_shapes.append(1)
-                    self.num_g_total += 1
+                    self.num_g_total += 1        
+        # for constraint in self.constraints:
+        #     g, has_uncertain_parameters = self._gen_torch_exp(constraint)
+        #     if has_uncertain_parameters:
+        #         self.g.append(g)
+        #         if len(constraint.shape) >= 1:
+        #             self.g_shapes.append(constraint.shape[0])
+        #             self.num_g_total += constraint.shape[0]
+        #         else:
+        #             self.g_shapes.append(1)
+        #             self.num_g_total += 1
         if self.eval_exp is None:
             self.eval_exp = self.objective.expr
         # self.eval_exp = eval_exp #This is needed for when RobustProblem() is called in a reduction
