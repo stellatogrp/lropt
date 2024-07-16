@@ -17,11 +17,11 @@ from lropt import Parameter as LroptParameter
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain_canon.utils import (
     CERTAIN_ID,
+    gen_constraint_by_type,
     promote_expr,
     reshape_tensor,
     scalarize,
     standard_invert,
-    gen_constraint_by_type,
 )
 from lropt.uncertain_parameter import UncertainParameter
 
@@ -409,6 +409,7 @@ class UncertainCanonicalization(Reduction):
                 continue
             if id==CERTAIN_ID:
                 dummy_constraints = problem.constraints_by_type[CERTAIN_ID]
+                total_cons_number += len(dummy_constraints)
             else:
                 dummy_constraints, cons_data, total_cons_number = \
                     _gen_dummy_problem(objective=problem.objective,
