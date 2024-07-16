@@ -405,6 +405,8 @@ class UncertainCanonicalization(Reduction):
         #all uncertain non-max constraints/certain constraints, respectively.
         constraints_by_type = gen_constraint_by_type()
         for id in problem.constraints_by_type.keys():
+            if not problem.constraints_by_type[id]: #Nothing to do without constraints
+                continue
             if id==CERTAIN_ID:
                 dummy_constraints = problem.constraints_by_type[CERTAIN_ID]
             else:
