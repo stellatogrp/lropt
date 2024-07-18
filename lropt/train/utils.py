@@ -36,7 +36,6 @@ def recursive_apply(expr: Expression, support_types: dict[Atom: Atom]) \
             A dictionary from CVXPY atoms to replace to the new atoms.
     """
 
-    pass
     #Recursively change all the args of this expression
     args = [recursive_apply(arg, support_types) for arg in expr.args]
     expr.args = args
@@ -123,4 +122,7 @@ def stack_tensor(arg: Tensor, x: int) -> Tensor:
     Returns:
         A tensor stacked x times.
     """
-    return torch.stack([arg for _ in range(x)])
+    res = torch.stack([arg for _ in range(x)])
+    if res.ndim == arg.ndim:
+        raise RuntimeError(f"stack_tensor failed to increase the ndim of {arg}.")
+    return res
