@@ -29,10 +29,10 @@ from lropt.train.batch import batchify
 from lropt.train.parameter import EpsParameter, Parameter, ShapeParameter
 from lropt.train.utils import get_n_processes
 from lropt.uncertain_canon.remove_uncertainty import RemoveUncertainty
+from lropt.uncertain_canon.utils import CERTAIN_ID, UNCERTAIN_NO_MAX_ID
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.mro import MRO
 from lropt.utils import gen_and_apply_chain
-from lropt.uncertain_canon.utils import UNCERTAIN_NO_MAX_ID, CERTAIN_ID
 
 torch.manual_seed(0) #TODO: Remove all seed setters
 
@@ -1119,9 +1119,13 @@ class RobustProblem(Problem):
             return res
 
         # vars_dict contains a dictionary from variable/param -> index in *args (for the expression)
+        # THIS BATCHIFY IS IMPORTANT, BOTH OF THEM ARE NEEDED!
         if batch_flag:
             expr = batchify(expr)
         torch_exp, vars_dict = expr.gen_torch_exp()
+        # Need to rebatchify because expr.gen_torch_exp may introduce new unbatched add atoms
+        if batch_flag: 
+            torch_exp = batchify(torch_exp)
 
         # Create a dictionary from index -> variable/param (for the problem)
         args_inds_to_pass = gen_args_inds_to_pass(self.vars_params, vars_dict)
@@ -1713,10 +1717,7 @@ class RobustProblem(Problem):
         self.g = []
         self.g_shapes = []
         self.num_g_total = 0
-        #TODO (AMIT): WORK HERE!!!
-        #Suppose constraint has an attribute called constraint.max_id (either None or a unique ID)
-        #I need to group all constraints with the same max_id
-        #For each max_id, select all the constraints with this max_id: (THE RESULTS OF THE DUMMY PROBLEMS - NOT REMOVE_UNCERTAIN_MAXIMUM)
+        #For each max_id, select all the constraints with this max_id:
         #   Each of these constraints is NonPos, so constraint.args[0] is an expression.
         #   Create an object (list) that has all constraint.args[0] from all these constraints.
         #   new_constraint = cp.NonPos(cp.Maximum(all of these expressions))

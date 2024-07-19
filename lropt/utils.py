@@ -1,8 +1,8 @@
+from cvxpy.constraints.constraint import Constraint
+from cvxpy.expressions.expression import Expression
 from cvxpy.problems.problem import Problem
 from cvxpy.reductions.chain import Chain
 from cvxpy.reductions.reduction import Reduction
-from cvxpy.expressions.expression import Expression
-from cvxpy.constraints.constraint import Constraint
 
 from lropt.uncertain_parameter import UncertainParameter
 

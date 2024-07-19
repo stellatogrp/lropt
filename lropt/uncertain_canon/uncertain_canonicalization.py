@@ -368,7 +368,8 @@ class UncertainCanonicalization(Reduction):
             This internal function creates a dummy problem from a given problem and a list of
             constraints.
             """
-            dummy_problem = RobustProblem(objective=objective, constraints=constraints, verify_y_parameters=False)
+            dummy_problem = RobustProblem(objective=objective, constraints=constraints, \
+                                           verify_y_parameters=False)
             #Get A, b tensors (A separated to uncertain and certain parts).
             A_certain, A_uncertain, b_certain, b_uncertain, cones,variables \
                                                 = _get_tensors(dummy_problem, solver=solver)
@@ -382,18 +383,6 @@ class UncertainCanonicalization(Reduction):
             return new_constraints, cons_data_updated, total_cons_num
 
         inverse_data = InverseData(problem)
-
-        #TODO (AMIT) WORK HERE!!
-        #_get_tensors and _gen_canon_robust_problem need to be called, instead
-        # of problem, on a new dummy problem which has the same objective and
-        # only one constraint.
-        #I create these dummy problems for every uncertain constraint with max,
-        # whose constraints are all the previous constraints that have the id
-        # of this max uncertain.
-        #Then another single dummy problem whose constraints are all the
-        # uncertain constraints without max.
-        #Total number of dummy problems: #max + 1. I just need to take all the
-        # constraints of all the dummy problems.
 
         # Dictionary to store the uncertainty status and information of each
         # constraint. Index by the constraint number
@@ -425,10 +414,6 @@ class UncertainCanonicalization(Reduction):
             #                                         A_certain, A_uncertain, b_certain,b_uncertain,
             #                                         cones, variables)
         eval_exp = getattr(problem, "eval_exp", None)
-        #TODO (AMIT): WORK HERE!!!
-        # The constraints of the returned problem is all the constraints of the
-        # dummy problem plus the certain constraints. The objective is
-        # unchanged.
         new_problem = RobustProblem(objective=problem.objective, constraints=new_constraints,
                                                 cons_data=cons_data, eval_exp=eval_exp)
         new_problem.constraints_by_type = constraints_by_type

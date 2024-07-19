@@ -11,7 +11,8 @@ the inputs to the constructor.
 3. "torch_numeric" that determines the actual torch numeric functionality of the atom.
 """
 
-import numpy as np
+from functools import partial
+
 import torch
 from cvxpy.atoms.affine.add_expr import AddExpression
 from cvxpy.atoms.affine.binary_operators import MulExpression, multiply
@@ -19,11 +20,19 @@ from cvxpy.atoms.affine.hstack import Hstack
 from cvxpy.atoms.affine.index import index
 from cvxpy.atoms.affine.reshape import reshape
 from cvxpy.atoms.affine.vstack import Vstack
-from cvxpy.atoms.atom import Atom
 from cvxpy.expressions.expression import Expression
 from torch import Tensor
 
-from lropt.train.utils import expand_tensor, inner_transform, recursive_apply, stack_tensor
+from lropt.train.utils import (
+    already_padded,
+    expand_tensor,
+    get_batch_size,
+    inner_transform,
+    is_batch,
+    recursive_apply,
+    replace_partial_args,
+    stack_tensor,
+)
 
 
 class ElementwiseDotProduct(MulExpression):
@@ -101,8 +110,8 @@ class ElementwiseDotProduct(MulExpression):
             This is a helper function that returns a new list of args that are stacked
             """
             batched_args = []
-            for i, is_batch in enumerate(is_batch_vec):
-                if is_batch is None:
+            for i, batch_flag in enumerate(is_batch_vec):
+                if batch_flag is None:
                     batched_args.append(expand_tensor(args[i], batch_size))
                 else:
                     batched_args.append(args[i])
@@ -418,7 +427,72 @@ class BatchedAddExpression(AddExpression):
     def __init__(self, *args):
         super().__init__(*args)
 
+    def _first_iteration(self, values: list[Tensor]) -> bool:
+        """
+        This is a helper function that checks if this is the first iteration torch_numeric is called
+        or not.
+        """
+        return len(self.args) >= len(values)
+
     def torch_numeric(self, values: list[Tensor]) -> Tensor:
+        def _pad_tensors(self, values: list[Tensor]) -> int:
+            """
+            This helper function pads the tensors so they match.
+            It changes the list values in place.
+            Returns the batch size.
+            """
+            #Should happen only in the first call of torch_numeric
+            batch_size = None
+            if not self._first_iteration(values):
+                return
+            
+            unpadded_inds = []
+            for i, value in enumerate(values):
+                if already_padded(self.args[i], value):
+                    new_batch_size = get_batch_size(self.args[i], value)
+                    if batch_size is None:
+                        batch_size = new_batch_size
+                    elif batch_size != new_batch_size:
+                        raise ValueError(f"Inconsistent batch sizes found: {batch_size} and "
+                                        f"{new_batch_size}")
+                else:
+                    unpadded_inds.append(i)
+            
+            #Don't pad if nothing has been padded
+            if batch_size is None:
+                return batch_size
+            
+            #Pad all unpadded tensors
+            for i in unpadded_inds:
+                values[i] = stack_tensor(values[i], batch_size)
+
+            return batch_size
+
+        def _expand_tensors(self, values: list[Tensor], batch_size: int | None) -> None:
+            """
+            This helper function expands all tensors so they match self.shape or
+            [batch_size, self.shape].
+            Updates values in place.
+            """
+            if not self._first_iteration(values):
+                return
+
+            if batch_size is None:
+                output_shape = list(self.shape)
+            else:
+                output_shape = [batch_size] + list(self.shape)
+            output_shape_ndim = len(output_shape)
+            for i, value in enumerate(values):
+                curr_ndim = value.ndim
+                if curr_ndim > output_shape_ndim:
+                    raise ValueError("Input tensor has more dimensions than needed")
+                while curr_ndim < output_shape_ndim:
+                    value = value.unsqueeze(-1)
+                    if value.ndim<=curr_ndim:
+                        raise ValueError("expand_tensors failed to expand the dimensions.")
+                    curr_ndim = value.ndim
+                values[i] = value
+
         def _order_inputs(values: list[Tensor]) -> list[Tensor]:
             """
             This function generates the LHS and RHS of the addition.
@@ -439,13 +513,24 @@ class BatchedAddExpression(AddExpression):
             It is needed because currently Pytorch (v2.3.0) does not support broadcasting between
             sparse and dense matrices.
             """
-            if len(lhs.shape) > len(rhs.shape):
+            while lhs.ndim > rhs.ndim:
                 rhs = stack_tensor(rhs, lhs.shape[0])
-            else:
+            while lhs.ndim < rhs.ndim:
                 lhs = stack_tensor(lhs, rhs.shape[0])
-            return lhs, rhs
+            return lhs, rhs     
 
+        if self._first_iteration(values):
+            #Pad all unpadded tensors.
+            batch_size = _pad_tensors(self, values)
+            #unsqueeze all tensors to agree with self.shape
+            _expand_tensors(self, values, batch_size)
 
+        #This atom does not support adding more than 2 elements directly.
+        if len(values) <= 1:
+            return super(BatchedAddExpression, self).numeric(values)
+        else:
+            rhs = self.torch_numeric(values[1:])
+            values = [values[0], rhs]
         lhs, rhs = _order_inputs(values)
         #Execute the following as a try-catch block, because currently Pytorch does not support
         #sparse-dense broadcasting, but this might change in later versions.
@@ -471,20 +556,37 @@ class BatchedAddExpression(AddExpression):
         """
         return (expr.args, )
 
-def batchify(expr: Expression) -> Expression:
+def batchify(expr: Expression | partial) -> Expression:
     """
     This function returns a new expression where atoms of expr are replaced with their batched
     counterparts.
 
     Parameters:
-        expr (Expression):
-            A CVXPY Expression to batchify.
+        expr (Expression or partial):
+            A CVXPY Expression or Torch expression to batchify.
     
     Returns:
-        expr (Expression):
+        expr (Expression or partial):
             A CVXPY Expression where atoms in SUPPORT_BATCH are replaced with their batched
             counterparts.
+
+            OR
+
+            A torch expression (partial) if a torch expression is passed.
     """
+    def _replace_torch_expr_args(expr: partial, new_expr: Expression) -> partial:
+        """
+        This helper function replaces a torch expressions CVXPY expression with a new expression.
+        """
+        new_args = list(expr.args)
+        new_args[0] = new_expr
+        new_args = tuple(new_args)
+        return replace_partial_args(expr, new_args)
+    
+    #Partial means a torch expression is passed
+    if isinstance(expr, partial):
+        batchified_expr = recursive_apply(expr.args[0], SUPPORT_BATCH) #expr.args[0] is Expression
+        return _replace_torch_expr_args(expr, batchified_expr)
     return recursive_apply(expr, SUPPORT_BATCH)
 
 #This dictionary contains all the supported batched elements.
@@ -497,22 +599,6 @@ SUPPORT_BATCH = {
                 AddExpression:  BatchedAddExpression,
                 }
 
-##########################
-#Batch utilitiy functions
-##########################
-def is_batch(atom: Atom, values: list[Tensor], orig_shape_flag: bool=True) -> bool:
-    """
-    This is a helper function that returns True if this is batch mode.
-    IMPORTANT: Should be used ONLY if:
-    1. self._orig_shape was updated (if not updated, orig_shape_flag=pass False)
-    2. The atom has only 1 input in values.
-    """
-    curr_shape = len(values[0].shape)
-    if orig_shape_flag:
-        atom_shape = getattr(atom, "_orig_shape", atom.shape)
-    else:
-        atom_shape = atom.shape
-    return ((curr_shape - len(atom_shape)) >= 1) or np.prod(values[0].shape) > np.prod(atom_shape)
 
 def permute_tensors(values: list[Tensor], forward: bool) -> None:
     """
@@ -631,21 +717,3 @@ def torch_numeric_stack(self: BatchedHstack | BatchedVstack, values: list[Tensor
     #Return the values of torch_numeric
     return res
 
-def already_padded(arg: Expression, value: Tensor) -> bool:
-    """
-    This is a helper function that returns True if the value has already been padded.
-    It is important to avoid padding the same tensor more than once.
-    """
-    return len(arg.shape) < len(value.shape)
-
-def get_batch_size(arg: Expression, value: Tensor) -> int:
-    """
-    This function returns the batch size of the input tensor, or 1 if it is not batched.
-    """
-    #No batch is equivalent to batch of size 1.
-    if not is_batch(arg, [value]):
-        return 1
-
-    #The 0-th dimension is always assumed to have the batched data.
-    return value.shape[0]
-    

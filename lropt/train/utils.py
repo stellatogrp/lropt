@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+from functools import partial
 
 import numpy as np
 import torch
@@ -19,6 +20,10 @@ def get_n_processes(max_n=np.inf):
     n_proc = max(min(max_n, n_cpus), 1)
 
     return n_proc
+
+##########################
+#Batch utilitiy functions
+##########################
 
 def recursive_apply(expr: Expression, support_types: dict[Atom: Atom]) \
                                                                             -> Expression:
@@ -91,6 +96,20 @@ def inner_transform(expr: Expression, batch_type: type) -> Expression:
         return expr
     return batch_type(*batch_type.get_args(expr))
 
+def is_batch(atom: Atom, values: list[Tensor], orig_shape_flag: bool=True) -> bool:
+    """
+    This is a helper function that returns True if this is batch mode.
+    IMPORTANT: Should be used ONLY if:
+    1. self._orig_shape was updated (if not updated, orig_shape_flag=pass False)
+    2. The atom has only 1 input in values.
+    """
+    curr_shape = values[0].ndim
+    if orig_shape_flag:
+        atom_shape = getattr(atom, "_orig_shape", atom.shape)
+    else:
+        atom_shape = atom.shape
+    return ((curr_shape - len(atom_shape)) >= 1) or np.prod(values[0].shape) > np.prod(atom_shape)
+
 def expand_tensor(arg: Tensor, batch_size: int) -> Tensor:
     """
     This function expands a tensor on the 0-th dimension batch_size times.
@@ -126,3 +145,30 @@ def stack_tensor(arg: Tensor, x: int) -> Tensor:
     if res.ndim == arg.ndim:
         raise RuntimeError(f"stack_tensor failed to increase the ndim of {arg}.")
     return res
+
+def already_padded(arg: Expression, value: Tensor) -> bool:
+    """
+    This is a helper function that returns True if the value has already been padded.
+    It is important to avoid padding the same tensor more than once.
+    """
+    return len(arg.shape) < len(value.shape)
+
+def get_batch_size(arg: Expression, value: Tensor) -> int:
+    """
+    This function returns the batch size of the input tensor, or 1 if it is not batched.
+    """
+    #No batch is equivalent to batch of size 1.
+    if not is_batch(arg, [value]):
+        return 1
+
+    #The 0-th dimension is always assumed to have the batched data.
+    return value.shape[0]
+    
+def replace_partial_args(part: partial, new_args: tuple) -> partial:
+    """
+    This function raplces the args of a partial input with new_args.
+    """
+    _, _, f = part.__reduce__()
+    f, _, k, n = f
+    part.__setstate__((f, new_args, k, n))
+    return part

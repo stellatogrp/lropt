@@ -6,8 +6,12 @@ from cvxpy.reductions.reduction import Reduction
 
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain_canon.max_of_uncertain import sum_of_max_of_uncertain
-from lropt.uncertain_canon.utils import UNCERTAIN_NO_MAX_ID, CERTAIN_ID, standard_invert, \
-    gen_constraint_by_type
+from lropt.uncertain_canon.utils import (
+    CERTAIN_ID,
+    UNCERTAIN_NO_MAX_ID,
+    gen_constraint_by_type,
+    standard_invert,
+)
 from lropt.utils import has_unc_param, has_unc_param_constraint
 
 
@@ -72,11 +76,12 @@ class RemoveSumOfMaxOfUncertain(Reduction):
         eval_exp = getattr(problem, "eval_exp", None)
         epigraph_problem = RobustProblem(canon_objective,new_constraints, eval_exp=eval_exp)
 
-        #TODO (AMIT): WORK HERE!!
-        #Need to keep track of three types of constraints: certain constraints, uncertain constraints with max, and uncertain constraints without max.
-        #For constraints with max, we need to keep track with constraints contribute to it.
-        #At the end we create a new robust problems, whose constraints are the concatenation of all of these constraints.
-        #The new problem has: problem.constraints (all three), and three separate lists.
+        # Need to keep track of three types of constraints: certain constraints, uncertain
+        # constraints with max, and uncertain constraints without max.
+        # For constraints with max, we need to keep track with constraints contribute to it.
+        # At the end we create a new robust problems, whose constraints are the concatenation of all
+        # of these constraints.
+        # The new problem has: problem.constraints (all three), and three separate lists.
         new_constraints = []
         #constraints_by_type is a dictionary from ID of the uncertain max constraint to all of its
         #constraints. There are two special IDs: UNCERTAIN_NO_MAX_ID and CERTAIN_ID for the list of
@@ -101,7 +106,8 @@ class RemoveSumOfMaxOfUncertain(Reduction):
                     inverse_data.cons_id_map.update({constraint.id: canon_constr.id})
                     constraints_by_type[max_id].append(canon_constr)
             else:
-                type_id = UNCERTAIN_NO_MAX_ID if has_unc_param_constraint(constraint) else CERTAIN_ID
+                type_id = UNCERTAIN_NO_MAX_ID if has_unc_param_constraint(constraint) \
+                                                else CERTAIN_ID
                 constraints_by_type[type_id] += [constraint]
                 new_constraints += [constraint]
 
