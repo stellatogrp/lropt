@@ -328,6 +328,8 @@ class BatchedReshape(reshape):
             """
             This is a helper function that reshapes a tensor.
             """
+            if values[0].is_sparse:
+                values[0] = values[0].to_dense()
             #In batch mode, split the tensor into batches.
             batch_size = get_batch_size(self, values[0])
             #Need to break this to not add unnecessary dimensions to un-batched tensors
