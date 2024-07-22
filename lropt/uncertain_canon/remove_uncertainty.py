@@ -214,7 +214,7 @@ class RemoveUncertainty(Reduction):
         """
 
         unc_param = cur_cons_data['unc_param']
-        is_mro = type(unc_param.uncertainty_set) == MRO
+        is_mro = isinstance(unc_param.uncertainty_set, MRO)
         canon_constr, aux_constr, new_lmbda, new_sval = \
             self.remove_uncertainty_helper(cur_cons_data, unc_param,is_mro)
         canon_constraints += aux_constr + [canon_constr]

@@ -688,7 +688,7 @@ class RobustProblem(Problem):
             Boolean result
         """
 
-        return (type(unc_set) == MRO)
+        return isinstance(unc_set, MRO)
 
     def _gen_init(self, train_shape, train_set, init_eps, init_A):
         """
@@ -1789,7 +1789,7 @@ class RobustProblem(Problem):
                 inverse_data
             """
             reductions_canon = []
-            if type(problem.objective) == Maximize:
+            if isinstance(problem.objective, Maximize):
                 #If maximization problem, flip to minimize
                 reductions_canon += [FlipObjective()]
             reductions_canon += [RemoveSumOfMaxOfUncertain(), UncertainCanonicalization()]
@@ -1854,7 +1854,7 @@ class RobustProblem(Problem):
                     self.remove_uncertainty()
                 else:
                     # if not MRO set and not trained
-                    if not type(self.uncertain_parameters()[0].uncertainty_set) == MRO:
+                    if not isinstance(self.uncertain_parameters()[0].uncertainty_set, MRO):
                         _ = self.train()
                         for y in self.y_parameters():
                             y.value = y.data[0]

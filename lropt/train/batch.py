@@ -237,7 +237,7 @@ class ElementwiseDotProduct(MulExpression):
 
             #Check if dot-product
             op_name = getattr(expr, "OP_NAME", None)
-            return (op_name=="@") and (type(expr) != multiply)
+            return (op_name=="@") and (not isinstance(expr, multiply))
 
         #Change this expression if necessary
         if not _should_transform(expr):
