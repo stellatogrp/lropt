@@ -61,8 +61,8 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "LRO objective value:  5.703688799859293 \n",
-      "LRO x:  [2.52194501 2.86957233 2.80325758 2.77677025]\n"
+      "LRO objective value:  6.898763511529941 \n",
+      "LRO x:  [2.71368138 2.41841432 2.36109352 2.83768242]\n"
      ]
     }
    ],
@@ -121,8 +121,8 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "Cvxpy objective value:  5.703688799264118 \n",
-      "Cvxpy x:  [2.52194501 2.86957233 2.80325758 2.77677025]\n"
+      "Cvxpy objective value:  6.898763508172045 \n",
+      "Cvxpy x:  [2.71368138 2.41841431 2.36109352 2.83768242]\n"
      ]
     }
    ],

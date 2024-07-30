@@ -5,11 +5,11 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Uncertainty Sets" href="../uncertainty_sets/index.html" /><link rel="prev" title="LROPT RULESET" href="../lropt_ruleset/index.html" />
 
-    <!-- Generated with Sphinx 7.2.6 and Furo 2024.01.29 -->
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.07.18 -->
         <title>Robust Problem - LROPT documentation documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
-    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
-    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=36a5483c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=613ab9ff" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=302659d7" />
     
     
 
@@ -68,7 +68,7 @@
   <symbol id="svg-sun" viewBox="0 0 24 24">
     <title>Light mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
       <circle cx="12" cy="12" r="5"></circle>
       <line x1="12" y1="1" x2="12" y2="3"></line>
       <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -83,22 +83,63 @@
   <symbol id="svg-moon" viewBox="0 0 24 24">
     <title>Dark mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
       <path stroke="none" d="M0 0h24v24H0z" fill="none" />
       <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
     </svg>
   </symbol>
-  <symbol id="svg-sun-half" viewBox="0 0 24 24">
-    <title>Auto light/dark mode</title>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
-      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M13 12h5" />
-      <path d="M13 15h4" />
-      <path d="M13 18h1" />
-      <path d="M13 9h4" />
-      <path d="M13 6h1" />
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
     </svg>
   </symbol>
 </svg>
@@ -111,6 +152,8 @@
 <label class="overlay toc-overlay" for="__toc">
   <div class="visually-hidden">Hide table of contents sidebar</div>
 </label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
 
 
@@ -129,7 +172,8 @@
       <div class="theme-toggle-container theme-toggle-header">
         <button class="theme-toggle">
           <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
-          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
           <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
@@ -192,11 +236,17 @@
           <span>Back to top</span>
         </a>
         <div class="content-icon-container">
-          
+          <div class="view-this-page">
+  <a class="muted-link" href="../../_sources/api/robust_problem/index.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
 <div class="theme-toggle-container theme-toggle-content">
             <button class="theme-toggle">
               <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
-              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
               <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
@@ -206,36 +256,30 @@
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
-        <article role="main">
+        <article role="main" id="furo-main-content">
           <section id="robust-problem">
-<h1>Robust Problem<a class="headerlink" href="#robust-problem" title="Link to this heading">#</a></h1>
+<h1>Robust Problem<a class="headerlink" href="#robust-problem" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="lropt.RobustProblem">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lropt.</span></span><span class="sig-name descname"><span class="pre">RobustProblem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">objective</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraints</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_exp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_flag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lropt.</span></span><span class="sig-name descname"><span class="pre">RobustProblem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">objective</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraints</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_exp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_flag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cons_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify_y_parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem" title="Link to this definition">¶</a></dt>
 <dd><p>Create a Robust Optimization Problem with uncertain variables</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="lropt.RobustProblem.dualize_constraints">
-<span class="sig-name descname"><span class="pre">dualize_constraints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.dualize_constraints" title="Link to this definition">#</a></dt>
-<dd><p>This function canonizes a problem and saves it to self.new_prob</p>
-<p>Args:</p>
-<dl class="simple">
-<dt>override</dt><dd><p>If True, will override current new_prob. If false and new_prob exists, does nothing.</p>
-</dd>
-</dl>
-<p>Returns:</p>
-<p>None</p>
+<dt class="sig sig-object py" id="lropt.RobustProblem.evaluation_metric">
+<span class="sig-name descname"><span class="pre">evaluation_metric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantiles</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.evaluation_metric" title="Link to this definition">¶</a></dt>
+<dd><p>This function evaluates the training on the given problem.
+TODO (Amit): Irina, please complete the docstring.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.fg_to_lh">
-<span class="sig-name descname"><span class="pre">fg_to_lh</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.fg_to_lh" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">fg_to_lh</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.fg_to_lh" title="Link to this definition">¶</a></dt>
 <dd><p>Returns l and h function pointers.
 Each of them takes a single x,y,u triplet (i.e. one instance of each)</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.grid">
-<span class="sig-name descname"><span class="pre">grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epslst</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([1.00000000e-03,</span> <span class="pre">1.62377674e-03,</span> <span class="pre">2.63665090e-03,</span> <span class="pre">4.28133240e-03,</span> <span class="pre">6.95192796e-03,</span> <span class="pre">1.12883789e-02,</span> <span class="pre">1.83298071e-02,</span> <span class="pre">2.97635144e-02,</span> <span class="pre">4.83293024e-02,</span> <span class="pre">7.84759970e-02,</span> <span class="pre">1.27427499e-01,</span> <span class="pre">2.06913808e-01,</span> <span class="pre">3.35981829e-01,</span> <span class="pre">5.45559478e-01,</span> <span class="pre">8.85866790e-01,</span> <span class="pre">1.43844989e+00,</span> <span class="pre">2.33572147e+00,</span> <span class="pre">3.79269019e+00,</span> <span class="pre">6.15848211e+00,</span> <span class="pre">1.00000000e+01])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_A</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_ys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'solve_method':</span> <span class="pre">'Clarabel'}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantiles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.25,</span> <span class="pre">0.75)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">newdata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.grid" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epslst</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([1.00000000e-03,</span> <span class="pre">1.62377674e-03,</span> <span class="pre">2.63665090e-03,</span> <span class="pre">4.28133240e-03,</span> <span class="pre">6.95192796e-03,</span> <span class="pre">1.12883789e-02,</span> <span class="pre">1.83298071e-02,</span> <span class="pre">2.97635144e-02,</span> <span class="pre">4.83293024e-02,</span> <span class="pre">7.84759970e-02,</span> <span class="pre">1.27427499e-01,</span> <span class="pre">2.06913808e-01,</span> <span class="pre">3.35981829e-01,</span> <span class="pre">5.45559478e-01,</span> <span class="pre">8.85866790e-01,</span> <span class="pre">1.43844989e+00,</span> <span class="pre">2.33572147e+00,</span> <span class="pre">3.79269019e+00,</span> <span class="pre">6.15848211e+00,</span> <span class="pre">1.00000000e+01])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_A</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_ys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'solve_method':</span> <span class="pre">'Clarabel'}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantiles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.25,</span> <span class="pre">0.75)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">newdata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.grid" title="Link to this definition">¶</a></dt>
 <dd><p>Perform gridsearch to find optimal <span class="math notranslate nohighlight">\(\epsilon\)</span>-ball around data.</p>
 <p>Args:</p>
 <dl class="simple">
@@ -263,20 +307,40 @@ Each of them takes a single x,y,u triplet (i.e. one instance of each)</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lropt.RobustProblem.order_args">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">order_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u_batch</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.order_args" title="Link to this definition">¶</a></dt>
+<dd><p>This function orders var_values, y_batch, and u_batch according to the order in vars_params.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.orig_yparams">
-<span class="sig-name descname"><span class="pre">orig_yparams</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.orig_yparams" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">orig_yparams</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.orig_yparams" title="Link to this definition">¶</a></dt>
 <dd><p>Find cvxpy y parameters</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.prob_constr_violation">
-<span class="sig-name descname"><span class="pre">prob_constr_violation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">items_to_sample</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_us</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.prob_constr_violation" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">prob_constr_violation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_us</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.prob_constr_violation" title="Link to this definition">¶</a></dt>
 <dd><p>TODO (Amit): Irina, please complete the docstring</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lropt.RobustProblem.remove_uncertainty">
+<span class="sig-name descname"><span class="pre">remove_uncertainty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.remove_uncertainty" title="Link to this definition">¶</a></dt>
+<dd><p>This function canonizes a problem and saves it to self.problem_no_unc</p>
+<p>Args:</p>
+<dl class="simple">
+<dt>override</dt><dd><p>If True, will override current problem_no_unc.
+If False and problem_no_unc exists, does nothing.</p>
+</dd>
+</dl>
+<p>Returns:</p>
+<p>None</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.solve">
-<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warm_start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qcp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requires_grad</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enforce_dpp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_dpp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canon_backend</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.solve" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warm_start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qcp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requires_grad</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enforce_dpp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_dpp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canon_backend</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.solve" title="Link to this definition">¶</a></dt>
 <dd><p>This function solves the robust problem, and dualizes it first if it has
 not been dualized</p>
 <p>Returns: the solution to the original problem</p>
@@ -284,10 +348,10 @@ not been dualized</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.train">
-<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">45</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_iter_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduler</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">momentum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SGD'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_A</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_lam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_mu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_multiplier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kappa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-0.015</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_random_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_frequency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_lam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_percentage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'solve_method':</span> <span class="pre">'Clarabel'}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_jobs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantiles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.25,</span> <span class="pre">0.75)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_step_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_gamma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aug_lag_update_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_update_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_update_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.train" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">45</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_iter_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduler</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">momentum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SGD'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_A</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_lam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_mu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_multiplier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kappa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-0.015</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_random_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_frequency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_lam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_percentage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'solve_method':</span> <span class="pre">'Clarabel'}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_jobs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantiles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.25,</span> <span class="pre">0.75)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_step_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_gamma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aug_lag_update_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_update_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_update_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.train" title="Link to this definition">¶</a></dt>
 <dd><p>Trains the uncertainty set parameters to find optimal set w.r.t. lagrangian metric</p>
 <section id="parameters-todo-amit-irina-update-all-the-variables">
-<h2>Parameters TODO (Amit): Irina - update all the variables<a class="headerlink" href="#parameters-todo-amit-irina-update-all-the-variables" title="Link to this heading">#</a></h2>
+<h2>Parameters TODO (Amit): Irina - update all the variables<a class="headerlink" href="#parameters-todo-amit-irina-update-all-the-variables" title="Link to this heading">¶</a></h2>
 <dl class="simple">
 <dt>train_size<span class="classifier">bool, optional</span></dt><dd><p>If True, train only epsilon, where <span class="math notranslate nohighlight">\(A = \epsilon I, \
 b = \epsilon \bar{d}\)</span>, where <span class="math notranslate nohighlight">\(\bar{d}\)</span> is the centroid of the
@@ -358,25 +422,25 @@ A pandas data frame with information on each :math:r`epsilon` having the followi
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.uncertain_parameters">
-<span class="sig-name descname"><span class="pre">uncertain_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.uncertain_parameters" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">uncertain_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.uncertain_parameters" title="Link to this definition">¶</a></dt>
 <dd><p>Find uncertain parameters</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.unpack">
-<span class="sig-name descname"><span class="pre">unpack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#lropt.RobustProblem.unpack" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">unpack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#lropt.RobustProblem.unpack" title="Link to this definition">¶</a></dt>
 <dd><p>Updates the problem state given a Solution.</p>
 <p>Updates problem.status, problem.value and value of primal and dual
 variables. If solution.status is in cvxpy.settins.ERROR, this method
 is a no-op.</p>
 <section id="arguments">
-<h2>Arguments<a class="headerlink" href="#arguments" title="Link to this heading">#</a></h2>
+<h2>Arguments<a class="headerlink" href="#arguments" title="Link to this heading">¶</a></h2>
 <dl class="simple">
 <dt>solution<span class="classifier">cvxpy.Solution</span></dt><dd><p>A Solution object.</p>
 </dd>
 </dl>
 <section id="raises">
-<h3>Raises<a class="headerlink" href="#raises" title="Link to this heading">#</a></h3>
+<h3>Raises<a class="headerlink" href="#raises" title="Link to this heading">¶</a></h3>
 <dl class="simple">
 <dt>ValueError</dt><dd><p>If the solution object has an invalid status</p>
 </dd>
@@ -387,12 +451,12 @@ is a no-op.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.unpack_results_unc">
-<span class="sig-name descname"><span class="pre">unpack_results_unc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inverse_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solvername</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#lropt.RobustProblem.unpack_results_unc" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">unpack_results_unc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inverse_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solvername</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#lropt.RobustProblem.unpack_results_unc" title="Link to this definition">¶</a></dt>
 <dd><p>Updates the problem state given the solver results.</p>
 <p>Updates problem.status, problem.value and value of
 primal and dual variables.</p>
 <section id="id1">
-<h2>Arguments<a class="headerlink" href="#id1" title="Link to this heading">#</a></h2>
+<h2>Arguments<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
 <dl class="simple">
 <dt>solution<span class="classifier">object</span></dt><dd><p>The solution returned by applying the chain to the problem
 and invoking the solver on the resulting data.</p>
@@ -403,7 +467,7 @@ and invoking the solver on the resulting data.</p>
 </dd>
 </dl>
 <section id="id2">
-<h3>Raises<a class="headerlink" href="#id2" title="Link to this heading">#</a></h3>
+<h3>Raises<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
 <dl class="simple">
 <dt>cvxpy.error.SolverError</dt><dd><p>If the solver failed</p>
 </dd>
@@ -414,13 +478,13 @@ and invoking the solver on the resulting data.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.verify_y_parameters">
-<span class="sig-name descname"><span class="pre">verify_y_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.verify_y_parameters" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">verify_y_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.verify_y_parameters" title="Link to this definition">¶</a></dt>
 <dd><p>This function verifies that y and u are in the correct diemsnions.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.y_parameters">
-<span class="sig-name descname"><span class="pre">y_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.y_parameters" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">y_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.y_parameters" title="Link to this definition">¶</a></dt>
 <dd><p>Find y parameters</p>
 </dd></dl>
 
@@ -485,11 +549,13 @@ and invoking the solver on the resulting data.</p>
             <ul>
 <li><a class="reference internal" href="#">Robust Problem</a><ul>
 <li><a class="reference internal" href="#lropt.RobustProblem"><code class="docutils literal notranslate"><span class="pre">RobustProblem</span></code></a><ul>
-<li><a class="reference internal" href="#lropt.RobustProblem.dualize_constraints"><code class="docutils literal notranslate"><span class="pre">RobustProblem.dualize_constraints()</span></code></a></li>
+<li><a class="reference internal" href="#lropt.RobustProblem.evaluation_metric"><code class="docutils literal notranslate"><span class="pre">RobustProblem.evaluation_metric()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.fg_to_lh"><code class="docutils literal notranslate"><span class="pre">RobustProblem.fg_to_lh()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.grid"><code class="docutils literal notranslate"><span class="pre">RobustProblem.grid()</span></code></a></li>
+<li><a class="reference internal" href="#lropt.RobustProblem.order_args"><code class="docutils literal notranslate"><span class="pre">RobustProblem.order_args()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.orig_yparams"><code class="docutils literal notranslate"><span class="pre">RobustProblem.orig_yparams()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.prob_constr_violation"><code class="docutils literal notranslate"><span class="pre">RobustProblem.prob_constr_violation()</span></code></a></li>
+<li><a class="reference internal" href="#lropt.RobustProblem.remove_uncertainty"><code class="docutils literal notranslate"><span class="pre">RobustProblem.remove_uncertainty()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.solve"><code class="docutils literal notranslate"><span class="pre">RobustProblem.solve()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.train"><code class="docutils literal notranslate"><span class="pre">RobustProblem.train()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.uncertain_parameters"><code class="docutils literal notranslate"><span class="pre">RobustProblem.uncertain_parameters()</span></code></a></li>
@@ -511,9 +577,9 @@ and invoking the solver on the resulting data.</p>
     </aside>
   </div>
 </div><script src="../../_static/documentation_options.js?v=5929fcd5"></script>
-    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../../_static/scripts/furo.js?v=32e29ea5"></script>
+    <script src="../../_static/scripts/furo.js?v=5fa4622c"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>

@@ -89,6 +89,7 @@
     "objective = cp.Minimize(t)\n",
     "\n",
     "# formulate constraints \n",
+    "#TODO: lropt.quad_form is no longer implemented (we deleted lropt.quad_form).\n",
     "constraints = [cp.sum([-0.5*lropt.quad_form(u, P[i]*x_r[i]) for i in range(n)]) <= t]\n",
     "constraints += [cp.sum(x_r)==4]\n",
     "constraints += [x_r >= 0.6, x_r <= 1]\n",
