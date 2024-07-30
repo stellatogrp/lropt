@@ -151,7 +151,7 @@ class Trainer():
                     init_num=1,seed = 0, init_weight = None, init_bias = None):
         """Initializes the linear model weights and bias"""
         in_shape, out_shape, a_totsize = \
-                                self.initialize_dimensions_linear(self.unc_set)
+                                self.initialize_dimensions_linear()
         torch.manual_seed(seed+init_num)
         lin_model = torch.nn.Linear(in_features = in_shape,
                                 out_features = out_shape).double()
@@ -1323,20 +1323,20 @@ class Trainer():
                 eps*init_eps, requires_grad=self.train_flag, dtype=settings.DTYPE)
             if contextual:
                 a_tch_init, b_tch_init = self.create_tensors_linear(
-                                    y_unique_t, linear, self.unc_set, requires_grad=self.train_flag)
+                                    y_unique, linear)
             var_values = self.cvxpylayer(eps_tch, *self.y_orig_tch,
                                     *y_unique, a_tch_init,b_tch_init,
                                     solver_args=solver_args)
-            if contextual:
-                a_tch_init, b_tch_init = self.create_tensors_linear(
-                                    y_unique, linear, self.unc_set,requires_grad=self.train_flag)
-            var_values_t = self.cvxpylayer(eps_tch, *self.y_orig_tch,
-                                    *y_unique_t, a_tch_init,b_tch_init,
-                                    solver_args=solver_args)
-
             new_var_values, a_tch_init, b_tch_init = self.gen_new_var_values(
                 num_unique_indices,y_unique_array, var_values,
                 self.test_size, y_batch_array, contextual,a_tch_init, b_tch_init )
+
+            if contextual:
+                a_tch_init, b_tch_init = self.create_tensors_linear(
+                                    y_unique_t, linear)
+            var_values_t = self.cvxpylayer(eps_tch, *self.y_orig_tch,
+                                    *y_unique_t, a_tch_init,b_tch_init,
+                                    solver_args=solver_args)
 
             new_var_values_t,_,_ = self.gen_new_var_values(num_unique_indices_t,
                      y_unique_array_t, var_values_t, self.train_size,
