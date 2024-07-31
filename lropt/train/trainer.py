@@ -100,13 +100,13 @@ class Trainer():
         """Generate the torch of the rho multiplier value, placed in a list"""
         return [torch.tensor(rho.value,
                         dtype=settings.DTYPE,
-                        requires_grad=self.train_flag) for rho in rhoparams]
+                        requires_grad=self.train_flag) for rho in rhoparams][0]
 
     def shape_parameters(self, problem):
         """Get the reshaping parameters a and b"""
         return [v for v in problem.parameters() if isinstance(v, ShapeParameter)]
 
-    def create_cvxpylayers(self,parameters = None, variables=None):
+    def create_cvxpylayer(self,parameters = None, variables=None):
         """Create cvxpylayers.
         Default parameter order: rho multiplier, cvxpy parameters, lropt parameters, a, b.
         Default variable order: the variables of problem_canon """
@@ -1057,7 +1057,7 @@ class Trainer():
                 raise ValueError("You must give a model if you do not train a model")
         _,_,_,_,_,_,_ = self._split_dataset(test_percentage, seed)
 
-        self.cvxpylayer = self.create_cvxpylayers()
+        self.cvxpylayer = self.create_cvxpylayer()
 
         num_random_init = num_random_init if random_init else 1
         num_random_init = num_random_init if train_shape else 1
@@ -1302,7 +1302,7 @@ class Trainer():
                 self.y_test_tch = [torch.tensor(y, requires_grad=self.train_flag,
                                         dtype=settings.DTYPE) for y in y_set]
 
-        self.cvxpylayer = self.create_cvxpylayers()
+        self.cvxpylayer = self.create_cvxpylayer()
 
         grid_stats = GridStats()
 
