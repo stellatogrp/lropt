@@ -1,3 +1,4 @@
+import abc
 from abc import ABC
 from enum import Enum
 
@@ -17,6 +18,45 @@ from lropt.train.utils import get_n_processes
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.utils import unique_list
 
+# add a simulator class. abstract class. user defines.
+# simulate (dynamics)
+# stage cost
+# constraint (per stage or not) (constraint cvar, some notion of violation)
+
+
+# Trainer
+# inject the data into the trainer
+# loss and constraints (calls monte carlo, stage cost, constraint)
+# monte-carlo - evaluate without gradients
+
+
+class Simulator(ABC):
+
+    @abc.abstractmethod
+    def simulate(self,x,u,t,seed):
+        """Simulate next set of parameters using current parameters x
+        and variables u, with added uncertainty
+        """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def stage_cost(self,x,u):
+        """ Create the current stage cost using the current state x
+        and decision u
+        """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def constraint_cost(self,x,u):
+        """ Create the current constraint penalty cost
+        """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def init_parameter(self,seed):
+        """ initialize the parameter value
+        """
+        raise NotImplementedError()
 
 class Trainer():
     _EVAL_INPUT_CASE = Enum("_EVAL_INPUT_CASE", "MEAN EVALMEAN MAX")
@@ -54,6 +94,108 @@ class Trainer():
         self.test_set = None
         self.y_train_tch = None
         self.y_test_tch = None
+
+    def monte_carlo(self, policy, time_horizon, trials=10, seed=None):
+        if seed is not None:
+            torch.manual_seed(seed)
+        results = []
+        constraint_costs = []
+        x = []
+        u = []
+
+        for i in range(trials):
+            cost, constraint_cost, x_hist, u_hist = self.loss_and_constraints(
+                policy, time_horizon, seed=seed)
+            results.append(cost.item())
+            constraint_costs.append(constraint_cost.item())
+            x.append(x_hist)
+            u.append(u_hist)
+        return results, constraint_costs, x, u
+
+    def loss_and_constraints(self,time_horizon, seed=0, eps_tch=None,solver_args=None):
+        if seed is not None:
+            torch.manual_seed(seed)
+
+        x_0 = self.simulator.init_parameter(seed)
+        a_tch, b_tch = self.create_tensors_linear(x_0,
+                                    self._model)
+
+        cost = 0.0
+        constraint_cost = 0.0
+        x_t = x_0
+        x_hist = [x_0]
+        u_hist = []
+        for t in range(time_horizon):
+            u_t = self.cvxpylayer(eps_tch, *self.y_orig_tch,
+                x_t,a_tch,b_tch,solver_args=solver_args)[0]
+            x_t = self.simulator.simulate(x_t, u_t, t,seed)
+            cost += self.simulator.stage_cost(x_t, u_t).mean() / time_horizon
+            constraint_cost += self.simulator.constraint_cost(x_t, u_t).mean() / time_horizon
+            x_hist.append(x_t)
+            u_hist.append(u_t)
+            a_tch, b_tch = self.create_tensors_linear(x_t,self._model)
+        return cost, constraint_cost, x_hist, u_hist
+
+    def multistage_train(self, simulator, policy = None, time_horizon = 1,
+                          epochs = 1, trials = 1, init_eps=1, seed=0,
+                          init_a = None, init_b = None, init_alpha = 0,
+                          test_percentage = 0.1 , optimizer = "SGD",
+                          lr= 0.001, momentum = 0.8, scheduler = True,
+                           lr_step_size = 100, lr_gamma = 0.5,
+                           solver_args = None):
+
+        _,_,_,_,_,_,_ = self._split_dataset(test_percentage, seed)
+
+        self.cvxpylayer = self.create_cvxpylayer() if not policy else policy
+        self.simulator = simulator
+        eps_tch = self._gen_eps_tch(init_eps)
+        a_tch, b_tch, alpha, slack = self._init_torches(init_a,
+                                        init_b,
+                                        init_alpha, self.train_set)
+
+        self._linear = self.init_linear_model(a_tch, b_tch,
+                                    False,1,
+                                    seed)
+        self._model = torch.nn.Sequential(self._linear)
+        variables = [alpha,slack]
+        variables.extend(list(self._model.parameters()))
+
+        if optimizer == "SGD":
+            opt = settings.OPTIMIZERS[optimizer](
+                variables, lr=lr, momentum=momentum)
+        else:
+            opt = settings.OPTIMIZERS[optimizer](
+                variables, lr=lr)
+        if scheduler:
+            scheduler_ = torch.optim.lr_scheduler.StepLR(
+                opt, step_size=lr_step_size, gamma=lr_gamma)
+
+        val_costs = []
+        val_costs_constr = []
+
+        for epoch in range(epochs):
+            with torch.no_grad():
+                val_cost, val_cost_constr, x_base, u_base = self.monte_carlo(
+                    policy, time_horizon,  trials=trials, seed=0)
+                val_cost = np.mean(val_cost)
+                val_cost_constr = np.mean(val_cost_constr)
+                val_costs.append(val_cost)
+                val_costs_constr.append(val_cost_constr)
+
+            torch.manual_seed(epoch)
+            opt.zero_grad()
+            cost, constr_cost, _, _,  = self.loss_and_constraints(
+                time_horizon, seed=epoch+1,eps_tch=eps_tch,
+                solver_args=solver_args)
+            fin_cost = cost+constr_cost
+            fin_cost.backward()
+            print("epoch %d, valid %.4e" % (epoch, val_cost))
+            opt.step()
+            if scheduler:
+              scheduler_.step()
+        return val_costs, val_costs_constr, [np.array(v.detach().numpy())
+                                             for v in variables], x_base, u_base
+
 
     def _validate_unc_set_T(self):
         """
@@ -386,6 +528,7 @@ class Trainer():
         slack = torch.zeros(self.num_g_total, requires_grad=self.train_flag, dtype=settings.DTYPE)
         return a_tch, b_tch, alpha, slack
 
+
     def _update_iters(self, save_history, a_history, b_history,
                       eps_history,a_tch, b_tch, eps_tch):
         """
@@ -451,7 +594,7 @@ class Trainer():
         elif fixb:
             variables = [a_tch, alpha, slack]
         elif contextual:
-            variables = [eps_tch, alpha,slack]
+            variables = [alpha,slack]
             variables.extend(list(model.parameters()))
         else:
             variables = [a_tch, b_tch, alpha, slack]
@@ -459,8 +602,8 @@ class Trainer():
         return variables
 
 
-
-    def _calc_coverage(self, dset, a_tch, b_tch, rho=1,p=2,contextual=False):
+    def _calc_coverage(self, dset, a_tch, b_tch, rho=1,p=2,
+                       contextual=False,y_set = None, linear = None):
         """
         This function calculates coverage.
 
@@ -483,6 +626,7 @@ class Trainer():
         """
         coverage = 0
         if contextual:
+            a_tch, b_tch = self.create_tensors_linear(y_set, linear)
             for i in range(dset.shape[0]):
                 coverage += torch.where(
                     torch.norm((a_tch[i].T@torch.linalg.inv(a_tch[i]@a_tch[i].T)) @ (dset[i]-
@@ -861,8 +1005,10 @@ class Trainer():
                     obj_test, prob_violation_test, var_vio)
                 new_row = train_stats.generate_test_row(
                     self._calc_coverage, a_tch, b_tch, alpha,
-                    u_batch, eps_tch, self.unc_set, var_values, kwargs['contextual'])
-                df_test = pd.concat([df_test, new_row.to_frame().T], ignore_index=True)
+                    u_batch, eps_tch, self.unc_set, var_values,
+                    kwargs['contextual'], kwargs['linear'], y_batch)
+                df_test = pd.concat([df_test,
+                                     new_row.to_frame().T], ignore_index=True)
 
 
             if step_num < kwargs['num_iter'] - 1:
@@ -871,9 +1017,8 @@ class Trainer():
                 with torch.no_grad():
                     newval = torch.clamp(slack, min=0., max=torch.inf)
                     slack.copy_(newval)
-                    if kwargs['trained_shape']:
-                        neweps_tch = torch.clamp(eps_tch, min=0.001)
-                        eps_tch.copy_(neweps_tch)
+                    neweps_tch = torch.clamp(eps_tch, min=0.001)
+                    eps_tch.copy_(neweps_tch)
                 if kwargs['scheduler']:
                     scheduler_.step()
 
@@ -1371,7 +1516,8 @@ class Trainer():
 
             new_row = train_stats.generate_test_row(
                 self._calc_coverage, a_tch_init,b_tch_init,
-                alpha, self.train_tch,eps_tch, self.unc_set, var_values[1],contextual)
+                alpha, self.test_tch,eps_tch, self.unc_set, var_values[0],
+                contextual,linear, self.y_test_tch)
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
         self.orig_problem._trained = True
@@ -1400,6 +1546,9 @@ class Trainer():
             grid_stats.minval,
             grid_stats.var_vals,
         )
+
+
+
 
 
 class TrainLoopStats():
@@ -1495,12 +1644,13 @@ class TrainLoopStats():
         return new_row
 
     def generate_test_row(self, calc_coverage, a_tch, b_tch,
-                        alpha, test_tch, eps_tch, uncset, var_values= None,contextual = False):
+                        alpha, test_tch, eps_tch, uncset, var_values= None,
+                        contextual = False,linear = None,y_test_tch = None):
         """
         This function generates a new row with the statistics
         """
         coverage_test = calc_coverage(
-            test_tch, a_tch, b_tch, uncset._rho*eps_tch,uncset.p,contextual)
+            test_tch, a_tch, b_tch, uncset._rho*eps_tch,uncset.p,contextual,y_test_tch, linear)
         row_dict = {
             "Test_val":         self.testval,
             "Lower_test": self.lower_testval,
