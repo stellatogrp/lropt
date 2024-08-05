@@ -29,6 +29,12 @@ from lropt.utils import unique_list
 # loss and constraints (calls monte carlo, stage cost, constraint)
 # monte-carlo - evaluate without gradients
 
+# class Supply(Simulator):
+
+#     def simulate(self,x,u,t,seed):
+#         return
+
+
 
 class Simulator(ABC):
 
