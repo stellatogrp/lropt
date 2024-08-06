@@ -4,7 +4,7 @@ from cvxpy.constraints.constraint import Constraint
 from cvxpy.expressions.expression import Expression
 from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.solution import Solution
-from scipy.sparse import csc_matrix, csr_matrix, lil_matrix
+from scipy.sparse import csc_matrix, lil_matrix
 from scipy.sparse._coo import coo_matrix
 
 UNCERTAIN_NO_MAX_ID = -1 #Use this ID for all uncertain constraints without max
