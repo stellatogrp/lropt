@@ -4,7 +4,7 @@ from cvxpy.constraints.constraint import Constraint
 from cvxpy.expressions.expression import Expression
 from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.solution import Solution
-from scipy.sparse import csc_matrix, csr_matrix
+from scipy.sparse import csc_matrix, csr_matrix, lil_matrix
 from scipy.sparse._coo import coo_matrix
 
 UNCERTAIN_NO_MAX_ID = -1 #Use this ID for all uncertain constraints without max
@@ -43,7 +43,7 @@ def reshape_tensor(T_Ab: coo_matrix, n_var: int) -> np.ndarray:
     n_var_full = n_var+1 #Includes the free paramter
     num_rows = T_Ab.shape[0]
     num_constraints = num_rows//n_var_full
-    T_Ab_res = csr_matrix(T_Ab.shape) #TODO: This changes csc to csr, might be inefficient
+    T_Ab_res = lil_matrix(T_Ab.shape) #TODO: This changes csc to csr, might be inefficient
     for target_row in range(num_rows): #Counter for populating the new row of T_Ab_res
         source_row = _calc_source_row(target_row, num_constraints, n_var_full)
         T_Ab_res[target_row, :] = T_Ab[source_row, :]
