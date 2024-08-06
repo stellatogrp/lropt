@@ -26,21 +26,17 @@ class UncertainParameter(cp.Parameter):
                                               n, SUPPORT_TYPE.SUM_EQUALITY)
 
 
-    def canonicalize(self, x, var):
+    def remove_uncertain(self, x, var):
         """Reformulate uncertain parameter"""
-        return self.uncertainty_set.canonicalize(x, var)
+        return self.uncertainty_set.remove_uncertain(x, var)
 
-    def isolated_unc(self, i, var, num_constr):
+    def isolated_unc(self,var):
         """Remove isolated uncertainty"""
-        return self.uncertainty_set.isolated_unc(i, var, num_constr)
+        return self.uncertainty_set.isolated_unc(var)
 
-    def isolated_unc_matrix(self, i, col, row, var, mat_var, num_col, num_row):
-        """Remove isolated uncertainty"""
-        return self.uncertainty_set.isolated_unc_matrix(i, col, row, var, mat_var, num_col, num_row)
-
-    def conjugate(self, var, supp_var, shape, k_ind):
+    def conjugate(self, var, supp_var, k_ind):
         """Reformulate uncertainty set"""
-        return self.uncertainty_set.conjugate(var, supp_var, shape, k_ind)
+        return self.uncertainty_set.conjugate(var, supp_var, k_ind)
 
     def __repr__(self):
         """String to recreate the object.

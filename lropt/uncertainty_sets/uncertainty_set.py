@@ -102,13 +102,15 @@ class UncertaintySet(ABC):
                 return rhs.is_scalar()
             return not len(rhs)>1
 
-        if _is_scalar(rhs):
+        if _is_scalar(rhs) or isinstance(lhs, int):
             if (not isinstance(lhs, int)) and len(lhs.shape) == 2 and lhs.shape[1]==1:
                 lhs = cp.reshape(lhs,(lhs.shape[0],))
             return lhs*rhs
+        elif isinstance(lhs, int):
+            return lhs*rhs
         return lhs@rhs
 
-    def canonicalize(self, x, var):
+    def remove_uncertain(self, x, var):
         trans = self.affine_transform_temp
         new_expr = 0
         if trans:
@@ -126,16 +128,14 @@ class UncertaintySet(ABC):
             self.affine_transform_temp = None
         return new_expr, new_constraints
 
-    def isolated_unc(self, i, var, num_constr):
+    def isolated_unc(self,var):
         trans = self.affine_transform_temp
         new_expr = 0
-        if i == 0 and trans:
+        if trans:
             new_expr += trans['b']
-
-        e = np.eye(num_constr)[i]
-
-        if self.b is not None:
-            new_expr = new_expr + cp.multiply(e, self._safe_mul(-self.b,var))
+        e = np.eye(1)[0]
+        # if self.b is not None:
+        #     new_expr = new_expr + cp.multiply(e, self._safe_mul(-self.b,var))
 
         if trans:
             lhs = -trans['A']
@@ -145,35 +145,9 @@ class UncertaintySet(ABC):
         else:
             new_constraints = [var == - e]
 
-        if i == (num_constr - 1):
-            if self.affine_transform:
-                self.affine_transform_temp = self.affine_transform.copy()
-            else:
-                self.affine_transform_temp = None
-        return new_expr, new_constraints
-
-    def isolated_unc_matrix(self, i, col, row, var, mat_var, num_col, num_row):
-        trans = self.affine_transform_temp
-        new_expr = 0
-        if trans:
-            new_expr += cp.multiply(np.outer(np.eye(num_col)[col],\
-                            np.eye(num_row)[row]),mat_var*trans['b'])
-
-        if self.b is not None:
-            new_expr = new_expr + cp.multiply(np.outer(np.eye(num_col)[col],\
-                    np.eye(num_row)[row]), self._safe_mul(-self.b,var))
-
-        if trans:
-            lhs = -trans['A']
-            if not var.is_scalar():
-                lhs = lhs.T
-            new_constraints = [var == self._safe_mul(lhs, mat_var)]
+        # if i == (num_constr - 1):
+        if self.affine_transform:
+            self.affine_transform_temp = self.affine_transform.copy()
         else:
-            new_constraints = [var == - mat_var]
-
-        if i == (num_col*num_row - 1):
-            if self.affine_transform:
-                self.affine_transform_temp = self.affine_transform.copy()
-            else:
-                self.affine_transform_temp = None
+            self.affine_transform_temp = None
         return new_expr, new_constraints

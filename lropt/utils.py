@@ -1,18 +1,10 @@
-import multiprocessing
-import os
+from cvxpy.constraints.constraint import Constraint
+from cvxpy.expressions.expression import Expression
+from cvxpy.problems.problem import Problem
+from cvxpy.reductions.chain import Chain
+from cvxpy.reductions.reduction import Reduction
 
-import numpy as np
-
-
-class UncertaintyError(Exception):
-    """Error thrown if the uncertain problem has not been formulated correctly."""
-
-    pass
-
-
-def check_affine_transform(affine_transform):
-    assert "b" in affine_transform
-    assert "A" in affine_transform
+from lropt.uncertain_parameter import UncertainParameter
 
 
 def unique_list(duplicates_list):
@@ -25,18 +17,46 @@ def unique_list(duplicates_list):
 
     return unique
 
+def gen_and_apply_chain(problem: Problem, reductions: list[Reduction]) -> \
+                                                    tuple[Problem, list, Chain]:
+    """
+    This function generates a chain for a list of reductions, and applies it on the problem.
 
-def cvxpy_to_torch(cvxpy_expr, dec_var_dict, unc_param_dict, fam_param_dict):
-    return None
+    Parameters:
+        problem (Problem):
+            The problem to apply the chain on.
+        reductions (list[Reduction]):
+            A list containing the reductions to apply on the chain.
+    
+    Returns:
+        new_problem (Problem):
+            The new problem after applying the chain.
+        inverse_data (list):
+            A list containing the inverse data.
+        chain (Chain):
+            The generated chain.
+    """
 
-def get_n_processes(max_n=np.inf):
+    chain = Chain(problem, reductions=reductions)
+    chain.accepts(problem)
+    new_problem, inverse_data = chain.apply(problem)
+    return chain, new_problem, inverse_data
 
-    try:
-        # NOTE: only available on some Unix platforms
-        n_cpus = len(os.sched_getaffinity(0))  # type: ignore[attr-defined]
-    except AttributeError:
-        n_cpus = multiprocessing.cpu_count()
+def count_unq_uncertain_param(expr: Expression) -> int:
+    unc_params = [v for v in expr.parameters() if isinstance(v, UncertainParameter)]
+    return len(unique_list(unc_params))
 
-    n_proc = max(min(max_n, n_cpus), 1)
+def has_unc_param(expr: Expression) -> bool:
+    if not isinstance(expr, int) and not isinstance(expr, float):
+        return count_unq_uncertain_param(expr) >= 1
+    else:
+        return False
 
-    return n_proc
+def has_unc_param_constraint(constr: Constraint) -> bool:
+    """
+    This function returns True if the constraint contains uncertain parameters and False otherwise.
+    """
+    for arg in constr.args:
+        if has_unc_param(arg):
+            return True
+    return False

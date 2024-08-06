@@ -5,15 +5,17 @@ import numpy as np
 import numpy.testing as npt
 
 from lropt.robust_problem import RobustProblem
-from lropt.uncertain import UncertainParameter
+from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.box import Box
 from lropt.uncertainty_sets.polyhedral import Polyhedral
-from tests.settings import SOLVER
-from tests.settings import TESTS_ATOL as ATOL
-from tests.settings import TESTS_RTOL as RTOL
 
-# import pytest
-# import torch
+# from tests.settings import SOLVER
+# from tests.settings import TESTS_ATOL as ATOL
+# from tests.settings import TESTS_RTOL as RTOL
+
+ATOL = 1e-4
+RTOL = 1e-4
+SOLVER = cp.CLARABEL
 
 
 class TestBoxUncertainty(unittest.TestCase):
@@ -55,7 +57,7 @@ class TestBoxUncertainty(unittest.TestCase):
         unc_set = Box(rho=0.1)
 
         a = UncertainParameter(n, uncertainty_set=unc_set)
-        constraints = [-2*(b_unc + np.eye(n)@(A_unc @ a)) @ x <= b]
+        constraints = [-2*(b_unc + (A_unc @ a)) @ x <= b]
         prob_robust_box = RobustProblem(objective, constraints)
         prob_robust_box.solve(solver=SOLVER)
         x_robust_box = x.value

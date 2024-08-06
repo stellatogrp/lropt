@@ -1,742 +1,424 @@
-from enum import Enum
+import operator
+from typing import Union
 
+import cvxpy as cp
 import numpy as np
-from cvxpy import Variable, problems
-from cvxpy.constraints.nonpos import Inequality
-from cvxpy.expressions import cvxtypes
+import scipy.sparse as scsparse
+from cvxpy import SCS, Parameter, Variable
+from cvxpy.atoms.affine.hstack import Hstack
+from cvxpy.constraints.constraint import Constraint
 from cvxpy.expressions.expression import Expression
-from cvxpy.problems.objective import Minimize
 from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
-from cvxpy.reductions.solution import Solution
+from numpy import ndarray
+from scipy.sparse import csr_matrix
 
-from lropt.uncertain import UncertainParameter
-from lropt.uncertain_canon.atom_canonicalizers import CANON_METHODS as remove_uncertain_methods
-from lropt.uncertain_canon.atom_canonicalizers.mul_canon import mul_canon_transform
-from lropt.uncertain_canon.remove_constant import REMOVE_CONSTANT_METHODS as rm_const_methods
-from lropt.uncertain_canon.separate_uncertainty import SEPARATION_METHODS as sep_methods
-from lropt.uncertainty_sets.mro import MRO
-from lropt.utils import unique_list
+from lropt import Parameter as LroptParameter
+from lropt.robust_problem import RobustProblem
+from lropt.uncertain_canon.utils import (
+    CERTAIN_ID,
+    gen_constraint_by_type,
+    promote_expr,
+    reshape_tensor,
+    scalarize,
+    standard_invert,
+)
+from lropt.uncertain_parameter import UncertainParameter
+
+PARAM_TYPES = (UncertainParameter, LroptParameter, Parameter)
+LROPT_PARAMETER_TYPES = (UncertainParameter, LroptParameter)
+CERTAIN_PARAMETER_TYPES = (LroptParameter, Parameter)
 
 
-class RemoveUncertaintyMode():
-    """
-    This is a helper class that helps decide on has_matrix/has_isolated mode.
-    """
-    class Status(Enum):
-        NONE = 0
-        HAS_ISOLATED = 1
-        HAS_MATRIX = 2
 
-    def __init__(self):
-        self._has_matrix = False
-        self._has_isolated = False
-    
-    def seen_matrix(self, seen):
-        if seen:
-            self._has_matrix = True
-    
-    def seen_isolated(self, seen):
-        if seen:
-            self._has_isolated = True
-    
-    def get_status(self) -> Status:
-        if self._has_matrix:
-            return RemoveUncertaintyMode.Status.HAS_MATRIX
-        elif self._has_isolated:
-            return RemoveUncertaintyMode.Status.HAS_ISOLATED
-        return RemoveUncertaintyMode.Status.NONE
+class UncertainCanonicalization(Reduction):
+    def accepts(self,problem):
+        return True
+    def apply(self, problem: RobustProblem, solver=SCS):
+        """Separate the conic constraint into part with uncertainty and without."""
 
-class Uncertain_Canonicalization(Reduction):
-    """Recursively canonicalize each expression in a problem.
-    This reduction recursively canonicalizes every expression tree in a
-    problem, visiting each node. At every node, this reduction first
-    canonicalizes its arguments; it then canonicalizes the node, using the
-    canonicalized arguments.
-    The attribute `canon_methods` is a dictionary
-    mapping node types to functions that canonicalize them; the signature
-    of these canonicalizing functions must be
-        def canon_func(expr, canon_args) --> (new_expr, constraints)
-    where `expr` is the `Expression` (node) to canonicalize, canon_args
-    is a list of the canonicalized arguments of this expression,
-    `new_expr` is a canonicalized expression, and `constraints` is a list
-    of constraints introduced while canonicalizing `expr`.
-    Attributes:
-    ----------
-        canon_methods : dict
-            A dictionary mapping node types to canonicalization functions.
-        problem : Problem
-            A problem owned by this reduction.
-    """
-
-    def __init__(self, canon_methods=remove_uncertain_methods, problem=None) -> None:
-        super(Uncertain_Canonicalization, self).__init__(problem=problem)
-        self.canon_methods = canon_methods
-
-    def apply(self, problem):
-        """Recursively canonicalize the objective and every constraint."""
-        def _gen_objective_constraints(problem):
+        def _get_tensors(problem: RobustProblem, solver = SCS) -> ndarray:
             """
-            This function generates canon objective and new constraints
+            This inner function generates A_tensor: the 3D tensor of A. It also generates b,c
             """
-            if self.has_unc_param(problem.objective.expr):
-                epigraph_obj = Variable()
-                epi_cons = problem.objective.expr <= epigraph_obj
-                new_constraints = [epi_cons] + problem.constraints
-                canon_objective = Minimize(epigraph_obj)
-            else:
-                canon_objective = problem.objective
-                new_constraints = problem.constraints
-            return canon_objective, new_constraints
-        
+            def _gen_param_vec(param_prob: Reduction) -> list:
+                """
+                This is a helper function that generates the parameters vector.
+                This vector will be multiplied by T_Ab to get a vector containing A and b of the
+                reformulated conic problem.
+                """
+                def _select_target(param: Union[PARAM_TYPES], param_vec_dict: dict,
+                                                T_Ab_dict: dict) -> tuple[list, list]:
+                    """
+                    This is a helper function that determines whether to add the new parameter and
+                    columns to the uncertain parameters or the certain parameters.
+                    """
+                    if isinstance(param, LROPT_PARAMETER_TYPES):
+                        return_key = type(param)
+                    else:
+                        return_key = Parameter
+
+                    return param_vec_dict[return_key], T_Ab_dict[return_key]
+
+                def _gen_param_value(param: Union[PARAM_TYPES]) \
+                                        -> np.ndarray | Union[LROPT_PARAMETER_TYPES]:
+                    """
+                    This is a helper function that returns the uncertain parameter if the input is
+                    an uncertain parameter, or the parameter's value for known parameters.
+                    """
+
+                    if isinstance(param, LROPT_PARAMETER_TYPES):
+                        return param
+                    # elif param.value is not None:
+                    #     return param.value
+                    return param
+
+                def _safe_hstack(vec: list) -> np.ndarray | Hstack:
+                    """
+                    This is a helper function that hstacks the elements of vec or returns None if
+                    vec is empty.
+                    """
+                    #Empty vector - return None
+                    if not vec:
+                        return None
+                    #A vector of uncertain parameters needs cvxpy hstack
+                    if isinstance(vec[0], LROPT_PARAMETER_TYPES) or \
+                        isinstance(vec[0], CERTAIN_PARAMETER_TYPES):
+                        return cp.hstack([cp.vec(param) for param in vec])
+                    if not scsparse.issparse(vec[0]):
+                        return csr_matrix(np.hstack(vec))
+                    return scsparse.hstack(vec,format='csr')
+
+                def _safe_gen_vecAb(T_Ab_dict: dict, param_vec_dict: dict,
+                                    param_type: Union[CERTAIN_PARAMETER_TYPES]):
+                    """
+                    This function safely generates vecAb = T_Ab @ vec_param, or returns None if
+                    vec_param is empty.
+                    """
+
+                    T_Ab = T_Ab_dict[param_type]
+                    param_vec = param_vec_dict[param_type]
+                    if param_vec is None or (isinstance(param_vec, ndarray) and len(param_vec)==0):
+                        return None
+                    # if param_type == Parameter:
+                    #     #No need to check if it's 0 because param_vec is never empty
+                    #     if param_vec.size > 1:
+                    #         return T_Ab @ param_vec.T
+                    #     return T_Ab @ param_vec
+                    # elif param_type == LroptParameter:
+                    #For LROPT Parameters need to be treated like Uncertain Parameters in
+                    #this function.
+                    #T_Ab = T_Ab[0]
+                    curr_vecAb = T_Ab @ param_vec
+                    #For LROPT Parameters, need to pad 1D vectors into 2D vectors.
+                    return promote_expr(curr_vecAb)
+
+                n_var = param_prob.reduced_A.var_len
+                T_Ab = param_prob.A
+                T_Ab = reshape_tensor(T_Ab, n_var)
+                param_vec_dict = {param_type: [] for param_type in PARAM_TYPES}
+                T_Ab_dict = {param_type: [] for param_type in PARAM_TYPES}
+                running_param_size = 0 #This is a running counter that keeps track of the total size
+                                        #of all the parameters seen so far.
+                for param in param_prob.parameters:
+                    param_size = param_prob.param_id_to_size[param.id]
+                    param_vec_target, T_Ab_target = _select_target(param, param_vec_dict, T_Ab_dict)
+                    param_val = _gen_param_value(param)
+                    param_vec_target.append(param_val)
+                    T_Ab_target.append(T_Ab[:, running_param_size:running_param_size+param_size])
+                    running_param_size += param_size
+
+                #Add the parameter-free element:
+                #The last element is always 1, represents the free element (not a parameter)
+                param_vec_dict[Parameter].append(1)
+                T_Ab_dict[Parameter].append(T_Ab[:, running_param_size:])
+
+                #Stack all variables. Certain is never empty - always has the free element
+                for param_type in PARAM_TYPES:
+                    param_vec_dict[param_type] = _safe_hstack(param_vec_dict[param_type])
+                    T_Ab_dict[param_type] = _safe_hstack(T_Ab_dict[param_type])
+                vec_Ab_certain       = _safe_gen_vecAb(T_Ab_dict, param_vec_dict, Parameter)
+                vec_Ab_certain_param = _safe_gen_vecAb(T_Ab_dict, param_vec_dict, LroptParameter)
+
+                return vec_Ab_certain, vec_Ab_certain_param, T_Ab_dict
+
+            def _finalize_expressions(vec_Ab: ndarray | Expression, n_var: int) -> tuple:
+                """
+                This is a helper function that generates A, b from vec_Ab.
+                """
+                if vec_Ab is None:
+                    return 0, 0
+                Ab_dim = (-1, n_var+1) #+1 for the free parameter
+                Ab = vec_Ab.reshape(Ab_dim, order='C')
+                # note minus sign for different conic form in A
+                if not isinstance(Ab, Expression):
+                    Ab = Ab.tocsr() #TODO: This changes coo_matrix to csr, might be inefficient
+                A_certain = -Ab[:, :-1]
+                b_certain = Ab[:, -1]
+                return A_certain, b_certain
+
+            def _finalize_expressions_uncertain(T_Ab,n_var):
+                """
+                This is a helper function that generates A_unc
+                """
+                if T_Ab is None:
+                    return None,None
+                num_rows = T_Ab.shape[0]
+                num_constraints = num_rows//(n_var+1)
+                A_list = []
+                b_list = []
+                for i in range(num_constraints):
+                    cur_T = -T_Ab[i*(n_var+1):(i+1)*(n_var+1),:]
+                    A_list.append(cur_T[:-1,])
+                    b_list.append(cur_T[-1,])
+                return A_list, b_list
+
+            data = problem.get_problem_data(solver=solver)
+            param_prob = data[0]["param_prob"]
+            cones = data[0]["dims"]
+            canon_variables = param_prob.variables
+            vec_Ab_certain, vec_Ab_certain_param, T_Ab_dict = _gen_param_vec(param_prob)
+            n_var = param_prob.reduced_A.var_len
+            A_certain, b_certain = _finalize_expressions(vec_Ab_certain, n_var=n_var)
+            A_certain_param, b_certain_param = _finalize_expressions(vec_Ab_certain_param,
+                                                                     n_var=n_var)
+            A_certain_total = A_certain + promote_expr(A_certain_param)
+            b_certain_total = b_certain + promote_expr(b_certain_param)
+            A_uncertain, b_uncertain = _finalize_expressions_uncertain(
+                                                    T_Ab_dict[UncertainParameter],n_var=n_var)
+            return A_certain_total, A_uncertain, b_certain_total, b_uncertain, cones, \
+                                                    canon_variables
+
+        def _gen_objective(problem: RobustProblem) -> Expression:
+            #TODO: update this function to reformulate the objective
+            return problem.objective
+
+        def _gen_constraints(A_certain: ndarray, A_uncertain: Expression,
+                        b_certain: ndarray,b_uncertain,
+                        variables: list[Variable], cones,
+                        cons_data: dict, initial_index: int,
+                        u: UncertainParameter)\
+                            -> list[Expression]:
+            """
+            This is a helper function that generates a new constraint.
+            Each constraint is associated with a dictionary, cons_data, that
+            contains information on the uncertain terms within it.
+            """
+            def _append_constraint(constraints: list[Constraint], A: any, variables_stacked:
+                                   Hstack, b_certain: any, term_unc: any,
+                                   term_unc_b: any, cons_case: str,
+                                   cons_size: int, cons_uncertain_data_dict: dict)\
+                                                                                            -> None:
+                """
+                This is a helper function that appends the i-th constraint.
+                """
+                if cons_case == "soc":
+                    cons_uncertain_data_dict['std_lst'] = []
+                    soc_vec = []
+                    for j in range(cons_size):
+                        cons_uncertain_data_dict['std_lst'].append(
+                            A[j]@variables_stacked - b_certain[j])
+                        if isinstance(b_certain[j],csr_matrix):
+                            b_term = b_certain[j].toarray()[0][0]
+                        else:
+                            b_term = scalarize(b_certain[j])
+                        soc_vec.append(A[j]@variables_stacked + term_unc[j]
+                                       + scalarize(term_unc_b[j])- b_term)
+                    # if soc_vec[0].shape == (1,1):
+                    #     epi_term = -soc_vec[0][0]
+                    # else:
+                    #     epi_term = -soc_vec[0]
+                    constraints += [cp.SOC(-soc_vec[0], cp.vstack(soc_vec[1:]))]
+
+                else:
+                    cons_uncertain_data_dict['std_lst'] = [A@variables_stacked - b_certain]
+                    cons_func = cp.Zero if (cons_case == "zero") else cp.NonPos
+                    term_unc_b = scalarize(term_unc_b)
+                    b_certain = scalarize(b_certain)
+                    constraints += [cons_func(A@variables_stacked \
+                                    + term_unc + term_unc_b - b_certain)]
+
+            def _gen_term_unc(cones_zero: int, u: UncertainParameter,
+                        A_uncertain: np.ndarray,i: int,
+                        variables_stacked: Hstack,
+                     b_uncertain: np.ndarray,
+                     cons_uncertain_data_dict: dict) -> tuple:
+                """
+                This is a helper function that generates term_unc and term_unc_b.
+                The dictionary cons_uncertain_data is populated with these uncertain terms.
+                """
+                term_unc = 0
+                term_unc_b = 0
+                if 'has_uncertain_isolated' not in cons_uncertain_data_dict:
+                    cons_uncertain_data_dict['has_uncertain_isolated'] = False
+                    cons_uncertain_data_dict['has_uncertain_mult'] = False
+                    cons_uncertain_data_dict['unc_param'] = u
+                if (i<cones_zero) or (A_uncertain is None):
+                    return term_unc, term_unc_b
+
+                if len(u.shape)!=0 and u.shape[0]>1:
+                    op = operator.matmul
+                else:
+                    op = operator.mul
+
+                if A_uncertain[i].nnz != 0:
+                    term_unc = variables_stacked@(op(A_uncertain[i],u))
+                    if cons_uncertain_data_dict['has_uncertain_mult']:
+                        cons_uncertain_data_dict['unc_term'].append(A_uncertain[i])
+                    else:
+                        cons_uncertain_data_dict['has_uncertain_mult'] = True
+                        cons_uncertain_data_dict['var'] = variables_stacked
+                        cons_uncertain_data_dict['unc_term'] = [A_uncertain[i]]
+
+                if b_uncertain[i].nnz != 0:
+                    term_unc_b = op(b_uncertain[i],u)
+                    if cons_uncertain_data_dict['has_uncertain_isolated']:
+                        cons_uncertain_data_dict['unc_isolated'].append(b_uncertain[i])
+                    else:
+                        cons_uncertain_data_dict['has_uncertain_isolated'] = True
+                        cons_uncertain_data_dict['unc_isolated'] = [b_uncertain[i]]
+
+                return term_unc, term_unc_b
+
+            variables_stacked = cp.hstack([cp.vec(var) for var in variables])
+            constraints = []
+            running_ind = 0
+            total_constraint_num = cones.zero + cones.nonneg + len(cones.soc)
+            for i in range(total_constraint_num):
+                if (i < cones.zero):
+                    cons_case = "zero"
+                elif (i < (cones.zero + cones.nonneg)):
+                    cons_case = "nonneg"
+                elif (i < (total_constraint_num)):
+                    cons_case = "soc"
+                    cur_size = cones.soc[i-(cones.zero + cones.nonneg)]
+
+                cons_data[initial_index+i] = {}
+                if cons_case == "soc":
+                    term_unc = []
+                    term_unc_b = []
+                    for j in range(cur_size):
+                        term_unc_temp, term_unc_b_temp \
+                            = _gen_term_unc(cones_zero=cones.zero,
+                                            u=u,A_uncertain=A_uncertain,
+                                        i=int(running_ind+j),
+                                        variables_stacked=variables_stacked,
+                                         b_uncertain=b_uncertain,
+                                         cons_uncertain_data_dict=cons_data[initial_index+i])
+                        term_unc.append(term_unc_temp)
+                        term_unc_b.append(term_unc_b_temp)
+
+                    _append_constraint(constraints=constraints,
+                        A=A_certain[running_ind:(running_ind+cur_size)],
+                        variables_stacked=variables_stacked,
+                        b_certain=b_certain[running_ind:(running_ind+cur_size)],
+                                    term_unc=term_unc, term_unc_b=term_unc_b,
+                                    cons_case=cons_case,cons_size=cur_size,
+                                    cons_uncertain_data_dict=cons_data[initial_index+i])
+
+                else:
+                    term_unc, term_unc_b = _gen_term_unc(cones_zero=cones.zero,
+                                                 u=u,
+                                             A_uncertain=A_uncertain, i=i,
+                                            variables_stacked=variables_stacked,
+                                            b_uncertain=b_uncertain,
+                                            cons_uncertain_data_dict=cons_data[initial_index+i])
+
+                    _append_constraint(constraints=constraints,
+                                       A=A_certain[running_ind],
+                                       variables_stacked=variables_stacked,
+                                       b_certain=b_certain[running_ind],
+                                    term_unc=term_unc, term_unc_b=term_unc_b,
+                                    cons_case=cons_case,cons_size=1,
+                                    cons_uncertain_data_dict=cons_data[initial_index+i])
+
+                if i < (cones.zero + cones.nonneg):
+                    running_ind += 1
+                else:
+                    running_ind += cur_size
+
+            return constraints, cons_data, int(total_constraint_num+initial_index)
+
+        def _gen_canon_robust_problem(problem: RobustProblem,
+                                      A_certain: ndarray, A_uncertain: \
+                        Expression, b_certain: ndarray, b_uncertain, cones,
+                        variables,cons_data: dict, initial_index: int) -> tuple:
+            """
+            This is a helper function that generates the new problem, new constraints
+            (need to add cone constraints to it), and the new slack variable.
+            """
+            # variables = problem.variables()
+            u = problem.uncertain_parameters()[0]
+            new_objective = _gen_objective(problem)
+            new_constraints, cons_data_updated, total_cons_num =\
+                _gen_constraints(A_certain=A_certain,
+                                    A_uncertain=A_uncertain,
+                                    b_certain=b_certain,
+                                    b_uncertain=b_uncertain,
+                                    variables=variables, cones=cones,
+                                    cons_data=cons_data,
+                                    initial_index=initial_index,u=u)
+            return new_objective, new_constraints, cons_data_updated, total_cons_num
+
+        def _gen_dummy_problem(objective: Expression,
+                        constraints: list[Constraint],
+                        cons_data: dict, initial_index: int) \
+                                                -> RobustProblem:
+            """
+            This internal function creates a dummy problem from a given problem and a list of
+            constraints.
+            """
+            dummy_problem = RobustProblem(objective=objective, constraints=constraints, \
+                                           verify_y_parameters=False)
+            #Get A, b tensors (A separated to uncertain and certain parts).
+            A_certain, A_uncertain, b_certain, b_uncertain, cones,variables \
+                                                = _get_tensors(dummy_problem, solver=solver)
+
+            new_objective, new_constraints, cons_data_updated, total_cons_num \
+                = _gen_canon_robust_problem(dummy_problem,
+                                                    A_certain, A_uncertain,
+                                                    b_certain,b_uncertain,
+                                                    cones, variables,cons_data,
+                                                    initial_index)
+            return new_constraints, cons_data_updated, total_cons_num
+
         inverse_data = InverseData(problem)
-        # import ipdb
-        # ipdb.set_trace()
-        # canon_objective, canon_constraints = self.canonicalize_tree(
-        #     problem.objective, 0, 1)
 
-        canon_objective, new_constraints = _gen_objective_constraints(problem)
-        canon_constraints = []
-        
-        for constraint in new_constraints:
-            # canon_constr is the constraint rexpressed in terms of
-            # its canonicalized arguments, and aux_constr are the constraints
-            # generated while canonicalizing the arguments of the original
-            # constraint
-            if self.has_unc_param(constraint):
-                unc_lst, std_lst, is_max = self.separate_uncertainty(constraint)
-                canon_constr = self.remove_uncertainty(unc_lst, std_lst, is_max, canon_constraints)
+        # Dictionary to store the uncertainty status and information of each
+        # constraint. Index by the constraint number
+        cons_data = {}
+        total_cons_number = 0
+        new_constraints = []
+        #constraints_by_type is a dictionary from ID of the uncertain max constraint to all of its
+        #constraints. There are two special IDs: UNCERTAIN_NO_MAX_ID and CERTAIN_ID for the list of
+        #all uncertain non-max constraints/certain constraints, respectively.
+        constraints_by_type = gen_constraint_by_type()
+        for id in problem.constraints_by_type.keys():
+            if not problem.constraints_by_type[id]: #Nothing to do without constraints
+                continue
+            if id==CERTAIN_ID:
+                dummy_constraints = problem.constraints_by_type[CERTAIN_ID]
+                total_cons_number += len(dummy_constraints)
             else:
-                canon_constr = constraint
-                canon_constraints += [canon_constr]
+                dummy_constraints, cons_data, total_cons_number = \
+                    _gen_dummy_problem(objective=problem.objective,
+                                    constraints=problem.constraints_by_type[id],
+                                    cons_data=cons_data,
+                                    initial_index = total_cons_number)
+            new_constraints += dummy_constraints
+            constraints_by_type[id] = dummy_constraints
+            # A_certain, A_uncertain, b_certain, b_uncertain, cones,variables \
+            #                                         = _get_tensors(problem, solver=solver)
 
-            inverse_data.cons_id_map.update({constraint.id: canon_constr.id})
+            # new_objective, new_constraints, cons_data = _gen_canon_robust_problem(problem,
+            #                                         A_certain, A_uncertain, b_certain,b_uncertain,
+            #                                         cones, variables)
+        eval_exp = getattr(problem, "eval_exp", None)
+        new_problem = RobustProblem(objective=problem.objective, constraints=new_constraints,
+                                                cons_data=cons_data, eval_exp=eval_exp)
+        new_problem.constraints_by_type = constraints_by_type
 
-        new_problem = problems.problem.Problem(canon_objective, canon_constraints)
         return new_problem, inverse_data
 
     def invert(self, solution, inverse_data):
-        pvars = {vid: solution.primal_vars[vid] for vid in inverse_data.id_map
-                 if vid in solution.primal_vars}
-        dvars = {orig_id: solution.dual_vars[vid]
-                 for orig_id, vid in inverse_data.cons_id_map.items()
-                 if vid in solution.dual_vars}
-
-        return Solution(solution.status, solution.opt_val, pvars, dvars, solution.attr)
-
-    def canonicalize_tree(self, expr, var, cons):
-        """Recursively canonicalize an Expression."""
-        # TODO don't copy affine expressions?
-        if type(expr) == cvxtypes.partial_problem():
-            canon_expr, constrs = self.canonicalize_tree(
-                expr.args[0].objective.expr, var, cons)
-            for constr in expr.args[0].constraints:
-                canon_constr, aux_constr = self.canonicalize_tree(
-                    constr, var, cons)
-                constrs += [canon_constr] + aux_constr
-        else:
-            canon_args = []
-            constrs = []
-            for arg in expr.args:
-                canon_arg, c = self.canonicalize_tree(arg, var, cons)
-                canon_args += [canon_arg]
-                constrs += c
-            canon_expr, c = self.canonicalize_expr(expr, canon_args, var, cons)
-            constrs += c
-        return canon_expr, constrs
-
-    def canonicalize_expr(self, expr, args, var, cons):
-        """Canonicalize an expression, w.r.t. canonicalized arguments."""
-        # Constant trees are collapsed, but parameter trees are preserved.
-        if isinstance(expr, Expression) and (
-                expr.is_constant() and not expr.parameters()):
-            return expr, []
-        elif type(expr) in self.canon_methods:
-            return self.canon_methods[type(expr)](expr, args, var, cons)
-        else:
-            return expr.copy(args), []
-
-    #TODO (Irina): Please go over all the functions and make sure the names make sense, and update
-    #the dosctrings where relevant
-    def _update_new_constraint(self, unc_lst, new_vars, z_new_cons, z_cons,
-                               num_constr, u_shape, ind, z, uvar, aux_expr, aux_constraint):
-        """
-        TODO: Complete the docstring
-        This is an internal function that updates new_expr and new_constraint. It is used while
-        removing uncertainty from an expression (remove_uncertainty_expr).
-
-        Returns:
-            new_expr
-
-            new_constraint
-
-            has_matrix
-
-            has_isolated
-        """
-        def _is_mat(expr: Expression) -> bool:
-            """
-            This is a helper function that returns True if the expression is a 2D matrix and false
-            otherwise.
-            """
-            return len(expr.shape)==2
-
-        def _gen_var_mat(self, new_expr, mat_flag):
-            """
-            This is a helper function that creates var_mat.
-            """
-            if not mat_flag:
-                return None
-            if self.has_unc_param(new_expr.args[0]):
-                var_mat = new_expr.args[1]
-            elif self.has_unc_param(new_expr.args[1]):
-                var_mat = new_expr.args[0]
-            return var_mat
-        
-        def _update_new_vars(mat_flag, ind, z_new_cons, col, new_vars, num_constr, u_shape):
-            new_var_ind = Variable((num_constr, u_shape))
-            if mat_flag:
-                if ind==0:
-                    z_new_cons[col] = {}
-                new_vars[col] = {}
-                new_vars[col][ind] = new_var_ind
-            else:
-                new_vars[ind] = new_var_ind
-        
-        def _gen_new_expr_constraint(uvar, total_inds, col, i, new_vars, ind, var_mat,
-                                     num_constr_cols, num_constr):
-            """
-            This is a helper function that generates new_expr and new_constraint for different cases
-            """
-            if mat_flag:
-                new_expr, new_constraint = uvar.isolated_unc_matrix(total_inds,
-                        col, i, new_vars[col][ind][i], var_mat[col][i],num_constr_cols, num_constr)
-            else:
-                new_expr, new_constraint = uvar.isolated_unc(i, new_vars[ind][i],num_constr)
-            return new_expr, new_constraint
-        
-        def _update_z_new_cons(mat_flag, z_new_cons, new_vars, col, ind, i):
-            """
-            This is a helper function that updates z_new_cons.
-            """
-            if mat_flag:
-                if ind >=1:
-                    z_new_cons[col][i] += new_vars[col][ind][i]
-                else:
-                    z_new_cons[col][i] = new_vars[col][ind][i]
-            else:
-                if ind == 1:
-                    z_new_cons[i] += new_vars[ind][i]
-                else:
-                    z_new_cons[i] = new_vars[ind][i]
-
-        has_matrix = False
-        has_isolated = False
-
-        #Check if has variable
-        u_expr, constant = self.remove_constant(unc_lst[ind])
-        new_expr, new_constraint = self.canonicalize_tree(u_expr, z[ind], constant)
-
-        if self.has_unc_param(new_expr):
-            uvar = mul_canon_transform(uvar, constant)
-        mat_flag = _is_mat(unc_lst[ind])
-        #Vector is like a 2D matrix with one dimension == 1
-        num_constr_cols = unc_lst[ind].shape[1] if mat_flag else 1
-        if not self.has_unc_param(new_expr):
-            aux_expr = aux_expr + new_expr
-            aux_constraint += new_constraint
-            z_cons = z_cons + z[ind]
-            return has_matrix, has_isolated, num_constr_cols, aux_expr, aux_constraint, uvar, z_cons
-        var_mat = _gen_var_mat(self, new_expr, mat_flag)
-        total_inds = 0 #Total element (takes into account rows and columns). Used only if mat_flag.
-        
-        for col in range(num_constr_cols):
-            _update_new_vars(mat_flag, ind, z_new_cons, col, new_vars, num_constr, u_shape)
-            for i in range(num_constr):
-                new_expr, new_constraint = _gen_new_expr_constraint(uvar=uvar,
-                        total_inds=total_inds, col=col, i=i, new_vars=new_vars, ind=ind,
-                        var_mat=var_mat, num_constr_cols=num_constr_cols, num_constr=num_constr)
-                _update_z_new_cons(mat_flag, z_new_cons, new_vars, col, ind, i)
-                aux_expr = aux_expr + new_expr
-                aux_constraint += new_constraint
-                total_inds += 1
-        if mat_flag:
-            has_matrix = True
-        else:
-            has_isolated = True
-        
-        return has_matrix, has_isolated, num_constr_cols, aux_expr, aux_constraint, uvar, z_cons
-    
-    def _gen_aux_constraint(self, status, std_lst, num_constr_cols, num_constr, u_shape,
-                            smaller_u_shape, uvar, z_cons, z_new_cons, z_unc, supp_cons,
-                            aux_expr, aux_constraint):
-        if status.get_status()==RemoveUncertaintyMode.Status.HAS_MATRIX:
-            for expr in std_lst:
-                aux_expr = aux_expr + expr
-            supp_cons = {}
-            z_unc = {}
-            for col in range(num_constr_cols):
-                supp_cons[col] = Variable((num_constr, u_shape))
-                z_unc[col] =  Variable((num_constr, smaller_u_shape))
-                for idx in range(num_constr):
-                    if uvar.uncertainty_set.a is not None:
-                        aux_constraint += [uvar.uncertainty_set.a.T@z_cons \
-                            + uvar.uncertainty_set.a.T@supp_cons[col][idx] \
-                            + uvar.uncertainty_set.a.T@z_new_cons[col][idx] == \
-                            -z_unc[col][idx]]
-                    else:
-                        aux_constraint += [z_cons + supp_cons[col][idx]\
-                            +z_new_cons[col][idx] == -z_unc[col][idx]]
-
-        elif status.get_status()==RemoveUncertaintyMode.Status.HAS_ISOLATED:
-            for idx in range(num_constr):
-                if uvar.uncertainty_set.a is not None:
-                    aux_constraint += [uvar.uncertainty_set.a.T@z_cons \
-                    + uvar.uncertainty_set.a.T@supp_cons[idx] \
-                    +uvar.uncertainty_set.a.T@z_new_cons[idx] == \
-                        -z_unc[idx]]
-                else:
-                    aux_constraint += [z_cons + supp_cons[idx] +
-                                    z_new_cons[idx] == -z_unc[idx]]
-        else:
-            #[0] is needed to make the dimensions match (demote from 2D to 1D) (every time [0])
-            if uvar.uncertainty_set.a is not None:
-                aux_constraint += [uvar.uncertainty_set.a.T@z_cons \
-                        + uvar.uncertainty_set.a.T@supp_cons[0] == -z_unc[0]]
-            else:
-                aux_constraint += [z_cons + supp_cons[0] == -z_unc[0]]
-        
-        return aux_expr, aux_constraint
-
-    def _conj_and_process(self, status, num_constr_cols, uvar, z_unc, supp_cons, num_constr, z_cons,
-                          aux_expr, aux_constraint):
-        """
-        This is a helper functino that conjugates and prepares aux_expr, aux_constraint, lmbda.
-        """
-        #If not a matrix, pad in a list so the 0-th element is taken once during the for loop
-        if status.get_status() != RemoveUncertaintyMode.Status.HAS_MATRIX:
-            z_unc = [z_unc]
-            supp_cons = [supp_cons]
-
-        for col in range(num_constr_cols):
-            new_expr, new_constraint, lmbda = uvar.conjugate(z_unc[col], supp_cons[col],
-                                                             num_constr, k_ind=0)
-            if uvar.uncertainty_set.b is not None:
-                new_expr = new_expr - uvar.uncertainty_set.b@(z_cons) \
-                    - supp_cons[col]@uvar.uncertainty_set.b
-            if status.get_status() == RemoveUncertaintyMode.Status.HAS_MATRIX:
-                if col < num_constr_cols - 1:
-                    #TODO (Irina): Are matrix_expr_to_constr and 
-                    matrix_expr_to_constr = [aux_expr[:,col] + new_expr <=0]
-                    aux_constraint = aux_constraint + new_constraint \
-                        + matrix_expr_to_constr
-
-        if status.get_status() == RemoveUncertaintyMode.Status.HAS_MATRIX:
-            return aux_expr[:,col], aux_constraint + new_constraint, lmbda
-        
-        if status.get_status() == RemoveUncertaintyMode.Status.HAS_MATRIX:
-            #TODO (Irina): Originally this read aux_expr[:,col], and col is a iteration index. Was
-            #this on purpose? At the last iteration we should get col==num_constr_cols-1
-            #(it's not a good habbit using the loop index outside the loop)
-            aux_expr = aux_expr[:,num_constr_cols-1] 
-        else: 
-            aux_expr = aux_expr + new_expr
-        aux_constraint = aux_constraint + new_constraint
-        return aux_expr, aux_constraint, lmbda
-
-    def remove_uncertainty_expr(self, unc_lst, uvar, num_constr, std_lst):
-        """
-        TODO Irina, please make sure the docstring is correct.
-        This function removes uncertainty from a signle expression.
-        """
-        u_shape = self.get_u_shape(uvar)
-        smaller_u_shape = uvar.uncertainty_set._dimension
-        num_unc_expr = len(unc_lst) #Number of uncertain expressions
-        #A status object that keeps track of whether we have seen a matrix or isolated
-        status = RemoveUncertaintyMode()
-        #If the uncertain list is empty,  only need to conjugate the uncertainty set.
-        if num_unc_expr==0: 
-            aux_expr, aux_constraint, lmbda = uvar.conjugate(u_shape, 0, num_constr, k_ind=0)
-            return aux_expr, aux_constraint, lmbda, status
-
-        #Parameter initialization
-        #Everything with z is a dual variable
-        #If u is a scalar/vector, create a scalar/vector variable. Otherwise, 2D matrix.
-        z_dim = num_unc_expr if u_shape==1 else (num_unc_expr, u_shape)
-        z = Variable(z_dim)
-        z_cons = np.zeros(u_shape)
-        z_new_cons = {}
-        new_vars = {}
-        aux_expr = 0
-        aux_constraint = []
-        num_constr_cols = None #Default value to be overwritten later
-        for ind in range(num_unc_expr):
-            curr_has_matrix, curr_has_isolated, num_constr_cols, aux_expr, \
-                    aux_constraint, uvar, z_cons = self._update_new_constraint(unc_lst=unc_lst,
-                    new_vars=new_vars, z_new_cons=z_new_cons, z_cons=z_cons,
-                    num_constr=num_constr, u_shape=u_shape, ind=ind, z=z, uvar=uvar,
-                    aux_expr=aux_expr, aux_constraint=aux_constraint)
-            #Update has_matrix and has_isolated to True if the current result is True
-            status.seen_matrix(curr_has_matrix)
-            status.seen_isolated(curr_has_isolated)
-            
-        #Create new dual variables for the uncertainty set and for the support
-        z_unc = Variable((num_constr, smaller_u_shape))
-        supp_cons = Variable((num_constr, u_shape))
-
-        aux_expr, aux_constraint = self._gen_aux_constraint(status=status, std_lst=std_lst,
-                            num_constr_cols=num_constr_cols, num_constr=num_constr, u_shape=u_shape,
-                            smaller_u_shape=smaller_u_shape, uvar=uvar, z_cons=z_cons,
-                            z_new_cons=z_new_cons, z_unc=z_unc, supp_cons=supp_cons,
-                            aux_expr=aux_expr, aux_constraint=aux_constraint)
-
-        aux_expr, aux_constraint, lmbda = self._conj_and_process(status=status,
-                            num_constr_cols=num_constr_cols, uvar=uvar, z_unc=z_unc,
-                            supp_cons=supp_cons, num_constr=num_constr, z_cons=z_cons,
-                            aux_expr=aux_expr, aux_constraint=aux_constraint)
-        return aux_expr, aux_constraint, lmbda, status
-
-    def remove_uncertainty_simple(self, unc_lst, uvar, std_lst, num_constr):
-        """
-        Canonicalize each term separately with inf convolution:
-        It removes the uncertainty in a single constraint.
-        This function creates a variable for each expression in a constraint,
-        and for the uncertainty set. 
-        If there are uncertain parameters after the initial canonicalize_tree call, we 
-        deal with the uncertain parameter through an additional procedure.
-        After canonicalizing all terms, we return the new expression and constraints.
-
-        Paramteres:
-            unc_lst:
-                List of uncertain expressions that need to be canonicalized.
-            uvar:
-                The uncertain parameter.
-            std_lst:
-                List of expressions that do not involve uncertainty.
-            num_constr:
-                The dimensions of the constraint.
-
-        Returns:
-            canon_constr:
-                Reformulated constraint (without uncertainty).
-            aux_constraint:
-                Additional constraints that are needed.
-            lmbda:
-                A variable from the reformulation that is required for remove_uncertainty.
-        """
-
-        aux_expr, aux_constraint, lmbda, status = self.remove_uncertainty_expr(unc_lst=unc_lst,
-                                    uvar=uvar, num_constr=num_constr, std_lst=std_lst)
-        #Adding the non uncertain terms to the expression list
-        #Amit: For some reason it happens only for non-matrix case?
-        if status.get_status() != RemoveUncertaintyMode.Status.HAS_MATRIX:
-            for expr in std_lst:
-                aux_expr = aux_expr + expr
-        return aux_expr <= 0, aux_constraint, lmbda
-
-    def remove_uncertainty_mro(self, unc_lst, uvar, std_lst, num_constr):
-        "canonicalize each term separately with inf convolution"
-        u_shape = self.get_u_shape(uvar)
-        smaller_u_shape = uvar.uncertainty_set._dimension
-        num_unc_fns = len(unc_lst)
-        if num_unc_fns > 0:
-            if u_shape == 1:
-                z = Variable(num_unc_fns)
-            else:
-                z = Variable((num_unc_fns, u_shape))
-            z_cons = np.zeros(u_shape)
-            z_new_cons = {}
-            new_vars = {}
-            aux_expr = 0
-            aux_constraint = []
-            has_isolated = 0
-            has_matrix = 0
-            for ind in range(num_unc_fns):
-
-                # if len(unc_lst[ind].variables()) (check if has variable)
-                u_expr, constant = self.remove_constant(unc_lst[ind])
-
-                # uvar = mul_canon_transform(uvar, cons)
-                new_expr, new_constraint = self.canonicalize_tree(
-                    u_expr, z[ind], constant)
-
-                if self.has_unc_param(new_expr) and len(unc_lst[ind].shape)==2:
-                    uvar = mul_canon_transform(uvar, constant)
-                    if self.has_unc_param(new_expr.args[0]):
-                        var_mat = new_expr.args[1]
-                    elif self.has_unc_param(new_expr.args[1]):
-                        var_mat = new_expr.args[0]
-                    num_constr_cols = unc_lst[ind].shape[1]
-                    total_inds = 0
-                    for col in range(num_constr_cols):
-                        if ind == 0:
-                            z_new_cons[col] = {}
-                        new_vars[col] = {}
-                        new_vars[col][ind] = Variable((num_constr, u_shape))
-                        for idx in range(num_constr):
-                            new_expr, new_constraint = \
-                                uvar.isolated_unc_matrix(total_inds, \
-                                  col, idx, new_vars[col][ind][idx], \
-                                    var_mat[col][idx],num_constr_cols,\
-                                        num_constr)
-                            total_inds += 1
-                            aux_expr = aux_expr + new_expr
-                            aux_constraint += new_constraint
-                            if  ind >=1 :
-                                z_new_cons[col][idx] += new_vars[col][ind][idx]
-                            else:
-                                z_new_cons[col][idx] = new_vars[col][ind][idx]
-                    has_matrix = 1
-
-                elif self.has_unc_param(new_expr):
-                    uvar = mul_canon_transform(uvar, constant)
-                    new_vars[ind] = Variable((num_constr, u_shape))
-                    for idx in range(num_constr):
-                        new_expr, new_constraint = uvar.isolated_unc(idx, new_vars[ind][idx],
-                                                                     num_constr)
-                        aux_expr = aux_expr + new_expr
-                        aux_constraint += new_constraint
-                        if ind == 1:
-                            z_new_cons[idx] += new_vars[ind][idx]
-                        else:
-                            z_new_cons[idx] = new_vars[ind][idx]
-                    has_isolated = 1
-                else:
-                    aux_expr = aux_expr + new_expr
-                    aux_constraint += new_constraint
-                    z_cons = z_cons + z[ind]
-
-            supp_cons = {}
-            z_unc = {}
-            if has_matrix == 1:
-                for expr in std_lst:
-                    aux_expr = aux_expr + expr
-                for col in range(num_constr_cols):
-                    supp_cons[col] = {}
-                    z_unc[col] =  {}
-                    for k_ind in range(uvar.uncertainty_set._K):
-                        supp_cons[col][k_ind] = Variable((num_constr, u_shape))
-                        z_unc[col][k_ind] =  Variable((num_constr, smaller_u_shape))
-                        for idx in range(num_constr):
-                            if uvar.uncertainty_set.a is not None:
-                                aux_constraint += [uvar.uncertainty_set.a.T@z_cons \
-                                + uvar.uncertainty_set.a.T@supp_cons[col][k_ind][idx] \
-                                +uvar.uncertainty_set.a.T@z_new_cons[col][idx] == \
-                                    -z_unc[col][k_ind][idx]]
-                            else:
-                                aux_constraint += [z_cons + supp_cons[col][k_ind][idx]\
-                    +z_new_cons[col][idx] == -z_unc[col][k_ind][idx]]
-
-                        new_expr, new_constraint, lmbda, sval = uvar.conjugate(
-                        z_unc[col][k_ind], supp_cons[col][k_ind], num_constr, k_ind)
-                        if uvar.uncertainty_set.b is not None:
-                            new_expr = new_expr - uvar.uncertainty_set.b@(z_cons) \
-                                - supp_cons[col][k_ind]@uvar.uncertainty_set.b
-                        matrix_expr_to_constr = [aux_expr[:,col] + new_expr <=0]
-                        aux_constraint = aux_constraint + new_constraint \
-                                + matrix_expr_to_constr
-                    if col < num_constr_cols - 1:
-                        fin_expr = [uvar.uncertainty_set.rho_mult*\
-                                    uvar.uncertainty_set.rho*lmbda +\
-                                     uvar.uncertainty_set._w@sval <=0]
-                        aux_constraint = aux_constraint + fin_expr
-                return uvar.uncertainty_set.rho_mult*\
-                    uvar.uncertainty_set.rho*lmbda + \
-                    uvar.uncertainty_set._w@sval <=0, aux_constraint,lmbda,sval
-
-            elif has_isolated == 1:
-                for k_ind in range(uvar.uncertainty_set._K):
-                    z_unc[k_ind] = Variable((num_constr, smaller_u_shape))
-                    supp_cons[k_ind] = Variable((num_constr, u_shape))
-                    for idx in range(num_constr):
-                        if uvar.uncertainty_set.a is not None:
-                            aux_constraint += [uvar.uncertainty_set.a.T@z_cons \
-                            + uvar.uncertainty_set.a.T@supp_cons[k_ind][idx] \
-                            +uvar.uncertainty_set.a.T@z_new_cons[idx] == \
-                                -z_unc[k_ind][idx]]
-                        else:
-                            aux_constraint += [z_cons + supp_cons[k_ind][idx] +
-                                        z_new_cons[idx] == -z_unc[k_ind][idx]]
-            else:
-                for k_ind in range(uvar.uncertainty_set._K):
-                    z_unc[k_ind] = Variable((num_constr, smaller_u_shape))
-                    supp_cons[k_ind] = Variable((num_constr, u_shape))
-                    if uvar.uncertainty_set.a is not None:
-                        aux_constraint += [uvar.uncertainty_set.a.T@z_cons \
-                            + uvar.uncertainty_set.a.T@supp_cons[k_ind][0] == -z_unc[k_ind][0]]
-                    else:
-                        aux_constraint += [z_cons + supp_cons[k_ind][0] == -z_unc[k_ind][0]]
-            for k_ind in range(uvar.uncertainty_set._K):
-                new_expr, new_constraint, lmbda, sval = uvar.conjugate(
-                    z_unc[k_ind],supp_cons[k_ind], num_constr, k_ind)
-                cur_expr = aux_expr + new_expr
-                if uvar.uncertainty_set.b is not None:
-                    cur_expr = cur_expr - uvar.uncertainty_set.b@(z_cons) \
-                        - supp_cons[k_ind]@uvar.uncertainty_set.b
-                for expr in std_lst:
-                    cur_expr = cur_expr + expr
-                aux_constraint = aux_constraint + new_constraint+\
-                      [cur_expr <= 0]
-                fin_expr = uvar.uncertainty_set.rho_mult*\
-                    uvar.uncertainty_set.rho*lmbda +\
-                          uvar.uncertainty_set._w@sval
-        else:
-            aux_constraint = []
-            for k_ind in range(uvar.uncertainty_set._K):
-                aux_expr, new_constraint, lmbda, sval = uvar.conjugate(
-                    u_shape, 0, num_constr, k_ind)
-                cur_expr = aux_expr
-                for expr in std_lst:
-                    cur_expr = cur_expr + expr
-                aux_constraint = aux_constraint + \
-                    new_constraint + [cur_expr <= 0]
-                fin_expr = uvar.uncertainty_set.rho_mult*\
-                    uvar.uncertainty_set.rho*lmbda +\
-                          uvar.uncertainty_set._w@sval
-        return fin_expr <= 0, aux_constraint, lmbda, sval
-
-    def count_unq_uncertain_param(self, expr):
-        unc_params = []
-        if isinstance(expr, Inequality):
-            unc_params += [v for v in expr.parameters()
-                           if isinstance(v, UncertainParameter)]
-            return len(unique_list(unc_params))
-
-        else:
-            unc_params += [v for v in expr.parameters()
-                           if isinstance(v, UncertainParameter)]
-        return len(unique_list(unc_params))
-
-    def has_unc_param(self, expr):
-        if not isinstance(expr, int) and not isinstance(expr, float):
-            return self.count_unq_uncertain_param(expr) >= 1
-        else:
-            return 0
-
-    def get_u_shape(self, uvar):
-        trans = uvar.uncertainty_set.affine_transform
-
-        # find shape of uncertainty parameter
-        if trans:
-            if len(trans['A'].shape) > 1:
-                u_shape = trans['A'].shape[1]
-            else:
-                u_shape = 1
-        elif len(uvar.shape) >= 1:
-            u_shape = uvar.shape[0]
-        else:
-            u_shape = 1
-
-        return u_shape
-
-    def separate_uncertainty(self, expr):
-        '''separate cvxpy expression into subexpressions with uncertain parameters and without.
-        Input:
-            expr :
-                a cvxpy expression
-        Output:
-            unc_lst :
-                Ex: :math:`[g_1(u_1,x), g_2(u_1,x)]`
-                a list of cvxpy multiplication expressions from expr each containing one uncertain
-                parameter
-            std_lst :
-                Ex: :math:`[h_1(x),h_2(x)]`
-                any other cvxpy expressions
-
-        The original expr is equivalent to the sum of expressions in unc_lst and std_lst
-            '''
-        # Check Initial Conditions
-        if self.count_unq_uncertain_param(expr) == 0:
-            return [], [expr], 0
-        # elif self.count_unq_uncertain_param(expr) > 1:
-        #     raise ValueError("DRP error: Cannot have multiple uncertain params in the same expr")
-        elif len(expr.args) == 0:
-            assert (self.has_unc_param(expr))
-            return [expr], [], 0
-
-        elif type(expr) not in sep_methods:
-            raise ValueError(
-                "DRP error: not able to process non multiplication/additions")
-        func = sep_methods[type(expr)]
-        return func(self, expr)
-    
-    #TODO (Irina): Please fill/update/assert the docstrings of all the helper functions below
-    # (just the description, no need to go over args/returns)
-    def remove_uncertainty(self, unc_lst, std_lst, is_max, canon_constraints):
-        """
-        This function removes uncertainty. See Appendix A.1.3.
-        """
-
-        def _gen_merged_unc_lst(is_max, unc_lst):
-            """
-            This function returns a merged uncertainty list.
-            """
-            if is_max:
-                unc_lst_merged = []
-                for cons_idx in range(len(unc_lst)):
-                    unc_lst_merged += unc_lst[cons_idx]
-            else:
-                unc_lst_merged = unc_lst
-            return unc_lst_merged
-        
-        def _calc_constraint_shape(unc_lst_merged):
-            """
-            This function calculates the shape of the constraint.
-            """
-            if len(unc_lst_merged[0].shape) >= 1:
-                constraint_shape = unc_lst_merged[0].shape[0]
-            else:
-                constraint_shape = 1
-            return constraint_shape
-
-        def _add_canon_constraint(is_mro, canon_constraints, new_cons_idx=None,
-                                  lmbda=None, sval=None):
-            new_sval = None
-            if new_cons_idx is None:
-                #not is_max
-                unc_lst_pass = unc_lst
-                std_lst_pass = std_lst
-            else:
-                unc_lst_pass = unc_lst[new_cons_idx]
-                std_lst_pass = std_lst[new_cons_idx]
-            
-            if is_mro:
-                canon_constr, aux_constr, new_lmbda, new_sval = self.remove_uncertainty_mro(
-                    unc_lst_pass, unc_params[0], std_lst_pass, constraint_shape)
-            else:
-                canon_constr, aux_constr, new_lmbda = self.remove_uncertainty_simple(
-                    unc_lst_pass, unc_params[0], std_lst_pass, constraint_shape)
-                
-            if is_mro and new_cons_idx:
-                canon_constraints += aux_constr
-                canon_constraints += [lmbda == new_lmbda]
-                canon_constraints += [sval == new_sval]
-            else:
-                canon_constraints += aux_constr + [canon_constr]
-            return new_lmbda, new_sval, canon_constr
-
-
-        unc_lst_merged = _gen_merged_unc_lst(is_max, unc_lst)
-        constraint_shape = _calc_constraint_shape(unc_lst_merged)
-        unc_params= [v for v in unc_lst_merged[0].parameters() if isinstance(v, UncertainParameter)]
-        is_mro = type(unc_params[0].uncertainty_set) == MRO
-        new_cons_idx = 0 if is_max else None
-        lmbda, sval, canon_constr = _add_canon_constraint(is_mro, canon_constraints, new_cons_idx)
-        if is_max:
-            for new_cons_idx in range(1, len(unc_lst)):
-                lmbda, sval, canon_constr = _add_canon_constraint(is_mro, canon_constraints,
-                                                                  new_cons_idx, lmbda, sval)
-        return canon_constr
-
-    def remove_constant(self, expr, constant=1):
-        '''remove the constants at the beginning of an expression with uncertainty'''
-        # import ipdb
-        # ipdb.set_trace()
-        if len(expr.args) == 0:
-            return expr, constant
-
-        if type(expr) not in rm_const_methods:
-            return expr, constant
-        else:
-            func = rm_const_methods[type(expr)]
-            return func(self, expr, constant)
+        return standard_invert(solution=solution, inverse_data=inverse_data)
