@@ -497,22 +497,23 @@ class RobustProblem(Problem):
 
         Returns: the solution to the original problem
         """
-        if self.uncertain_parameters():
+        unc_param_lst = self.uncertain_parameters()
+        if len(unc_param_lst) >= 1:
             solver_func = self._helper_solve
             if self.problem_canon is None:
                 # if no data is passed, no training is needed
-                if self.uncertain_parameters()[0].uncertainty_set.data is None:
+                if unc_param_lst[0].uncertainty_set.data is None:
                     self.remove_uncertainty()
                 else:
                     from lropt.train.trainer import Trainer
                     # if not MRO set and not trained
-                    if not isinstance(self.uncertain_parameters()[0].uncertainty_set, MRO):
+                    if not isinstance(unc_param_lst[0].uncertainty_set, MRO):
                         self.trainer = Trainer(self)
                         _ = self.trainer.train()
                         for y in self.y_parameters():
                             y.value = y.data[0]
                     # if MRO set and training needed
-                    elif self.uncertain_parameters()[0].uncertainty_set._train:
+                    elif unc_param_lst[0].uncertainty_set._train:
                         self.trainer = Trainer(self)
                         _ = self.trainer.train()
                         for y in self.y_parameters():

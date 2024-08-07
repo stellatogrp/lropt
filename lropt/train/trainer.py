@@ -29,11 +29,6 @@ from lropt.utils import unique_list
 # loss and constraints (calls monte carlo, stage cost, constraint)
 # monte-carlo - evaluate without gradients
 
-# class Supply(Simulator):
-
-#     def simulate(self,x,u,t,seed):
-#         return
-
 
 
 class Simulator(ABC):
@@ -69,8 +64,9 @@ class Trainer():
 
     """Create a class to handle training"""
     def __init__(self, problem: RobustProblem):
-        if not self.count_unq_uncertain_param(problem) > 0:
-            raise ValueError("Must have uncertain parameter")
+        if not (self.count_unq_uncertain_param(problem) == 1):
+            raise ValueError("Must have a single uncertain parameter " + \
+                             "for training")
         self.unc_set = self.uncertain_parameters(problem)[0].uncertainty_set
         self._validate_unc_set_T()
 
@@ -110,6 +106,7 @@ class Trainer():
         x = []
         u = []
 
+        # remove for loop, set batch size to trials
         for i in range(trials):
             cost, constraint_cost, x_hist, u_hist = self.loss_and_constraints(
                 time_horizon=time_horizon, batch_size = batch_size,

@@ -7,6 +7,7 @@ import numpy as np
 import numpy.random as npr
 import numpy.testing as npt
 
+from lropt import max_of_uncertain
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.box import Box
@@ -29,7 +30,7 @@ class TestMultipleUncertainty(unittest.TestCase):
         self.rho = 0.2
         self.p = 2
 
-    @unittest.skip("not currently implementing multiple sets")
+    # @unittest.skip("not currently implementing multiple sets")
     def test_simple_ellipsoidal_2u(self):
 
         # SETUP
@@ -51,24 +52,32 @@ class TestMultipleUncertainty(unittest.TestCase):
 
         u_2 = UncertainParameter(n,
                                  uncertainty_set=unc_set_2)
-        constraints_1 = [cp.maximum(
-            u_1 @ P @ x_lropt, a @ x_lropt) + u_2 @ x_lropt <= b]
+        constraints_1 = [max_of_uncertain(
+            [u_1 @ P @ x_lropt, a @ x_lropt]) + u_2 @ x_lropt <= b]
 
         prob_robust = RobustProblem(objective_1, constraints_1)
         prob_robust.solve()
 
-        # CVXPY problem
+        # Robust problem 2
 
+        x_rob2 = cp.Variable(n)
+        objective_2 = cp.Minimize(x_rob2 @ c)
+
+        constraints_2 = [u_1 @ P @ x_rob2 + u_2 @ x_rob2  <= b]
+        constraints_2 += [a @ x_rob2 + u_2 @ x_rob2 <= b]
+
+        prob_rob2 = RobustProblem(objective_2, constraints_2)
+        prob_rob2.solve()
+
+        npt.assert_allclose(x_lropt.value, x_rob2.value, rtol=RTOL, atol=ATOL)
+
+
+        # Cvxpy problem
         x_cvx = cp.Variable(n)
-        objective_2 = cp.Minimize(x_cvx @ c)
-        tau_1 = cp.Variable()
-        tau_2 = cp.Variable()
-
-        constraints_2 = [tau_1 + tau_2 - b <= 0]
-        constraints_2 += [cp.maximum(u_1 @ P @ x_cvx, a @ x_cvx) <= tau_1]
-        constraints_2 += [u_2 @ x_cvx <= tau_2]
-
-        prob_cvx = RobustProblem(objective_2, constraints_2)
+        objective_3 = cp.Minimize(x_cvx @ c)
+        constraints_3 = []
+        constraints_3 += [-b + rho_1*cp.norm(P @ x_cvx,2) + rho_2*cp.norm(x_cvx,1) <= 0 ]
+        constraints_3 += [-b + rho_2*cp.norm(x_cvx,1) + a @ x_cvx <= 0]
+        prob_cvx = cp.Problem(objective_3, constraints_3)
         prob_cvx.solve()
-
         npt.assert_allclose(x_lropt.value, x_cvx.value, rtol=RTOL, atol=ATOL)
