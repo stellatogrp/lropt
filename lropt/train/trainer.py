@@ -39,7 +39,7 @@ from lropt.utils import unique_list
 class Simulator(ABC):
 
     @abc.abstractmethod
-    def simulate(self,x,u,t,seed):
+    def simulate(self,x,u):
         """Simulate next set of parameters using current parameters x
         and variables u, with added uncertainty
         """
@@ -53,13 +53,13 @@ class Simulator(ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def constraint_cost(self,x,u):
+    def constraint_cost(self,x,u,alpha):
         """ Create the current constraint penalty cost
         """
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def init_parameter(self,seed):
+    def init_state(self,batch_size, seed):
         """ initialize the parameter value
         """
         raise NotImplementedError()
@@ -101,7 +101,8 @@ class Trainer():
         self.y_train_tch = None
         self.y_test_tch = None
 
-    def monte_carlo(self, policy, time_horizon, trials=10, seed=None):
+    def monte_carlo(self, eps_tch, alpha, solver_args, time_horizon,
+                    batch_size = 1, trials=10, seed=None):
         if seed is not None:
             torch.manual_seed(seed)
         results = []
@@ -111,19 +112,22 @@ class Trainer():
 
         for i in range(trials):
             cost, constraint_cost, x_hist, u_hist = self.loss_and_constraints(
-                policy, time_horizon, seed=seed)
+                time_horizon=time_horizon, batch_size = batch_size,
+                seed=seed,eps_tch = eps_tch, alpha = alpha,
+                solver_args = solver_args)
             results.append(cost.item())
             constraint_costs.append(constraint_cost.item())
             x.append(x_hist)
             u.append(u_hist)
         return results, constraint_costs, x, u
 
-    def loss_and_constraints(self,time_horizon, seed=0, eps_tch=None,solver_args=None):
+    def loss_and_constraints(self, eps_tch, alpha, solver_args,
+                             time_horizon, batch_size = 1, seed=None):
         if seed is not None:
             torch.manual_seed(seed)
 
-        x_0 = self.simulator.init_parameter(seed)
-        a_tch, b_tch = self.create_tensors_linear(x_0,
+        x_0 = self.simulator.init_state(batch_size, seed)
+        a_tch, b_tch = self.create_tensors_linear([x_0],
                                     self._model)
 
         cost = 0.0
@@ -134,21 +138,33 @@ class Trainer():
         for t in range(time_horizon):
             u_t = self.cvxpylayer(eps_tch, *self.y_orig_tch,
                 x_t,a_tch,b_tch,solver_args=solver_args)[0]
-            x_t = self.simulator.simulate(x_t, u_t, t,seed)
+            x_t = self.simulator.simulate(x_t, u_t)
             cost += self.simulator.stage_cost(x_t, u_t).mean() / time_horizon
-            constraint_cost += self.simulator.constraint_cost(x_t, u_t).mean() / time_horizon
+            constraint_cost += self.simulator.constraint_cost(x_t, u_t, alpha).mean() / time_horizon
             x_hist.append(x_t)
             u_hist.append(u_t)
-            a_tch, b_tch = self.create_tensors_linear(x_t,self._model)
+            a_tch, b_tch = self.create_tensors_linear([x_t],self._model)
         return cost, constraint_cost, x_hist, u_hist
 
-    def multistage_train(self, simulator, policy = None, time_horizon = 1,
-                          epochs = 1, trials = 1, init_eps=1, seed=0,
-                          init_a = None, init_b = None, init_alpha = 0,
-                          test_percentage = 0.1 , optimizer = "SGD",
-                          lr= 0.001, momentum = 0.8, scheduler = True,
-                           lr_step_size = 100, lr_gamma = 0.5,
-                           solver_args = None):
+    def multistage_train(self, simulator:Simulator,
+                         policy = None,
+                         time_horizon = 1,
+                         batch_size = 1,
+                         epochs = 1,
+                         trials = 1,
+                         init_eps=settings.INIT_EPS_DEFAULT,
+                         seed=settings.SEED_DEFAULT,
+                        init_a=settings.INIT_A_DEFAULT,
+                        init_b=settings.INIT_B_DEFAULT,
+                        init_alpha=settings.INIT_ALPHA_DEFAULT,
+                        test_percentage=settings.TEST_PERCENTAGE_DEFAULT,
+                        optimizer=settings.OPT_DEFAULT,
+                        lr=settings.LR_DEFAULT,
+                        momentum=settings.MOMENTUM_DEFAULT,
+                        scheduler=settings.SCHEDULER_STEPLR_DEFAULT,
+                        lr_step_size=settings.LR_STEP_SIZE,
+                        lr_gamma=settings.LR_GAMMA,
+                        solver_args = settings.LAYER_SOLVER):
 
         _,_,_,_,_,_,_ = self._split_dataset(test_percentage, seed)
 
@@ -163,7 +179,7 @@ class Trainer():
                                     False,1,
                                     seed)
         self._model = torch.nn.Sequential(self._linear)
-        variables = [alpha,slack]
+        variables = [eps_tch, alpha,slack]
         variables.extend(list(self._model.parameters()))
 
         if optimizer == "SGD":
@@ -176,26 +192,36 @@ class Trainer():
             scheduler_ = torch.optim.lr_scheduler.StepLR(
                 opt, step_size=lr_step_size, gamma=lr_gamma)
 
+        baseline_costs, baseline_vio_cost,_,_ = self.monte_carlo(
+                    time_horizon=time_horizon, batch_size = 1, trials=trials,
+                      seed=seed, eps_tch = eps_tch, alpha = alpha,
+                      solver_args = solver_args)
+        baseline_cost = np.mean(np.array(baseline_costs) + np.array(baseline_vio_cost))
+        print("Baseline cost: ", baseline_cost)
+
         val_costs = []
         val_costs_constr = []
 
         for epoch in range(epochs):
             with torch.no_grad():
                 val_cost, val_cost_constr, x_base, u_base = self.monte_carlo(
-                    policy, time_horizon,  trials=trials, seed=0)
+                    time_horizon=time_horizon, batch_size = 1, trials=trials,
+                      seed=seed, eps_tch = eps_tch, alpha = alpha,
+                      solver_args = solver_args)
                 val_cost = np.mean(val_cost)
                 val_cost_constr = np.mean(val_cost_constr)
                 val_costs.append(val_cost)
                 val_costs_constr.append(val_cost_constr)
 
-            torch.manual_seed(epoch)
+            torch.manual_seed(seed + epoch)
             opt.zero_grad()
             cost, constr_cost, _, _,  = self.loss_and_constraints(
-                time_horizon, seed=epoch+1,eps_tch=eps_tch,
+                time_horizon=time_horizon, batch_size = batch_size,
+                seed=seed+epoch+1,eps_tch=eps_tch,alpha = alpha,
                 solver_args=solver_args)
             fin_cost = cost+constr_cost
             fin_cost.backward()
-            print("epoch %d, valid %.4e" % (epoch, val_cost))
+            print("epoch %d, valid %.4e" % (epoch, val_cost+val_cost_constr) )
             opt.step()
             if scheduler:
               scheduler_.step()
@@ -268,8 +294,8 @@ class Trainer():
         return cvxpylayer
 
     def y_parameter_shapes(self, y_params):
-        """Get the shape of all y parameters"""
-        return [v.shape[0] for v in y_params]
+        """Get the size of all y parameters"""
+        return [v.size for v in y_params]
 
     def initialize_dimensions_linear(self):
         """Find the dimensions of the linear model"""
@@ -284,6 +310,7 @@ class Trainer():
         """Create the tensors of a's and b's using the trained linear model"""
         a_shape = self.unc_set._a.shape
         b_shape = self.unc_set._b.shape
+        y_batch = [torch.flatten(y, start_dim = 1) for y in y_batch]
         input_tensors = torch.hstack(y_batch)
         theta = linear(input_tensors)
         raw_a = theta[:,:a_shape[0]*a_shape[1]]
