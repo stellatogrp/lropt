@@ -2,7 +2,7 @@
 Learning for Optimization under Uncertainty
 =====================
 
-LROPT is a package for decision making under uncertainty. It is based on Python, and built on top of [CVXPY](https://www.cvxpy.org). It allows you to add uncertainty to your optimization problem **(add sentence for learning here)**. 
+LROPT is a package for decision making under uncertainty. It is based on Python, and built on top of [CVXPY](https://www.cvxpy.org). It allows model optimization problems affected by uncertainty using data. **(add sentence for learning here)**. 
 
 ## Example
 
@@ -20,10 +20,12 @@ and [OSQP](https://github.com/oxfordcontrol/osqp).
 If you'd like to add a new example to our library, or implement a new feature,
 please get in touch with us first to make sure that your priorities align with
 ours. 
-
+Reference to the contributing guide, examples are in this folder and add that
 ## Team
+
 LROPT is  built from the contributions of many
 researchers and engineers. A list of people who contributed to the development of LROPT include Irina Wang, Amit Solomon, Bartolomeo Stellato, Cole Becker, Bart Van Parys and Manav Jairam. 
 
 ## Citing
 
+There is a package paper coming soon.
