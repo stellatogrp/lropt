@@ -14,9 +14,13 @@ from lropt.robust_problem import RobustProblem
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.box import Box
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
-from tests.settings import TESTS_ATOL as ATOL
-from tests.settings import TESTS_RTOL as RTOL
 
+# from tests.settings import TESTS_ATOL as ATOL
+# from tests.settings import TESTS_RTOL as RTOL
+from tests.settings import SOLVER, SOLVER_SETTINGS
+
+ATOL = 5e-4
+RTOL = 5e-4
 
 class TestObjectiveUncertainty(unittest.TestCase):
 
@@ -58,7 +62,7 @@ class TestObjectiveUncertainty(unittest.TestCase):
         objective_1 = cp.Minimize(c @ x_lropt + u_1 @ x_lropt)
 
         prob_robust = RobustProblem(objective_1, constraints_1)
-        prob_robust.solve()
+        prob_robust.solve(solver=SOLVER, **SOLVER_SETTINGS)
 
         # Robust problem 2
 
@@ -69,7 +73,7 @@ class TestObjectiveUncertainty(unittest.TestCase):
         constraints_2 += [a @ x_rob2 + u_2 @ x_rob2 <= b]
 
         prob_rob2 = RobustProblem(objective_2, constraints_2)
-        prob_rob2.solve()
+        prob_rob2.solve(solver=SOLVER, **SOLVER_SETTINGS)
 
         npt.assert_allclose(x_lropt.value, x_rob2.value, rtol=RTOL, atol=ATOL)
 
@@ -83,7 +87,7 @@ class TestObjectiveUncertainty(unittest.TestCase):
         constraints_4 += [a @ x_rob4 + u_2 @ x_rob4 <= b]
 
         prob_rob4 = RobustProblem(objective_4, constraints_4)
-        prob_rob4.solve()
+        prob_rob4.solve(solver=SOLVER, **SOLVER_SETTINGS)
 
         npt.assert_allclose(x_rob4.value, x_rob2.value, rtol=RTOL, atol=ATOL)
 
@@ -96,5 +100,5 @@ class TestObjectiveUncertainty(unittest.TestCase):
         constraints_3 += [-b + rho_1*cp.norm(P @ x_cvx,2) + rho_2*cp.norm(x_cvx,1) <= 0 ]
         constraints_3 += [-b + rho_2*cp.norm(x_cvx,1) + a @ x_cvx <= 0]
         prob_cvx = cp.Problem(objective_3, constraints_3)
-        prob_cvx.solve()
+        prob_cvx.solve(solver=SOLVER, **SOLVER_SETTINGS)
         npt.assert_allclose(x_lropt.value, x_cvx.value, rtol=RTOL, atol=ATOL)

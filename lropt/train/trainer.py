@@ -439,8 +439,8 @@ class Trainer():
 
         self.train_tch = unc_train_tch
         self.test_tch = unc_test_tch
-        self.train_set = unc_train_tch
-        self.test_set = unc_test_tch
+        self.train_set = unc_train_set
+        self.test_set = unc_test_set
         self.y_train_tch = y_train_tchs
         self.y_test_tch = y_test_tchs
         self.train_size = num_train
@@ -542,7 +542,7 @@ class Trainer():
         """
         This function Initializes and returns a_tch, b_tch, and alpha as tensors
         """
-        train_set = train_set.detach().numpy()
+        # train_set = train_set.detach().numpy()
         self._init = self._gen_init(train_set, init_A)
         init_tensor = torch.tensor(self._init, requires_grad=self.train_flag, dtype=settings.DTYPE)
         b_tch = None
@@ -919,7 +919,7 @@ class Trainer():
                 shape = self.unc_set._a.shape
                 kwargs['init_A'] = np.random.rand(shape[0],shape[1])
                     #  + 0.01*np.eye(kwargs['u_size'])
-                kwargs['init_b'] = np.mean(self.train_set.detach().numpy(), axis=0)
+                kwargs['init_b'] = np.mean(self.train_set, axis=0)
         a_history = []
         b_history = []
         eps_history = []

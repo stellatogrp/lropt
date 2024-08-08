@@ -105,6 +105,8 @@ class UncertaintySet(ABC):
         if _is_scalar(rhs) or isinstance(lhs, int):
             if (not isinstance(lhs, int)) and len(lhs.shape) == 2 and lhs.shape[1]==1:
                 lhs = cp.reshape(lhs,(lhs.shape[0],))
+            if isinstance(rhs,np.ndarray):
+                rhs = rhs[0]
             return lhs*rhs
         elif isinstance(lhs, int):
             return lhs*rhs
