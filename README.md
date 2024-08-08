@@ -6,9 +6,40 @@ LROPT is a package for decision making under uncertainty. It is based on Python,
 
 ## Example
 
-The following code solves the robust knapsack problem where there are $n$ items, $\mathbf{x}$ are the binary decision variables, their values are denoted by $\mathbf{c}$, and their weights $\mathbf{w}$ belong to a box uncertainty set.
+The following code solves a linear programming problem where the objective is to minimize $c^Tx$, while their constraints belong to an ellipsoidal uncertainty set. 
+
+```python3
+import cvxpy as cp
+import numpy as np
+import lropt
+
+# Data
+A = np.array([1, 2]) 
+b = np.array([5])     
+
+# Variables
+x = cp.Variable(2)
+
+# Objective
+c = np.array([1, 1])
+objective = cp.Minimize(c.T @ x)
+
+# Uncertainty parameter
+u = lropt.UncertainParameter(1, uncertainty_set=lropt.Ellipsoidal())
+
+# Constraints
+constraints = [
+    A @ x <= b + u,
+    x >= 0
+]
+
+# Problem
+prob = lropt.RobustProblem(objective, constraints)
+prob.solve()
+```
 
 LROPT is not a solver. It relies upon the open source solvers listed [here](https://www.cvxpy.org/tutorial/solvers/index.html#solve-method-options).
+
 
 ## Contributing
 
