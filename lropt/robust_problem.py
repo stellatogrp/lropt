@@ -12,7 +12,6 @@ from cvxpy.expressions.expression import Expression
 from cvxpy.expressions.leaf import Leaf
 from cvxpy.problems.objective import Maximize
 from cvxpy.problems.problem import Problem
-from cvxpy.reductions.flip_objective import FlipObjective
 from cvxpy.reductions.solution import INF_OR_UNB_MESSAGE
 
 # from pathos.multiprocessing import ProcessPool as Pool
@@ -410,7 +409,7 @@ class RobustProblem(Problem):
         self.fg_to_lh()
 
 
-    def remove_uncertainty(self,override = False):
+    def remove_uncertainty(self,override = False, solver = None):
         """
         This function canonizes a problem and saves it to self.problem_no_unc
 
@@ -449,11 +448,14 @@ class RobustProblem(Problem):
             # problem_canon.eval = problem.eval #The evaluation expression is not canonicalized
             return chain_canon, problem_canon, inverse_data_canon
 
+        from lropt.uncertain_canon.flip_objective import FlipObjective
         from lropt.uncertain_canon.remove_uncertain_maximum import RemoveSumOfMaxOfUncertain
         from lropt.uncertain_canon.uncertain_canonicalization import UncertainCanonicalization
 
+
         if (not override) and (self.problem_canon):
             return
+        self._solver = solver
         if self.uncertain_parameters():
             #Uncertain Canonicalization
             self.chain_canon, self.problem_canon, self.inverse_data_canon = \
@@ -497,30 +499,31 @@ class RobustProblem(Problem):
 
         Returns: the solution to the original problem
         """
+        self._solver = solver
         unc_param_lst = self.uncertain_parameters()
         if len(unc_param_lst) >= 1:
             solver_func = self._helper_solve
             if self.problem_canon is None:
                 # if no data is passed, no training is needed
                 if unc_param_lst[0].uncertainty_set.data is None:
-                    self.remove_uncertainty()
+                    self.remove_uncertainty(solver = solver)
                 else:
                     from lropt.train.trainer import Trainer
                     # if not MRO set and not trained
                     if not isinstance(unc_param_lst[0].uncertainty_set, MRO):
-                        self.trainer = Trainer(self)
+                        self.trainer = Trainer(self, solver= solver)
                         _ = self.trainer.train()
                         for y in self.y_parameters():
                             y.value = y.data[0]
                     # if MRO set and training needed
                     elif unc_param_lst[0].uncertainty_set._train:
-                        self.trainer = Trainer(self)
+                        self.trainer = Trainer(self, solver= solver)
                         _ = self.trainer.train()
                         for y in self.y_parameters():
                             y.value = y.data[0]
                     else:
                         # if MRO set and no training needed
-                        self.remove_uncertainty()
+                        self.remove_uncertainty(solver= solver)
         else:
             solver_func = super(RobustProblem, self).solve
         solver_func(solver=solver, warm_start=warm_start, verbose=verbose, gp=gp, qcp=qcp,

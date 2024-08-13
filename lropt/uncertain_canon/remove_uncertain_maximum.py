@@ -1,5 +1,5 @@
 import cvxpy as cp
-from cvxpy import SCS, Variable
+from cvxpy import Variable
 from cvxpy.constraints.nonpos import Inequality, NonPos
 from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
@@ -50,7 +50,7 @@ class RemoveSumOfMaxOfUncertain(Reduction):
                              raise ValueError("The maximum must be affine" +
                                 " in the variables and the uncertainty")
 
-    def apply(self, problem: RobustProblem, solver=SCS):
+    def apply(self, problem: RobustProblem, solver="CLARABEL"):
         """Removes sum_of_max_of_uncertain constraints by creating
         a copy of the constraint for each term in the maximum."""
         def _gen_objective_constraints(problem):
@@ -115,12 +115,13 @@ class RemoveSumOfMaxOfUncertain(Reduction):
         new_problem = RobustProblem(objective=epigraph_problem.objective, \
                                     constraints=new_constraints, eval_exp=eval_exp)
         new_problem.constraints_by_type = constraints_by_type
+        new_problem._solver = problem._solver
 
         return new_problem, inverse_data
 
     def invert(self, solution, inverse_data):
         return standard_invert(solution=solution, inverse_data=inverse_data)
-   
+
     def has_max_uncertain(self,expr) -> bool:
         if isinstance(expr,sum_of_max_of_uncertain):
             return True

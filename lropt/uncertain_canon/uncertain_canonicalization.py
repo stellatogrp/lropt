@@ -4,7 +4,7 @@ from typing import Union
 import cvxpy as cp
 import numpy as np
 import scipy.sparse as scsparse
-from cvxpy import SCS, Parameter, Variable
+from cvxpy import Parameter, Variable
 from cvxpy.atoms.affine.hstack import Hstack
 from cvxpy.constraints.constraint import Constraint
 from cvxpy.expressions.expression import Expression
@@ -34,10 +34,10 @@ CERTAIN_PARAMETER_TYPES = (LroptParameter, Parameter)
 class UncertainCanonicalization(Reduction):
     def accepts(self,problem):
         return True
-    def apply(self, problem: RobustProblem, solver=SCS):
+    def apply(self, problem: RobustProblem, solver="CLARABEL"):
         """Separate the conic constraint into part with uncertainty and without."""
 
-        def _get_tensors(problem: RobustProblem, solver = SCS) -> ndarray:
+        def _get_tensors(problem: RobustProblem, solver = "CLARABEL") -> ndarray:
             """
             This inner function generates A_tensor: the 3D tensor of A. It also generates b,c
             """
@@ -339,7 +339,7 @@ class UncertainCanonicalization(Reduction):
 
         def _gen_dummy_problem(objective: Expression,
                         constraints: list[Constraint],
-                        cons_data: dict, initial_index: int) \
+                        cons_data: dict, initial_index: int, solver = solver) \
                                                 -> RobustProblem:
             """
             This internal function creates a dummy problem from a given problem and a list of
@@ -360,7 +360,7 @@ class UncertainCanonicalization(Reduction):
             return new_constraints, cons_data_updated, total_cons_num
 
         inverse_data = InverseData(problem)
-
+        solver = problem._solver if problem._solver is not None else solver
         # Dictionary to store the uncertainty status and information of each
         # constraint. Index by the constraint number
         cons_data = {}
@@ -381,7 +381,7 @@ class UncertainCanonicalization(Reduction):
                     _gen_dummy_problem(objective=problem.objective,
                                     constraints=problem.constraints_by_type[id],
                                     cons_data=cons_data,
-                                    initial_index = total_cons_number)
+                                    initial_index = total_cons_number, solver = solver)
             new_constraints += dummy_constraints
             constraints_by_type[id] = dummy_constraints
             # A_certain, A_uncertain, b_certain, b_uncertain, cones,variables \
