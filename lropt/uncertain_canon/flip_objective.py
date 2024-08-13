@@ -42,7 +42,7 @@ class FlipObjective(Reduction):
         list
             The inverse data.
         """
-        is_maximize = type(problem.objective) == Maximize
+        is_maximize = isinstance(problem.objective, Maximize)
         objective = Minimize if is_maximize else Maximize
         solver = problem._solver
         problem = RobustProblem(objective(-problem.objective.expr),
