@@ -13,7 +13,7 @@ import torch
 # from tests.settings import SOLVER
 from sklearn.model_selection import train_test_split
 
-from lropt import max_of_uncertain
+from lropt import Trainer, max_of_uncertain
 from lropt.robust_problem import RobustProblem
 from lropt.train.parameter import Parameter
 from lropt.uncertain_parameter import UncertainParameter
@@ -62,7 +62,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         constraints = [x @ (u + y) <= c, cp.norm(x) <= 2*c]
 
         prob = RobustProblem(objective, constraints)
-        prob.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD")
+        trainer = Trainer(prob)
+        trainer.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD")
         # prob.solve()
 
     def test_multidim_learn(self):
@@ -83,7 +84,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         constraints += [np.ones(n)@u <= 10]
 
         prob = RobustProblem(objective, constraints)
-        prob.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD")
+        trainer = Trainer(prob)
+        trainer.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD")
         # prob.solve()
 
     def test_portfolio_intro(self):
@@ -126,7 +128,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         init_bval = np.mean(train, axis=0)
 
         # Train A and b
-        result = prob.train(lr=0.0001, num_iter=100, momentum=0.8,
+        trainer = Trainer(prob)
+        result = trainer.train(lr=0.0001, num_iter=100, momentum=0.8,
                             optimizer="SGD",
                             seed=5, init_A=init, init_b=init_bval,
                             init_lam=0.5, init_mu=0.01,
@@ -209,7 +212,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         train, test = train_test_split(data, test_size=int(data.shape[0]*test_p), random_state=s)
         init = sc.linalg.sqrtm(np.cov(train.T))
         init_bval = np.mean(train, axis=0)
-        result = prob.train(lr=0.0001, train_size = False,
+        trainer = Trainer(prob)
+        result = trainer.train(lr=0.0001, train_size = False,
                 num_iter=3, optimizer="SGD",seed=8, init_A=init,
                 init_b=init_bval, init_lam=1, init_mu=1,
                 mu_multiplier=1.001, kappa=0., init_alpha=0.,

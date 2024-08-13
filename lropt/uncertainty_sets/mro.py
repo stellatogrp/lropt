@@ -198,7 +198,7 @@ class MRO(UncertaintySet):
         lmbda = self._lam
         sval = self._s
         if not isinstance(var, Variable):
-            constr = [lmbda >= 0]
+            constr = []
             return -sval[k_ind], constr, lmbda, sval
         else:
             supp_newvar = Variable(len(self._d))

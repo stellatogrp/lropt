@@ -105,6 +105,8 @@ class UncertaintySet(ABC):
         if _is_scalar(rhs) or isinstance(lhs, int):
             if (not isinstance(lhs, int)) and len(lhs.shape) == 2 and lhs.shape[1]==1:
                 lhs = cp.reshape(lhs,(lhs.shape[0],))
+            if isinstance(rhs,np.ndarray):
+                rhs = rhs[0]
             return lhs*rhs
         elif isinstance(lhs, int):
             return lhs*rhs
@@ -114,7 +116,8 @@ class UncertaintySet(ABC):
         trans = self.affine_transform_temp
         new_expr = 0
         if trans:
-            new_expr += self._safe_mul(trans['b'], x)
+            if trans['b'] is not None:
+                new_expr += self._safe_mul(trans['b'], x)
             lhs = -trans['A']
             if not x.is_scalar():
                 lhs = lhs.T
@@ -132,7 +135,8 @@ class UncertaintySet(ABC):
         trans = self.affine_transform_temp
         new_expr = 0
         if trans:
-            new_expr += trans['b']
+            if trans['b'] is not None:
+                new_expr += trans['b']
         e = np.eye(1)[0]
         # if self.b is not None:
         #     new_expr = new_expr + cp.multiply(e, self._safe_mul(-self.b,var))

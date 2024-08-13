@@ -178,7 +178,6 @@ class Norm(UncertaintySet):
             lmbda = Variable()
             supp_newvar = Variable(len(self._d))
             constr = [norm(var, p=self.dual_norm()) <= lmbda]
-            constr += [lmbda >= 0]
             constr += [self._c.T@supp_newvar == supp_var]
             constr += [supp_newvar >= 0]
             return self.rho_mult*self.rho * lmbda + self._d@supp_newvar, constr, lmbda, None
