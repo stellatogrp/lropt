@@ -98,7 +98,7 @@ class Trainer():
         self.y_test_tch = None
 
     def monte_carlo(self, eps_tch, alpha, solver_args, time_horizon,
-                    batch_size = 1, trials=10, seed=None):
+                    a_tch, b_tch, batch_size = 1, seed=None,contextual = False):
         if seed is not None:
             torch.manual_seed(seed)
         results = []
@@ -107,24 +107,26 @@ class Trainer():
         u = []
 
         # remove for loop, set batch size to trials
-        for i in range(trials):
-            cost, constraint_cost, x_hist, u_hist = self.loss_and_constraints(
-                time_horizon=time_horizon, batch_size = batch_size,
-                seed=seed,eps_tch = eps_tch, alpha = alpha,
-                solver_args = solver_args)
-            results.append(cost.item())
-            constraint_costs.append(constraint_cost.item())
-            x.append(x_hist)
-            u.append(u_hist)
+        cost, constraint_cost, x_hist, u_hist = self.loss_and_constraints(
+            time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size = batch_size,
+            seed=seed,eps_tch = eps_tch, alpha = alpha,
+            solver_args = solver_args, contextual = contextual)
+        results.append(cost.item())
+        constraint_costs.append(constraint_cost.item())
+        x.append(x_hist)
+        u.append(u_hist)
         return results, constraint_costs, x, u
 
     def loss_and_constraints(self, eps_tch, alpha, solver_args,
-                             time_horizon, batch_size = 1, seed=None):
+                             time_horizon, a_tch, b_tch,
+                             batch_size = 1, seed=None, contextual = False):
         if seed is not None:
             torch.manual_seed(seed)
 
         x_0 = self.simulator.init_state(batch_size, seed)
-        a_tch, b_tch = self.create_tensors_linear([x_0],
+
+        if contextual:
+            a_tch, b_tch = self.create_tensors_linear([x_0],
                                     self._model)
 
         cost = 0.0
@@ -140,7 +142,8 @@ class Trainer():
             constraint_cost += self.simulator.constraint_cost(x_t, u_t, alpha).mean() / time_horizon
             x_hist.append(x_t)
             u_hist.append(u_t)
-            a_tch, b_tch = self.create_tensors_linear([x_t],self._model)
+            if contextual:
+                a_tch, b_tch = self.create_tensors_linear([x_t],self._model)
         return cost, constraint_cost, x_hist, u_hist
 
     def multistage_train(self, simulator:Simulator,
@@ -148,7 +151,6 @@ class Trainer():
                          time_horizon = 1,
                          batch_size = 1,
                          epochs = 1,
-                         trials = 1,
                          init_eps=settings.INIT_EPS_DEFAULT,
                          seed=settings.SEED_DEFAULT,
                         init_a=settings.INIT_A_DEFAULT,
@@ -161,7 +163,8 @@ class Trainer():
                         scheduler=settings.SCHEDULER_STEPLR_DEFAULT,
                         lr_step_size=settings.LR_STEP_SIZE,
                         lr_gamma=settings.LR_GAMMA,
-                        solver_args = settings.LAYER_SOLVER):
+                        solver_args = settings.LAYER_SOLVER,
+                        contextual = settings.CONTEXTUAL_DEFAULT):
 
         _,_,_,_,_,_,_ = self._split_dataset(test_percentage, seed)
 
@@ -171,13 +174,16 @@ class Trainer():
         a_tch, b_tch, alpha, slack = self._init_torches(init_a,
                                         init_b,
                                         init_alpha, self.train_set)
-
-        self._linear = self.init_linear_model(a_tch, b_tch,
-                                    False,1,
-                                    seed)
-        self._model = torch.nn.Sequential(self._linear)
         variables = [eps_tch, alpha,slack]
-        variables.extend(list(self._model.parameters()))
+
+        if contextual:
+            self._linear = self.init_linear_model(a_tch, b_tch,
+                                        False,1,
+                                        seed)
+            self._model = torch.nn.Sequential(self._linear)
+            variables.extend(list(self._model.parameters()))
+        else:
+            variables += [a_tch, b_tch]
 
         if optimizer == "SGD":
             opt = settings.OPTIMIZERS[optimizer](
@@ -190,32 +196,36 @@ class Trainer():
                 opt, step_size=lr_step_size, gamma=lr_gamma)
 
         baseline_costs, baseline_vio_cost,_,_ = self.monte_carlo(
-                    time_horizon=time_horizon, batch_size = 1, trials=trials,
+                    time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size = 1,
                       seed=seed, eps_tch = eps_tch, alpha = alpha,
-                      solver_args = solver_args)
+                      solver_args = solver_args, contextual = contextual)
         baseline_cost = np.mean(np.array(baseline_costs) + np.array(baseline_vio_cost))
         print("Baseline cost: ", baseline_cost)
 
         val_costs = []
         val_costs_constr = []
+        x_vals = []
+        u_vals = []
 
         for epoch in range(epochs):
             with torch.no_grad():
                 val_cost, val_cost_constr, x_base, u_base = self.monte_carlo(
-                    time_horizon=time_horizon, batch_size = 1, trials=trials,
-                      seed=seed, eps_tch = eps_tch, alpha = alpha,
-                      solver_args = solver_args)
+                    time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch,
+                    batch_size = 1,seed=seed, eps_tch = eps_tch, alpha = alpha,
+                      solver_args = solver_args, contextual = contextual)
                 val_cost = np.mean(val_cost)
                 val_cost_constr = np.mean(val_cost_constr)
                 val_costs.append(val_cost)
                 val_costs_constr.append(val_cost_constr)
+                x_vals.append(x_base)
+                u_vals.append(u_base)
 
             torch.manual_seed(seed + epoch)
             opt.zero_grad()
             cost, constr_cost, _, _,  = self.loss_and_constraints(
-                time_horizon=time_horizon, batch_size = batch_size,
+                time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size = batch_size,
                 seed=seed+epoch+1,eps_tch=eps_tch,alpha = alpha,
-                solver_args=solver_args)
+                solver_args=solver_args, contextual = contextual)
             fin_cost = cost+constr_cost
             fin_cost.backward()
             print("epoch %d, valid %.4e" % (epoch, val_cost+val_cost_constr) )
@@ -223,7 +233,7 @@ class Trainer():
             if scheduler:
               scheduler_.step()
         return val_costs, val_costs_constr, [np.array(v.detach().numpy())
-                                             for v in variables], x_base, u_base
+                                             for v in variables], x_vals, u_vals
 
 
     def _validate_unc_set_T(self):
@@ -333,7 +343,7 @@ class Trainer():
                 torch_b = b_tch
                 torch_a = a_tch.flatten()
                 torch_concat = torch.hstack([torch_a, torch_b])
-            lin_model.weight.data.fill_(0.0001)
+            lin_model.weight.data.fill_(0.000)
             lin_model.bias.data = torch_concat
             if init_weight is not None:
                 lin_model.weight.data = torch.tensor(init_weight,
