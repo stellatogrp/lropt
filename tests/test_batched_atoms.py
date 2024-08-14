@@ -290,4 +290,312 @@ class TestReshape(unittest.TestCase):
                         self.input_mat_batch, reshape_tensor(self.k*self.input_mat_batch,
                         (self.b, self.n, self.p), order=order, batch=True))
 
-#TODO: Add tests for BatchedHstack, BatchedVstack, BatchedAddExpression
+class TestBatchedAddExpression(unittest.TestCase):
+        def test_basic_addition(self):
+            n = 3
+            x = cp.Variable(n)
+            uncertainty_set = Ellipsoidal(rho=5, p=1, lb=0, ub=10)
+            u = UncertainParameter(n, uncertainty_set=uncertainty_set)
+
+            expr1 = x + u
+            expr2 = (x + 1) + (2 * u)
+            expr3 = (x * 2) + u
+
+            expr1 = batchify(expr1)
+            expr2 = batchify(expr2)
+            expr3 = batchify(expr3)
+            torch_expr1, _ = expr1.gen_torch_exp()
+            torch_expr2, _ = expr2.gen_torch_exp()
+            torch_expr3, _ = expr3.gen_torch_exp()
+
+
+            a = torch.tensor([[1., 2., 3.], [4., 5., 6.]])
+            b = torch.tensor([[1., 2., 1.], [-1., -2., 5.]])
+            
+
+            res1 = torch_expr1(a,b)
+            res2 = torch_expr2(a,b)
+            self.assertTrue(torch.all(res1==torch.tensor([[2., 4., 4.], [3., 3., 11.]])))
+            self.assertTrue(torch.all(res2 == torch.tensor([[4., 7., 6.], [3., 2., 17.]]) ))
+
+            c = torch.tensor([[-1., -2., -3.], [-4., -5., -6.]])
+            d = torch.tensor([[1., 2., 3.], [4., 5., 6.]])
+            
+            res3 = torch_expr1(c, d)
+            self.assertTrue(torch.allclose(res3, torch.tensor([[0., 0., 0.], [0., 0., 0.]])))
+
+            res3 = torch_expr3(c, d)
+            self.assertTrue(torch.allclose(res3, torch.tensor([[-1., -2., -3.], [-4., -5., -6.]])))
+
+        def test_zero_tensors(self):
+            n = 3
+            x = cp.Variable(n)
+            uncertainty_set = Ellipsoidal(rho=5, p=1, lb=0, ub=10)
+            u = UncertainParameter(n, uncertainty_set=uncertainty_set)
+
+            expr = x + u
+            expr = batchify(expr)
+            torch_expr, _ = expr.gen_torch_exp()
+
+            a = torch.zeros((2, n))
+            b = torch.zeros((2, n))
+            
+
+            res = torch_expr(a, b)
+            self.assertTrue(torch.allclose(res, torch.zeros((2, n))))
+
+        def test_batched_addition(self):
+            n = 2
+            b = 3  
+
+            a_batch = torch.ones((b, n), dtype=torch.double)
+            b_batch = torch.ones((b, n), dtype=torch.double)
+            
+            expected_result = torch.ones((b, n), dtype=torch.double) * 2
+            
+            x = cp.Variable(n)
+            uncertainty_set = Ellipsoidal(rho=5, p=1, lb=0, ub=10)
+            u = UncertainParameter(n, uncertainty_set=uncertainty_set)
+
+            expr = x + u
+            expr = batchify(expr)
+            torch_expr, _ = expr.gen_torch_exp()
+            
+            res = torch_expr(a_batch, b_batch)
+            
+            self.assertTrue(torch.allclose(res, expected_result))
+
+        def test_batched_addition_with_zero_tensors(self):
+            n = 3
+            b = 4  
+            zero_batch = torch.zeros((b, n), dtype=torch.double)
+            expected_result = torch.zeros((b, n), dtype=torch.double)
+            x = cp.Variable(n)
+            uncertainty_set = Ellipsoidal(rho=5, p=1, lb=0, ub=10)
+            u = UncertainParameter(n, uncertainty_set=uncertainty_set)
+            expr = x + u
+            expr = batchify(expr)
+            torch_expr, _ = expr.gen_torch_exp()
+            res = torch_expr(zero_batch, zero_batch)
+            self.assertTrue(torch.allclose(res, expected_result))
+
+        def test_batched_addition_diff_sizes(self):
+            n = 3
+
+            for b in [2, 4, 6]:
+                a_batch = torch.tensor([[1., 2., 3.]] * b, dtype=torch.double)
+                b_batch = torch.tensor([[1., 1., 1.]] * b, dtype=torch.double)
+                expected_result = torch.tensor([[2., 3., 4.]] * b, dtype=torch.double)
+                x = cp.Variable(n)
+                uncertainty_set = Ellipsoidal(rho=5, p=1, lb=0, ub=10)
+                u = UncertainParameter(n, uncertainty_set=uncertainty_set)
+                expr = x + u
+                expr = batchify(expr)
+                torch_expr, _ = expr.gen_torch_exp()
+                res = torch_expr(a_batch, b_batch)
+                self.assertTrue(torch.allclose(res, expected_result))
+
+class TestBatchedVstack(unittest.TestCase):
+    def test_basic_vstack(self):
+        n = 3
+        x = cp.Variable(n)
+        y = cp.Variable(n)
+
+        expr1 = cp.vstack([x, y])
+        expr1 = batchify(expr1)
+
+        torch_expr1, _ = expr1.gen_torch_exp()
+
+        a = torch.tensor([[1., 2., 3.]])
+        b = torch.tensor([[4., 5., 6.]])
+        
+        expected_result = torch.tensor([[1., 2., 3.], [4., 5., 6.]])
+        
+        res1 = torch_expr1(a, b)
+        self.assertTrue(torch.allclose(res1, expected_result))
+
+    def test_diff_batch_sizes(self):
+        n = 3
+        for b in [2, 4, 6]:
+            x_batch = torch.tensor([[1., 2., 3.]] * b, dtype=torch.double)
+            y_batch = torch.tensor([[4., 5., 6.]] * b, dtype=torch.double)
+            
+            expected_result = torch.cat([x_batch, y_batch], dim=0)
+            
+            x = cp.Variable(n)
+            y = cp.Variable(n)
+
+            expr = cp.vstack([x, y])
+            expr = batchify(expr)
+            torch_expr, _ = expr.gen_torch_exp()
+            
+            res = torch_expr(x_batch, y_batch)
+            self.assertTrue(torch.allclose(res, expected_result))
+
+    def test_batched_vstack_zero_values(self):
+        n = 3
+        for b in [2, 4, 6]:
+            x_batch = torch.zeros((b, n), dtype=torch.double)
+            y_batch = torch.zeros((b, n), dtype=torch.double)
+            
+            expected_result = torch.cat([x_batch, y_batch], dim=0)
+            
+            x = cp.Variable(n)
+            y = cp.Variable(n)
+
+            expr = cp.vstack([x, y])
+            expr = batchify(expr)
+            torch_expr, _ = expr.gen_torch_exp()
+            
+            res = torch_expr(x_batch, y_batch)
+            self.assertTrue(torch.allclose(res, expected_result))
+
+    def test_large_batch(self):
+        n = 3
+        b = 10000  # Large batch size
+        x_batch = torch.ones((b, n), dtype=torch.double)
+        y_batch = torch.ones((b, n), dtype=torch.double) * 2
+
+        expected_result = torch.cat([x_batch, y_batch], dim=0)
+
+        x = cp.Variable(n)
+        y = cp.Variable(n)
+
+        expr = cp.vstack([x, y])
+        expr = batchify(expr)
+        torch_expr, _ = expr.gen_torch_exp()
+
+        res = torch_expr(x_batch, y_batch)
+        self.assertTrue(torch.allclose(res, expected_result))
+
+    def test_zero_and_identity_matrices(self):
+        n = 4
+        x = torch.zeros((2, n), dtype=torch.double)
+        y = torch.eye(2, n, dtype=torch.double)
+
+        expected_result = torch.cat([x, y], dim=0)
+
+        x_var = cp.Variable(n)
+        y_var = cp.Variable(n)
+
+        expr = cp.vstack([x_var, y_var])
+        expr = batchify(expr)
+        torch_expr, _ = expr.gen_torch_exp()
+
+        res = torch_expr(x, y)
+        self.assertTrue(torch.allclose(res, expected_result))
+
+    def test_mixed_data_types(self):
+        n = 3
+        x = cp.Variable(n)
+        y = cp.Variable(n)
+
+        expr1 = cp.vstack([x, y])
+        expr1 = batchify(expr1)
+        
+        torch_expr1, _ = expr1.gen_torch_exp()
+
+        a = torch.tensor([[1., 2., 3.]], dtype=torch.float32)
+        b = torch.tensor([[4., 5., 6.]], dtype=torch.float64)
+        
+        expected_result = torch.tensor([[1., 2., 3.], [4., 5., 6.]], dtype=torch.float64)
+        
+        res1 = torch_expr1(a, b)
+        self.assertTrue(torch.allclose(res1, expected_result, atol=1e-6))
+
+class TestBatchedHStack(unittest.TestCase):
+    def test_basic_hstack(self):
+        n = 3
+        m = 2
+
+        x = cp.Variable((n, m))
+        y = cp.Variable((n, m))
+
+        expr1 = cp.hstack([x, y])
+        expr1 = batchify(expr1)
+
+        torch_expr1, _ = expr1.gen_torch_exp()
+
+        a = torch.tensor([[1., 2., 3.], [4., 5., 6.]])
+        b = torch.tensor([[7., 8., 9.], [10., 11., 12.]])
+        
+        expected_result = torch.tensor([[1., 2., 3., 7., 8., 9.], [4., 5., 6., 10., 11., 12.]])
+        
+        res1 = torch_expr1(a, b)
+        self.assertTrue(torch.allclose(res1, expected_result))
+
+    def test_different_batch_sizes(self):
+        n = 3
+        m = 2
+
+        for b in [2, 4, 6]:
+            x_batch = torch.tensor([[1., 2.]] * b, dtype=torch.double)
+            y_batch = torch.tensor([[4., 5.]] * b, dtype=torch.double)
+            expected_result = torch.cat([x_batch, y_batch], dim=1)
+
+            x = cp.Variable((n, m))
+            y = cp.Variable((n, m))
+            expr = cp.hstack([x, y])
+            expr = batchify(expr)
+            torch_expr, _ = expr.gen_torch_exp()
+            res = torch_expr(x_batch, y_batch)
+            self.assertTrue(torch.allclose(res, expected_result))
+
+    def test_zero_tensors(self):
+        n = 3
+        m = 2
+
+        zero_tensor = torch.zeros((n, m), dtype=torch.double)
+        x = cp.Variable((n, m))
+        y = cp.Variable((n, m))
+        expr = cp.hstack([x, y])
+        expr = batchify(expr)
+        torch_expr, _ = expr.gen_torch_exp()
+        res = torch_expr(zero_tensor, zero_tensor)
+        expected_result = torch.cat([zero_tensor, zero_tensor], dim=1)
+        self.assertTrue(torch.allclose(res, expected_result))
+
+    def test_identity_matrices(self):
+        n = 2
+        m = 2
+
+        identity_tensor = torch.eye(m, dtype=torch.double).unsqueeze(0).repeat(n, 1, 1)  # Batch of 1
+        x = cp.Variable((n, m))
+        y = cp.Variable((n, m))
+        expr = cp.hstack([x, y])
+        expr = batchify(expr)
+        torch_expr, _ = expr.gen_torch_exp()
+        res = torch_expr(identity_tensor.squeeze(0), identity_tensor.squeeze(0))
+        expected_result = torch.cat([identity_tensor.squeeze(0), identity_tensor.squeeze(0)], dim=1)
+        self.assertTrue(torch.allclose(res, expected_result))
+    
+    def test_mixed_values(self):
+        for b in [2, 3]:
+            x_batch = torch.tensor([[i, i + 1] for i in range(b)], dtype=torch.double)
+            y_batch = torch.tensor([[i + 2, i + 3] for i in range(b)], dtype=torch.double)
+            expected_result = torch.cat([x_batch, y_batch], dim=1)
+
+            x = cp.Variable((b, 2))
+            y = cp.Variable((b, 2))
+            expr = cp.hstack([x, y])
+            expr = batchify(expr)
+            torch_expr, _ = expr.gen_torch_exp()
+            res = torch_expr(x_batch, y_batch)
+            self.assertTrue(torch.allclose(res, expected_result))
+
+    def test_large_tensors(self):
+        large_batch_size = 100
+        n = 3
+        m = 2
+
+        x_batch = torch.ones((large_batch_size, n), dtype=torch.double)
+        y_batch = torch.ones((large_batch_size, n), dtype=torch.double) * 2
+        expected_result = torch.cat([x_batch, y_batch], dim=1)
+
+        x = cp.Variable((large_batch_size, n))
+        y = cp.Variable((large_batch_size, n))
+        expr = cp.hstack([x, y])
+        expr = batchify(expr)
+        torch_expr, _ = expr.gen_torch_exp()
+        res = torch_expr(x_batch, y_batch)
+        self.assertTrue(torch.allclose(res, expected_result))
