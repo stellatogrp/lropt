@@ -559,7 +559,7 @@ class TestBatchedHStack(unittest.TestCase):
         n = 2
         m = 2
 
-        identity_tensor = torch.eye(m, dtype=torch.double).unsqueeze(0).repeat(n, 1, 1)  # Batch of 1
+        identity_tensor = torch.eye(m, dtype=torch.double).unsqueeze(0).repeat(n, 1, 1) # Batch of 1
         x = cp.Variable((n, m))
         y = cp.Variable((n, m))
         expr = cp.hstack([x, y])
@@ -586,7 +586,6 @@ class TestBatchedHStack(unittest.TestCase):
     def test_large_tensors(self):
         large_batch_size = 100
         n = 3
-        m = 2
 
         x_batch = torch.ones((large_batch_size, n), dtype=torch.double)
         y_batch = torch.ones((large_batch_size, n), dtype=torch.double) * 2
