@@ -24,7 +24,6 @@ dependencies = [
     "pandas",
     "tqdm",
     "diffcp @ git+https://github.com/cvxgrp/diffcp@eaac7bc4d637e8854801929ebf01d7db45554f5d",
-    "scip @ git+https://github.com/scipopt/PySCIPOpt",
 ]
 
 [tool.setuptools]
