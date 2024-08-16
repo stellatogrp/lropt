@@ -8,7 +8,7 @@ class Parameter(cp.Parameter):
 
         if data is None:
             raise ValueError("You must provide data")
-        assert isinstance(data, np.ndarray), "not a numpy array"
+        assert isinstance(data, np.ndarray),"data must be a numpy array"
         #Convert to a 2D np.array
         if len(data.shape)==1:
             data = np.expand_dims(data, axis=0)

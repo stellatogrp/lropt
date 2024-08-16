@@ -1,3 +1,4 @@
+import abc
 from abc import ABC
 from enum import Enum
 
@@ -14,17 +15,58 @@ import lropt.train.settings as settings
 from lropt import RobustProblem
 from lropt.train.parameter import EpsParameter, Parameter, ShapeParameter
 from lropt.train.utils import get_n_processes
-from lropt.uncertain_canon.utils import unique_list
 from lropt.uncertain_parameter import UncertainParameter
+from lropt.utils import unique_list
 
+# add a simulator class. abstract class. user defines.
+# simulate (dynamics)
+# stage cost
+# constraint (per stage or not) (constraint cvar, some notion of violation)
+
+
+# Trainer
+# inject the data into the trainer
+# loss and constraints (calls monte carlo, stage cost, constraint)
+# monte-carlo - evaluate without gradients
+
+
+
+class Simulator(ABC):
+
+    @abc.abstractmethod
+    def simulate(self,x,u):
+        """Simulate next set of parameters using current parameters x
+        and variables u, with added uncertainty
+        """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def stage_cost(self,x,u):
+        """ Create the current stage cost using the current state x
+        and decision u
+        """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def constraint_cost(self,x,u,alpha):
+        """ Create the current constraint penalty cost
+        """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def init_state(self,batch_size, seed):
+        """ initialize the parameter value
+        """
+        raise NotImplementedError()
 
 class Trainer():
     _EVAL_INPUT_CASE = Enum("_EVAL_INPUT_CASE", "MEAN EVALMEAN MAX")
 
     """Create a class to handle training"""
     def __init__(self, problem: RobustProblem):
-        if not self.count_unq_uncertain_param(problem) > 0:
-            raise ValueError("Must have uncertain parameter")
+        if not (self.count_unq_uncertain_param(problem) == 1):
+            raise ValueError("Must have a single uncertain parameter " + \
+                             "for training")
         self.unc_set = self.uncertain_parameters(problem)[0].uncertainty_set
         self._validate_unc_set_T()
 
@@ -35,6 +77,7 @@ class Trainer():
 
         self.f = self.problem_canon.f
         self.g = self.problem_canon.g
+        self.h = self.problem_canon.h
         self.g_shapes = self.problem_canon.g_shapes
         self.num_g_total = self.problem_canon.num_g_total
         self.eval = self.problem_canon.eval
@@ -53,6 +96,145 @@ class Trainer():
         self.test_set = None
         self.y_train_tch = None
         self.y_test_tch = None
+
+    def monte_carlo(self, eps_tch, alpha, solver_args, time_horizon,
+                    a_tch, b_tch, batch_size = 1, seed=None,contextual = False):
+        if seed is not None:
+            torch.manual_seed(seed)
+        results = []
+        constraint_costs = []
+        x = []
+        u = []
+
+        # remove for loop, set batch size to trials
+        cost, constraint_cost, x_hist, u_hist = self.loss_and_constraints(
+            time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size = batch_size,
+            seed=seed,eps_tch = eps_tch, alpha = alpha,
+            solver_args = solver_args, contextual = contextual)
+        results.append(cost.item())
+        constraint_costs.append(constraint_cost.item())
+        x.append(x_hist)
+        u.append(u_hist)
+        return results, constraint_costs, x, u
+
+    def loss_and_constraints(self, eps_tch, alpha, solver_args,
+                             time_horizon, a_tch, b_tch,
+                             batch_size = 1, seed=None, contextual = False):
+        if seed is not None:
+            torch.manual_seed(seed)
+
+        x_0 = self.simulator.init_state(batch_size, seed)
+
+        if contextual:
+            a_tch, b_tch = self.create_tensors_linear([x_0],
+                                    self._model)
+
+        cost = 0.0
+        constraint_cost = 0.0
+        x_t = x_0
+        x_hist = [x_0]
+        u_hist = []
+        for t in range(time_horizon):
+            u_t = self.cvxpylayer(eps_tch, *self.y_orig_tch,
+                x_t,a_tch,b_tch,solver_args=solver_args)[0]
+            x_t = self.simulator.simulate(x_t, u_t)
+            cost += self.simulator.stage_cost(x_t, u_t).mean() / time_horizon
+            constraint_cost += self.simulator.constraint_cost(x_t, u_t, alpha).mean() / time_horizon
+            x_hist.append(x_t)
+            u_hist.append(u_t)
+            if contextual:
+                a_tch, b_tch = self.create_tensors_linear([x_t],self._model)
+        return cost, constraint_cost, x_hist, u_hist
+
+    def multistage_train(self, simulator:Simulator,
+                         policy = None,
+                         time_horizon = 1,
+                         batch_size = 1,
+                         epochs = 1,
+                         init_eps=settings.INIT_EPS_DEFAULT,
+                         seed=settings.SEED_DEFAULT,
+                        init_a=settings.INIT_A_DEFAULT,
+                        init_b=settings.INIT_B_DEFAULT,
+                        init_alpha=settings.INIT_ALPHA_DEFAULT,
+                        test_percentage=settings.TEST_PERCENTAGE_DEFAULT,
+                        optimizer=settings.OPT_DEFAULT,
+                        lr=settings.LR_DEFAULT,
+                        momentum=settings.MOMENTUM_DEFAULT,
+                        scheduler=settings.SCHEDULER_STEPLR_DEFAULT,
+                        lr_step_size=settings.LR_STEP_SIZE,
+                        lr_gamma=settings.LR_GAMMA,
+                        solver_args = settings.LAYER_SOLVER,
+                        contextual = settings.CONTEXTUAL_DEFAULT):
+
+        _,_,_,_,_,_,_ = self._split_dataset(test_percentage, seed)
+
+        self.cvxpylayer = self.create_cvxpylayer() if not policy else policy
+        self.simulator = simulator
+        eps_tch = self._gen_eps_tch(init_eps)
+        a_tch, b_tch, alpha, slack = self._init_torches(init_a,
+                                        init_b,
+                                        init_alpha, self.train_set)
+        variables = [eps_tch, alpha,slack]
+
+        if contextual:
+            self._linear = self.init_linear_model(a_tch, b_tch,
+                                        False,1,
+                                        seed)
+            self._model = torch.nn.Sequential(self._linear)
+            variables.extend(list(self._model.parameters()))
+        else:
+            variables += [a_tch, b_tch]
+
+        if optimizer == "SGD":
+            opt = settings.OPTIMIZERS[optimizer](
+                variables, lr=lr, momentum=momentum)
+        else:
+            opt = settings.OPTIMIZERS[optimizer](
+                variables, lr=lr)
+        if scheduler:
+            scheduler_ = torch.optim.lr_scheduler.StepLR(
+                opt, step_size=lr_step_size, gamma=lr_gamma)
+
+        baseline_costs, baseline_vio_cost,_,_ = self.monte_carlo(
+                    time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size = 1,
+                      seed=seed, eps_tch = eps_tch, alpha = alpha,
+                      solver_args = solver_args, contextual = contextual)
+        baseline_cost = np.mean(np.array(baseline_costs) + np.array(baseline_vio_cost))
+        print("Baseline cost: ", baseline_cost)
+
+        val_costs = []
+        val_costs_constr = []
+        x_vals = []
+        u_vals = []
+
+        for epoch in range(epochs):
+            with torch.no_grad():
+                val_cost, val_cost_constr, x_base, u_base = self.monte_carlo(
+                    time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch,
+                    batch_size = 1,seed=seed, eps_tch = eps_tch, alpha = alpha,
+                      solver_args = solver_args, contextual = contextual)
+                val_cost = np.mean(val_cost)
+                val_cost_constr = np.mean(val_cost_constr)
+                val_costs.append(val_cost)
+                val_costs_constr.append(val_cost_constr)
+                x_vals.append(x_base)
+                u_vals.append(u_base)
+
+            torch.manual_seed(seed + epoch)
+            opt.zero_grad()
+            cost, constr_cost, _, _,  = self.loss_and_constraints(
+                time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size = batch_size,
+                seed=seed+epoch+1,eps_tch=eps_tch,alpha = alpha,
+                solver_args=solver_args, contextual = contextual)
+            fin_cost = cost+constr_cost
+            fin_cost.backward()
+            print("epoch %d, valid %.4e" % (epoch, val_cost+val_cost_constr) )
+            opt.step()
+            if scheduler:
+              scheduler_.step()
+        return val_costs, val_costs_constr, [np.array(v.detach().numpy())
+                                             for v in variables], x_vals, u_vals
+
 
     def _validate_unc_set_T(self):
         """
@@ -99,28 +281,28 @@ class Trainer():
         """Generate the torch of the rho multiplier value, placed in a list"""
         return [torch.tensor(rho.value,
                         dtype=settings.DTYPE,
-                        requires_grad=self.train_flag) for rho in rhoparams]
+                        requires_grad=self.train_flag) for rho in rhoparams][0]
 
     def shape_parameters(self, problem):
         """Get the reshaping parameters a and b"""
         return [v for v in problem.parameters() if isinstance(v, ShapeParameter)]
 
-    def create_cvxpylayers(self,parameters = None, variables=None):
+    def create_cvxpylayer(self,parameters = None, variables=None):
         """Create cvxpylayers.
         Default parameter order: rho multiplier, cvxpy parameters, lropt parameters, a, b.
         Default variable order: the variables of problem_canon """
         if parameters is None:
-            parameters = self._rho_mult_parameter + self._orig_parameters
-            + self._y_parameters + self._shape_parameters
+            parameters = self._rho_mult_parameter + self._orig_parameters +\
+                  self._y_parameters + self._shape_parameters
         if variables is None:
             variables = self.problem_canon.variables()
         cvxpylayer = CvxpyLayer(self.problem_no_unc,parameters=parameters,
-                                        variables=[variables])
+                                        variables=variables)
         return cvxpylayer
 
     def y_parameter_shapes(self, y_params):
-        """Get the shape of all y parameters"""
-        return [v.shape[0] for v in y_params]
+        """Get the size of all y parameters"""
+        return [v.size for v in y_params]
 
     def initialize_dimensions_linear(self):
         """Find the dimensions of the linear model"""
@@ -135,6 +317,7 @@ class Trainer():
         """Create the tensors of a's and b's using the trained linear model"""
         a_shape = self.unc_set._a.shape
         b_shape = self.unc_set._b.shape
+        y_batch = [torch.flatten(y, start_dim = 1) for y in y_batch]
         input_tensors = torch.hstack(y_batch)
         theta = linear(input_tensors)
         raw_a = theta[:,:a_shape[0]*a_shape[1]]
@@ -150,7 +333,7 @@ class Trainer():
                     init_num=1,seed = 0, init_weight = None, init_bias = None):
         """Initializes the linear model weights and bias"""
         in_shape, out_shape, a_totsize = \
-                                self.initialize_dimensions_linear(self.unc_set)
+                                self.initialize_dimensions_linear()
         torch.manual_seed(seed+init_num)
         lin_model = torch.nn.Linear(in_features = in_shape,
                                 out_features = out_shape).double()
@@ -160,7 +343,7 @@ class Trainer():
                 torch_b = b_tch
                 torch_a = a_tch.flatten()
                 torch_concat = torch.hstack([torch_a, torch_b])
-            lin_model.weight.data.fill_(0.0001)
+            lin_model.weight.data.fill_(0.000)
             lin_model.bias.data = torch_concat
             if init_weight is not None:
                 lin_model.weight.data = torch.tensor(init_weight,
@@ -256,18 +439,18 @@ class Trainer():
 
         y_train_tchs = []
         y_test_tchs = []
-        for i in range(len(self.y_parameters())):
+        for i in range(len(self._y_parameters)):
             y_train_tchs.append(torch.tensor(
-                self.y_parameters()[i].data[train_indices], requires_grad=self.train_flag,
+                self._y_parameters[i].data[train_indices], requires_grad=self.train_flag,
                 dtype=settings.DTYPE))
             y_test_tchs.append(torch.tensor(
-                self.y_parameters()[i].data[test_indices], requires_grad=self.train_flag,
+                self._y_parameters[i].data[test_indices], requires_grad=self.train_flag,
                 dtype=settings.DTYPE))
 
         self.train_tch = unc_train_tch
         self.test_tch = unc_test_tch
-        self.train_set = unc_train_tch
-        self.test_set = unc_test_tch
+        self.train_set = unc_train_set
+        self.test_set = unc_test_set
         self.y_train_tch = y_train_tchs
         self.y_test_tch = y_test_tchs
         self.train_size = num_train
@@ -369,6 +552,7 @@ class Trainer():
         """
         This function Initializes and returns a_tch, b_tch, and alpha as tensors
         """
+        # train_set = train_set.detach().numpy()
         self._init = self._gen_init(train_set, init_A)
         init_tensor = torch.tensor(self._init, requires_grad=self.train_flag, dtype=settings.DTYPE)
         b_tch = None
@@ -383,6 +567,7 @@ class Trainer():
         alpha = torch.tensor(init_alpha, requires_grad=self.train_flag)
         slack = torch.zeros(self.num_g_total, requires_grad=self.train_flag, dtype=settings.DTYPE)
         return a_tch, b_tch, alpha, slack
+
 
     def _update_iters(self, save_history, a_history, b_history,
                       eps_history,a_tch, b_tch, eps_tch):
@@ -449,7 +634,7 @@ class Trainer():
         elif fixb:
             variables = [a_tch, alpha, slack]
         elif contextual:
-            variables = [eps_tch, alpha,slack]
+            variables = [alpha,slack]
             variables.extend(list(model.parameters()))
         else:
             variables = [a_tch, b_tch, alpha, slack]
@@ -457,8 +642,8 @@ class Trainer():
         return variables
 
 
-
-    def _calc_coverage(self, dset, a_tch, b_tch, rho=1,p=2,contextual=False):
+    def _calc_coverage(self, dset, a_tch, b_tch, rho=1,p=2,
+                       contextual=False,y_set = None, linear = None):
         """
         This function calculates coverage.
 
@@ -481,6 +666,7 @@ class Trainer():
         """
         coverage = 0
         if contextual:
+            a_tch, b_tch = self.create_tensors_linear(y_set, linear)
             for i in range(dset.shape[0]):
                 coverage += torch.where(
                     torch.norm((a_tch[i].T@torch.linalg.inv(a_tch[i]@a_tch[i].T)) @ (dset[i]-
@@ -743,7 +929,7 @@ class Trainer():
                 shape = self.unc_set._a.shape
                 kwargs['init_A'] = np.random.rand(shape[0],shape[1])
                     #  + 0.01*np.eye(kwargs['u_size'])
-                kwargs['init_b'] = np.mean(kwargs['train_set'], axis=0)
+                kwargs['init_b'] = np.mean(self.train_set, axis=0)
         a_history = []
         b_history = []
         eps_history = []
@@ -798,7 +984,7 @@ class Trainer():
                 a_tch, b_tch = self.create_tensors_linear(y_batch,
                                             kwargs['model'])
 
-            var_values = self.cvxpylayer(eps_tch,*self.y_orig_tch
+            var_values = self.cvxpylayer(eps_tch,*self.y_orig_tch,
                             *y_batch, a_tch, b_tch,solver_args=kwargs['solver_args'])
 
             eval_args = self.order_args(var_values=var_values,
@@ -859,8 +1045,10 @@ class Trainer():
                     obj_test, prob_violation_test, var_vio)
                 new_row = train_stats.generate_test_row(
                     self._calc_coverage, a_tch, b_tch, alpha,
-                    u_batch, eps_tch, self.unc_set, var_values, kwargs['contextual'])
-                df_test = pd.concat([df_test, new_row.to_frame().T], ignore_index=True)
+                    u_batch, eps_tch, self.unc_set, var_values,
+                    kwargs['contextual'], kwargs['linear'], y_batch)
+                df_test = pd.concat([df_test,
+                                     new_row.to_frame().T], ignore_index=True)
 
 
             if step_num < kwargs['num_iter'] - 1:
@@ -869,9 +1057,8 @@ class Trainer():
                 with torch.no_grad():
                     newval = torch.clamp(slack, min=0., max=torch.inf)
                     slack.copy_(newval)
-                    if kwargs['trained_shape']:
-                        neweps_tch = torch.clamp(eps_tch, min=0.001)
-                        eps_tch.copy_(neweps_tch)
+                    neweps_tch = torch.clamp(eps_tch, min=0.001)
+                    eps_tch.copy_(neweps_tch)
                 if kwargs['scheduler']:
                     scheduler_.step()
 
@@ -1055,7 +1242,7 @@ class Trainer():
                 raise ValueError("You must give a model if you do not train a model")
         _,_,_,_,_,_,_ = self._split_dataset(test_percentage, seed)
 
-        self.cvxpylayer = self.create_cvxpylayers()
+        self.cvxpylayer = self.create_cvxpylayer()
 
         num_random_init = num_random_init if random_init else 1
         num_random_init = num_random_init if train_shape else 1
@@ -1104,7 +1291,7 @@ class Trainer():
         df, df_test, a_history, b_history, eps_history, param_vals, \
             fin_val, var_values, mu_val, linear_models = zip(*res)
         index_chosen = np.argmin(np.array(fin_val))
-        self._trained = True
+        self.orig_problem_trained = True
         self.unc_set._trained = True
         return_eps = param_vals[index_chosen][2]
         if contextual:
@@ -1161,7 +1348,7 @@ class Trainer():
                       linear = linear_models[index_chosen])
 
     def gen_unique_y(self,y_batch):
-        # get unique y's
+        """ get unique y's from a list of y parameters. """
         y_batch_array = [np.array(ele) for ele in y_batch]
         all_indices = [np.unique(ele,axis=0, return_index=True)[1] for ele in y_batch_array]
         unique_indices = np.unique(np.concatenate(all_indices))
@@ -1174,6 +1361,7 @@ class Trainer():
     def gen_new_var_values(self, num_unique_indices,
                 y_unique_array, var_values, batch_int,
             y_batch_array, contextual=False, a_tch=None, b_tch=None):
+        """get var_values for all y's, repeated for the repeated y's """
         # create dictionary from unique y's to var_values
         if not contextual:
             y_to_var_values_dict = {}
@@ -1239,16 +1427,34 @@ class Trainer():
         Perform gridsearch to find optimal :math:`\epsilon`-ball around data.
 
         Args:
-
         epslst : np.array, optional
             The list of :math:`\epsilon` to iterate over. "Default np.logspace(-3, 1, 20)
-        seed: int
+        seed: int, optional
             The seed to control the train test split. Default 1.
-        solver: optional
-            A solver to perform gradient-based learning
+        init_A: np.array
+            The shape A of the set
+        init_b: np.array
+            The shape b of the set
+        init_alpha: float, optional
+            The alpha value of the CVaR constraint
+        test_percentage: float, optional
+            The percengate of the data used in the testing set
+        solver_args: dict, optional
+            Optional arguments to pass to the solver
+        quantiles: tuple, optional
+            The quantiles to calculate for the testing results
+        newdata: tuple, optional
+            New data for the uncertain parameter and y parameters. should be
+            given as a tuple with two entries, a np.array for u, and a list of
+            np.arrays for y.
+        eta:
+            The eta value for the CVaR constraint
+        contextual:
+            Whether or not a contextual set is considered
+        linear:
+            The linear NN model if contextual is true
 
         Returns:
-
         A pandas data frame with information on each :math:`\epsilon` having the following columns:
             Opt_val: float
                 The objective value of the Robust Problem
@@ -1281,7 +1487,7 @@ class Trainer():
                 self.y_test_tch = [torch.tensor(y, requires_grad=self.train_flag,
                                         dtype=settings.DTYPE) for y in y_set]
 
-        self.cvxpylayer = self.create_cvxpylayers()
+        self.cvxpylayer = self.create_cvxpylayer()
 
         grid_stats = GridStats()
 
@@ -1302,20 +1508,20 @@ class Trainer():
                 eps*init_eps, requires_grad=self.train_flag, dtype=settings.DTYPE)
             if contextual:
                 a_tch_init, b_tch_init = self.create_tensors_linear(
-                                    y_unique_t, linear, self.unc_set, requires_grad=self.train_flag)
+                                    y_unique, linear)
             var_values = self.cvxpylayer(eps_tch, *self.y_orig_tch,
                                     *y_unique, a_tch_init,b_tch_init,
                                     solver_args=solver_args)
-            if contextual:
-                a_tch_init, b_tch_init = self.create_tensors_linear(
-                                    y_unique, linear, self.unc_set,requires_grad=self.train_flag)
-            var_values_t = self.cvxpylayer(eps_tch, *self.y_orig_tch,
-                                    *y_unique_t, a_tch_init,b_tch_init,
-                                    solver_args=solver_args)
-
             new_var_values, a_tch_init, b_tch_init = self.gen_new_var_values(
                 num_unique_indices,y_unique_array, var_values,
                 self.test_size, y_batch_array, contextual,a_tch_init, b_tch_init )
+
+            if contextual:
+                a_tch_init, b_tch_init = self.create_tensors_linear(
+                                    y_unique_t, linear)
+            var_values_t = self.cvxpylayer(eps_tch, *self.y_orig_tch,
+                                    *y_unique_t, a_tch_init,b_tch_init,
+                                    solver_args=solver_args)
 
             new_var_values_t,_,_ = self.gen_new_var_values(num_unique_indices_t,
                      y_unique_array_t, var_values_t, self.train_size,
@@ -1350,10 +1556,11 @@ class Trainer():
 
             new_row = train_stats.generate_test_row(
                 self._calc_coverage, a_tch_init,b_tch_init,
-                alpha, self.train_tch,eps_tch, self.unc_set, var_values[1],contextual)
+                alpha, self.test_tch,eps_tch, self.unc_set, var_values[0],
+                contextual,linear, self.y_test_tch)
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
-        self._trained = True
+        self.orig_problem._trained = True
         self.unc_set._trained = True
 
         if contextual:
@@ -1382,9 +1589,6 @@ class Trainer():
 
 
 
-    ### default training: training from robust-problem
-    ### half customized training: user define loss
-    ### fully customized training: can use just the cvxpylayers
 
 
 class TrainLoopStats():
@@ -1414,7 +1618,6 @@ class TrainLoopStats():
             This is an internal function that either initiates a tensor or a list
             """
             return torch.tensor(0., dtype=settings.DTYPE)
-            # return [] if not self.train_flag else torch.tensor(0., dtype=settings.DTYPE)
         self.step_num = step_num
         self.train_flag = train_flag
         self.tot_lagrangian = __value_init__(self)
@@ -1481,12 +1684,13 @@ class TrainLoopStats():
         return new_row
 
     def generate_test_row(self, calc_coverage, a_tch, b_tch,
-                        alpha, test_tch, eps_tch, uncset, var_values= None,contextual = False):
+                        alpha, test_tch, eps_tch, uncset, var_values= None,
+                        contextual = False,linear = None,y_test_tch = None):
         """
         This function generates a new row with the statistics
         """
         coverage_test = calc_coverage(
-            test_tch, a_tch, b_tch, uncset._rho*eps_tch,uncset.p,contextual)
+            test_tch, a_tch, b_tch, uncset._rho*eps_tch,uncset.p,contextual,y_test_tch, linear)
         row_dict = {
             "Test_val":         self.testval,
             "Lower_test": self.lower_testval,
@@ -1541,14 +1745,16 @@ class GridStats():
 
 
 class Result(ABC):
-    def __init__(self, prob, probnew, df, df_test, T, b, eps, \
+    """ A class to store the results of training """
+
+    def __init__(self, prob, probnew, df, df_test, A, b, eps, \
                  obj, x, a_history=None,
                  b_history=None, eps_history = None, linear=None):
-        self._reform_problem = probnew
+        self._final_prob = probnew
         self._problem = prob
         self._df = df
         self._df_test = df_test
-        self._A = T
+        self._A = A
         self._b = b
         self._obj = obj
         self._x = x
@@ -1571,8 +1777,8 @@ class Result(ABC):
         return self._df_test
 
     @property
-    def reform_problem(self):
-        return self._reform_problem
+    def final_problem(self):
+        return self._final_prob
 
     @property
     def A(self):

@@ -180,7 +180,6 @@ class Budget(UncertaintySet):
         supp_newvar = Variable(len(self._d))
         constr += [norm(newvar1, 1) <= lmbda1]
         constr += [norm(newvar2, np.inf) <= lmbda2]
-        constr += [lmbda1 >= 0, lmbda2 >= 0]
         constr += [self._c.T@supp_newvar == supp_var]
         constr += [supp_newvar >= 0]
         return self.rho_mult*self.rho1*lmbda1 + self._d@supp_newvar +\

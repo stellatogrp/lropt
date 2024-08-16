@@ -7,9 +7,11 @@ import numpy.testing as npt
 from lropt.robust_problem import RobustProblem
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.polyhedral import Polyhedral
-from tests.settings import TESTS_ATOL as ATOL
-from tests.settings import TESTS_RTOL as RTOL
 
+# from tests.settings import TESTS_ATOL as ATOL
+# from tests.settings import TESTS_RTOL as RTOL
+ATOL = 1e-5
+RTOL = 1e-5
 
 class TestPolyhedralUncertainty(unittest.TestCase):
 

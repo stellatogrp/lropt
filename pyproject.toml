@@ -16,7 +16,7 @@ authors = [
 ]
 dependencies = [
     "scipy==1.11.2",
-    "cvxpy @ git+https://github.com/AmitSolomonPrinceton/cvxpy@ffd908b29581e6028a1446f6522d86261db4567f",
+    "cvxpy @ git+https://github.com/AmitSolomonPrinceton/cvxpy@cc6a48868ebb20e04b3886a5344c1bc1e0e0a594",
     "torch",
     "diffcp @ git+https://github.com/cvxgrp/diffcp@eaac7bc4d637e8854801929ebf01d7db45554f5d",
     "scikit-learn",
@@ -48,6 +48,7 @@ dev = [
     "jupyterlab",
     "ipdb",
     "marimo",
+    "pyscipopt",
 ]
 
 [tool.ruff]

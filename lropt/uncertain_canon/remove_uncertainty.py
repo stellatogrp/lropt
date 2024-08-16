@@ -60,39 +60,52 @@ class RemoveUncertainty(Reduction):
     def invert(self, solution, inverse_data):
         return standard_invert(solution=solution, inverse_data=inverse_data)
 
-    def remove_uncertain_terms(self, uvar, k_num,z_cons, aux_constraint, u_shape, smaller_u_shape):
-        "add constraints for the conjugates of the uncertain terms"
+    def remove_uncertain_terms(self, u_info, k_num,z_cons, aux_constraint):
+        """add constraints for the conjugates of the uncertain terms
+            for each uncertain param
+        """
+        def _gen_a_mult(uvar,z, supp):
+            "determines whether or not to multiply the u_term by a"
+            if uvar.uncertainty_set.a is not None:
+                return uvar.uncertainty_set.a.T@z + uvar.uncertainty_set.a.T@supp
+            else:
+                return z + supp
         supp_cons = {}
         z_unc = {}
-        for k_ind in range(k_num):
-            z_unc[k_ind] = Variable(smaller_u_shape)
-            supp_cons[k_ind] = Variable(u_shape)
-            if uvar.uncertainty_set.a is not None:
-                aux_constraint += [uvar.uncertainty_set.a.T@z_cons \
-                + uvar.uncertainty_set.a.T@supp_cons[k_ind] == -z_unc[k_ind]]
-            else:
-                aux_constraint += [z_cons + supp_cons[k_ind] == -z_unc[k_ind]]
+        for u_ind, uvar in enumerate(u_info["list"]):
+            u_shape, smaller_u_shape = u_info[u_ind]
+            supp_cons[u_ind] = {}
+            z_unc[u_ind] = {}
+            for k_ind in range(k_num):
+                z_unc[u_ind][k_ind] = Variable(smaller_u_shape)
+                supp_cons[u_ind][k_ind] = Variable(u_shape)
+
+                aux_constraint += [_gen_a_mult(uvar,z_cons[u_ind],
+                        supp_cons[u_ind][k_ind]) == -z_unc[u_ind][k_ind]]
         return aux_constraint, z_unc, supp_cons
 
-    def remove_uncertainty_sets(self, uvar,u_shape, k_num, z_cons,
+    def remove_uncertainty_sets(self, u_info, k_num, z_cons,
                                 supp_cons, z_unc,aux_expr,
                                     aux_constraint, cur_cons_data,
-                                    is_mro, has_uncertain):
-        "add constraints for the conjugate of the uncertainty set"
+                                    is_mro):
+        """add constraints for the conjugate of the uncertainty set
+        for each uncertain param"""
         for k_ind in range(k_num):
-            terms = (z_unc[k_ind],supp_cons[k_ind],uvar.uncertainty_set.b) \
-                if has_uncertain else (u_shape,0,None)
-            new_expr, new_constraint, lmbda, sval = uvar.conjugate(terms[0],terms[1], k_ind)
-            aux_expr = aux_expr + new_expr
-            if terms[2] is not None:
-                aux_expr = aux_expr - uvar.uncertainty_set.b@(z_cons) \
-                    - supp_cons[k_ind]@uvar.uncertainty_set.b
+            for u_ind, uvar in enumerate(u_info['list']):
+                terms = (z_unc[u_ind][k_ind],supp_cons[u_ind][k_ind],uvar.uncertainty_set.b)
+                new_expr, new_constraint, lmbda, sval = uvar.conjugate(terms[0],terms[1], k_ind)
+                aux_expr = aux_expr + new_expr
+                aux_constraint = aux_constraint + new_constraint
+                if terms[2] is not None:
+                    aux_expr = aux_expr - uvar.uncertainty_set.b@(
+                        z_cons[u_ind])- \
+                            supp_cons[u_ind][k_ind]@uvar.uncertainty_set.b
             # add certain terms
             for expr in cur_cons_data['std_lst']:
                 aux_expr = aux_expr + expr
-            aux_constraint = aux_constraint + new_constraint
             fin_expr = aux_expr
             if is_mro:
+                uvar = u_info['list'][0]
                 aux_constraint += [aux_expr <= 0]
                 fin_expr = uvar.uncertainty_set.rho_mult*\
                     uvar.uncertainty_set.rho*lmbda + uvar.uncertainty_set._w@sval
@@ -107,7 +120,7 @@ class RemoveUncertainty(Reduction):
             uset.affine_transform_temp['b'] = P@uset.affine_transform_temp['b']
             uset.affine_transform_temp['A'] = P@uset.affine_transform_temp['A']
         else:
-            uset.affine_transform_temp = {'A': P, 'b': np.zeros(np.shape(P)[0])}
+            uset.affine_transform_temp = {'A': P, 'b': None}
         return u
 
     def mul_canon_transform(self,u, c):
@@ -120,12 +133,12 @@ class RemoveUncertainty(Reduction):
             uset.affine_transform_temp['A'] = c*uset.affine_transform_temp['A']
         else:
             if len(u.shape) == 0:
-                uset.affine_transform_temp = {'A': c*np.eye(1), 'b': 0}
+                uset.affine_transform_temp = {'A': c*np.eye(1), 'b': None}
             else:
-                uset.affine_transform_temp = {'A': c*np.eye(u.shape[0]), 'b': np.zeros(u.shape[0])}
+                uset.affine_transform_temp = {'A': c*np.eye(u.shape[0]), 'b': None}
         return u
 
-    def canonicalize_mul(self, z_cons,u_shape,uvar,transform_data,
+    def canonicalize_mul(self, z_cons_u,u_shape,uvar,transform_data,
                               aux_expr, aux_constraint,var,is_isolated):
         """canonicalize the uncertain terms by adjusting the affine transform,
         then applying the canon_method"""
@@ -140,55 +153,62 @@ class RemoveUncertainty(Reduction):
             new_expr, new_constraint = uvar.remove_uncertain(var,z)
         aux_expr = aux_expr + new_expr
         aux_constraint += new_constraint
-        z_cons = z_cons + z
-        return z_cons, aux_expr, aux_constraint
+        z_cons_u = z_cons_u + z
+        return z_cons_u, aux_expr, aux_constraint
 
-    def remove_uncertainty_helper(self, cur_cons_data, uvar,is_mro):
-        "remove the uncertain terms and the uncertainty set"
-        u_shape = self.get_u_shape(uvar)
-        smaller_u_shape = uvar.uncertainty_set._dimension
-        k_num = 1 if not is_mro else uvar.uncertainty_set._K
+    def remove_uncertainty_helper(self, cur_cons_data, is_mro):
+        """remove the uncertain terms and the uncertainty set
+        for each uncertain param"""
+        u_info = {}
+        u_info["list"] = cur_cons_data["unc_param_list"]
+        k_num = 1 if not is_mro else u_info["list"][0].uncertainty_set._K
         aux_constraint = []
         aux_expr = 0
-        z_cons = np.zeros(u_shape)
-        if cur_cons_data['has_uncertain_mult'] or ['has_uncertain_isolated']:
-            # canonicalize uncertain constraints that are multiplied againt x
-            if cur_cons_data['has_uncertain_mult']:
-                z_cons, aux_expr, aux_constraint = self.canonicalize_mul(
-                    z_cons = z_cons, u_shape=u_shape,uvar=uvar,
-                    transform_data= cur_cons_data["unc_term"][0],
+        z_cons = {}
+        for u_ind, uvar in enumerate(u_info["list"]):
+            u_shape = self.get_u_shape(uvar)
+            smaller_u_shape = uvar.uncertainty_set._dimension
+            u_info[u_ind] = (u_shape, smaller_u_shape)
+            z_cons[u_ind] = np.zeros(u_shape)
+            # if cur_cons_data[u_ind]['has_uncertain_mult'] or \
+            #     cur_cons_data[u_ind]['has_uncertain_isolated']:
+            #     # canonicalize uncertain constraints that are multiplied against x
+            if cur_cons_data[u_ind]['has_uncertain_mult']:
+                z_cons[u_ind], aux_expr, aux_constraint = self.canonicalize_mul(
+                    z_cons_u = z_cons[u_ind], u_shape=u_shape,uvar=uvar,
+                    transform_data= cur_cons_data[u_ind]["unc_term"],
                     aux_expr=aux_expr, aux_constraint=aux_constraint,
                     var = cur_cons_data["var"],is_isolated=False)
 
-            # canonicalize isolated uncertian constrains
-            if cur_cons_data['has_uncertain_isolated']:
-                z_cons, aux_expr, aux_constraint = self.canonicalize_mul(
-                    z_cons = z_cons, u_shape=u_shape,uvar=uvar,
-                    transform_data= cur_cons_data["unc_isolated"][0],
+            # canonicalize isolated uncertain constrains
+            if cur_cons_data[u_ind]['has_uncertain_isolated']:
+                z_cons[u_ind], aux_expr, aux_constraint = self.canonicalize_mul(
+                    z_cons_u = z_cons[u_ind], u_shape=u_shape,uvar=uvar,
+                    transform_data= cur_cons_data[u_ind]["unc_isolated"],
                     aux_expr=aux_expr, aux_constraint=aux_constraint,
                     var = None,is_isolated=True)
 
-            # relate the conjugate variables
-            aux_constraint, z_unc, supp_cons = \
-                self.remove_uncertain_terms(uvar=uvar, k_num=k_num,
-                        z_cons=z_cons, aux_constraint=aux_constraint,
-                        u_shape=u_shape, smaller_u_shape=smaller_u_shape)
+        # relate the conjugate variables
+        aux_constraint, z_unc, supp_cons = \
+            self.remove_uncertain_terms(u_info = u_info, k_num=k_num,
+                                        z_cons=z_cons,
+                                        aux_constraint=aux_constraint)
 
-            # add constraints for uncertainty set
-            fin_expr, aux_constraint, lmbda, sval = \
-                self.remove_uncertainty_sets(uvar=uvar,u_shape=u_shape,
-                k_num=k_num, z_cons=z_cons, supp_cons=supp_cons,
-                z_unc=z_unc,aux_expr = aux_expr,
-                aux_constraint=aux_constraint,
-                cur_cons_data = cur_cons_data,
-                is_mro= is_mro,has_uncertain=True)
-        else:
-            # No uncertain term, conjugate only the uncertainty set
-            fin_expr, aux_constraint, lmbda, sval = \
-                self.remove_uncertainty_sets(uvar=uvar,u_shape=u_shape,
-            k_num=k_num,z_cons = None,supp_cons= None, z_unc = None,
-            aux_expr = aux_expr, aux_constraint=aux_constraint,
-            cur_cons_data = cur_cons_data, is_mro= is_mro, has_uncertain=False)
+        # add constraints for uncertainty set
+        fin_expr, aux_constraint, lmbda, sval = \
+            self.remove_uncertainty_sets(u_info=u_info,
+            k_num=k_num, z_cons=z_cons, supp_cons=supp_cons,
+            z_unc=z_unc,aux_expr = aux_expr,
+            aux_constraint=aux_constraint,
+            cur_cons_data = cur_cons_data,
+            is_mro= is_mro)
+            # else:
+            #     # No uncertain term, conjugate only the uncertainty set
+            #     fin_expr, aux_constraint, lmbda, sval = \
+            #         self.remove_uncertainty_sets(uvar=uvar,u_shape=u_shape,
+            #     k_num=k_num,z_cons = None,supp_cons= None, z_unc = None,
+            #     aux_expr = aux_expr, aux_constraint=aux_constraint,
+            #     cur_cons_data = cur_cons_data, is_mro= is_mro, has_uncertain=False)
         return fin_expr <= 0, aux_constraint, lmbda, sval
 
     def get_u_shape(self, uvar):
@@ -213,10 +233,15 @@ class RemoveUncertainty(Reduction):
         has a maximum constraint
         """
 
-        unc_param = cur_cons_data['unc_param']
-        is_mro = isinstance(unc_param.uncertainty_set, MRO)
+        unc_param_list = cur_cons_data['unc_param_list']
+        for unc_param in unc_param_list:
+            is_mro = isinstance(unc_param.uncertainty_set, MRO)
+            if is_mro and (len(unc_param_list) != 1):
+                raise ValueError("Multiple uncertainty sets is not " + \
+                                  "supported for MRO uncertainty")
+
         canon_constr, aux_constr, new_lmbda, new_sval = \
-            self.remove_uncertainty_helper(cur_cons_data, unc_param,is_mro)
+            self.remove_uncertainty_helper(cur_cons_data, is_mro)
         canon_constraints += aux_constr + [canon_constr]
         if lmbda is None:
             lmbda = new_lmbda
