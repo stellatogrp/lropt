@@ -5,10 +5,10 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Uncertainty Sets" href="../uncertainty_sets/index.html" /><link rel="prev" title="LROPT RULESET" href="../lropt_ruleset/index.html" />
 
-    <!-- Generated with Sphinx 7.4.7 and Furo 2024.07.18 -->
+    <!-- Generated with Sphinx 8.0.2 and Furo 2024.08.06 -->
         <title>Robust Problem - LROPT documentation documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
-    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=613ab9ff" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=302659d7" />
     
     
@@ -264,13 +264,6 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lropt.</span></span><span class="sig-name descname"><span class="pre">RobustProblem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">objective</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraints</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_exp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_flag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cons_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify_y_parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem" title="Link to this definition">¶</a></dt>
 <dd><p>Create a Robust Optimization Problem with uncertain variables</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="lropt.RobustProblem.evaluation_metric">
-<span class="sig-name descname"><span class="pre">evaluation_metric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantiles</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.evaluation_metric" title="Link to this definition">¶</a></dt>
-<dd><p>This function evaluates the training on the given problem.
-TODO (Amit): Irina, please complete the docstring.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.fg_to_lh">
 <span class="sig-name descname"><span class="pre">fg_to_lh</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.fg_to_lh" title="Link to this definition">¶</a></dt>
 <dd><p>Returns l and h function pointers.
@@ -278,55 +271,8 @@ Each of them takes a single x,y,u triplet (i.e. one instance of each)</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lropt.RobustProblem.grid">
-<span class="sig-name descname"><span class="pre">grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epslst</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([1.00000000e-03,</span> <span class="pre">1.62377674e-03,</span> <span class="pre">2.63665090e-03,</span> <span class="pre">4.28133240e-03,</span> <span class="pre">6.95192796e-03,</span> <span class="pre">1.12883789e-02,</span> <span class="pre">1.83298071e-02,</span> <span class="pre">2.97635144e-02,</span> <span class="pre">4.83293024e-02,</span> <span class="pre">7.84759970e-02,</span> <span class="pre">1.27427499e-01,</span> <span class="pre">2.06913808e-01,</span> <span class="pre">3.35981829e-01,</span> <span class="pre">5.45559478e-01,</span> <span class="pre">8.85866790e-01,</span> <span class="pre">1.43844989e+00,</span> <span class="pre">2.33572147e+00,</span> <span class="pre">3.79269019e+00,</span> <span class="pre">6.15848211e+00,</span> <span class="pre">1.00000000e+01])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_A</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_ys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'solve_method':</span> <span class="pre">'Clarabel'}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantiles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.25,</span> <span class="pre">0.75)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">newdata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.grid" title="Link to this definition">¶</a></dt>
-<dd><p>Perform gridsearch to find optimal <span class="math notranslate nohighlight">\(\epsilon\)</span>-ball around data.</p>
-<p>Args:</p>
-<dl class="simple">
-<dt>epslst<span class="classifier">np.array, optional</span></dt><dd><p>The list of <span class="math notranslate nohighlight">\(\epsilon\)</span> to iterate over. “Default np.logspace(-3, 1, 20)</p>
-</dd>
-<dt>seed: int</dt><dd><p>The seed to control the train test split. Default 1.</p>
-</dd>
-<dt>solver: optional</dt><dd><p>A solver to perform gradient-based learning</p>
-</dd>
-</dl>
-<p>Returns:</p>
-<dl class="simple">
-<dt>A pandas data frame with information on each <span class="math notranslate nohighlight">\(\epsilon\)</span> having the following columns:</dt><dd><dl class="simple">
-<dt>Opt_val: float</dt><dd><p>The objective value of the Robust Problem</p>
-</dd>
-<dt>Lagrangian_val: float</dt><dd><p>The value of the lagrangian function applied to the training data</p>
-</dd>
-<dt>Eval_val: float</dt><dd><p>The value of the lagrangian function applied to the evaluation data</p>
-</dd>
-<dt>Eps: float</dt><dd><p>The epsilon value</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lropt.RobustProblem.order_args">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">order_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u_batch</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.order_args" title="Link to this definition">¶</a></dt>
-<dd><p>This function orders var_values, y_batch, and u_batch according to the order in vars_params.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lropt.RobustProblem.orig_yparams">
-<span class="sig-name descname"><span class="pre">orig_yparams</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.orig_yparams" title="Link to this definition">¶</a></dt>
-<dd><p>Find cvxpy y parameters</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lropt.RobustProblem.prob_constr_violation">
-<span class="sig-name descname"><span class="pre">prob_constr_violation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_us</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.prob_constr_violation" title="Link to this definition">¶</a></dt>
-<dd><p>TODO (Amit): Irina, please complete the docstring</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="lropt.RobustProblem.remove_uncertainty">
-<span class="sig-name descname"><span class="pre">remove_uncertainty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.remove_uncertainty" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">remove_uncertainty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.remove_uncertainty" title="Link to this definition">¶</a></dt>
 <dd><p>This function canonizes a problem and saves it to self.problem_no_unc</p>
 <p>Args:</p>
 <dl class="simple">
@@ -344,80 +290,6 @@ If False and problem_no_unc exists, does nothing.</p>
 <dd><p>This function solves the robust problem, and dualizes it first if it has
 not been dualized</p>
 <p>Returns: the solution to the original problem</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lropt.RobustProblem.train">
-<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">45</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_iter_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduler</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">momentum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SGD'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_A</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_lam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_mu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_multiplier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kappa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-0.015</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_random_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_frequency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_lam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_percentage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'solve_method':</span> <span class="pre">'Clarabel'}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_jobs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantiles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.25,</span> <span class="pre">0.75)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_step_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_gamma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aug_lag_update_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_update_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_update_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lropt.RobustProblem.train" title="Link to this definition">¶</a></dt>
-<dd><p>Trains the uncertainty set parameters to find optimal set w.r.t. lagrangian metric</p>
-<section id="parameters-todo-amit-irina-update-all-the-variables">
-<h2>Parameters TODO (Amit): Irina - update all the variables<a class="headerlink" href="#parameters-todo-amit-irina-update-all-the-variables" title="Link to this heading">¶</a></h2>
-<dl class="simple">
-<dt>train_size<span class="classifier">bool, optional</span></dt><dd><p>If True, train only epsilon, where <span class="math notranslate nohighlight">\(A = \epsilon I, \
-b = \epsilon \bar{d}\)</span>, where <span class="math notranslate nohighlight">\(\bar{d}\)</span> is the centroid of the
-training data.</p>
-</dd>
-<dt>num_iter<span class="classifier">int, optional</span></dt><dd><p>The total number of gradient steps performed.</p>
-</dd>
-<dt>lr<span class="classifier">float, optional</span></dt><dd><p>The learning rate of gradient descent.</p>
-</dd>
-<dt>momentum: float between 0 and 1, optional</dt><dd><p>The momentum for gradient descent.</p>
-</dd>
-<dt>optimizer: str or letters, optional</dt><dd><p>The optimizer to use tor the descent algorithm.</p>
-</dd>
-<dt>init_eps<span class="classifier">float, optional</span></dt><dd><p>The epsilon to initialize <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(b\)</span>, if passed. If not passed,
-<span class="math notranslate nohighlight">\(A\)</span> will be initialized as the inverse square root of the
-covariance of the data, and b will be initialized as <span class="math notranslate nohighlight">\(\bar{d}\)</span>.</p>
-</dd>
-<dt>init_A<span class="classifier">numpy array, optional</span></dt><dd><p>Initialization for the reshaping matrix, if passed.
-If not passed, <span class="math notranslate nohighlight">\(A\)</span> will be initialized as the inverse square root of the
-covariance of the data.</p>
-</dd>
-<dt>init_b<span class="classifier">numpy array, optional</span></dt><dd><p>Initialization for the relocation vector, if passed.
-If not passed, b will be initialized as <span class="math notranslate nohighlight">\(\bar{d}\)</span>.</p>
-</dd>
-<dt>init_alpha<span class="classifier">float, optional</span></dt><dd><p>The initial alpha value for the cvar constraint in the outer level problem.</p>
-</dd>
-<dt>init_lam<span class="classifier">float, optional</span></dt><dd><p>The initial lambda value for the outer level lagrangian function.</p>
-</dd>
-<dt>kappa<span class="classifier">float, optional</span></dt><dd><p>The target value for the outer level cvar constraint.</p>
-</dd>
-<dt>schedular<span class="classifier">bool, optional</span></dt><dd><p>Flag for whether or not to decrease the learning rate on plateau of the derivatives.</p>
-</dd>
-<dt>test_percentage<span class="classifier">float, optional</span></dt><dd><p>The percentage of data to use in the testing set.</p>
-</dd>
-<dt>seed<span class="classifier">int, optional</span></dt><dd><p>The seed to control the random state of the train-test data split.</p>
-</dd>
-<dt>step_lam<span class="classifier">float, optional</span></dt><dd><p>The step size for the lambda value updates in the outer level problem.</p>
-</dd>
-<dt>batch_percentage<span class="classifier">float, optional</span></dt><dd><p>The percentage of data to use in each training step.</p>
-</dd>
-</dl>
-<p>Returns:
-A pandas data frame with information on each :math:r`epsilon` having the following columns:</p>
-<blockquote>
-<div><dl class="simple">
-<dt>Test_val: float</dt><dd><p>The out of sample objective value of the Robust Problem</p>
-</dd>
-<dt>Lagrangian_val: float</dt><dd><p>The value of the lagrangian function applied to the training data</p>
-</dd>
-<dt>prob_violation_test:</dt><dd><p>Probability of constraint violation over test set</p>
-</dd>
-<dt>prob_violation_train:</dt><dd><p>Probability fo constraint violation over train set</p>
-</dd>
-<dt>violation_test:</dt><dd><p>Violation of learning constraint over test set</p>
-</dd>
-<dt>violation_train:</dt><dd><p>Violation of learning constraint over train set</p>
-</dd>
-<dt>Eps: float</dt><dd><p>The <span class="math notranslate nohighlight">\(\epsilon\)</span> value</p>
-</dd>
-<dt>coverage_test: float</dt><dd><p>The percentage of testing data covered by the uncertainty set</p>
-</dd>
-<dt>coverage_train<span class="classifier">float</span></dt><dd><p>The percentage of training data covered by the uncertainty set</p>
-</dd>
-</dl>
-</div></blockquote>
-</section>
 </dd></dl>
 
 <dl class="py method">
@@ -549,15 +421,9 @@ and invoking the solver on the resulting data.</p>
             <ul>
 <li><a class="reference internal" href="#">Robust Problem</a><ul>
 <li><a class="reference internal" href="#lropt.RobustProblem"><code class="docutils literal notranslate"><span class="pre">RobustProblem</span></code></a><ul>
-<li><a class="reference internal" href="#lropt.RobustProblem.evaluation_metric"><code class="docutils literal notranslate"><span class="pre">RobustProblem.evaluation_metric()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.fg_to_lh"><code class="docutils literal notranslate"><span class="pre">RobustProblem.fg_to_lh()</span></code></a></li>
-<li><a class="reference internal" href="#lropt.RobustProblem.grid"><code class="docutils literal notranslate"><span class="pre">RobustProblem.grid()</span></code></a></li>
-<li><a class="reference internal" href="#lropt.RobustProblem.order_args"><code class="docutils literal notranslate"><span class="pre">RobustProblem.order_args()</span></code></a></li>
-<li><a class="reference internal" href="#lropt.RobustProblem.orig_yparams"><code class="docutils literal notranslate"><span class="pre">RobustProblem.orig_yparams()</span></code></a></li>
-<li><a class="reference internal" href="#lropt.RobustProblem.prob_constr_violation"><code class="docutils literal notranslate"><span class="pre">RobustProblem.prob_constr_violation()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.remove_uncertainty"><code class="docutils literal notranslate"><span class="pre">RobustProblem.remove_uncertainty()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.solve"><code class="docutils literal notranslate"><span class="pre">RobustProblem.solve()</span></code></a></li>
-<li><a class="reference internal" href="#lropt.RobustProblem.train"><code class="docutils literal notranslate"><span class="pre">RobustProblem.train()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.uncertain_parameters"><code class="docutils literal notranslate"><span class="pre">RobustProblem.uncertain_parameters()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.unpack"><code class="docutils literal notranslate"><span class="pre">RobustProblem.unpack()</span></code></a></li>
 <li><a class="reference internal" href="#lropt.RobustProblem.unpack_results_unc"><code class="docutils literal notranslate"><span class="pre">RobustProblem.unpack_results_unc()</span></code></a></li>
@@ -581,7 +447,5 @@ and invoking the solver on the resulting data.</p>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=5fa4622c"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>
