@@ -13,7 +13,6 @@ from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.box import Box
 from lropt.uncertainty_sets.budget import Budget
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
-from lropt.uncertainty_sets.polyhedral import Polyhedral
 
 # from tests.settings import TESTS_ATOL as ATOL
 # from tests.settings import TESTS_RTOL as RTOL
