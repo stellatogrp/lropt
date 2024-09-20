@@ -3,8 +3,8 @@ import unittest
 import cvxpy as cp
 import numpy as np
 import torch
-from cvxpy.utilities.torch_utils import tensor_reshape_fortran
 from cvxtorch import TorchExpression
+from cvxtorch.utils.torch_utils import tensor_reshape_fortran
 
 from lropt import Ellipsoidal
 from lropt.train.batch import batchify
