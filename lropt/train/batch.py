@@ -587,7 +587,7 @@ def batchify(expr: Expression | partial) -> Expression:
     
     #Partial means a torch expression is passed
     if isinstance(expr, partial):
-        batchified_expr = recursive_apply(expr.args[0], SUPPORT_BATCH) #expr.args[0] is Expression
+        batchified_expr = recursive_apply(expr.args[1], SUPPORT_BATCH) #expr.args[1] is Expression
         return _replace_torch_expr_args(expr, batchified_expr)
     return recursive_apply(expr, SUPPORT_BATCH)
 
