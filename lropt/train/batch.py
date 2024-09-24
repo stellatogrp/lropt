@@ -9,6 +9,9 @@ returns a new expression using the new batched atom.
 the inputs to the constructor.
 
 3. "torch_numeric" that determines the actual torch numeric functionality of the atom.
+IMPORTANT: The first two arguments of torch_numeric must be:
+    a. self (a reference to this object).
+    b. expr: Expression (this atom, it is needed to pass to be compatible with CVXTorch).
 """
 
 from functools import partial
@@ -21,6 +24,7 @@ from cvxpy.atoms.affine.index import index
 from cvxpy.atoms.affine.reshape import reshape
 from cvxpy.atoms.affine.vstack import Vstack
 from cvxpy.expressions.expression import Expression
+from cvxtorch.utils.torch_utils import get_torch_numeric
 from torch import Tensor
 
 from lropt.train.utils import (
@@ -33,6 +37,7 @@ from lropt.train.utils import (
     replace_partial_args,
     stack_tensor,
 )
+from lropt.utils import cast_as_parent
 
 
 class ElementwiseDotProduct(MulExpression):
@@ -51,7 +56,7 @@ class ElementwiseDotProduct(MulExpression):
     def __init__(self, *args):
         super().__init__(*args)
 
-    def torch_numeric(self, values: list[Tensor]):
+    def torch_numeric(self, expr: Expression, values: list[Tensor]):
         return self.elementwise_dotproduct(values[0], values[1])
 
     def elementwise_dotproduct(self, *args) -> Tensor:
@@ -260,7 +265,7 @@ class BatchedIndex(index):
         super().__init__(expr, key, _orig_key, *args)
         self._orig_shape = self.args[0].shape
 
-    def torch_numeric(self, values: list[Tensor]):
+    def torch_numeric(self, expr: Expression, values: list[Tensor]):
         def _create_slice(key: None | int | tuple | slice) -> tuple:
             """
             This is a helper function that adds a slice(None, None, None) to key to select all the
@@ -312,7 +317,7 @@ class BatchedReshape(reshape):
         super().__init__(expr, shape, *args)
         self._orig_shape = self.args[0].shape
 
-    def torch_numeric(self, values: list[Tensor]):
+    def torch_numeric(self, expr: Expression, values: list[Tensor]):
         def _calc_shape(self, values: list[Tensor], batch_flag: bool) -> list:
             """
             This is a helper function that calculates the desired shape, taking into account
@@ -336,10 +341,10 @@ class BatchedReshape(reshape):
             if batch_size>1:
                 #If batch mode, split the input tensor into batches
                 values = torch.split(values[0], [1 for _ in range(batch_size)])
-                res = torch.stack([super(BatchedReshape, self).torch_numeric(value) \
+                res = torch.stack([get_torch_numeric(cast_as_parent(self))(self, value) \
                                                     for value in values])
             else:
-                res = super().torch_numeric(values)
+                res = get_torch_numeric(cast_as_parent(self))(self, values)
             return res
         
         batch_flag = is_batch(self, values)
@@ -375,7 +380,7 @@ class BatchedHstack(Hstack):
     def __init__(self, *args):
         super().__init__(*args)
 
-    def torch_numeric(self, values: list[Tensor]) -> Tensor:
+    def torch_numeric(self, expr: Expression, values: list[Tensor]) -> Tensor:
         return torch_numeric_stack(self, values)
     
     @staticmethod
@@ -402,7 +407,7 @@ class BatchedVstack(Vstack):
     def __init__(self, *args):
         super().__init__(*args)
 
-    def torch_numeric(self, values: list[Tensor]) -> Tensor:
+    def torch_numeric(self, expr: Expression, values: list[Tensor]) -> Tensor:
         return torch_numeric_stack(self, values)
     
     @staticmethod
@@ -436,7 +441,7 @@ class BatchedAddExpression(AddExpression):
         """
         return len(self.args) >= len(values)
 
-    def torch_numeric(self, values: list[Tensor]) -> Tensor:
+    def torch_numeric(self, expr: Expression, values: list[Tensor]) -> Tensor:
         def _pad_tensors(self, values: list[Tensor]) -> int:
             """
             This helper function pads the tensors so they match.
@@ -531,7 +536,7 @@ class BatchedAddExpression(AddExpression):
         if len(values) <= 1:
             return super(BatchedAddExpression, self).numeric(values)
         else:
-            rhs = self.torch_numeric(values[1:])
+            rhs = self.torch_numeric(expr, values[1:])
             values = [values[0], rhs]
         lhs, rhs = _order_inputs(values)
         #Execute the following as a try-catch block, because currently Pytorch does not support
@@ -697,7 +702,7 @@ def torch_numeric_stack(self: BatchedHstack | BatchedVstack, values: list[Tensor
     
     #If none are batched, normal stack and return
     if batch_size is None:
-        return super(type(self), self).torch_numeric(values)
+        return get_torch_numeric(cast_as_parent(self))(self, values)
     
     #Duplicate all non-batched elements (e.g. constants)
     _duplicate_tensors(values, is_batch_vec, batch_size)
@@ -711,7 +716,8 @@ def torch_numeric_stack(self: BatchedHstack | BatchedVstack, values: list[Tensor
     # permute_tensors(values, forward=True)
 
     #Apply torch_numeric
-    res = super(type(self), self).torch_numeric(values)
+    # res = super(type(self), self).torch_numeric(values)
+    res = get_torch_numeric(cast_as_parent(self))(self, values)
         
     # #Re-permute the inputs (not sure if needed)
     # permute_tensors(values, forward=False)
