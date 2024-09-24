@@ -586,7 +586,7 @@ def batchify(expr: Expression | partial) -> Expression:
         This helper function replaces a torch expressions CVXPY expression with a new expression.
         """
         new_args = list(expr.args)
-        new_args[0] = new_expr
+        new_args[1] = new_expr #expr.args[1] is Expression
         new_args = tuple(new_args)
         return replace_partial_args(expr, new_args)
     

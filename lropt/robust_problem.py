@@ -277,7 +277,7 @@ class RobustProblem(Problem):
 
             Args:
                 torch_exp:
-                    A function (torch expression)
+                    A function (partial)
                 args_inds_to_pass:
                     A dictionary from index in *args to the args that will be passed.
                     Note that len(args) > len(args_inds_to_pass) is possible.
@@ -334,7 +334,7 @@ class RobustProblem(Problem):
             #To make sure batched inputs are processed correctly, we need to update expr.axis
             #(if applicable). It is important to revert it back to the original value when done,
             #hence we save original_axis.
-            expr = torch_exp.args[0]
+            expr = torch_exp.args[1] #torch_exp.args[1] is the expression
             if batch_flag:
                 arg_to_orig_axis = {} #Expression (arg) -> original axis dictionary
                 _safe_increase_axis(expr, arg_to_orig_axis)
