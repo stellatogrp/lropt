@@ -16,7 +16,7 @@ authors = [
 ]
 dependencies = [
     "scipy==1.11.2",
-    "cvxpy @ git+https://github.com/AmitSolomonPrinceton/cvxpy@cc6a48868ebb20e04b3886a5344c1bc1e0e0a594",
+    "cvxpy",
     "torch",
     "diffcp @ git+https://github.com/cvxgrp/diffcp@eaac7bc4d637e8854801929ebf01d7db45554f5d",
     "scikit-learn",
@@ -24,6 +24,7 @@ dependencies = [
     "pandas",
     "tqdm",
     "diffcp @ git+https://github.com/cvxgrp/diffcp@eaac7bc4d637e8854801929ebf01d7db45554f5d",
+    "cvxtorch @ git+https://github.com/cvxpy/cvxtorch"
 ]
 
 [tool.setuptools]
