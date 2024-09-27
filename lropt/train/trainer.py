@@ -150,6 +150,7 @@ class Trainer():
                          policy = None,
                          time_horizon = 1,
                          batch_size = 1,
+                         test_batch_size = 10,
                          epochs = 1,
                          init_eps=settings.INIT_EPS_DEFAULT,
                          seed=settings.SEED_DEFAULT,
@@ -196,7 +197,8 @@ class Trainer():
                 opt, step_size=lr_step_size, gamma=lr_gamma)
 
         baseline_costs, baseline_vio_cost,_,_ = self.monte_carlo(
-                    time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size = 1,
+                    time_horizon=time_horizon, a_tch=a_tch,
+                    b_tch=b_tch, batch_size = test_batch_size,
                       seed=seed, eps_tch = eps_tch, alpha = alpha,
                       solver_args = solver_args, contextual = contextual)
         baseline_cost = np.mean(np.array(baseline_costs) + np.array(baseline_vio_cost))
@@ -206,19 +208,23 @@ class Trainer():
         val_costs_constr = []
         x_vals = []
         u_vals = []
+        cost_vals_train = []
+        constr_vals_train = []
 
         for epoch in range(epochs):
-            with torch.no_grad():
-                val_cost, val_cost_constr, x_base, u_base = self.monte_carlo(
-                    time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch,
-                    batch_size = 1,seed=seed, eps_tch = eps_tch, alpha = alpha,
-                      solver_args = solver_args, contextual = contextual)
-                val_cost = np.mean(val_cost)
-                val_cost_constr = np.mean(val_cost_constr)
-                val_costs.append(val_cost)
-                val_costs_constr.append(val_cost_constr)
-                x_vals.append(x_base)
-                u_vals.append(u_base)
+            if (epoch) % 20 == 0:
+                with torch.no_grad():
+                    val_cost, val_cost_constr, x_base, u_base = self.monte_carlo(
+                        time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch,
+                        batch_size = test_batch_size,seed=seed, eps_tch = eps_tch, alpha = alpha,
+                        solver_args = solver_args, contextual = contextual)
+                    val_cost = np.mean(val_cost)
+                    val_cost_constr = np.mean(val_cost_constr)
+                    val_costs.append(val_cost)
+                    val_costs_constr.append(val_cost_constr)
+                    x_vals.append(x_base)
+                    u_vals.append(u_base)
+                    print("epoch %d, valid %.4e, vio %.4e" % (epoch, val_cost, val_cost_constr) )
 
             torch.manual_seed(seed + epoch)
             opt.zero_grad()
@@ -226,14 +232,22 @@ class Trainer():
                 time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size = batch_size,
                 seed=seed+epoch+1,eps_tch=eps_tch,alpha = alpha,
                 solver_args=solver_args, contextual = contextual)
+            cost_vals_train.append(cost.item())
+            constr_vals_train.append(constr_cost.item())
+            # print("epoch %d, train %.4e" % (epoch, cost.item()+ constr_cost.item()) )
             fin_cost = cost+constr_cost
             fin_cost.backward()
-            print("epoch %d, valid %.4e" % (epoch, val_cost+val_cost_constr) )
             opt.step()
             if scheduler:
               scheduler_.step()
-        return val_costs, val_costs_constr, [np.array(v.detach().numpy())
-                                             for v in variables], x_vals, u_vals
+            self._alpha = alpha
+            self._eps_tch = eps_tch
+        return val_costs, \
+            val_costs_constr, [np.array(v.detach().numpy())
+                                             for v in variables], \
+                                            x_vals, u_vals, \
+                                                cost_vals_train,\
+                                                    constr_vals_train
 
 
     def _validate_unc_set_T(self):
