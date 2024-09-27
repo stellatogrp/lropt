@@ -60,3 +60,13 @@ def has_unc_param_constraint(constr: Constraint) -> bool:
         if has_unc_param(arg):
             return True
     return False
+
+def cast_as_parent(obj: object) -> object:
+    """
+    This function creates a new object which is identical to the input with the type of its parent.
+    """
+    # Create a new object of the parent class
+    new_obj = obj.__class__.__bases__[0].__new__(obj.__class__.__bases__[0])
+    # Updaet its field to be identical to the object
+    new_obj.__dict__.update(obj.__dict__)
+    return new_obj

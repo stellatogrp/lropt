@@ -3,7 +3,8 @@ import unittest
 import cvxpy as cp
 import numpy as np
 import torch
-from cvxpy.utilities.torch_utils import tensor_reshape_fortran
+from cvxtorch import TorchExpression
+from cvxtorch.utils.torch_utils import tensor_reshape_fortran
 
 from lropt import Ellipsoidal
 from lropt.train.batch import batchify
@@ -30,7 +31,7 @@ def _check_expr(test, expr, input, desired_output):
         This is an internal function that helps automate the tests.
         """
         expr = batchify(expr)
-        torch_expr, _ = expr.gen_torch_exp()
+        torch_expr = TorchExpression(expr).torch_expression
         output = torch_expr(input)
         test.assertTrue(torch.all(output==desired_output))
 
@@ -46,8 +47,9 @@ class TestElementwiseDotproduct(unittest.TestCase):
 
         expr1 = batchify(expr1)
         expr2 = batchify(expr2)
-        torch_expr1, _ = expr1.gen_torch_exp()
-        torch_expr2, _ = expr2.gen_torch_exp()
+        
+        torch_expr1 = TorchExpression(expr1).torch_expression
+        torch_expr2 = TorchExpression(expr2).torch_expression
 
         a = torch.tensor([[1.,2.,3.],[4.,5.,6.]])
         b = torch.tensor([[1.,2.,1.],[-1.,-2.,5.]])
@@ -105,8 +107,8 @@ class TestElementwiseDotproduct(unittest.TestCase):
                 expr_vec_left = vec_left@mat
                 expr_vec_right = batchify(expr_vec_right)
                 expr_vec_left = batchify(expr_vec_left)
-                torch_expr_vec_right, _ = expr_vec_right.gen_torch_exp()
-                torch_expr_vec_left, _ = expr_vec_left.gen_torch_exp()
+                torch_expr_vec_right = TorchExpression(expr_vec_right).torch_expression
+                torch_expr_vec_left = TorchExpression(expr_vec_left).torch_expression
                 res_vec_right = torch_expr_vec_right(*right_args)
                 res_vec_left = torch_expr_vec_left(*left_args)
                 self.assertTrue(torch.all(res_vec_right==n*torch.ones((b,m))).item())
@@ -139,7 +141,7 @@ class TestElementwiseDotproduct(unittest.TestCase):
                 #Test this combination
                 expr = mat_left@mat_right
                 expr = batchify(expr)
-                torch_expr, _ = expr.gen_torch_exp()
+                torch_expr = TorchExpression(expr).torch_expression
                 res = torch_expr(*args)
                 if (not left_batch) and (not right_batch):
                     self.assertTrue(torch.all(res==n*torch.ones((m,k))).item())
@@ -171,7 +173,7 @@ class TestElementwiseDotproduct(unittest.TestCase):
                 #Test this combination
                 expr = vec_left@vec_right
                 expr = batchify(expr)
-                torch_expr, _ = expr.gen_torch_exp()
+                torch_expr = TorchExpression(expr).torch_expression
                 res = torch_expr(*args)
                 if (not left_batch) and (not right_batch):
                     self.assertTrue(torch.all(res==n).item())
@@ -304,9 +306,9 @@ class TestBatchedAddExpression(unittest.TestCase):
             expr1 = batchify(expr1)
             expr2 = batchify(expr2)
             expr3 = batchify(expr3)
-            torch_expr1, _ = expr1.gen_torch_exp()
-            torch_expr2, _ = expr2.gen_torch_exp()
-            torch_expr3, _ = expr3.gen_torch_exp()
+            torch_expr1 = TorchExpression(expr1).torch_expression
+            torch_expr2 = TorchExpression(expr2).torch_expression
+            torch_expr3 = TorchExpression(expr3).torch_expression
 
 
             a = torch.tensor([[1., 2., 3.], [4., 5., 6.]])
@@ -335,7 +337,7 @@ class TestBatchedAddExpression(unittest.TestCase):
 
             expr = x + u
             expr = batchify(expr)
-            torch_expr, _ = expr.gen_torch_exp()
+            torch_expr = TorchExpression(expr).torch_expression
 
             a = torch.zeros((2, n))
             b = torch.zeros((2, n))
@@ -359,7 +361,7 @@ class TestBatchedAddExpression(unittest.TestCase):
 
             expr = x + u
             expr = batchify(expr)
-            torch_expr, _ = expr.gen_torch_exp()
+            torch_expr = TorchExpression(expr).torch_expression
             
             res = torch_expr(a_batch, b_batch)
             
@@ -375,7 +377,7 @@ class TestBatchedAddExpression(unittest.TestCase):
             u = UncertainParameter(n, uncertainty_set=uncertainty_set)
             expr = x + u
             expr = batchify(expr)
-            torch_expr, _ = expr.gen_torch_exp()
+            torch_expr = TorchExpression(expr).torch_expression
             res = torch_expr(zero_batch, zero_batch)
             self.assertTrue(torch.allclose(res, expected_result))
 
@@ -391,7 +393,7 @@ class TestBatchedAddExpression(unittest.TestCase):
                 u = UncertainParameter(n, uncertainty_set=uncertainty_set)
                 expr = x + u
                 expr = batchify(expr)
-                torch_expr, _ = expr.gen_torch_exp()
+                torch_expr = TorchExpression(expr).torch_expression
                 res = torch_expr(a_batch, b_batch)
                 self.assertTrue(torch.allclose(res, expected_result))
 
@@ -404,7 +406,7 @@ class TestBatchedVstack(unittest.TestCase):
         expr1 = cp.vstack([x, y])
         expr1 = batchify(expr1)
 
-        torch_expr1, _ = expr1.gen_torch_exp()
+        torch_expr1 = TorchExpression(expr1).torch_expression
 
         a = torch.tensor([[1., 2., 3.]])
         b = torch.tensor([[4., 5., 6.]])
@@ -427,7 +429,7 @@ class TestBatchedVstack(unittest.TestCase):
 
             expr = cp.vstack([x, y])
             expr = batchify(expr)
-            torch_expr, _ = expr.gen_torch_exp()
+            torch_expr = TorchExpression(expr).torch_expression
             
             res = torch_expr(x_batch, y_batch)
             self.assertTrue(torch.allclose(res, expected_result))
@@ -445,7 +447,7 @@ class TestBatchedVstack(unittest.TestCase):
 
             expr = cp.vstack([x, y])
             expr = batchify(expr)
-            torch_expr, _ = expr.gen_torch_exp()
+            torch_expr = TorchExpression(expr).torch_expression
             
             res = torch_expr(x_batch, y_batch)
             self.assertTrue(torch.allclose(res, expected_result))
@@ -463,7 +465,7 @@ class TestBatchedVstack(unittest.TestCase):
 
         expr = cp.vstack([x, y])
         expr = batchify(expr)
-        torch_expr, _ = expr.gen_torch_exp()
+        torch_expr = TorchExpression(expr).torch_expression
 
         res = torch_expr(x_batch, y_batch)
         self.assertTrue(torch.allclose(res, expected_result))
@@ -480,7 +482,7 @@ class TestBatchedVstack(unittest.TestCase):
 
         expr = cp.vstack([x_var, y_var])
         expr = batchify(expr)
-        torch_expr, _ = expr.gen_torch_exp()
+        torch_expr = TorchExpression(expr).torch_expression
 
         res = torch_expr(x, y)
         self.assertTrue(torch.allclose(res, expected_result))
@@ -493,7 +495,7 @@ class TestBatchedVstack(unittest.TestCase):
         expr1 = cp.vstack([x, y])
         expr1 = batchify(expr1)
         
-        torch_expr1, _ = expr1.gen_torch_exp()
+        torch_expr1 = TorchExpression(expr1).torch_expression
 
         a = torch.tensor([[1., 2., 3.]], dtype=torch.float32)
         b = torch.tensor([[4., 5., 6.]], dtype=torch.float64)
@@ -514,7 +516,7 @@ class TestBatchedHStack(unittest.TestCase):
         expr1 = cp.hstack([x, y])
         expr1 = batchify(expr1)
 
-        torch_expr1, _ = expr1.gen_torch_exp()
+        torch_expr1 = TorchExpression(expr1).torch_expression
 
         a = torch.tensor([[1., 2., 3.], [4., 5., 6.]])
         b = torch.tensor([[7., 8., 9.], [10., 11., 12.]])
@@ -537,7 +539,7 @@ class TestBatchedHStack(unittest.TestCase):
             y = cp.Variable((n, m))
             expr = cp.hstack([x, y])
             expr = batchify(expr)
-            torch_expr, _ = expr.gen_torch_exp()
+            torch_expr = TorchExpression(expr).torch_expression
             res = torch_expr(x_batch, y_batch)
             self.assertTrue(torch.allclose(res, expected_result))
 
@@ -550,7 +552,7 @@ class TestBatchedHStack(unittest.TestCase):
         y = cp.Variable((n, m))
         expr = cp.hstack([x, y])
         expr = batchify(expr)
-        torch_expr, _ = expr.gen_torch_exp()
+        torch_expr = TorchExpression(expr).torch_expression
         res = torch_expr(zero_tensor, zero_tensor)
         expected_result = torch.cat([zero_tensor, zero_tensor], dim=1)
         self.assertTrue(torch.allclose(res, expected_result))
@@ -564,7 +566,7 @@ class TestBatchedHStack(unittest.TestCase):
         y = cp.Variable((n, m))
         expr = cp.hstack([x, y])
         expr = batchify(expr)
-        torch_expr, _ = expr.gen_torch_exp()
+        torch_expr = TorchExpression(expr).torch_expression
         res = torch_expr(identity_tensor.squeeze(0), identity_tensor.squeeze(0))
         expected_result = torch.cat([identity_tensor.squeeze(0), identity_tensor.squeeze(0)], dim=1)
         self.assertTrue(torch.allclose(res, expected_result))
@@ -579,7 +581,7 @@ class TestBatchedHStack(unittest.TestCase):
             y = cp.Variable((b, 2))
             expr = cp.hstack([x, y])
             expr = batchify(expr)
-            torch_expr, _ = expr.gen_torch_exp()
+            torch_expr = TorchExpression(expr).torch_expression
             res = torch_expr(x_batch, y_batch)
             self.assertTrue(torch.allclose(res, expected_result))
 
@@ -595,6 +597,6 @@ class TestBatchedHStack(unittest.TestCase):
         y = cp.Variable((large_batch_size, n))
         expr = cp.hstack([x, y])
         expr = batchify(expr)
-        torch_expr, _ = expr.gen_torch_exp()
+        torch_expr = TorchExpression(expr).torch_expression
         res = torch_expr(x_batch, y_batch)
         self.assertTrue(torch.allclose(res, expected_result))
