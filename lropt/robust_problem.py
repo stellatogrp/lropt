@@ -13,6 +13,7 @@ from cvxpy.expressions.leaf import Leaf
 from cvxpy.problems.objective import Maximize
 from cvxpy.problems.problem import Problem
 from cvxpy.reductions.solution import INF_OR_UNB_MESSAGE
+from cvxtorch import TorchExpression
 
 # from pathos.multiprocessing import ProcessPool as Pool
 import lropt.train.settings as settings
@@ -238,7 +239,7 @@ class RobustProblem(Problem):
                         return True
                 return False
 
-            _, vars_dict = expr.gen_torch_exp()
+            vars_dict = TorchExpression(expr).variables_dictionary
             for var_param in vars_dict.vars_dict:
                 if safe_check_in_dict(var_param, vars_params):
                     continue
@@ -276,7 +277,7 @@ class RobustProblem(Problem):
 
             Args:
                 torch_exp:
-                    A function (torch expression)
+                    A function (partial)
                 args_inds_to_pass:
                     A dictionary from index in *args to the args that will be passed.
                     Note that len(args) > len(args_inds_to_pass) is possible.
@@ -333,7 +334,7 @@ class RobustProblem(Problem):
             #To make sure batched inputs are processed correctly, we need to update expr.axis
             #(if applicable). It is important to revert it back to the original value when done,
             #hence we save original_axis.
-            expr = torch_exp.args[0]
+            expr = torch_exp.args[1] #torch_exp.args[1] is the expression
             if batch_flag:
                 arg_to_orig_axis = {} #Expression (arg) -> original axis dictionary
                 _safe_increase_axis(expr, arg_to_orig_axis)
@@ -347,8 +348,10 @@ class RobustProblem(Problem):
         # THIS BATCHIFY IS IMPORTANT, BOTH OF THEM ARE NEEDED!
         if batch_flag:
             expr = batchify(expr)
-        torch_exp, vars_dict = expr.gen_torch_exp()
-        # Need to rebatchify because expr.gen_torch_exp may introduce new unbatched add atoms
+        cvxtorch_exp = TorchExpression(expr)
+        torch_exp = cvxtorch_exp.torch_expression
+        vars_dict = cvxtorch_exp.variables_dictionary
+        # Need to rebatchify because cvxtorch may introduce new unbatched add atoms
         if batch_flag:
             torch_exp = batchify(torch_exp)
 
