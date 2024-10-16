@@ -181,7 +181,12 @@ class Trainer():
                         contextual = settings.CONTEXTUAL_DEFAULT,
                         init_weight = settings.CONTEXTUAL_WEIGHT_DEFAULT,
                         init_bias = settings.CONTEXTUAL_BIAS_DEFAULT,
-                        y_endind = settings.Y_ENDIND_DEFAULT):
+                        y_endind = settings.Y_ENDIND_DEFAULT,
+                        init_mu = settings.INIT_MU_DEFAULT,
+                        init_lam = settings.INIT_LAM_DEFAULT,
+                        aug_lag_update_interval = settings.UPDATE_INTERVAL,
+                        lambda_update_threshold = settings.LAMBDA_UPDATE_THRESHOLD,
+                        mu_multiplier = settings.MU_MULTIPLIER_DEFAULT):
         _,_,_,_,_,_,_ = self._split_dataset(test_percentage, seed)
         self.y_endind = y_endind
         self.cvxpylayer = self.create_cvxpylayer() if not policy else policy
@@ -226,6 +231,9 @@ class Trainer():
         u_vals = []
         cost_vals_train = []
         constr_vals_train = []
+        lam = torch.tensor(init_lam)
+        mu = torch.tensor(init_mu)
+        curr_cvar = np.inf
 
         for epoch in range(epochs):
             if (epoch) % 20 == 0:
@@ -247,11 +255,21 @@ class Trainer():
                 time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size = batch_size,
                 seed=seed+epoch+1,eps_tch=eps_tch,alpha = alpha,
                 solver_args=solver_args, contextual = contextual)
-            cost_vals_train.append(cost.item())
-            constr_vals_train.append(constr_cost.item())
-            # print("epoch %d, train %.4e" % (epoch, cost.item()+ constr_cost.item()) )
-            fin_cost = cost+constr_cost
+            fin_cost = cost+ lam*constr_cost + mu*(constr_cost**2)
             fin_cost.backward()
+            with torch.no_grad():
+                cost_vals_train.append(cost.item())
+                constr_vals_train.append(constr_cost.item())
+            # print("epoch %d, train %.4e" % (epoch, cost.item()+ constr_cost.item()) )
+
+            if epoch % aug_lag_update_interval == 0:
+                if torch.norm(constr_cost) <= \
+                    lambda_update_threshold*curr_cvar:
+                    curr_cvar= torch.norm(constr_cost)
+                    lam += torch.minimum(mu*constr_cost.detach(), torch.tensor(10000))
+                else:
+                    mu = mu_multiplier*mu
+
             opt.step()
             if scheduler:
               scheduler_.step()
@@ -266,7 +284,6 @@ class Trainer():
                                             x_vals, u_vals, \
                                                 cost_vals_train,\
                                                     constr_vals_train
-
 
     def _validate_unc_set_T(self):
         """
@@ -480,9 +497,6 @@ class Trainer():
             self.unc_set.data[train_indices], requires_grad=self.train_flag, dtype=settings.DTYPE)
         unc_test_tch = torch.tensor(
             self.unc_set.data[test_indices], requires_grad=self.train_flag, dtype=settings.DTYPE)
-
-
-
 
         y_train_tchs = []
         y_test_tchs = []
