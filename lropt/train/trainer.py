@@ -48,6 +48,13 @@ class Simulator(ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
+    def stage_cost_eval(self,x,u):
+        """ Create the current stage evaluation cost using the current state x
+        and decision u
+        """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
     def constraint_cost(self,x,u,alpha):
         """ Create the current constraint penalty cost
         """
@@ -67,6 +74,7 @@ class Trainer():
         if not (self.count_unq_uncertain_param(problem) == 1):
             raise ValueError("Must have a single uncertain parameter " + \
                              "for training")
+        torch.set_default_dtype(torch.double)
         self.unc_set = self.uncertain_parameters(problem)[0].uncertainty_set
         self._validate_unc_set_T()
 
@@ -96,6 +104,7 @@ class Trainer():
         self.test_set = None
         self.y_train_tch = None
         self.y_test_tch = None
+        self._y_tchs_init = True
 
     def monte_carlo(self, eps_tch, alpha, solver_args, time_horizon,
                     a_tch, b_tch, batch_size = 1, seed=None,contextual = False):
@@ -110,7 +119,7 @@ class Trainer():
         cost, constraint_cost, x_hist, u_hist = self.loss_and_constraints(
             time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size = batch_size,
             seed=seed,eps_tch = eps_tch, alpha = alpha,
-            solver_args = solver_args, contextual = contextual)
+            solver_args = solver_args, contextual = contextual,eval_flag=True)
         results.append(cost.item())
         constraint_costs.append(constraint_cost.item())
         x.append(x_hist)
@@ -119,31 +128,35 @@ class Trainer():
 
     def loss_and_constraints(self, eps_tch, alpha, solver_args,
                              time_horizon, a_tch, b_tch,
-                             batch_size = 1, seed=None, contextual = False):
+                             batch_size = 1, seed=None, contextual = False, eval_flag = False):
         if seed is not None:
             torch.manual_seed(seed)
 
         x_0 = self.simulator.init_state(batch_size, seed)
-
+        if not isinstance(x_0,list):
+            x_0 = [x_0]
         if contextual:
-            a_tch, b_tch = self.create_tensors_linear([x_0],
+            a_tch, b_tch = self.create_tensors_linear(x_0,
                                     self._model)
 
         cost = 0.0
         constraint_cost = 0.0
         x_t = x_0
-        x_hist = [x_0]
+        x_hist = [[xval.detach().numpy().copy() for xval in x_t.copy()]]
         u_hist = []
         for t in range(time_horizon):
-            u_t = self.cvxpylayer(eps_tch, *self.y_orig_tch,
-                x_t,a_tch,b_tch,solver_args=solver_args)[0]
+            u_t = self.cvxpylayer(eps_tch,
+                *x_t,a_tch,b_tch,solver_args=solver_args)[0]
             x_t = self.simulator.simulate(x_t, u_t)
-            cost += self.simulator.stage_cost(x_t, u_t).mean() / time_horizon
+            if not eval_flag:
+                cost += self.simulator.stage_cost(x_t, u_t).mean() / time_horizon
+            else:
+                cost += self.simulator.stage_cost_eval(x_t, u_t).mean() / time_horizon
             constraint_cost += self.simulator.constraint_cost(x_t, u_t, alpha).mean() / time_horizon
-            x_hist.append(x_t)
+            x_hist.append([xval.detach().numpy().copy() for xval in x_t])
             u_hist.append(u_t)
             if contextual:
-                a_tch, b_tch = self.create_tensors_linear([x_t],self._model)
+                a_tch, b_tch = self.create_tensors_linear(x_t,self._model)
         return cost, constraint_cost, x_hist, u_hist
 
     def multistage_train(self, simulator:Simulator,
@@ -165,10 +178,12 @@ class Trainer():
                         lr_step_size=settings.LR_STEP_SIZE,
                         lr_gamma=settings.LR_GAMMA,
                         solver_args = settings.LAYER_SOLVER,
-                        contextual = settings.CONTEXTUAL_DEFAULT):
-
+                        contextual = settings.CONTEXTUAL_DEFAULT,
+                        init_weight = settings.CONTEXTUAL_WEIGHT_DEFAULT,
+                        init_bias = settings.CONTEXTUAL_BIAS_DEFAULT,
+                        y_endind = settings.Y_ENDIND_DEFAULT):
         _,_,_,_,_,_,_ = self._split_dataset(test_percentage, seed)
-
+        self.y_endind = y_endind
         self.cvxpylayer = self.create_cvxpylayer() if not policy else policy
         self.simulator = simulator
         eps_tch = self._gen_eps_tch(init_eps)
@@ -180,9 +195,10 @@ class Trainer():
         if contextual:
             self._linear = self.init_linear_model(a_tch, b_tch,
                                         False,1,
-                                        seed)
+                                        seed, init_weight=init_weight, init_bias=init_bias)
             self._model = torch.nn.Sequential(self._linear)
             variables.extend(list(self._model.parameters()))
+            # variables += [self._model[0].bias]
         else:
             variables += [a_tch, b_tch]
 
@@ -227,7 +243,6 @@ class Trainer():
                     print("epoch %d, valid %.4e, vio %.4e" % (epoch, val_cost, val_cost_constr) )
 
             torch.manual_seed(seed + epoch)
-            opt.zero_grad()
             cost, constr_cost, _, _,  = self.loss_and_constraints(
                 time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size = batch_size,
                 seed=seed+epoch+1,eps_tch=eps_tch,alpha = alpha,
@@ -240,8 +255,11 @@ class Trainer():
             opt.step()
             if scheduler:
               scheduler_.step()
-            self._alpha = alpha
-            self._eps_tch = eps_tch
+            self._alpha = (alpha, alpha.grad)
+            self._eps_tch = (eps_tch, eps_tch.grad)
+            self._a_tch = (a_tch, a_tch.grad)
+            self._b_tch = (b_tch, b_tch.grad)
+            opt.zero_grad()
         return val_costs, \
             val_costs_constr, [np.array(v.detach().numpy())
                                              for v in variables], \
@@ -306,11 +324,17 @@ class Trainer():
         Default parameter order: rho multiplier, cvxpy parameters, lropt parameters, a, b.
         Default variable order: the variables of problem_canon """
         if parameters is None:
-            parameters = self._rho_mult_parameter + self._orig_parameters +\
+            new_parameters = self._rho_mult_parameter + self._orig_parameters +\
                   self._y_parameters + self._shape_parameters
+        else:
+            assert isinstance(parameters, list)
+            self._y_tchs_init = False
+            self._y_parameters = parameters
+            new_parameters = self._rho_mult_parameter + parameters + \
+                self._shape_parameters
         if variables is None:
             variables = self.problem_canon.variables()
-        cvxpylayer = CvxpyLayer(self.problem_no_unc,parameters=parameters,
+        cvxpylayer = CvxpyLayer(self.problem_no_unc,parameters=new_parameters,
                                         variables=variables)
         return cvxpylayer
 
@@ -320,19 +344,27 @@ class Trainer():
 
     def initialize_dimensions_linear(self):
         """Find the dimensions of the linear model"""
+        y_endind = self.y_endind
         y_shapes = self.y_parameter_shapes(self._y_parameters)
         a_shape = self.unc_set._a.shape
         b_shape = self.unc_set._b.shape
-        in_shape = sum(y_shapes)
+        if y_endind:
+            in_shape = y_endind
+        else:
+            in_shape = sum(y_shapes)
         out_shape = int(a_shape[0]*a_shape[1]+ b_shape[0])
         return in_shape, out_shape, a_shape[0]*a_shape[1]
 
     def create_tensors_linear(self,y_batch, linear):
         """Create the tensors of a's and b's using the trained linear model"""
+        y_endind = self.y_endind
         a_shape = self.unc_set._a.shape
         b_shape = self.unc_set._b.shape
         y_batch = [torch.flatten(y, start_dim = 1) for y in y_batch]
-        input_tensors = torch.hstack(y_batch)
+        if y_endind:
+            input_tensors = torch.hstack(y_batch)[:,:y_endind]
+        else:
+            input_tensors = torch.hstack(y_batch)
         theta = linear(input_tensors)
         raw_a = theta[:,:a_shape[0]*a_shape[1]]
         raw_b = theta[:,a_shape[0]*a_shape[1]:]
@@ -449,17 +481,22 @@ class Trainer():
         unc_test_tch = torch.tensor(
             self.unc_set.data[test_indices], requires_grad=self.train_flag, dtype=settings.DTYPE)
 
-        y_orig_tchs = self.create_orig_y_tch(0)
+
+
 
         y_train_tchs = []
         y_test_tchs = []
-        for i in range(len(self._y_parameters)):
-            y_train_tchs.append(torch.tensor(
-                self._y_parameters[i].data[train_indices], requires_grad=self.train_flag,
-                dtype=settings.DTYPE))
-            y_test_tchs.append(torch.tensor(
-                self._y_parameters[i].data[test_indices], requires_grad=self.train_flag,
-                dtype=settings.DTYPE))
+        y_orig_tchs = []
+
+        if self._y_tchs_init:
+            y_orig_tchs = self.create_orig_y_tch(0)
+            for i in range(len(self._y_parameters)):
+                y_train_tchs.append(torch.tensor(
+                    self._y_parameters[i].data[train_indices], requires_grad=self.train_flag,
+                    dtype=settings.DTYPE))
+                y_test_tchs.append(torch.tensor(
+                    self._y_parameters[i].data[test_indices], requires_grad=self.train_flag,
+                    dtype=settings.DTYPE))
 
         self.train_tch = unc_train_tch
         self.test_tch = unc_test_tch
@@ -1132,7 +1169,8 @@ class Trainer():
         contextual = settings.CONTEXTUAL_DEFAULT,
         linear = settings.CONTEXTUAL_LINEAR_DEFAULT,
         init_weight = settings.CONTEXTUAL_WEIGHT_DEFAULT,
-        init_bias = settings.CONTEXTUAL_BIAS_DEFAULT
+        init_bias = settings.CONTEXTUAL_BIAS_DEFAULT,
+        y_endind = settings.Y_ENDIND_DEFAULT
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set
@@ -1257,6 +1295,7 @@ class Trainer():
         _,_,_,_,_,_,_ = self._split_dataset(test_percentage, seed)
 
         self.cvxpylayer = self.create_cvxpylayer()
+        self.y_endind = y_endind
 
         num_random_init = num_random_init if random_init else 1
         num_random_init = num_random_init if train_shape else 1
