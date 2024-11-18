@@ -107,6 +107,8 @@ class sum_of_max_of_uncertain(Atom):
         """
         return all(arg.is_pwl() for arg in self.args)
 
+    def _grad(self, values) -> None:
+        return None
 
     # def is_dcp(self, dpp: bool = False) -> bool:
     #     """An max constraint is DCP if its argument is affine."""
