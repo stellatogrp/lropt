@@ -13,7 +13,7 @@ from cvxpy.expressions.leaf import Leaf
 from cvxpy.problems.objective import Maximize
 from cvxpy.problems.problem import Problem
 from cvxpy.reductions.solution import INF_OR_UNB_MESSAGE
-from cvxtorch import TorchExpression, VariablesDict
+from cvxtorch import TorchExpression
 
 # from pathos.multiprocessing import ProcessPool as Pool
 import lropt.train.settings as settings
