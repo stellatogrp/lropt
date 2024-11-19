@@ -268,8 +268,7 @@ class RobustProblem(Problem):
                 args_inds_to_pass[global_ind] = vars_dict.vars_dict[var_param]
             return args_inds_to_pass
 
-        def wrapped_function(torch_exp, args_inds_to_pass: dict[int, int], vars_dict: VariablesDict,
-                                batch_flag: bool, *args):
+        def wrapped_function(torch_exp, args_inds_to_pass: dict[int, int], batch_flag: bool, *args):
             """
             This is the function that wraps the torch expression.
 
@@ -279,8 +278,6 @@ class RobustProblem(Problem):
                 args_inds_to_pass:
                     A dictionary from index in *args to the args that will be passed.
                     Note that len(args) > len(args_inds_to_pass) is possible.
-                vars_dict (VariablesDict):
-                    A mapping from CVXPY leaves to the local index in the expression.
                 batch_flag (bool):
                     Batch mode on/off.
                 *args
@@ -360,7 +357,7 @@ class RobustProblem(Problem):
         # Create a dictionary from index -> variable/param (for the problem)
         args_inds_to_pass = gen_args_inds_to_pass(self.vars_params, vars_dict)
 
-        return partial(wrapped_function, torch_exp, args_inds_to_pass, vars_dict, batch_flag)
+        return partial(wrapped_function, torch_exp, args_inds_to_pass, batch_flag)
 
     def _gen_all_torch_expressions(self, eval_exp: Expression | None = None):
         """
