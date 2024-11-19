@@ -26,12 +26,15 @@ class ViolationChecker():
         self._cvxpylayer = cvxpylayer
         self._constraints = constraints
 
-    def _set_var_values(self, var_values: list[Tensor]) -> None:
+    def _set_var_values(self, var_values: list[Tensor], batch_number: int) -> None:
         """
         This is an internal function that assigns values to the CVXPYLayer's variables.
         """
         for i, var_value in enumerate(var_values):
             var = self._cvxpylayer.variables[i]
+            # var = select_batch_object([self._cvxpylayer.variables[i]], var_value, batch_number)[0]
+            batch_size = get_batch_size([var], [var_value])
+            var_value = var_value[batch_number] if batch_size>1 else var_value
             val = var_value.reshape(var.shape).detach().numpy()
             var.value = val
 
@@ -70,13 +73,14 @@ class ViolationChecker():
                 CONSTRAINT_STATUS.INFEASIBLE if any constraint of problem_no_unc is violated,
                 else CONSTRAINT_STATUS.FEASIBLE.
         """
-        self._set_var_values(var_values=var_values)
         batch_size = get_batch_size(in_cp=y_parameter, in_tch=y_batch)
         #eps_tch is never batched
         set_rho_mult_parameter(rho_mult_parameter, eps_tch)
         for batch_number in range(batch_size):
-            #orig_parameters, shape_parameters may be batched, so they need to be in the loop.
-            #y_parameter is always batched.
+            # var_values, orig_parameters, shape_parameters may be batched,
+            # so they need to be in the loop.
+            # y_parameter is always batched.
+            self._set_var_values(var_values, batch_number)
             set_orig_parameters(orig_parameters, y_orig_tch, batch_number)
             set_y_parameter(y_parameter, y_batch, batch_number)
             set_shape_parameters(shape_parameters, shape_torches, batch_number)
