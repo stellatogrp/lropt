@@ -930,6 +930,21 @@ class Trainer():
                                   alpha=alpha, slack=slack, eta=eta, kappa=kappa)
         return F + lam @ H + (mu/2)*(torch.linalg.norm(H)**2), H.detach()
 
+    def _reduce_variables(self, var_values: list[torch.Tensor]) -> list[torch.Tensor]:
+        """
+        This helper function reduces var_values whose len is len(self.problem_no_unc.variables())
+        to len(self.problem_canon.variables()).
+        It returns the reduced list of tensors, where only the tensors that correspond to variables
+        of self.problem_canon.variables() are preserved.
+        """
+        res = [None]*len(self.problem_canon.variables())
+        for problem_no_unc_ind, problem_no_unc_var in enumerate(self.problem_no_unc.variables()):
+            for problem_canon_ind, problem_canon_var in enumerate(self.problem_canon.variables()):
+                if problem_no_unc_var.id==problem_canon_var.id:
+                    res[problem_canon_ind] = var_values[problem_no_unc_ind]
+                    break
+        return res
+
     def _train_loop(self, init_num, **kwargs):
         if kwargs['random_init'] and kwargs['train_shape']:
             if init_num >= 1:
@@ -1008,6 +1023,7 @@ class Trainer():
             if constraints_status is CONSTRAINT_STATUS.INFEASIBLE:
                 pass #TODO: Irina - what to do if an infeasible constraint is found?
 
+            var_values = self._reduce_variables(var_values=var_values)
             eval_args = self.order_args(var_values=var_values,
                                             y_batch=y_batch, u_batch=u_batch)
             temp_lagrangian, train_constraint_value = self.lagrangian(
@@ -1052,6 +1068,7 @@ class Trainer():
 
                 with torch.no_grad():
                     # test_u = kwargs['test_tch']
+                    var_values = self._reduce_variables(var_values)
                     test_args = self.order_args(var_values=
                                                 var_values,
                                                 y_batch=y_batch,u_batch=u_batch)
