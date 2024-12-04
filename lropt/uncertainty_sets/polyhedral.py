@@ -1,7 +1,7 @@
 import numpy as np
 from cvxpy import Variable
 
-from lropt.train.parameter import EpsParameter, ShapeParameter
+from lropt.train.parameter import ShapeParameter, SizeParameter
 from lropt.uncertainty_sets.uncertainty_set import UncertaintySet
 from lropt.uncertainty_sets.utils import check_affine_transform
 
@@ -79,7 +79,7 @@ class Polyhedral(UncertaintySet):
         self._lb = lb
         self._sum_eq = sum_eq
         self._define_support = False
-        self._rho_mult = EpsParameter(value=1.)
+        self._rho_mult = SizeParameter(value=1.)
 
 
 

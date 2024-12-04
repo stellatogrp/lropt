@@ -13,8 +13,8 @@ from cvxpy.reductions.reduction import Reduction
 from numpy import ndarray
 from scipy.sparse import csr_matrix
 
-from lropt import Parameter as LroptParameter
 from lropt.robust_problem import RobustProblem
+from lropt.train.parameter import ContextParameter
 from lropt.uncertain_canon.utils import (
     CERTAIN_ID,
     gen_constraint_by_type,
@@ -25,9 +25,9 @@ from lropt.uncertain_canon.utils import (
 )
 from lropt.uncertain_parameter import UncertainParameter
 
-PARAM_TYPES = (UncertainParameter, LroptParameter, Parameter)
-LROPT_PARAMETER_TYPES = (UncertainParameter, LroptParameter)
-CERTAIN_PARAMETER_TYPES = (LroptParameter, Parameter)
+PARAM_TYPES = (UncertainParameter, ContextParameter, Parameter)
+LROPT_PARAMETER_TYPES = (UncertainParameter, ContextParameter)
+CERTAIN_PARAMETER_TYPES = (ContextParameter, Parameter)
 
 
 
@@ -140,7 +140,7 @@ class UncertainCanonicalization(Reduction):
                     T_Ab_dict[param_type] = _safe_hstack(T_Ab_dict[param_type])
 
                 vec_Ab_certain       = _safe_gen_vecAb(T_Ab_dict, param_vec_dict, Parameter)
-                vec_Ab_certain_param = _safe_gen_vecAb(T_Ab_dict, param_vec_dict, LroptParameter)
+                vec_Ab_certain_param = _safe_gen_vecAb(T_Ab_dict, param_vec_dict, ContextParameter)
 
                 return vec_Ab_certain, vec_Ab_certain_param,\
                       T_Ab_dict[UncertainParameter], \
@@ -346,7 +346,7 @@ class UncertainCanonicalization(Reduction):
             constraints.
             """
             dummy_problem = RobustProblem(objective=objective, constraints=constraints, \
-                                           verify_y_parameters=False)
+                                           verify_x_parameters=False)
             #Get A, b tensors (A separated to uncertain and certain parts).
             A_certain, A_uncertain, b_certain, b_uncertain, uncertain_params,\
                   cones,variables = _get_tensors(dummy_problem, solver=solver)

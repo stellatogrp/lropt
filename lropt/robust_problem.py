@@ -18,7 +18,7 @@ from cvxtorch import TorchExpression
 # from pathos.multiprocessing import ProcessPool as Pool
 import lropt.train.settings as settings
 from lropt.train.batch import batchify
-from lropt.train.parameter import Parameter
+from lropt.train.parameter import ContextParameter
 from lropt.uncertain_canon.remove_uncertainty import RemoveUncertainty
 from lropt.uncertain_canon.utils import CERTAIN_ID, UNCERTAIN_NO_MAX_ID
 from lropt.uncertain_parameter import UncertainParameter
@@ -35,7 +35,7 @@ class RobustProblem(Problem):
 
     def __init__(
         self, objective, constraints,
-        eval_exp=None, train_flag=True, cons_data = None, verify_y_parameters: bool = True
+        eval_exp=None, train_flag=True, cons_data = None, verify_x_parameters: bool = True
     ):
         self._trained = False
         self._values = None
@@ -53,7 +53,7 @@ class RobustProblem(Problem):
         self._status = None
         self._cons_data = cons_data
 
-        self.num_ys = self.verify_y_parameters() if verify_y_parameters else None
+        self.num_xs = self.verify_x_parameters() if verify_x_parameters else None
         self._store_variables_parameters()
         self.eval_exp = eval_exp
 
@@ -66,28 +66,28 @@ class RobustProblem(Problem):
         return self._values
 
     def uncertain_parameters(self):
-        """Find uncertain parameters"""
+        """Find uncertain (u) parameters"""
         return [v for v in self.parameters() if isinstance(v, UncertainParameter)]
 
-    def y_parameters(self):
-        """Find y parameters"""
-        return [v for v in self.parameters() if isinstance(v, Parameter)]
+    def x_parameters(self):
+        """Find context (x) parameters"""
+        return [v for v in self.parameters() if isinstance(v, ContextParameter)]
 
-    def verify_y_parameters(self):
+    def verify_x_parameters(self):
         """
-        This function verifies that y and u are in the correct diemsnions.
+        This function verifies that x and u are in the correct diemsnions.
         """
 
-        y_parameters = self.y_parameters()
+        x_parameters = self.x_parameters()
         u_parameters = self.uncertain_parameters()
-        num_ys = 1
-        if len(y_parameters) > 0:
-            num_ys = y_parameters[0].data.shape[0]
+        num_xs = 1
+        if len(x_parameters) > 0:
+            num_xs = x_parameters[0].data.shape[0]
         #Check that both y and u dimensions are okay
-        for params in [y_parameters, u_parameters]:
+        for params in [x_parameters, u_parameters]:
             for param in params:
                 #Fetch the current shape - different from Parameter and UncertainParameter
-                if params is y_parameters:
+                if params is x_parameters:
                     curr_shape = param.data.shape[0]
                 else:
                     #Skip the check if there is no data
@@ -98,10 +98,10 @@ class RobustProblem(Problem):
                     if not train_mro:
                         continue
                     curr_shape = param.uncertainty_set.data.shape[0]
-                if curr_shape != num_ys:
-                    raise ValueError(f"shape inconsistency: expected num_ys={num_ys}, "
+                if curr_shape != num_xs:
+                    raise ValueError(f"shape inconsistency: expected num_ys={num_xs}, "
                                      f"but got {curr_shape}.")
-        return num_ys
+        return num_xs
 
     def fg_to_lh(self):
         """
@@ -504,14 +504,14 @@ class RobustProblem(Problem):
                     if not isinstance(unc_param_lst[0].uncertainty_set, MRO):
                         self.trainer = Trainer(self, solver= solver)
                         _ = self.trainer.train()
-                        for y in self.y_parameters():
-                            y.value = y.data[0]
+                        for x in self.x_parameters():
+                            x.value = x.data[0]
                     # if MRO set and training needed
                     elif unc_param_lst[0].uncertainty_set._train:
                         self.trainer = Trainer(self, solver= solver)
                         _ = self.trainer.train()
-                        for y in self.y_parameters():
-                            y.value = y.data[0]
+                        for x in self.x_parameters():
+                            x.value = x.data[0]
                     else:
                         # if MRO set and no training needed
                         self.remove_uncertainty(solver= solver)
@@ -539,9 +539,9 @@ class RobustProblem(Problem):
         Returns: the solution to the original problem
         """
         prob = self.problem_no_unc
-        for y in prob.parameters():
-            if y.value is None:
-                y.value = y.data[0]
+        for x in prob.parameters():
+            if x.value is None:
+                x.value = x.data[0]
         inverse_data = self.inverse_data_canon
         uncertain_chain = self.chain_canon
         prob.solve(solver,warm_start,verbose,gp,qcp,requires_grad,enforce_dpp,ignore_dpp,canon_backend,**kwargs)

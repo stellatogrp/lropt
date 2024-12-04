@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 
 from lropt import Trainer, max_of_uncertain
 from lropt.robust_problem import RobustProblem
-from lropt.train.parameter import Parameter
+from lropt.train.parameter import ContextParameter
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal
 
@@ -46,7 +46,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         # Problem
         # y = np.ones(n)
-        y = Parameter(n, data=y_data)
+        y = ContextParameter(n, data=y_data)
         u = UncertainParameter(n, uncertainty_set=Ellipsoidal(data=self.data))
 
         a = npr.randint(3, 5, n)
@@ -73,7 +73,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         # Problem
         # y = np.ones(n)
-        y = Parameter(n, data=y_data)
+        y = ContextParameter(n, data=y_data)
         u = UncertainParameter(n, uncertainty_set=Ellipsoidal(data=self.data))
 
         x = cp.Variable(n)
@@ -99,7 +99,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         # formulate the family parameter
         y_data = np.random.dirichlet(dist, self.N)
-        y = Parameter(n, data=y_data)
+        y = ContextParameter(n, data=y_data)
 
         def gen_demand_intro(N, seed):
             np.random.seed(seed)
@@ -175,10 +175,10 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # Generate data
         data = gen_demand_intro(N, seed=5)
 
-        num_scenarios = 10
+        num_context = 10
         num_reps = int(N/10)
-        p_data = p + np.random.normal(0,1,(num_scenarios,n))
-        k_data = k + np.random.normal(0,1,(num_scenarios,n))
+        p_data = p + np.random.normal(0,1,(num_context,n))
+        k_data = k + np.random.normal(0,1,(num_context,n))
         p_data = np.vstack([p_data]*num_reps)
         k_data = np.vstack([k_data]*num_reps)
 
@@ -189,8 +189,8 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # Formulate the Robust Problem
         x_r = cp.Variable(n)
         t = cp.Variable()
-        k = Parameter(2, data=k_data)
-        p = Parameter(2, data=p_data)
+        k = ContextParameter(2, data=k_data)
+        p = ContextParameter(2, data=p_data)
         p_x = cp.Variable(n)
         objective = cp.Minimize(t)
         constraints = [max_of_uncertain([-p[0]*x_r[0] - p[1]*x_r[1],\
@@ -233,7 +233,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), num_instances)
 
         # Problem
-        y = Parameter(n, data=y_data)
+        y = ContextParameter(n, data=y_data)
         u = UncertainParameter(n, uncertainty_set=Ellipsoidal(data=self.data))
 
         a = np.ones(n)

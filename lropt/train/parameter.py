@@ -2,7 +2,8 @@ import cvxpy as cp
 import numpy as np
 
 
-class Parameter(cp.Parameter):
+class ContextParameter(cp.Parameter):
+    # Context parameter with data
     def __init__(self, *args, **kwargs):
         data = kwargs.pop('data', None)
 
@@ -12,7 +13,7 @@ class Parameter(cp.Parameter):
         #Convert to a 2D np.array
         if len(data.shape)==1:
             data = np.expand_dims(data, axis=0)
-        super(Parameter, self).__init__(*args, **kwargs)
+        super(ContextParameter, self).__init__(*args, **kwargs)
 
         assert (data.shape[1:] == self.shape)
         assert (data.shape[0] > 0)
@@ -20,11 +21,17 @@ class Parameter(cp.Parameter):
         self.data = data
         self.value = data[0]
 
+class Parameter(cp.Parameter):
+    # CVXPY parameter
+    def __init__(self, *args, **kwargs):
+        super(Parameter, self).__init__(*args, **kwargs)
 
 class ShapeParameter(cp.Parameter):
+    # A and b to be trained
     def __init__(self, *args, **kwargs):
         super(ShapeParameter, self).__init__(*args, **kwargs)
 
-class EpsParameter(cp.Parameter):
+class SizeParameter(cp.Parameter):
+    # Size parameter to be trained
     def __init__(self, *args, **kwargs):
-        super(EpsParameter, self).__init__(*args, **kwargs)
+        super(SizeParameter, self).__init__(*args, **kwargs)
