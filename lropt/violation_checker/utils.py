@@ -42,8 +42,8 @@ def check_empty_tensor(func: callable) -> callable:
 @check_empty_tensor
 def set_rho_mult_parameter(rho_mult_parameter: list[Parameter], rho_tch: Tensor) -> None:
     """
-    This helper function assigns eps_tch to rho_mult_parameter.
-    This function assumes eps_tch is a scalar.
+    This helper function assigns rho_tch to rho_mult_parameter.
+    This function assumes rho_tch is a scalar.
     """
     rho_mult_parameter[0].value = rho_tch.item()
 
@@ -52,7 +52,7 @@ def set_rho_mult_parameter(rho_mult_parameter: list[Parameter], rho_tch: Tensor)
 def set_cp_parameters(cp_parameters: list[Parameter], cp_param_tch: list[Tensor],
                                             batch_number: int) -> None:
     """
-    This is a helper function that assigns y_orig_tch to orig_parameters.
+    This is a helper function that assigns cp_param_tch to cp_parameters.
     """
     for cp_param, cp_tch in zip(cp_parameters, cp_param_tch):
         cp_param_curr, cp_tch_curr = select_batch_object(in_cp=cp_param, in_tch=cp_tch,
@@ -65,8 +65,8 @@ def set_x_parameter(x_parameter: list[Parameter], x_batch: list[Tensor], batch_n
     """
     This is a helper function that assigns x_batch[i] to x_parameters[i].
     """
-    for curr_y_parameter, curr_y_batch in zip(x_parameter, x_batch):
-        curr_y_parameter.value = curr_y_batch.detach().numpy()[batch_number]
+    for curr_x_parameter, curr_x_batch in zip(x_parameter, x_batch):
+        curr_x_parameter.value = curr_x_batch.detach().numpy()[batch_number]
 
 #SOMETIMES BATCHED
 @check_empty_tensor
