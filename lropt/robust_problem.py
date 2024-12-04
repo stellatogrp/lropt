@@ -103,7 +103,6 @@ class RobustProblem(Problem):
                                      f"but got {curr_shape}.")
         return num_ys
 
-
     def fg_to_lh(self):
         """
         Returns l and h function pointers.
@@ -120,7 +119,6 @@ class RobustProblem(Problem):
 
         self.h = h_funcs
         self.num_g = len(h_funcs)
-
 
     def unpack(self, solution) -> None:
         """Updates the problem state given a Solution.
@@ -216,7 +214,6 @@ class RobustProblem(Problem):
         if self.uncertain_parameters() is None:
             raise ValueError("The problem has no uncertain parameters")
 
-
     def _store_variables_parameters(self):
         """
         This is an internal function that generates a dictionary of all the variables and parameters
@@ -271,7 +268,7 @@ class RobustProblem(Problem):
                 args_inds_to_pass[global_ind] = vars_dict.vars_dict[var_param]
             return args_inds_to_pass
 
-        def wrapped_function(torch_exp, args_inds_to_pass, batch_flag, *args):
+        def wrapped_function(torch_exp, args_inds_to_pass: dict[int, int], batch_flag: bool, *args):
             """
             This is the function that wraps the torch expression.
 
@@ -281,6 +278,8 @@ class RobustProblem(Problem):
                 args_inds_to_pass:
                     A dictionary from index in *args to the args that will be passed.
                     Note that len(args) > len(args_inds_to_pass) is possible.
+                batch_flag (bool):
+                    Batch mode on/off.
                 *args
                     The arguments of torch_exp
             """
@@ -358,18 +357,17 @@ class RobustProblem(Problem):
         # Create a dictionary from index -> variable/param (for the problem)
         args_inds_to_pass = gen_args_inds_to_pass(self.vars_params, vars_dict)
 
-        return partial(wrapped_function, torch_exp, args_inds_to_pass, batch_flag), \
-            vars_dict.has_type_in_keys(UncertainParameter)
-
+        return partial(wrapped_function, torch_exp, args_inds_to_pass, batch_flag)
 
     def _gen_all_torch_expressions(self, eval_exp: Expression | None = None):
         """
         This function generates torch expressions for the canonicalized objective and constraints.
         """
-        self.f, _ = self._gen_torch_exp(self.objective.expr)
+        self.f = self._gen_torch_exp(self.objective.expr)
         self.g = []
         self.g_shapes = []
         self.num_g_total = 0
+        self.constraint_checkers = []
         #For each max_id, select all the constraints with this max_id:
         #   Each of these constraints is NonPos, so constraint.args[0] is an expression.
         #   Create an object (list) that has all constraint.args[0] from all these constraints.
@@ -385,7 +383,7 @@ class RobustProblem(Problem):
                 args = [constraint.args[0] for constraint in self.constraints_by_type[max_id]]
                 constraints = [cp.NonPos(cp.maximum(*args))]
             for constraint in constraints: #NOT self.constraints: these are the new constraints
-                g, has_uncertain_parameters = self._gen_torch_exp(constraint)
+                g = self._gen_torch_exp(constraint)
                 self.g.append(g) #Always has uncertainty, no need to check
                 if len(constraint.shape) >= 1:
                     self.g_shapes.append(constraint.shape[0])
@@ -393,24 +391,14 @@ class RobustProblem(Problem):
                 else:
                     self.g_shapes.append(1)
                     self.num_g_total += 1
-        # for constraint in self.constraints:
-        #     g, has_uncertain_parameters = self._gen_torch_exp(constraint)
-        #     if has_uncertain_parameters:
-        #         self.g.append(g)
-        #         if len(constraint.shape) >= 1:
-        #             self.g_shapes.append(constraint.shape[0])
-        #             self.num_g_total += constraint.shape[0]
-        #         else:
-        #             self.g_shapes.append(1)
-        #             self.num_g_total += 1
+
         if self.eval_exp is None:
             self.eval_exp = self.objective.expr
         # self.eval_exp = eval_exp #This is needed for when RobustProblem() is called in a reduction
-        self.eval, _ = self._gen_torch_exp(self.eval_exp, batch_flag=False)
+        self.eval = self._gen_torch_exp(self.eval_exp, batch_flag=False)
         # self.eval = self.f #This function should be called on the canonicalized problem, so this
                             #instance of self.eval should not be used.
         self.fg_to_lh()
-
 
     def remove_uncertainty(self,override = False, solver = None):
         """

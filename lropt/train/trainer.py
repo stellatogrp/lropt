@@ -17,6 +17,8 @@ from lropt.train.parameter import EpsParameter, Parameter, ShapeParameter
 from lropt.train.utils import get_n_processes
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.utils import unique_list
+from lropt.violation_checker.utils import CONSTRAINT_STATUS
+from lropt.violation_checker.violation_checker import ViolationChecker
 
 # add a simulator class. abstract class. user defines.
 # simulate (dynamics)
@@ -249,7 +251,6 @@ class Trainer():
                                                 cost_vals_train,\
                                                     constr_vals_train
 
-
     def _validate_unc_set_T(self):
         """
         This function checks if paramaterT is not empty.
@@ -301,7 +302,7 @@ class Trainer():
         """Get the reshaping parameters a and b"""
         return [v for v in problem.parameters() if isinstance(v, ShapeParameter)]
 
-    def create_cvxpylayer(self,parameters = None, variables=None):
+    def create_cvxpylayer(self,parameters = None, variables=None) -> CvxpyLayer:
         """Create cvxpylayers.
         Default parameter order: rho multiplier, cvxpy parameters, lropt parameters, a, b.
         Default variable order: the variables of problem_canon """
@@ -309,7 +310,7 @@ class Trainer():
             parameters = self._rho_mult_parameter + self._orig_parameters +\
                   self._y_parameters + self._shape_parameters
         if variables is None:
-            variables = self.problem_canon.variables()
+            variables = self.problem_no_unc.variables()
         cvxpylayer = CvxpyLayer(self.problem_no_unc,parameters=parameters,
                                         variables=variables)
         return cvxpylayer
@@ -582,7 +583,6 @@ class Trainer():
         slack = torch.zeros(self.num_g_total, requires_grad=self.train_flag, dtype=settings.DTYPE)
         return a_tch, b_tch, alpha, slack
 
-
     def _update_iters(self, save_history, a_history, b_history,
                       eps_history,a_tch, b_tch, eps_tch):
         """
@@ -655,7 +655,6 @@ class Trainer():
 
         return variables
 
-
     def _calc_coverage(self, dset, a_tch, b_tch, rho=1,p=2,
                        contextual=False,y_set = None, linear = None):
         """
@@ -700,7 +699,6 @@ class Trainer():
                 )
         return coverage/dset.shape[0]
 
-
     def order_args(self, var_values, y_batch, u_batch):
         """
         This function orders var_values, y_batch, and u_batch according to the order in vars_params.
@@ -736,7 +734,6 @@ class Trainer():
             args.append(append_item)
 
         return args
-
 
     #BATCHED
     def _eval_input(self, batch_int,eval_func, eval_args, init_val,
@@ -821,7 +818,6 @@ class Trainer():
             init_val = (init_val > settings.TOLERANCE_DEFAULT).float()
         return init_val
 
-
     def train_objective(self, batch_int, eval_args):
         """
         This function evaluates the expectation of the objective function over the batched set.
@@ -905,7 +901,6 @@ class Trainer():
                         eval_input_case=Trainer._EVAL_INPUT_CASE.MAX, quantiles=None)
         return G.mean(axis=1)
 
-
     def lagrangian(self, batch_int,eval_args, alpha, slack, lam, mu,
                    eta=settings.ETA_LAGRANGIAN_DEFAULT, kappa=settings.KAPPA_LAGRANGIAN_DEFAULT):
         """
@@ -935,6 +930,20 @@ class Trainer():
                                   alpha=alpha, slack=slack, eta=eta, kappa=kappa)
         return F + lam @ H + (mu/2)*(torch.linalg.norm(H)**2), H.detach()
 
+    def _reduce_variables(self, var_values: list[torch.Tensor]) -> list[torch.Tensor]:
+        """
+        This helper function reduces var_values whose len is len(self.problem_no_unc.variables())
+        to len(self.problem_canon.variables()).
+        It returns the reduced list of tensors, where only the tensors that correspond to variables
+        of self.problem_canon.variables() are preserved.
+        """
+        res = [None]*len(self.problem_canon.variables())
+        for problem_no_unc_ind, problem_no_unc_var in enumerate(self.problem_no_unc.variables()):
+            for problem_canon_ind, problem_canon_var in enumerate(self.problem_canon.variables()):
+                if problem_no_unc_var.id==problem_canon_var.id:
+                    res[problem_canon_ind] = var_values[problem_no_unc_ind]
+                    break
+        return res
 
     def _train_loop(self, init_num, **kwargs):
         if kwargs['random_init'] and kwargs['train_shape']:
@@ -998,9 +1007,23 @@ class Trainer():
                 a_tch, b_tch = self.create_tensors_linear(y_batch,
                                             kwargs['model'])
 
+            # All of the inputs to CVXPYLayer are batched (over the 0-th dimension),
+            # so I need to check violation constraints for each of the batch.
+            # self._rho_mult_parameter <- eps_tch
+            # self._orig_parameters <- *self.y_orig_tch
+            # self._y_parameters <- *y_batch
+            # self._shape_parameters <- [a_tch, b_tch]
             var_values = self.cvxpylayer(eps_tch,*self.y_orig_tch,
                             *y_batch, a_tch, b_tch,solver_args=kwargs['solver_args'])
+            constraints_status = self.violation_checker.check_constraints(var_values=var_values,
+                            rho_mult_parameter=self._rho_mult_parameter, eps_tch=eps_tch,
+                            orig_parameters=self._orig_parameters, y_orig_tch=self.y_orig_tch,
+                            y_parameter=self._y_parameters, y_batch=y_batch,
+                            shape_parameters=self._shape_parameters, shape_torches=[a_tch, b_tch])
+            if constraints_status is CONSTRAINT_STATUS.INFEASIBLE:
+                pass #TODO: Irina - what to do if an infeasible constraint is found?
 
+            var_values = self._reduce_variables(var_values=var_values)
             eval_args = self.order_args(var_values=var_values,
                                             y_batch=y_batch, u_batch=u_batch)
             temp_lagrangian, train_constraint_value = self.lagrangian(
@@ -1045,6 +1068,7 @@ class Trainer():
 
                 with torch.no_grad():
                     # test_u = kwargs['test_tch']
+                    var_values = self._reduce_variables(var_values)
                     test_args = self.order_args(var_values=
                                                 var_values,
                                                 y_batch=y_batch,u_batch=u_batch)
@@ -1257,6 +1281,8 @@ class Trainer():
         _,_,_,_,_,_,_ = self._split_dataset(test_percentage, seed)
 
         self.cvxpylayer = self.create_cvxpylayer()
+        self.violation_checker = ViolationChecker(self.cvxpylayer, self.problem_no_unc.constraints)
+
 
         num_random_init = num_random_init if random_init else 1
         num_random_init = num_random_init if train_shape else 1
@@ -1600,9 +1626,6 @@ class Trainer():
             grid_stats.minval,
             grid_stats.var_vals,
         )
-
-
-
 
 
 class TrainLoopStats():
