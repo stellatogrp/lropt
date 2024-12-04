@@ -1019,6 +1019,8 @@ class Trainer():
                             x_parameters=self._x_parameters, x_batch=x_batch,
                             shape_parameters=self._shape_parameters,shape_torches=[a_tch, b_tch])
             if constraints_status is CONSTRAINT_STATUS.INFEASIBLE:
+                # Conceptually, we would like to do opt.step()/2 until we reach a feasible solution.
+                # The first iteration should be feasible.
                 pass #TODO: Irina - what to do if an infeasible constraint is found?
 
             z_batch = self._reduce_variables(z_batch=z_batch)
@@ -1088,6 +1090,7 @@ class Trainer():
 
 
             if step_num < kwargs['num_iter'] - 1:
+                # This updates the trained parameters (A, b).
                 opt.step()
                 opt.zero_grad()
                 with torch.no_grad():

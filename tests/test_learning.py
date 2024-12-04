@@ -344,7 +344,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
                             quantiles = (0.4,0.6),
                             lr_step_size = 50, lr_gamma = 0.5,
                             random_init = True, num_random_init = 5,
-                            parallel = False, position = False,
+                            parallel = True, position = False,
                             eta=0.3, contextual = True)
         result.df
         # A_fin = result.A
