@@ -123,4 +123,4 @@ def select_batch_object(in_cp: list[Parameter], in_tch: list[Tensor], batch_numb
     """
     if get_batch_size(in_cp=in_cp, in_tch=in_tch) is NO_BATCH: #Need "is" instead of "=="
         return in_cp[0], in_tch[0]
-    return in_cp[0][batch_number], in_tch[0][batch_number]
+    return in_cp[0], in_tch[0][batch_number]
