@@ -14,11 +14,12 @@ from joblib import Parallel, delayed
 import lropt.train.settings as settings
 from lropt import RobustProblem
 from lropt.train.parameter import ContextParameter, ShapeParameter, SizeParameter
-from lropt.train.utils import get_n_processes
+from lropt.train.utils import get_n_processes, take_step, undo_step, halve_step_size
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.utils import unique_list
 from lropt.violation_checker.utils import CONSTRAINT_STATUS
 from lropt.violation_checker.violation_checker import ViolationChecker
+from lropt.violation_checker.settings import VIOLATION_CHECK_TIMEOUT
 
 # add a simulator class. abstract class. user defines.
 # simulate (dynamics)
@@ -979,65 +980,61 @@ class Trainer():
         variables = self._set_train_variables(kwargs['fixb'], alpha,
                                               slack, a_tch, b_tch,rho_tch,kwargs["trained_shape"],
                                             kwargs["contextual"], kwargs['linear'])
-        #Variables are a subset of [a_tch, b_tch, alpha, slack]. Need to udpate every time one of these change.
         if kwargs['optimizer'] == "SGD":
             opt = settings.OPTIMIZERS[kwargs['optimizer']](
                 variables, lr=kwargs['lr'], momentum=kwargs['momentum'])
         else:
             opt = settings.OPTIMIZERS[kwargs['optimizer']](
                 variables, lr=kwargs['lr'])
-        if kwargs['scheduler']:
-            scheduler_ = torch.optim.lr_scheduler.StepLR(
-                opt, step_size=kwargs['lr_step_size'], gamma=kwargs['lr_gamma'])
+        
+        scheduler_ = torch.optim.lr_scheduler.StepLR(opt, step_size=kwargs['lr_step_size'], gamma=kwargs['lr_gamma']) if kwargs['scheduler'] else None
+        # if kwargs['scheduler']:
+        #     scheduler_ = torch.optim.lr_scheduler.StepLR(
+        #         opt, step_size=kwargs['lr_step_size'], gamma=kwargs['lr_gamma'])
         # y's and cvxpylayer begin
         lam = kwargs['init_lam'] * torch.ones(self.num_g_total, dtype=settings.DTYPE)
         mu = kwargs['init_mu']
         curr_cvar = np.inf
+        constraints_status = CONSTRAINT_STATUS.INFEASIBLE
         for step_num in range(kwargs['num_iter']):
-            if step_num>0:
-                #TODO: Create a function that does this block (after the step_num<...).
-                #Invoke it at the beginning of the loop.
-                # This updates the trained parameters (A, b).
-                opt.step()
-                opt.zero_grad()
-                with torch.no_grad():
-                    newval = torch.clamp(slack, min=0., max=torch.inf)
-                    slack.copy_(newval)
-                    newrho_tch = torch.clamp(rho_tch, min=0.001)
-                    rho_tch.copy_(newrho_tch)
-                if kwargs['scheduler']:
-                    scheduler_.step()
-            
-            train_stats = TrainLoopStats(
-                step_num=step_num, train_flag=self.train_flag, num_g_total=self.num_g_total)
+            for violation_counter in range(VIOLATION_CHECK_TIMEOUT):
+                #Variables are a subset of [a_tch, b_tch, alpha, slack]. Need to udpate every time one of these change.
+                if step_num>0:
+                    take_step(opt=opt, slack=slack, rho_tch=rho_tch, scheduler=scheduler_)
+                
+                train_stats = TrainLoopStats(
+                    step_num=step_num, train_flag=self.train_flag, num_g_total=self.num_g_total)
 
-            batch_int, x_batch, u_batch = self._gen_batch(self.train_size,
-                                            self.x_train_tch, self.u_train_set,
-                   kwargs['batch_percentage'],
-                   max_size=kwargs["max_batch_size"])
+                batch_int, x_batch, u_batch = self._gen_batch(self.train_size,
+                                                self.x_train_tch, self.u_train_set,
+                    kwargs['batch_percentage'],
+                    max_size=kwargs["max_batch_size"])
 
-            if kwargs["contextual"]:
-                a_tch, b_tch = self.create_tensors_linear(x_batch,
-                                            kwargs['model'])
+                if kwargs["contextual"]:
+                    a_tch, b_tch = self.create_tensors_linear(x_batch,
+                                                kwargs['model'])
 
-            # All of the inputs to CVXPYLayer are batched (over the 0-th dimension),
-            # so I need to check violation constraints for each of the batch.
-            # self._rho_mult_parameter <- rho_tch
-            # self._cp_parameters <- *self.cp_param_tch
-            # self._x_parameters <- *x_batch
-            # self._shape_parameters <- [a_tch, b_tch]
-            z_batch = self.cvxpylayer(rho_tch,*self.cp_param_tch,
-                            *x_batch, a_tch, b_tch,solver_args=kwargs['solver_args'])
-            constraints_status = self.violation_checker.check_constraints(z_batch=z_batch,
-                            rho_mult_parameter=self._rho_mult_parameter, rho_tch=rho_tch,
-                            cp_parameters=self._cp_parameters, cp_param_tch=self.cp_param_tch,
-                            x_parameters=self._x_parameters, x_batch=x_batch,
-                            shape_parameters=self._shape_parameters,shape_torches=[a_tch, b_tch])
-            if constraints_status is CONSTRAINT_STATUS.INFEASIBLE:
+                # All of the inputs to CVXPYLayer are batched (over the 0-th dimension),
+                # so I need to check violation constraints for each of the batch.
+                # self._rho_mult_parameter <- rho_tch
+                # self._cp_parameters <- *self.cp_param_tch
+                # self._x_parameters <- *x_batch
+                # self._shape_parameters <- [a_tch, b_tch]
+                z_batch = self.cvxpylayer(rho_tch,*self.cp_param_tch,
+                                *x_batch, a_tch, b_tch,solver_args=kwargs['solver_args'])
+                constraints_status = self.violation_checker.check_constraints(z_batch=z_batch,
+                                rho_mult_parameter=self._rho_mult_parameter, rho_tch=rho_tch,
+                                cp_parameters=self._cp_parameters, cp_param_tch=self.cp_param_tch,
+                                x_parameters=self._x_parameters, x_batch=x_batch,
+                                shape_parameters=self._shape_parameters,shape_torches=[a_tch, b_tch])
+                if constraints_status is CONSTRAINT_STATUS.FEASIBLE:
+                    #TODO: Return  the learning rate to it's original value
+                    break
                 # Conceptually, we would like to do opt.step()/2 until we reach a feasible solution.
                 # The first iteration should be feasible.
                 #Need to redo every step where parts of Variables [a_tch, b_tch, alpha, slack] are changed.
-                pass #TODO: Irina - what to do if an infeasible constraint is found?
+                undo_step(opt=opt)
+                halve_step_size(opt=opt)
 
             z_batch = self._reduce_variables(z_batch=z_batch)
             eval_args = self.order_args(z_batch=z_batch,

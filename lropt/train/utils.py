@@ -172,3 +172,55 @@ def replace_partial_args(part: partial, new_args: tuple) -> partial:
     f, _, k, n = f
     part.__setstate__((f, new_args, k, n))
     return part
+
+##########################
+#Optimizer utility functions
+##########################
+
+def take_step(opt: torch.optim.Optimizer, slack: torch.Tensor, rho_tch: torch.Tensor, scheduler: torch.optim.lr_scheduler.StepLR | None) -> None:
+    """
+    This function performs an optimization step.
+
+    Args:
+        opt (torch.optim.Optimizer):
+            The optimizer to unroll.
+        Slack (torch.Tensor):
+            Slack tensor.
+        rho_tch (torch.Tensor):
+            rho_tch tensor.
+        scheduler (torch.optim_lr_scheduler.StepLR | None):
+            If passed, a StepLR scheduler.
+    """
+    opt.step()
+    opt.zero_grad()
+    with torch.no_grad():
+        newval = torch.clamp(slack, min=0., max=torch.inf)
+        slack.copy_(newval)
+        newrho_tch = torch.clamp(rho_tch, min=0.001)
+        rho_tch.copy_(newrho_tch)
+    if scheduler:
+        scheduler.step()
+
+def undo_step(opt: torch.optim.Optimizer) -> None:
+    """
+    This function undoes the last optimizer step.
+
+    Args:
+        opt (torchoptim.Optimizer):
+            The optimizer whose step to undo.
+    """
+    for group in opt.param_groups:
+        for param in group["params"]:
+            if param.grad is not None:
+                param.data.add_(param.grad, alpha=-group["lr"])
+
+def halve_step_size(opt: torch.optim.Optimizer) -> None:
+    """
+    This function halves the step size of an optimizer.
+
+    Args:
+        opt (torchoptim.Optimizer):
+            The optimizer whose step to halve.
+    """
+    for group in opt.param_groups:
+        group["lr"] /= 2
