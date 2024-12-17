@@ -979,6 +979,7 @@ class Trainer():
         variables = self._set_train_variables(kwargs['fixb'], alpha,
                                               slack, a_tch, b_tch,rho_tch,kwargs["trained_shape"],
                                             kwargs["contextual"], kwargs['linear'])
+        #Variables are a subset of [a_tch, b_tch, alpha, slack]. Need to udpate every time one of these change.
         if kwargs['optimizer'] == "SGD":
             opt = settings.OPTIMIZERS[kwargs['optimizer']](
                 variables, lr=kwargs['lr'], momentum=kwargs['momentum'])
@@ -993,6 +994,20 @@ class Trainer():
         mu = kwargs['init_mu']
         curr_cvar = np.inf
         for step_num in range(kwargs['num_iter']):
+            if step_num>0:
+                #TODO: Create a function that does this block (after the step_num<...).
+                #Invoke it at the beginning of the loop.
+                # This updates the trained parameters (A, b).
+                opt.step()
+                opt.zero_grad()
+                with torch.no_grad():
+                    newval = torch.clamp(slack, min=0., max=torch.inf)
+                    slack.copy_(newval)
+                    newrho_tch = torch.clamp(rho_tch, min=0.001)
+                    rho_tch.copy_(newrho_tch)
+                if kwargs['scheduler']:
+                    scheduler_.step()
+            
             train_stats = TrainLoopStats(
                 step_num=step_num, train_flag=self.train_flag, num_g_total=self.num_g_total)
 
@@ -1021,6 +1036,7 @@ class Trainer():
             if constraints_status is CONSTRAINT_STATUS.INFEASIBLE:
                 # Conceptually, we would like to do opt.step()/2 until we reach a feasible solution.
                 # The first iteration should be feasible.
+                #Need to redo every step where parts of Variables [a_tch, b_tch, alpha, slack] are changed.
                 pass #TODO: Irina - what to do if an infeasible constraint is found?
 
             z_batch = self._reduce_variables(z_batch=z_batch)
@@ -1087,19 +1103,6 @@ class Trainer():
                     kwargs['contextual'], kwargs['linear'], x_batch)
                 df_test = pd.concat([df_test,
                                      new_row.to_frame().T], ignore_index=True)
-
-
-            if step_num < kwargs['num_iter'] - 1:
-                # This updates the trained parameters (A, b).
-                opt.step()
-                opt.zero_grad()
-                with torch.no_grad():
-                    newval = torch.clamp(slack, min=0., max=torch.inf)
-                    slack.copy_(newval)
-                    newrho_tch = torch.clamp(rho_tch, min=0.001)
-                    rho_tch.copy_(newrho_tch)
-                if kwargs['scheduler']:
-                    scheduler_.step()
 
         if sum(var_vio.detach().numpy())/self.num_g_total <= kwargs["kappa"]:
             fin_val = obj_test[1].item()
