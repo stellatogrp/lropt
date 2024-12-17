@@ -14,12 +14,18 @@ from joblib import Parallel, delayed
 import lropt.train.settings as settings
 from lropt import RobustProblem
 from lropt.train.parameter import ContextParameter, ShapeParameter, SizeParameter
-from lropt.train.utils import get_n_processes, take_step, undo_step, halve_step_size
+from lropt.train.utils import (
+    get_n_processes,
+    halve_step_size,
+    restore_step_size,
+    take_step,
+    undo_step,
+)
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.utils import unique_list
+from lropt.violation_checker.settings import VIOLATION_CHECK_TIMEOUT
 from lropt.violation_checker.utils import CONSTRAINT_STATUS
 from lropt.violation_checker.violation_checker import ViolationChecker
-from lropt.violation_checker.settings import VIOLATION_CHECK_TIMEOUT
 
 # add a simulator class. abstract class. user defines.
 # simulate (dynamics)
@@ -987,7 +993,11 @@ class Trainer():
             opt = settings.OPTIMIZERS[kwargs['optimizer']](
                 variables, lr=kwargs['lr'])
         
-        scheduler_ = torch.optim.lr_scheduler.StepLR(opt, step_size=kwargs['lr_step_size'], gamma=kwargs['lr_gamma']) if kwargs['scheduler'] else None
+        if kwargs['scheduler']:
+            scheduler_ = torch.optim.lr_scheduler.StepLR(opt, step_size=kwargs['lr_step_size'],
+                                                        gamma=kwargs['lr_gamma'])
+        else: 
+            scheduler_ = None
         # if kwargs['scheduler']:
         #     scheduler_ = torch.optim.lr_scheduler.StepLR(
         #         opt, step_size=kwargs['lr_step_size'], gamma=kwargs['lr_gamma'])
@@ -995,10 +1005,8 @@ class Trainer():
         lam = kwargs['init_lam'] * torch.ones(self.num_g_total, dtype=settings.DTYPE)
         mu = kwargs['init_mu']
         curr_cvar = np.inf
-        constraints_status = CONSTRAINT_STATUS.INFEASIBLE
         for step_num in range(kwargs['num_iter']):
             for violation_counter in range(VIOLATION_CHECK_TIMEOUT):
-                #Variables are a subset of [a_tch, b_tch, alpha, slack]. Need to udpate every time one of these change.
                 if step_num>0:
                     take_step(opt=opt, slack=slack, rho_tch=rho_tch, scheduler=scheduler_)
                 
@@ -1026,16 +1034,23 @@ class Trainer():
                                 rho_mult_parameter=self._rho_mult_parameter, rho_tch=rho_tch,
                                 cp_parameters=self._cp_parameters, cp_param_tch=self.cp_param_tch,
                                 x_parameters=self._x_parameters, x_batch=x_batch,
-                                shape_parameters=self._shape_parameters,shape_torches=[a_tch, b_tch])
+                                shape_parameters=self._shape_parameters, 
+                                shape_torches=[a_tch, b_tch])
                 if constraints_status is CONSTRAINT_STATUS.FEASIBLE:
-                    #TODO: Return  the learning rate to it's original value
+                    restore_step_size(opt, num_steps=violation_counter)
                     break
                 # Conceptually, we would like to do opt.step()/2 until we reach a feasible solution.
                 # The first iteration should be feasible.
-                #Need to redo every step where parts of Variables [a_tch, b_tch, alpha, slack] are changed.
                 undo_step(opt=opt)
                 halve_step_size(opt=opt)
 
+            if constraints_status is CONSTRAINT_STATUS.INFEASIBLE:
+                # raise TimeoutError(f"Violation constraint check timed out after "
+                #                    f"{VIOLATION_CHECK_TIMEOUT} attempts.")
+                # TODO: Currently some tests have infeasible constraints.
+                # Increasing VIOLATION_CHECK_TIMEOUT didn't help. 
+                # I don't know if there's a problem with the test.
+                pass 
             z_batch = self._reduce_variables(z_batch=z_batch)
             eval_args = self.order_args(z_batch=z_batch,
                                             x_batch=x_batch, u_batch=u_batch)

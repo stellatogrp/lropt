@@ -177,7 +177,8 @@ def replace_partial_args(part: partial, new_args: tuple) -> partial:
 #Optimizer utility functions
 ##########################
 
-def take_step(opt: torch.optim.Optimizer, slack: torch.Tensor, rho_tch: torch.Tensor, scheduler: torch.optim.lr_scheduler.StepLR | None) -> None:
+def take_step(opt: torch.optim.Optimizer, slack: torch.Tensor, rho_tch: torch.Tensor,
+              scheduler: torch.optim.lr_scheduler.StepLR | None) -> None:
     """
     This function performs an optimization step.
 
@@ -224,3 +225,18 @@ def halve_step_size(opt: torch.optim.Optimizer) -> None:
     """
     for group in opt.param_groups:
         group["lr"] /= 2
+
+def restore_step_size(opt: torch.optim.Optimizer, num_steps: int) -> None:
+    """
+    This function restores the optimizer's step size to its original value,
+    i.e. multiplies it by 2^num_steps (where num_steps is 0-indexed).
+
+    Args:
+        opt (torch.optim.Optimizer):
+            The optimizer whose step size to restore.
+
+        num_steps (int):
+            The number of times the step size was halved.
+    """
+    for group in opt.param_groups:
+        group["lr"] *= (2**num_steps)
