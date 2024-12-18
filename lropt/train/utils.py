@@ -239,4 +239,6 @@ def restore_step_size(opt: torch.optim.Optimizer, num_steps: int) -> None:
             The number of times the step size was halved.
     """
     for group in opt.param_groups:
-        group["lr"] *= (2**num_steps)
+        # More stable than 2**num_steps
+        for _ in range(num_steps):
+            group["lr"] *= 2
