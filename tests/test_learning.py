@@ -80,7 +80,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         objective = cp.Maximize(y @ x)
 
-        constraints = [u>=-5]
+        constraints = [u>=-10]
         constraints += [cp.sum(x) == 1, x>=0]
         constraints += [np.ones(n)@u <= 10]
 
