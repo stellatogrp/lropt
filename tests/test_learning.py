@@ -69,6 +69,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
     def test_multidim_learn(self):
         # Setup
         n = self.n
+        np.random.seed(0)
         y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), self.N)
 
         # Problem
@@ -80,9 +81,9 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         objective = cp.Maximize(y @ x)
 
-        constraints = [u>=-10]
+        constraints = [u >= -100]
         constraints += [cp.sum(x) == 1, x>=0]
-        constraints += [np.ones(n)@u <= 10]
+        constraints += [np.ones(n)@u <= 100]
 
         prob = RobustProblem(objective, constraints)
         trainer = Trainer(prob)
