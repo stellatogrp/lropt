@@ -80,12 +80,13 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         objective = cp.Maximize(y @ x)
 
-        constraints = [u>=0]
+        constraints = [u>=-5]
+        constraints += [cp.sum(x) == 1, x>=0]
         constraints += [np.ones(n)@u <= 10]
 
         prob = RobustProblem(objective, constraints)
         trainer = Trainer(prob)
-        trainer.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD")
+        trainer.train(lr=0.001, num_iter=10, momentum=0.8, optimizer="SGD")
         # prob.solve()
 
     def test_portfolio_intro(self):
@@ -334,7 +335,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # Train A and b
         from lropt import Trainer
         trainer = Trainer(prob)
-        result = trainer.train(lr=0.001, train_size = False,
+        result = trainer.train(lr=0.0001, train_size = False,
                                num_iter=50, optimizer="SGD",seed=5,
                                init_A=initn, init_b=init_bvaln,
                                init_lam=0.1, init_mu=0.1,
