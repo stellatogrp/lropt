@@ -23,7 +23,7 @@ from lropt.train.utils import (
 )
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.utils import unique_list
-from lropt.violation_checker.settings import VIOLATION_CHECK_TIMEOUT
+from lropt.violation_checker.settings import MAX_ITER_LINE_SEARCH
 from lropt.violation_checker.utils import CONSTRAINT_STATUS
 from lropt.violation_checker.violation_checker import ViolationChecker
 
@@ -1006,7 +1006,7 @@ class Trainer():
         mu = kwargs['init_mu']
         curr_cvar = np.inf
         for step_num in range(kwargs['num_iter']):
-            for violation_counter in range(VIOLATION_CHECK_TIMEOUT):
+            for violation_counter in range(MAX_ITER_LINE_SEARCH):
                 if step_num>0:
                     take_step(opt=opt, slack=slack, rho_tch=rho_tch, scheduler=scheduler_)
                 
@@ -1045,12 +1045,11 @@ class Trainer():
                 halve_step_size(opt=opt)
 
             if constraints_status is CONSTRAINT_STATUS.INFEASIBLE:
-                # raise TimeoutError(f"Violation constraint check timed out after "
-                #                    f"{VIOLATION_CHECK_TIMEOUT} attempts.")
+                raise TimeoutError(f"Violation constraint check timed out after "
+                                   f"{MAX_ITER_LINE_SEARCH} attempts.")
                 # TODO: Currently some tests have infeasible constraints.
                 # Increasing VIOLATION_CHECK_TIMEOUT didn't help. 
                 # I don't know if there's a problem with the test.
-                pass 
             z_batch = self._reduce_variables(z_batch=z_batch)
             eval_args = self.order_args(z_batch=z_batch,
                                             x_batch=x_batch, u_batch=u_batch)
