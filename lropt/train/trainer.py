@@ -24,7 +24,7 @@ from lropt.train.utils import (
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.utils import unique_list
 from lropt.violation_checker.settings import MAX_ITER_LINE_SEARCH
-from lropt.violation_checker.utils import CONSTRAINT_STATUS
+from lropt.violation_checker.utils import CONSTRAINT_STATUS, InfeasibleConstraintException
 from lropt.violation_checker.violation_checker import ViolationChecker
 
 # add a simulator class. abstract class. user defines.
@@ -138,6 +138,12 @@ class Trainer():
     def loss_and_constraints(self, rho_tch, alpha, solver_args,
                              time_horizon, a_tch, b_tch,
                              batch_size = 1, seed=None, contextual = False, eval_flag = False):
+        """
+        TODO (Irina): Add docstring to your function...
+
+        Raises:
+            InfeasibleConstraintException if an infeasible constraint is found.
+        """
         if seed is not None:
             torch.manual_seed(seed)
 
@@ -145,8 +151,7 @@ class Trainer():
         if not isinstance(x_0,list):
             x_0 = [x_0]
         if contextual:
-            a_tch, b_tch = self.create_tensors_linear(x_0,
-                                    self._model)
+            a_tch, b_tch = self.create_tensors_linear(x_0, self._model)
 
         cost = 0.0
         constraint_cost = 0.0
@@ -156,6 +161,16 @@ class Trainer():
         for t in range(time_horizon):
             u_t = self.cvxpylayer(rho_tch, *self.cp_param_tch,
                 *x_t,a_tch,b_tch,solver_args=solver_args)[0]
+            constraints_status = self.violation_checker.check_constraints(z_batch=u_t,
+                                        rho_mult_parameter=self._rho_mult_parameter,
+                                        rho_tch=rho_tch, cp_parameters=self._cp_parameters,
+                                        cp_param_tch=self.cp_param_tch,
+                                        x_parameters=self._x_parameters, x_batch=x_t,
+                                        shape_parameters=self._shape_parameters,
+                                        shape_torches=[a_tch, b_tch])
+            if constraints_status is CONSTRAINT_STATUS.FEASIBLE:
+                raise InfeasibleConstraintException(f"Found an infeasible constraint in t={t}.")
+
             x_t = self.simulator.simulate(x_t, u_t)
             if not eval_flag:
                 cost += self.simulator.stage_cost(x_t, u_t).mean() / time_horizon
@@ -245,6 +260,8 @@ class Trainer():
         curr_cvar = np.inf
 
         for epoch in range(epochs):
+            if epoch>0:
+                take_step(opt=opt, slack=slack, rho_tch=rho_tch, scheduler=scheduler_)
             if (epoch) % 20 == 0:
                 with torch.no_grad():
                     val_cost, val_cost_constr, x_base, u_base = self.monte_carlo(
@@ -260,10 +277,23 @@ class Trainer():
                     print("epoch %d, valid %.4e, vio %.4e" % (epoch, val_cost, val_cost_constr) )
 
             torch.manual_seed(seed + epoch)
-            cost, constr_cost, _, _,  = self.loss_and_constraints(
-                time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size = batch_size,
-                seed=seed+epoch+1,rho_tch=rho_tch,alpha = alpha,
-                solver_args=solver_args, contextual = contextual)
+            constraint_status = CONSTRAINT_STATUS.INFEASIBLE
+            for violation_counter in range(MAX_ITER_LINE_SEARCH):
+                try:
+                    cost, constr_cost, _, _,  = self.loss_and_constraints(
+                        time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size = batch_size,
+                        seed=seed+epoch+1,rho_tch=rho_tch,alpha = alpha,
+                        solver_args=solver_args, contextual = contextual)
+                    restore_step_size(opt, num_steps=violation_counter)
+                    constraint_status = CONSTRAINT_STATUS.FEASIBLE
+                    break
+                except InfeasibleConstraintException:
+                    undo_step(opt=opt)
+                    halve_step_size(opt=opt)
+
+            if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
+                raise InfeasibleConstraintException(f"Violation constraint check timed out after "
+                                   f"{MAX_ITER_LINE_SEARCH} attempts.")
             fin_cost = cost+ lam*constr_cost + mu*(constr_cost**2)
             fin_cost.backward()
             with torch.no_grad():

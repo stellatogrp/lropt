@@ -9,6 +9,14 @@ from lropt.violation_checker.settings import NO_BATCH, VIOLATION_TOL
 
 CONSTRAINT_STATUS = Enum("CONSTRAINT_STATUS", ["FEASIBLE", "INFEASIBLE"])
 
+class InfeasibleConstraintException(Exception):
+    """
+    This exception is thrown when an infeasible constraint is found.
+    """
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
 def check_constraint(constraint: Constraint) -> CONSTRAINT_STATUS:
     """
     This is a helper function that converts CVXPY's violation status (integer coded) to
