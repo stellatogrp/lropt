@@ -281,7 +281,7 @@ class Trainer():
             for violation_counter in range(MAX_ITER_LINE_SEARCH):
                 try:
                     cost, constr_cost, _, _,  = self.loss_and_constraints(
-                        time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size = batch_size,
+                        time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size=batch_size,
                         seed=seed+epoch+1,rho_tch=rho_tch,alpha = alpha,
                         solver_args=solver_args, contextual = contextual)
                     restore_step_size(opt, num_steps=violation_counter)
