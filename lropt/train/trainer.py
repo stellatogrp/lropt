@@ -160,8 +160,8 @@ class Trainer():
         u_hist = []
         for t in range(time_horizon):
             u_t = self.cvxpylayer(rho_tch, *self.cp_param_tch,
-                *x_t,a_tch,b_tch,solver_args=solver_args)[0]
-            constraints_status = self.violation_checker.check_constraints(z_batch=(u_t,),
+                *x_t,a_tch,b_tch,solver_args=solver_args)
+            constraints_status = self.violation_checker.check_constraints(z_batch=u_t,
                                         rho_mult_parameter=self._rho_mult_parameter,
                                         rho_tch=rho_tch, cp_parameters=self._cp_parameters,
                                         cp_param_tch=self.cp_param_tch,
@@ -171,6 +171,7 @@ class Trainer():
             if constraints_status is CONSTRAINT_STATUS.INFEASIBLE:
                 raise InfeasibleConstraintException(f"Found an infeasible constraint in t={t}.")
 
+            u_t = self._reduce_variables(u_t) 
             x_t = self.simulator.simulate(x_t, u_t)
             if not eval_flag:
                 cost += self.simulator.stage_cost(x_t, u_t).mean() / time_horizon
@@ -378,25 +379,25 @@ class Trainer():
         """Get the reshaping parameters a and b"""
         return [v for v in problem.parameters() if isinstance(v, ShapeParameter)]
 
-    def create_cvxpylayer(self,parameters = None, variables=None) -> CvxpyLayer:
+    def create_cvxpylayer(self,parameters = None, reduced_variables=None) -> CvxpyLayer:
         """Create cvxpylayers.
         Default parameter order: rho multiplier, cvxpy parameters, context parameters, a, b.
         Default variable order: the variables of problem_canon """
         if parameters is None:
-            self._skip_cp_params = False
             new_parameters = self._rho_mult_parameter + self._cp_parameters +\
                   self._x_parameters + self._shape_parameters
         else:
             assert isinstance(parameters, list)
             self._x_tchs_init = False
             self._x_parameters = parameters
-            new_parameters = self._rho_mult_parameter + parameters + \
-                self._shape_parameters
-            self._skip_cp_params = True
-        if variables is None:
-            variables = self.problem_no_unc.variables()
-        cvxpylayer = CvxpyLayer(self.problem_no_unc,parameters=new_parameters,
-                                        variables=variables)
+            new_parameters = self._rho_mult_parameter + parameters + self._shape_parameters
+        if reduced_variables is None:
+            #TODO: Clean up if works properly
+            # variables = self.problem_no_unc.variables()
+            reduced_variables = self.problem_canon.variables()
+        cvxpylayer = CvxpyLayer(self.problem_no_unc, parameters=new_parameters,
+                                variables=self.problem_no_unc.variables())
+        self._reduced_variables = reduced_variables
         return cvxpylayer
 
     def x_parameter_shapes(self, x_params):
@@ -1027,13 +1028,13 @@ class Trainer():
     def _reduce_variables(self, z_batch: list[torch.Tensor]) -> list[torch.Tensor]:
         """
         This helper function reduces z_batch whose len is len(self.problem_no_unc.variables())
-        to len(self.problem_canon.variables()).
+        to len(_reduced_variables) (default: len(self.problem_canon.variables())).
         It returns the reduced list of tensors, where only the tensors that correspond to variables
         of self.problem_canon.variables() are preserved.
         """
-        res = [None]*len(self.problem_canon.variables())
+        res = [None]*len(self._reduced_variables)
         for problem_no_unc_ind, problem_no_unc_var in enumerate(self.problem_no_unc.variables()):
-            for problem_canon_ind, problem_canon_var in enumerate(self.problem_canon.variables()):
+            for problem_canon_ind, problem_canon_var in enumerate(self._reduced_variables):
                 if problem_no_unc_var.id==problem_canon_var.id:
                     res[problem_canon_ind] = z_batch[problem_no_unc_ind]
                     break
