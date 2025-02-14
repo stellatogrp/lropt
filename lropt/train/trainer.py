@@ -383,6 +383,7 @@ class Trainer():
         Default parameter order: rho multiplier, cvxpy parameters, context parameters, a, b.
         Default variable order: the variables of problem_canon """
         if parameters is None:
+            self._skip_cp_params = False
             new_parameters = self._rho_mult_parameter + self._cp_parameters +\
                   self._x_parameters + self._shape_parameters
         else:
@@ -391,6 +392,7 @@ class Trainer():
             self._x_parameters = parameters
             new_parameters = self._rho_mult_parameter + parameters + \
                 self._shape_parameters
+            self._skip_cp_params = True
         if variables is None:
             variables = self.problem_no_unc.variables()
         cvxpylayer = CvxpyLayer(self.problem_no_unc,parameters=new_parameters,
