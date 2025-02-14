@@ -161,14 +161,14 @@ class Trainer():
         for t in range(time_horizon):
             u_t = self.cvxpylayer(rho_tch, *self.cp_param_tch,
                 *x_t,a_tch,b_tch,solver_args=solver_args)[0]
-            constraints_status = self.violation_checker.check_constraints(z_batch=u_t,
+            constraints_status = self.violation_checker.check_constraints(z_batch=(u_t,),
                                         rho_mult_parameter=self._rho_mult_parameter,
                                         rho_tch=rho_tch, cp_parameters=self._cp_parameters,
                                         cp_param_tch=self.cp_param_tch,
                                         x_parameters=self._x_parameters, x_batch=x_t,
                                         shape_parameters=self._shape_parameters,
                                         shape_torches=[a_tch, b_tch])
-            if constraints_status is CONSTRAINT_STATUS.FEASIBLE:
+            if constraints_status is CONSTRAINT_STATUS.INFEASIBLE:
                 raise InfeasibleConstraintException(f"Found an infeasible constraint in t={t}.")
 
             x_t = self.simulator.simulate(x_t, u_t)
@@ -214,6 +214,7 @@ class Trainer():
         _,_,_,_,_,_,_ = self._split_dataset(test_percentage, seed)
         self.x_endind = x_endind
         self.cvxpylayer = self.create_cvxpylayer() if not policy else policy
+        self.violation_checker = ViolationChecker(self.cvxpylayer, self.problem_no_unc.constraints)
         self.simulator = simulator
         rho_tch = self._gen_rho_tch(init_rho)
         a_tch, b_tch, alpha, slack = self._init_torches(init_a,
