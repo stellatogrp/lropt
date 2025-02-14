@@ -197,9 +197,8 @@ class TestMultiStage(unittest.TestCase):
                                 pval=p[:T].detach().numpy(),
                                   hval = h[:T].detach().numpy())
         baseline_prob.solve()
-        _, _, qval, qmat, _, _,\
-              _,_,_ = baseline_prob.objective.value,
-        w_baseline.value, q.value, q_var.value, y.value, y_var.value,
+        _, _, qval, qmat, _, _,_,_,_ = baseline_prob.objective.value,\
+        w_baseline.value, q.value, q_var.value, y.value, y_var.value,\
         u.value, u_var.value, z.value
         w_tch = torch.tensor(w_baseline.value)
         w_tch = torch.hstack([w_tch,torch.zeros(K-1)])
