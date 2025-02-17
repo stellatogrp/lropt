@@ -451,7 +451,7 @@ class TestMultiStage(unittest.TestCase):
         epochs = 21
         batch_size = 5
         test_batch_size = 5
-        lr = 0.00001
+        lr = 0.0001
         # init_x0 = simulator.init_state(seed = 0, batch_size = 100)
         init_a = cov[:K,:K]
         init_b = np.zeros(K)

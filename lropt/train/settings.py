@@ -5,7 +5,7 @@ import torch
 
 # General constants
 RHO_LST_DEFAULT = np.logspace(-3, 1, 20)
-LAYER_SOLVER = {'solve_method': "Clarabel"}
+LAYER_SOLVER = {'solve_method': "Clarabel", 'tol_feas':1e-10}
 DTYPE = torch.double
 
 """
