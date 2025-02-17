@@ -234,11 +234,9 @@ class Trainer():
             variables += [a_tch, b_tch]
 
         if optimizer == "SGD":
-            opt = settings.OPTIMIZERS[optimizer](
-                variables, lr=lr, momentum=momentum)
+            opt = settings.OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
         else:
-            opt = settings.OPTIMIZERS[optimizer](
-                variables, lr=lr)
+            opt = settings.OPTIMIZERS[optimizer](variables, lr=lr)
         if scheduler:
             scheduler_ = torch.optim.lr_scheduler.StepLR(
                 opt, step_size=lr_step_size, gamma=lr_gamma)
