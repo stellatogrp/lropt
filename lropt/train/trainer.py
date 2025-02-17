@@ -311,16 +311,12 @@ class Trainer():
                 else:
                     mu = mu_multiplier*mu
 
-            opt.step()
-            if scheduler:
-              scheduler_.step()
             self._alpha = alpha
             self._rho_tch = rho_tch
             self._alpha = (alpha, alpha.grad)
             self._rho_tch = (rho_tch, rho_tch.grad)
             self._a_tch = (a_tch, a_tch.grad)
             self._b_tch = (b_tch, b_tch.grad)
-            opt.zero_grad()
         return val_costs, \
             val_costs_constr, [np.array(v.detach().numpy())
                                              for v in variables], \
