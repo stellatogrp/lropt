@@ -131,7 +131,7 @@ class Trainer():
             solver_args = solver_args, contextual = contextual)
         if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
             raise InfeasibleConstraintException(
-                f"Found an infeasible constraint during a call to monte_carlo.")
+                "Found an infeasible constraint during a call to monte_carlo.")
         results.append(cost.item())
         constraint_costs.append(constraint_cost.item())
         x.append(x_hist)
