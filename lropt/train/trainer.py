@@ -23,7 +23,7 @@ from lropt.train.utils import (
 )
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.utils import unique_list
-from lropt.violation_checker.settings import MAX_ITER_LINE_SEARCH
+from lropt.violation_checker.settings import DEFAULT_MAX_ITER_LINE_SEARCH
 from lropt.violation_checker.utils import CONSTRAINT_STATUS, InfeasibleConstraintException
 from lropt.violation_checker.violation_checker import ViolationChecker
 
@@ -209,7 +209,9 @@ class Trainer():
                         init_lam = settings.INIT_LAM_DEFAULT,
                         aug_lag_update_interval = settings.UPDATE_INTERVAL,
                         lambda_update_threshold = settings.LAMBDA_UPDATE_THRESHOLD,
-                        mu_multiplier = settings.MU_MULTIPLIER_DEFAULT):
+                        mu_multiplier = settings.MU_MULTIPLIER_DEFAULT,
+                        max_iter_line_search = DEFAULT_MAX_ITER_LINE_SEARCH):
+        self._max_iter_line_search = max_iter_line_search
         _,_,_,_,_,_,_ = self._split_dataset(test_percentage, seed)
         self.x_endind = x_endind
         self.cvxpylayer = self.create_cvxpylayer() if not policy else policy
@@ -275,7 +277,7 @@ class Trainer():
                     print("epoch %d, valid %.4e, vio %.4e" % (epoch, val_cost, val_cost_constr) )
 
             torch.manual_seed(seed + epoch)
-            for violation_counter in range(MAX_ITER_LINE_SEARCH):
+            for violation_counter in range(self._max_iter_line_search+1):
                 cost, constr_cost, _, _, constraint_status = self.loss_and_constraints(
                     time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size=batch_size,
                     seed=seed+epoch+1,rho_tch=rho_tch,alpha = alpha,
@@ -292,7 +294,7 @@ class Trainer():
 
             if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
                 raise InfeasibleConstraintException(f"Violation constraint check timed out after "
-                                   f"{MAX_ITER_LINE_SEARCH} attempts.")
+                                   f"{DEFAULT_MAX_ITER_LINE_SEARCH} attempts.")
             with torch.no_grad():
                 cost_vals_train.append(cost.item())
                 constr_vals_train.append(constr_cost.item())
@@ -1087,7 +1089,7 @@ class Trainer():
         mu = kwargs['init_mu']
         curr_cvar = np.inf
         for step_num in range(kwargs['num_iter']):
-            for violation_counter in range(MAX_ITER_LINE_SEARCH):
+            for violation_counter in range(DEFAULT_MAX_ITER_LINE_SEARCH):
                 if step_num>0:
                     take_step(opt=opt, slack=slack, rho_tch=rho_tch, scheduler=scheduler_)
 
@@ -1127,7 +1129,7 @@ class Trainer():
 
             if constraints_status is CONSTRAINT_STATUS.INFEASIBLE:
                 raise TimeoutError(f"Violation constraint check timed out after "
-                                   f"{MAX_ITER_LINE_SEARCH} attempts.")
+                                   f"{DEFAULT_MAX_ITER_LINE_SEARCH} attempts.")
                 # TODO: Currently some tests have infeasible constraints.
                 # Increasing VIOLATION_CHECK_TIMEOUT didn't help.
                 # I don't know if there's a problem with the test.
