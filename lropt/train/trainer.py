@@ -125,10 +125,13 @@ class Trainer():
         u = []
 
         # remove for loop, set batch size to trials
-        cost, constraint_cost, x_hist, u_hist = self.loss_and_constraints(
+        cost, constraint_cost, x_hist, u_hist, constraint_status = self.loss_and_constraints(
             time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size = batch_size,
             seed=seed,rho_tch = rho_tch, alpha = alpha,
             solver_args = solver_args, contextual = contextual)
+        if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
+            raise InfeasibleConstraintException(
+                f"Found an infeasible constraint during a call to monte_carlo.")
         results.append(cost.item())
         constraint_costs.append(constraint_cost.item())
         x.append(x_hist)
@@ -140,9 +143,6 @@ class Trainer():
                              batch_size = 1, seed=None, contextual = False, eval_flag = False):
         """
         TODO (Irina): Add docstring to your function...
-
-        Raises:
-            InfeasibleConstraintException if an infeasible constraint is found.
         """
         if seed is not None:
             torch.manual_seed(seed)
@@ -168,8 +168,6 @@ class Trainer():
                                         x_parameters=self._x_parameters, x_batch=x_t,
                                         shape_parameters=self._shape_parameters,
                                         shape_torches=[a_tch, b_tch])
-            if constraints_status is CONSTRAINT_STATUS.INFEASIBLE:
-                raise InfeasibleConstraintException(f"Found an infeasible constraint in t={t}.")
 
             u_t = self._reduce_variables(u_t)
             x_t = self.simulator.simulate(x_t, u_t)
@@ -182,7 +180,7 @@ class Trainer():
             u_hist.append(u_t)
             if contextual:
                 a_tch, b_tch = self.create_tensors_linear(x_t,self._model)
-        return cost, constraint_cost, x_hist, u_hist
+        return cost, constraint_cost, x_hist, u_hist, constraints_status
 
     def multistage_train(self, simulator:Simulator,
                          policy = None,
@@ -277,25 +275,24 @@ class Trainer():
                     print("epoch %d, valid %.4e, vio %.4e" % (epoch, val_cost, val_cost_constr) )
 
             torch.manual_seed(seed + epoch)
-            constraint_status = CONSTRAINT_STATUS.INFEASIBLE
             for violation_counter in range(MAX_ITER_LINE_SEARCH):
-                try:
-                    cost, constr_cost, _, _,  = self.loss_and_constraints(
-                        time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size=batch_size,
-                        seed=seed+epoch+1,rho_tch=rho_tch,alpha = alpha,
-                        solver_args=solver_args, contextual = contextual)
+                cost, constr_cost, _, _, constraint_status = self.loss_and_constraints(
+                    time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size=batch_size,
+                    seed=seed+epoch+1,rho_tch=rho_tch,alpha = alpha,
+                    solver_args=solver_args, contextual = contextual)
+                #Must run backward even for infeasible constraints so we can halve steps if needed.
+                fin_cost = cost+ lam*constr_cost + mu*(constr_cost**2)
+                fin_cost.backward()
+                if constraint_status is CONSTRAINT_STATUS.FEASIBLE:
                     restore_step_size(opt, num_steps=violation_counter)
-                    constraint_status = CONSTRAINT_STATUS.FEASIBLE
                     break
-                except InfeasibleConstraintException:
+                elif constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
                     undo_step(opt=opt)
                     halve_step_size(opt=opt)
 
             if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
                 raise InfeasibleConstraintException(f"Violation constraint check timed out after "
                                    f"{MAX_ITER_LINE_SEARCH} attempts.")
-            fin_cost = cost+ lam*constr_cost + mu*(constr_cost**2)
-            fin_cost.backward()
             with torch.no_grad():
                 cost_vals_train.append(cost.item())
                 constr_vals_train.append(constr_cost.item())
