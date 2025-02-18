@@ -241,13 +241,13 @@ class Trainer():
             scheduler_ = torch.optim.lr_scheduler.StepLR(
                 opt, step_size=lr_step_size, gamma=lr_gamma)
 
-        baseline_costs, baseline_vio_cost,_,_ = self.monte_carlo(
-                    time_horizon=time_horizon, a_tch=a_tch,
-                    b_tch=b_tch, batch_size = test_batch_size,
-                      seed=seed, rho_tch = rho_tch, alpha = alpha,
-                      solver_args = solver_args, contextual = contextual)
-        baseline_cost = np.mean(np.array(baseline_costs) + np.array(baseline_vio_cost))
-        print("Baseline cost: ", baseline_cost)
+        # baseline_costs, baseline_vio_cost,_,_ = self.monte_carlo(
+        #             time_horizon=time_horizon, a_tch=a_tch,
+        #             b_tch=b_tch, batch_size = test_batch_size,
+        #               seed=seed, rho_tch = rho_tch, alpha = alpha,
+        #               solver_args = solver_args, contextual = contextual)
+        # baseline_cost = np.mean(np.array(baseline_costs) + np.array(baseline_vio_cost))
+        # print("Baseline cost: ", baseline_cost)
 
         val_costs = []
         val_costs_constr = []
@@ -262,7 +262,7 @@ class Trainer():
         for epoch in range(epochs):
             if epoch>0:
                 take_step(opt=opt, slack=slack, rho_tch=rho_tch, scheduler=scheduler_)
-            if (epoch) % 20 == 0:
+            if (epoch) == 1:
                 with torch.no_grad():
                     val_cost, val_cost_constr, x_base, u_base = self.monte_carlo(
                         time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch,
