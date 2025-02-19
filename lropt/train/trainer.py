@@ -277,7 +277,9 @@ class Trainer():
                     print("epoch %d, valid %.4e, vio %.4e" % (epoch, val_cost, val_cost_constr) )
 
             torch.manual_seed(seed + epoch)
-            for violation_counter in range(self._max_iter_line_search+1):
+            #In the first epoch we try only once
+            current_iter_line_search = 1 if epoch==0 else self._max_iter_line_search+1
+            for violation_counter in range(current_iter_line_search):
                 cost, constr_cost, _, _, constraint_status = self.loss_and_constraints(
                     time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size=batch_size,
                     seed=seed+epoch+1,rho_tch=rho_tch,alpha = alpha,
