@@ -262,7 +262,7 @@ class Trainer():
         for epoch in range(epochs):
             if epoch>0:
                 take_step(opt=opt, slack=slack, rho_tch=rho_tch, scheduler=scheduler_)
-            if (epoch) == 1:
+            if epoch == 1:
                 with torch.no_grad():
                     val_cost, val_cost_constr, x_base, u_base = self.monte_carlo(
                         time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch,
@@ -295,8 +295,12 @@ class Trainer():
                     halve_step_size(opt=opt)
 
             if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
-                raise InfeasibleConstraintException(f"Violation constraint check timed out after "
-                                   f"{DEFAULT_MAX_ITER_LINE_SEARCH} attempts.")
+                if epoch==1:
+                    exception_message = "Infeasible uncertainty set initialization" 
+                else:
+                    exception_message = "Violation constraint check timed out after "
+                    f"{DEFAULT_MAX_ITER_LINE_SEARCH} attempts."
+                raise InfeasibleConstraintException(exception_message)
             with torch.no_grad():
                 cost_vals_train.append(cost.item())
                 constr_vals_train.append(constr_cost.item())
