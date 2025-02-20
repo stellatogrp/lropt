@@ -471,6 +471,6 @@ class TestMultiStage(unittest.TestCase):
                                 contextual = True,
                                 test_batch_size = test_batch_size,
                                 x_endind = x_endind,
-                                init_weight=100*init_weights,
+                                init_weight=init_weights,
                                 init_lam = 0.001,
                                 init_mu = 0.001, mu_multiplier = 1.01)
