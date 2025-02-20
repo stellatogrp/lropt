@@ -295,7 +295,7 @@ class Trainer():
                     halve_step_size(opt=opt)
 
             if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
-                if epoch==1:
+                if epoch==0:
                     exception_message = "Infeasible uncertainty set initialization" 
                 else:
                     exception_message = "Violation constraint check timed out after "
