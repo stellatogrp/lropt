@@ -60,7 +60,8 @@ class Simulator(ABC):
     @abc.abstractmethod
     def stage_cost_eval(self,x,u, **kwargs):
         """ Create the current stage evaluation cost using the current state x
-        and decision u
+        and decision u. This may differ from the stage cost, which is used
+        for training.
         """
         raise NotImplementedError()
 
@@ -186,6 +187,10 @@ class Trainer():
                     a_tch, b_tch, batch_size = 1,
                     seed=None,contextual = False,
                     kwargs_simulator = None, model = None):
+        """ This function calls the loss and constraint function, and returns
+        an error if an infeasibility is encountered. This is infeasibility
+        dependent on the testing data-set.
+        """
         if seed is not None:
             torch.manual_seed(seed)
 
@@ -202,7 +207,8 @@ class Trainer():
         if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
             raise InfeasibleConstraintException(
                 "Found an infeasible constraint during a call to monte_carlo."
-                + "Possibly an infeasible uncertainty set initialization.")
+                + "Possibly an infeasible uncertainty set initialization."
+                + "Or infeasibility encountered in the testing set")
         return cost, constraint_cost, x_hist, z_hist, eval_cost, prob_vio, u_hist
 
     def loss_and_constraints(self, rho_tch, alpha, solver_args,
@@ -211,7 +217,46 @@ class Trainer():
                              contextual = False, kwargs_simulator = None,
                              model = None):
         """
-        TODO (Irina): Add docstring to your function...
+        This function propagates the system state, calculates the costs,
+        and checks feasibility
+        Args:
+            rho_tch
+                size of the uncertainty set. A torch tensor.
+            alpha
+                cvar variable for the constraint cost.
+            solver_args
+                parameters for the solver: eg, tolerance, solver name
+            time_horizon
+                total time horizon for the multistage problem
+            a_tch, b_tch
+                the initialized size and shape parameters
+            batch_size
+                batch size for each time step
+            seed
+                seed to generate uncertain data
+            contextual
+                whether or not the learned set is contextual
+            kwargs_simulator
+                extra arguments for the simulator class functions
+            model
+                the model for the contextual uncertainty set
+        Returns:
+            cost
+                objective function cost, averaged across time steps
+            constraint_cost
+                cost of constraint violation, averaged across time steps
+            x_hist
+                the list of all systems states over time
+            z_hist
+                the list of all decisions over time
+            constraints_status
+                whether any constraint was infeasible
+            eval_cost
+                evaluation function cost, averaged across time steps
+            prob_vio
+                probability of constraint violation, averaged across time steps
+            u_0
+                uncertainty data for the single-stage case
         """
         if seed is not None:
             torch.manual_seed(seed)
