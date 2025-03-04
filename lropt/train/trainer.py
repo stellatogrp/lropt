@@ -41,39 +41,106 @@ from lropt.violation_checker.violation_checker import ViolationChecker
 
 
 class Simulator(ABC):
+    """Simulator class for the multi-stage problem. All parameters should be tensors."""
 
     @abc.abstractmethod
-    def simulate(self,x,u):
+    def simulate(self,x,u,**kwargs):
         """Simulate next set of parameters using current parameters x
         and variables u, with added uncertainty
         """
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def stage_cost(self,x,u):
+    def stage_cost(self,x,u, **kwargs):
         """ Create the current stage cost using the current state x
         and decision u
         """
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def stage_cost_eval(self,x,u):
+    def stage_cost_eval(self,x,u, **kwargs):
         """ Create the current stage evaluation cost using the current state x
         and decision u
         """
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def constraint_cost(self,x,u,alpha):
+    def constraint_cost(self,x,u,alpha,**kwargs):
         """ Create the current constraint penalty cost
         """
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def init_state(self,batch_size, seed):
+    def init_state(self,batch_size, seed, **kwargs):
         """ initialize the parameter value
         """
         raise NotImplementedError()
+
+    @abc.abstractmethod
+    def prob_constr_violation(self,x,u,**kwargs):
+        """ calculate current probability of constraint violation
+        """
+        return torch.tensor(0,dtype = settings.DTYPE)
+
+
+
+class Default_Simulator(ABC):
+    def __init__(self,trainer):
+        self.trainer = trainer
+
+    def simulate(self,x,u,**kwargs):
+        """Simulate next set of parameters using current parameters x
+        and variables u, with added uncertainty
+        """
+        return x
+
+    def stage_cost(self,x,u,**kwargs):
+        """ Create the current stage cost using the current state x
+        and decision u
+        """
+        return kwargs['trainer'].train_objective(kwargs['batch_int'], kwargs['eval_args'])
+
+
+    def stage_cost_eval(self,x,u,**kwargs):
+        """ Create the current stage evaluation cost using the current state x
+        and decision u
+        """
+        return torch.tensor(kwargs['trainer'].evaluation_metric(
+            kwargs['batch_int'], kwargs['eval_args'],
+            kwargs['quantiles']),dtype=settings.DTYPE)
+
+
+    def constraint_cost(self,x,u,alpha, **kwargs):
+        """ Create the current constraint penalty cost
+        """
+        return kwargs['trainer'].train_constraint(kwargs['batch_int'],
+                                                  kwargs['eval_args'],
+                                                    alpha,
+                                                    kwargs['slack'],
+                                                    kwargs['eta'],
+                                                    kwargs['kappa'])
+
+    def init_state(self,batch_size, seed,**kwargs):
+        """ initialize the parameter value
+        """
+        if kwargs['trainer']._eval_flag:
+            return kwargs['trainer']._gen_batch(kwargs['trainer'].test_size,
+                                                kwargs['trainer'].x_test_tch,
+                                                kwargs['trainer'].u_test_set,
+                                                1, kwargs["max_batch_size"])
+
+        else:
+            return kwargs['trainer']._gen_batch(kwargs['trainer'].train_size,
+                                                kwargs['trainer'].x_train_tch,
+                                                kwargs['trainer'].u_train_set,
+                                                kwargs['batch_percentage'],
+                                                kwargs["max_batch_size"])
+
+    def prob_constr_violation(self,x,u,**kwargs):
+        """ calculate current probability of constraint violation
+        """
+        return kwargs['trainer'].prob_constr_violation(kwargs['batch_int'],
+                                                kwargs['eval_args'])
 
 class Trainer():
     _EVAL_INPUT_CASE = Enum("_EVAL_INPUT_CASE", "MEAN EVALMEAN MAX")
@@ -116,217 +183,88 @@ class Trainer():
         self._x_tchs_init = True
 
     def monte_carlo(self, rho_tch, alpha, solver_args, time_horizon,
-                    a_tch, b_tch, batch_size = 1, seed=None,contextual = False):
+                    a_tch, b_tch, batch_size = 1,
+                    seed=None,contextual = False,
+                    kwargs_simulator = None, model = None):
         if seed is not None:
             torch.manual_seed(seed)
-        results = []
-        constraint_costs = []
-        x = []
-        u = []
 
         # remove for loop, set batch size to trials
-        cost, constraint_cost, x_hist, u_hist, constraint_status = self.loss_and_constraints(
-            time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size = batch_size,
+        cost, constraint_cost, x_hist, z_hist, \
+            constraint_status, eval_cost, prob_vio, \
+                u_hist = self.loss_and_constraints(
+            time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch,
+            batch_size = batch_size,
             seed=seed,rho_tch = rho_tch, alpha = alpha,
-            solver_args = solver_args, contextual = contextual)
+            solver_args = solver_args,
+            contextual = contextual, kwargs_simulator=kwargs_simulator,
+            model = model)
         if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
             raise InfeasibleConstraintException(
                 "Found an infeasible constraint during a call to monte_carlo."
                 + "Possibly an infeasible uncertainty set initialization.")
-        results.append(cost.item())
-        constraint_costs.append(constraint_cost.item())
-        x.append(x_hist)
-        u.append(u_hist)
-        return results, constraint_costs, x, u
+        return cost, constraint_cost, x_hist, z_hist, eval_cost, prob_vio, u_hist
 
     def loss_and_constraints(self, rho_tch, alpha, solver_args,
                              time_horizon, a_tch, b_tch,
-                             batch_size = 1, seed=None, contextual = False, eval_flag = False):
+                             batch_size = 1, seed=None,
+                             contextual = False, kwargs_simulator = None,
+                             model = None):
         """
         TODO (Irina): Add docstring to your function...
         """
         if seed is not None:
             torch.manual_seed(seed)
 
-        x_0 = self.simulator.init_state(batch_size, seed)
+        if self._multistage:
+            u_0 = 0
+            x_0 = self.simulator.init_state(batch_size, seed,**kwargs_simulator)
+        else:
+            batch_int, x_0, u_0 = self.simulator.init_state(batch_size, seed, **kwargs_simulator)
+            kwargs_simulator['batch_int'] = batch_int
+
         if not isinstance(x_0,list):
             x_0 = [x_0]
+        x_0 = [torch.tensor(x, dtype=settings.DTYPE) for x in x_0]
         if contextual:
-            a_tch, b_tch = self.create_tensors_linear(x_0, self._model)
+            a_tch, b_tch = self.create_tensors_linear(x_0, model)
 
         cost = 0.0
         constraint_cost = 0.0
+        if self._default_simulator:
+            eval_cost = torch.tensor([0,0,0],dtype=settings.DTYPE)
+        else:
+            eval_cost = 0.0
+        prob_vio = 0.0
         x_t = x_0
         x_hist = [[xval.detach().numpy().copy() for xval in x_t.copy()]]
-        u_hist = []
+        z_hist = []
         for t in range(time_horizon):
-            u_t = self.cvxpylayer(rho_tch, *self.cp_param_tch,
+            z_t = self.cvxpylayer(rho_tch, *self.cp_param_tch,
                 *x_t,a_tch,b_tch,solver_args=solver_args)
-            constraints_status = self.violation_checker.check_constraints(z_batch=u_t,
+            constraints_status = self.violation_checker.check_constraints(z_batch=z_t,
                                         rho_mult_parameter=self._rho_mult_parameter,
                                         rho_tch=rho_tch, cp_parameters=self._cp_parameters,
                                         cp_param_tch=self.cp_param_tch,
                                         x_parameters=self._x_parameters, x_batch=x_t,
                                         shape_parameters=self._shape_parameters,
                                         shape_torches=[a_tch, b_tch])
-
-            u_t = self._reduce_variables(u_t)
-            x_t = self.simulator.simulate(x_t, u_t)
-            if not eval_flag:
-                cost += self.simulator.stage_cost(x_t, u_t).mean() / time_horizon
-            else:
-                cost += self.simulator.stage_cost_eval(x_t, u_t).mean() / time_horizon
-            constraint_cost += self.simulator.constraint_cost(x_t, u_t, alpha).mean() / time_horizon
+            z_t = self._reduce_variables(z_t)
+            if not self._multistage:
+                eval_args = self.order_args(z_t,x_t,u_0)
+                kwargs_simulator['eval_args'] = eval_args
+            x_t = self.simulator.simulate(x_t, z_t,**kwargs_simulator)
+            cost += self.simulator.stage_cost(x_t, z_t,**kwargs_simulator)
+            eval_cost += self.simulator.stage_cost_eval(x_t, z_t,**kwargs_simulator)
+            constraint_cost += self.simulator.constraint_cost(x_t, z_t, alpha,**kwargs_simulator)
+            prob_vio += self.simulator.prob_constr_violation(x_t, z_t, **kwargs_simulator)
             x_hist.append([xval.detach().numpy().copy() for xval in x_t])
-            u_hist.append(u_t)
+            z_hist.append(z_t)
             if contextual:
-                a_tch, b_tch = self.create_tensors_linear(x_t,self._model)
-        return cost, constraint_cost, x_hist, u_hist, constraints_status
-
-    def multistage_train(self, simulator:Simulator,
-                         policy = None,
-                         time_horizon = 1,
-                         batch_size = 1,
-                         test_batch_size = 10,
-                         epochs = 1,
-                         init_rho=settings.INIT_RHO_DEFAULT,
-                         seed=settings.SEED_DEFAULT,
-                        init_a=settings.INIT_A_DEFAULT,
-                        init_b=settings.INIT_B_DEFAULT,
-                        init_alpha=settings.INIT_ALPHA_DEFAULT,
-                        test_percentage=settings.TEST_PERCENTAGE_DEFAULT,
-                        optimizer=settings.OPT_DEFAULT,
-                        lr=settings.LR_DEFAULT,
-                        momentum=settings.MOMENTUM_DEFAULT,
-                        scheduler=settings.SCHEDULER_STEPLR_DEFAULT,
-                        lr_step_size=settings.LR_STEP_SIZE,
-                        lr_gamma=settings.LR_GAMMA,
-                        solver_args = settings.LAYER_SOLVER,
-                        contextual = settings.CONTEXTUAL_DEFAULT,
-                        init_weight = settings.CONTEXTUAL_WEIGHT_DEFAULT,
-                        init_bias = settings.CONTEXTUAL_BIAS_DEFAULT,
-                        x_endind = settings.X_ENDIND_DEFAULT,
-                        init_mu = settings.INIT_MU_DEFAULT,
-                        init_lam = settings.INIT_LAM_DEFAULT,
-                        aug_lag_update_interval = settings.UPDATE_INTERVAL,
-                        lambda_update_threshold = settings.LAMBDA_UPDATE_THRESHOLD,
-                        mu_multiplier = settings.MU_MULTIPLIER_DEFAULT,
-                        max_iter_line_search = DEFAULT_MAX_ITER_LINE_SEARCH):
-        self._max_iter_line_search = max_iter_line_search
-        _,_,_,_,_,_,_ = self._split_dataset(test_percentage, seed)
-        self.x_endind = x_endind
-        self.cvxpylayer = self.create_cvxpylayer() if not policy else policy
-        self.violation_checker = ViolationChecker(self.cvxpylayer, self.problem_no_unc.constraints)
-        self.simulator = simulator
-        rho_tch = self._gen_rho_tch(init_rho)
-        a_tch, b_tch, alpha, slack = self._init_torches(init_a,
-                                        init_b,
-                                        init_alpha, self.u_train_set)
-        variables = [rho_tch, alpha,slack]
-
-        if contextual:
-            self._linear = self.init_linear_model(a_tch, b_tch,
-                                        False,1,
-                                        seed, init_weight=init_weight, init_bias=init_bias)
-            self._model = torch.nn.Sequential(self._linear)
-            variables.extend(list(self._model.parameters()))
-            # variables += [self._model[0].bias]
-        else:
-            variables += [a_tch, b_tch]
-
-        if optimizer == "SGD":
-            opt = settings.OPTIMIZERS[optimizer](variables, lr=lr, momentum=momentum)
-        else:
-            opt = settings.OPTIMIZERS[optimizer](variables, lr=lr)
-        if scheduler:
-            scheduler_ = torch.optim.lr_scheduler.StepLR(
-                opt, step_size=lr_step_size, gamma=lr_gamma)
-
-        baseline_costs, baseline_vio_cost,_,_ = self.monte_carlo(
-                    time_horizon=time_horizon, a_tch=a_tch,
-                    b_tch=b_tch, batch_size = test_batch_size,
-                      seed=seed, rho_tch = rho_tch, alpha = alpha,
-                      solver_args = solver_args, contextual = contextual)
-        baseline_cost = np.mean(np.array(baseline_costs) + np.array(baseline_vio_cost))
-        print("Baseline cost: ", baseline_cost)
-
-        val_costs = []
-        val_costs_constr = []
-        x_vals = []
-        u_vals = []
-        cost_vals_train = []
-        constr_vals_train = []
-        lam = torch.tensor(init_lam)
-        mu = torch.tensor(init_mu)
-        curr_cvar = np.inf
-
-        for epoch in range(epochs):
-            if epoch>0:
-                take_step(opt=opt, slack=slack, rho_tch=rho_tch, scheduler=scheduler_)
-            if epoch % 20 == 0:
-                with torch.no_grad():
-                    val_cost, val_cost_constr, x_base, u_base = self.monte_carlo(
-                        time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch,
-                        batch_size = test_batch_size,seed=seed, rho_tch = rho_tch, alpha = alpha,
-                        solver_args = solver_args, contextual = contextual)
-                    val_cost = np.mean(val_cost)
-                    val_cost_constr = np.mean(val_cost_constr)
-                    val_costs.append(val_cost)
-                    val_costs_constr.append(val_cost_constr)
-                    x_vals.append(x_base)
-                    u_vals.append(u_base)
-                    print("epoch %d, valid %.4e, vio %.4e" % (epoch, val_cost, val_cost_constr) )
-
-            torch.manual_seed(seed + epoch)
-            #In the first epoch we try only once
-            current_iter_line_search = 1 if epoch==0 else self._max_iter_line_search+1
-            for violation_counter in range(current_iter_line_search):
-                cost, constr_cost, _, _, constraint_status = self.loss_and_constraints(
-                    time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch, batch_size=batch_size,
-                    seed=seed+epoch+1,rho_tch=rho_tch,alpha = alpha,
-                    solver_args=solver_args, contextual = contextual)
-                #Must run backward even for infeasible constraints so we can halve steps if needed.
-                fin_cost = cost+ lam*constr_cost + mu*(constr_cost**2)
-                fin_cost.backward()
-                if constraint_status is CONSTRAINT_STATUS.FEASIBLE:
-                    restore_step_size(opt, num_steps=violation_counter)
-                    break
-                elif constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
-                    undo_step(opt=opt)
-                    halve_step_size(opt=opt)
-
-            if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
-                if epoch==0:
-                    exception_message = "Infeasible uncertainty set initialization"
-                else:
-                    exception_message = "Violation constraint check timed out after "
-                    f"{DEFAULT_MAX_ITER_LINE_SEARCH} attempts."
-                raise InfeasibleConstraintException(exception_message)
-            with torch.no_grad():
-                cost_vals_train.append(cost.item())
-                constr_vals_train.append(constr_cost.item())
-            # print("epoch %d, train %.4e" % (epoch, cost.item()+ constr_cost.item()) )
-
-            if epoch % aug_lag_update_interval == 0:
-                if torch.norm(constr_cost) <= \
-                    lambda_update_threshold*curr_cvar:
-                    curr_cvar= torch.norm(constr_cost)
-                    lam += torch.minimum(mu*constr_cost.detach(), torch.tensor(10000))
-                else:
-                    mu = mu_multiplier*mu
-
-            self._alpha = alpha
-            self._rho_tch = rho_tch
-            self._alpha = (alpha, alpha.grad)
-            self._rho_tch = (rho_tch, rho_tch.grad)
-            self._a_tch = (a_tch, a_tch.grad)
-            self._b_tch = (b_tch, b_tch.grad)
-        return val_costs, \
-            val_costs_constr, [np.array(v.detach().numpy())
-                                             for v in variables], \
-                                            x_vals, u_vals, \
-                                                cost_vals_train,\
-                                                    constr_vals_train
+                a_tch, b_tch = self.create_tensors_linear(x_t,model)
+            self._a_tch = a_tch
+            self._b_tch = b_tch
+        return cost, constraint_cost, x_hist, z_hist, constraints_status, eval_cost, prob_vio, u_0
 
     def _validate_unc_set_T(self):
         """
@@ -740,12 +678,12 @@ class Trainer():
         if train_size:
             variables = [rho_tch, alpha, slack]
         elif fixb:
-            variables = [a_tch, alpha, slack]
+            variables = [rho_tch, a_tch, alpha, slack]
         elif contextual:
-            variables = [alpha,slack]
+            variables = [rho_tch, alpha,slack]
             variables.extend(list(model.parameters()))
         else:
-            variables = [a_tch, b_tch, alpha, slack]
+            variables = [rho_tch, a_tch, b_tch, alpha, slack]
 
         return variables
 
@@ -771,9 +709,11 @@ class Trainer():
         Returns:
             Coverage
         """
+        if self._multistage:
+            return 0
         coverage = 0
         if contextual:
-            a_tch, b_tch = self.create_tensors_linear(y_set, linear)
+            a_tch, b_tch = self.create_tensors_linear([torch.tensor(y) for y in y_set[-1]], linear)
             for i in range(dset.shape[0]):
                 coverage += torch.where(
                     torch.norm((a_tch[i].T@torch.linalg.inv(a_tch[i]@a_tch[i].T)) @ (dset[i]-
@@ -791,7 +731,7 @@ class Trainer():
                     1,
                     0,
                 )
-        return coverage/dset.shape[0]
+        return (coverage/dset.shape[0]).detach().numpy().item()
 
     def order_args(self, z_batch, x_batch, u_batch):
         """
@@ -965,7 +905,7 @@ class Trainer():
             eval_args:
                 The arguments of the evaluation function
             quantiles:
-                The upper and lower quantiles to be returned.
+                The upper and lowerx quantiles to be returned.
         Returns:
             The average among all evaluated J x N pairs
         """
@@ -1002,7 +942,7 @@ class Trainer():
         The function evaluates generates the augmented lagrangian of
         the problem, over the batched set.
         Args:
-            batch_int:
+            batch_int:x
                 The number of samples in the batch, to take the mean over
             eval_args:
                 The arguments of the problems (variables, parameters)
@@ -1095,124 +1035,115 @@ class Trainer():
         lam = kwargs['init_lam'] * torch.ones(self.num_g_total, dtype=settings.DTYPE)
         mu = kwargs['init_mu']
         curr_cvar = np.inf
+        if self._default_simulator:
+            kwargs['kwargs_simulator'] = {'trainer':self, 'slack':slack,
+                            'eta':kwargs['eta'],'kappa':kwargs['kappa'],
+                            'quantiles': kwargs['quantiles'],
+                              'max_batch_size':kwargs['max_batch_size'],
+                                'batch_percentage': kwargs['batch_percentage']}
         for step_num in range(kwargs['num_iter']):
-            for violation_counter in range(DEFAULT_MAX_ITER_LINE_SEARCH):
-                if step_num>0:
-                    take_step(opt=opt, slack=slack, rho_tch=rho_tch, scheduler=scheduler_)
+            if step_num>0:
+                take_step(opt=opt, slack=slack, rho_tch=rho_tch, scheduler=scheduler_)
+            train_stats = TrainLoopStats(
+                step_num=step_num, train_flag=self.train_flag, num_g_total=self.num_g_total)
 
-                train_stats = TrainLoopStats(
-                    step_num=step_num, train_flag=self.train_flag, num_g_total=self.num_g_total)
+            torch.manual_seed(kwargs['seed'] + step_num)
+            #In the first epoch we try only once
+            current_iter_line_search = 1 if step_num==0 else self._max_iter_line_search+1
+            for violation_counter in range(current_iter_line_search):
+                self._eval_flag = False
+                cost, constr_cost, _, _, constraint_status,eval_cost,\
+                    prob_violation_train, _ = self.loss_and_constraints(
+                    time_horizon=kwargs['time_horizon'],
+                      a_tch=a_tch, b_tch=b_tch, batch_size=kwargs['batch_size'],
+                    seed=kwargs['seed']+step_num+1,rho_tch=rho_tch,
+                    alpha = alpha,
+                    solver_args=kwargs['solver_args'],
+                    contextual = kwargs['contextual'],
+                    kwargs_simulator = kwargs["kwargs_simulator"],
+                      model = kwargs['model'])
 
-                batch_int, x_batch, u_batch = self._gen_batch(self.train_size,
-                                                self.x_train_tch, self.u_train_set,
-                    kwargs['batch_percentage'],
-                    max_size=kwargs["max_batch_size"])
-
-                if kwargs["contextual"]:
-                    a_tch, b_tch = self.create_tensors_linear(x_batch,
-                                                kwargs['model'])
-
-                # All of the inputs to CVXPYLayer are batched (over the 0-th dimension),
-                # so I need to check violation constraints for each of the batch.
-                # self._rho_mult_parameter <- rho_tch
-                # self._cp_parameters <- *self.cp_param_tch
-                # self._x_parameters <- *x_batch
-                # self._shape_parameters <- [a_tch, b_tch]
-                z_batch = self.cvxpylayer(rho_tch,*self.cp_param_tch,
-                                *x_batch, a_tch, b_tch,solver_args=kwargs['solver_args'])
-                constraints_status = self.violation_checker.check_constraints(z_batch=z_batch,
-                                rho_mult_parameter=self._rho_mult_parameter, rho_tch=rho_tch,
-                                cp_parameters=self._cp_parameters, cp_param_tch=self.cp_param_tch,
-                                x_parameters=self._x_parameters, x_batch=x_batch,
-                                shape_parameters=self._shape_parameters,
-                                shape_torches=[a_tch, b_tch])
-                if constraints_status is CONSTRAINT_STATUS.FEASIBLE:
+                if self.num_g_total > 1:
+                    fin_cost = cost + lam @ constr_cost +\
+                            (mu/2)*(torch.linalg.norm(constr_cost)**2)
+                else:
+                    fin_cost = cost+ lam*constr_cost +\
+                    (mu/2)*(constr_cost**2)
+                fin_cost.backward()
+                if constraint_status is CONSTRAINT_STATUS.FEASIBLE:
                     restore_step_size(opt, num_steps=violation_counter)
                     break
-                # Conceptually, we would like to do opt.step()/2 until we reach a feasible solution.
-                # The first iteration should be feasible.
-                undo_step(opt=opt)
-                halve_step_size(opt=opt)
+                elif constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
+                    undo_step(opt=opt)
+                    halve_step_size(opt=opt)
 
-            if constraints_status is CONSTRAINT_STATUS.INFEASIBLE:
-                raise TimeoutError(f"Violation constraint check timed out after "
-                                   f"{DEFAULT_MAX_ITER_LINE_SEARCH} attempts.")
-                # TODO: Currently some tests have infeasible constraints.
-                # Increasing VIOLATION_CHECK_TIMEOUT didn't help.
-                # I don't know if there's a problem with the test.
-            z_batch = self._reduce_variables(z_batch=z_batch)
-            eval_args = self.order_args(z_batch=z_batch,
-                                            x_batch=x_batch, u_batch=u_batch)
-            temp_lagrangian, train_constraint_value = self.lagrangian(
-                batch_int, eval_args, alpha, slack, lam, mu, eta=kwargs['eta'],
-                                            kappa=kwargs['kappa'])
-            temp_lagrangian.backward()
-            with torch.no_grad():
-                obj = self.evaluation_metric(batch_int, eval_args, kwargs['quantiles'])
-                prob_violation_train = self.prob_constr_violation(batch_int,
-                                                eval_args)
-
+            if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
+                if step_num==0:
+                    exception_message = "Infeasible uncertainty set initialization"
+                else:
+                    exception_message = "Violation constraint check timed "
+                    + "out after " + f"{DEFAULT_MAX_ITER_LINE_SEARCH} attempts."
+                raise InfeasibleConstraintException(exception_message)
+            if not self._default_simulator:
+                eval_cost = eval_cost.repeat(3)
             train_stats.update_train_stats(
-                temp_lagrangian.detach().numpy().copy(),
-                obj,prob_violation_train, train_constraint_value)
+                fin_cost.detach().numpy().copy(),
+                eval_cost,prob_violation_train, constr_cost.detach())
 
             if step_num % kwargs['aug_lag_update_interval'] == 0:
-                if torch.norm(train_constraint_value) <= \
+                if torch.norm(constr_cost.detach()) <= \
                     kwargs['lambda_update_threshold']*curr_cvar:
-                    curr_cvar= torch.norm(train_constraint_value)
-                    lam += torch.minimum(mu*train_constraint_value, kwargs['lambda_update_max']*\
+                    curr_cvar= torch.norm(constr_cost.detach())
+                    lam += torch.minimum(mu*constr_cost.detach(), kwargs['lambda_update_max']*\
                                             torch.ones(self.num_g_total,dtype=settings.DTYPE))
                 else:
                     mu = kwargs['mu_multiplier']*mu
 
-            new_row = train_stats.generate_train_row(a_tch, rho_tch, lam,
+            new_row = train_stats.generate_train_row(self._a_tch, rho_tch, lam,
                                         mu, alpha, slack,
                                         kwargs["contextual"], kwargs['linear'])
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
             self._update_iters(kwargs['save_history'], a_history,
-                               b_history, rho_history, a_tch, b_tch, rho_tch)
+                               b_history, rho_history, self._a_tch, self._b_tch, rho_tch)
 
             if step_num % kwargs['test_frequency'] == 0:
-                batch_int, x_batch, u_batch = self._gen_batch(self.test_size,
-                                    self.x_test_tch, self.u_test_set, 1,
-                                      max_size=kwargs["max_batch_size"])
-                if kwargs["contextual"]:
-                    a_tch, b_tch = self.create_tensors_linear(x_batch,
-                                        kwargs['linear'])
-                z_batch = self.cvxpylayer(rho_tch,*self.cp_param_tch,
-                    *x_batch, a_tch,b_tch, solver_args=kwargs['solver_args'])
-
-                with torch.no_grad():
-                    # test_u = kwargs['test_tch']
-                    z_batch = self._reduce_variables(z_batch)
-                    test_args = self.order_args(z_batch=
-                                                z_batch,
-                                                x_batch=x_batch,u_batch=u_batch)
-                    obj_test = self.evaluation_metric(batch_int,test_args,kwargs['quantiles'])
-                    prob_violation_test = self.prob_constr_violation(batch_int,
-                                                test_args)
-                    _, var_vio = self.lagrangian(batch_int,test_args,
-                                    alpha, slack, lam,mu,
-                                    eta=kwargs['eta'], kappa=kwargs['kappa'])
+                self._eval_flag = True
+                val_cost, val_cost_constr, x_batch, z_batch, eval_cost,\
+                      prob_constr_violation, u_batch = self.monte_carlo(
+                        time_horizon=kwargs['time_horizon'],
+                        a_tch=a_tch, b_tch=b_tch,
+                        batch_size = kwargs['test_batch_size'],
+                        seed=kwargs['seed'], rho_tch = rho_tch, alpha = alpha,
+                        solver_args = kwargs['solver_args'],
+                        contextual = kwargs['contextual'],
+                        kwargs_simulator = kwargs['kwargs_simulator'],
+                          model = kwargs['model'] )
+                record_eval_cost = eval_cost
+                if not self._default_simulator:
+                    record_eval_cost = eval_cost.repeat(3)
+                print("iteration %d, valid %.4e, vio %.4e" % (step_num,
+                                                record_eval_cost[1].item(),
+                                                val_cost_constr.mean().item()) )
 
                 train_stats.update_test_stats(
-                    obj_test, prob_violation_test, var_vio)
+                    record_eval_cost, prob_constr_violation, constr_cost.detach())
                 new_row = train_stats.generate_test_row(
-                    self._calc_coverage, a_tch, b_tch, alpha,
+                    self._calc_coverage, self._a_tch, self._b_tch, alpha,
                     u_batch, rho_tch, self.unc_set, z_batch,
                     kwargs['contextual'], kwargs['linear'], x_batch)
                 df_test = pd.concat([df_test,
                                      new_row.to_frame().T], ignore_index=True)
 
-        if sum(var_vio.detach().numpy())/self.num_g_total <= kwargs["kappa"]:
-            fin_val = obj_test[1].item()
+        if constr_cost.detach().numpy().sum()/self.num_g_total \
+            <= kwargs["kappa"]:
+            fin_val = record_eval_cost[1].item()
         else:
-            fin_val = obj_test[1].item() + 10*abs(sum(var_vio.detach().numpy()))
-        a_val = a_tch.detach().numpy().copy()
-        b_val = b_tch.detach().numpy().copy()
+            fin_val = record_eval_cost[1].item() + 10*abs(constr_cost.detach().numpy().sum())
+        a_val = self._a_tch.detach().numpy().copy()
+        b_val = self._b_tch.detach().numpy().copy()
         rho_val = rho_tch.detach().numpy().copy() if kwargs['trained_shape'] else 1
-        param_vals = (a_val, b_val, rho_val, obj_test[1].item())
+        param_vals = (a_val, b_val, rho_val, record_eval_cost[1].item())
         # tqdm.write("Testing objective: {}".format(obj_test[1].item()))
         # tqdm.write("Probability of constraint violation: {}".format(
         #            prob_violation_test))
@@ -1262,7 +1193,15 @@ class Trainer():
         linear = settings.CONTEXTUAL_LINEAR_DEFAULT,
         init_weight = settings.CONTEXTUAL_WEIGHT_DEFAULT,
         init_bias = settings.CONTEXTUAL_BIAS_DEFAULT,
-        x_endind = settings.X_ENDIND_DEFAULT
+        x_endind = settings.X_ENDIND_DEFAULT,
+        max_iter_line_search = DEFAULT_MAX_ITER_LINE_SEARCH,
+        policy = settings.POLICY_DEFAULT,
+        time_horizon = settings.TIME_HORIZON_DEFAULT,
+        batch_size = settings.BATCH_SIZE_DEFAULT,
+        test_batch_size = settings.TEST_BATCH_SIZE_DEFAULT,
+        simulator = settings.SIMULATOR_DEFAULT,
+        kwargs_simulator = settings.KWARGS_SIM_DEFAULT,
+        multistage = settings.MULTISTAGE_DEFAULT
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set
@@ -1273,7 +1212,7 @@ class Trainer():
         train_size : bool, optional
            If True, train only rho
         train_shape: bool, optional
-            If True, train the shape A, b
+            If True, train both the shape A, b, and size rhos
         fixb : bool, optional
             If True, do not train b
         num_iter : int, optional
@@ -1379,16 +1318,25 @@ class Trainer():
             var_values: list
                 A list of returned variable values from the last solve
         """
-
         self.train_flag = True
         if contextual and not train_shape:
             if linear is None:
                 raise ValueError("You must give a model if you do not train a model")
         _,_,_,_,_,_,_ = self._split_dataset(test_percentage, seed)
-
-        self.cvxpylayer = self.create_cvxpylayer()
+        self._multistage = multistage
+        if self._multistage:
+            self.num_g_total = 1
+        else:
+            assert (time_horizon == 1)
+        self.cvxpylayer = self.create_cvxpylayer() if not policy else policy
+        if simulator:
+            self.simulator = simulator
+            self._default_simulator = False
+        else:
+            self.simulator = Default_Simulator(self)
+            self._default_simulator = True
         self.violation_checker = ViolationChecker(self.cvxpylayer, self.problem_no_unc.constraints)
-
+        self._max_iter_line_search = max_iter_line_search
         self.x_endind = x_endind
 
         num_random_init = num_random_init if random_init else 1
@@ -1417,7 +1365,10 @@ class Trainer():
                   "lambda_update_max":lambda_update_max,
                   "max_batch_size":max_batch_size,"contextual":contextual,
                   "linear": linear,'init_weight':init_weight,
-                  'init_bias':init_bias, }
+                  'init_bias':init_bias, 'batch_size': batch_size,
+                  'test_batch_size':test_batch_size,
+                  'time_horizon': time_horizon,
+                  'kwargs_simulator': kwargs_simulator}
 
         # Debugging code - one iteration
         # res = self._train_loop(0, **kwargs)
@@ -1782,7 +1733,7 @@ class TrainLoopStats():
         self.tot_lagrangian = temp_lagrangian
         self.trainval = obj[1].item()
         self.prob_violation_train = prob_violation_train.detach().numpy()
-        self.violation_train = sum(train_constraint).item()/self.num_g_total
+        self.violation_train = train_constraint.numpy().sum()/self.num_g_total
 
     def update_test_stats(self, obj_test, prob_violation_test, var_vio):
         """
@@ -1792,7 +1743,7 @@ class TrainLoopStats():
         self.testval = obj_test[1].item()
         self.upper_testval = obj_test[2].item()
         self.prob_violation_test = prob_violation_test.detach().numpy()
-        self.violation_test = sum(var_vio.detach().numpy())/self.num_g_total
+        self.violation_test = var_vio.numpy().sum()/self.num_g_total
 
     def generate_train_row(self, a_tch, rho_tch, lam, mu, alpha,
                             slack,contextual=False, linear = None):
@@ -1841,9 +1792,10 @@ class TrainLoopStats():
             "Upper_test": self.upper_testval,
             "Probability_violations_test":       self.prob_violation_test,
             "Violations_test":   self.violation_test,
-            "Coverage_test":    coverage_test.detach().numpy().item(),
+            "Coverage_test":    coverage_test,
             "Avg_prob_test": np.mean(self.prob_violation_test),
             "z_vals": z_batch,
+            "x_vals": x_test_tch,
             "Rho": rho_tch.detach().numpy().copy()
         }
         row_dict["step"] = self.step_num,
