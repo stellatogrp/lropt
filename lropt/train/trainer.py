@@ -1,4 +1,3 @@
-import abc
 from abc import ABC
 from enum import Enum
 
@@ -14,6 +13,7 @@ from joblib import Parallel, delayed
 import lropt.train.settings as settings
 from lropt import RobustProblem
 from lropt.train.parameter import ContextParameter, ShapeParameter, SizeParameter
+from lropt.train.simulator import Default_Simulator
 from lropt.train.utils import (
     get_n_processes,
     halve_step_size,
@@ -27,121 +27,6 @@ from lropt.violation_checker.settings import DEFAULT_MAX_ITER_LINE_SEARCH
 from lropt.violation_checker.utils import CONSTRAINT_STATUS, InfeasibleConstraintException
 from lropt.violation_checker.violation_checker import ViolationChecker
 
-# add a simulator class. abstract class. user defines.
-# simulate (dynamics)
-# stage cost
-# constraint (per stage or not) (constraint cvar, some notion of violation)
-
-
-# Trainer
-# inject the data into the trainer
-# loss and constraints (calls monte carlo, stage cost, constraint)
-# monte-carlo - evaluate without gradients
-
-
-
-class Simulator(ABC):
-    """Simulator class for the multi-stage problem. All parameters should be tensors."""
-
-    @abc.abstractmethod
-    def simulate(self,x,u,**kwargs):
-        """Simulate next set of parameters using current parameters x
-        and variables u, with added uncertainty
-        """
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def stage_cost(self,x,u, **kwargs):
-        """ Create the current stage cost using the current state x
-        and decision u
-        """
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def stage_cost_eval(self,x,u, **kwargs):
-        """ Create the current stage evaluation cost using the current state x
-        and decision u. This may differ from the stage cost, which is used
-        for training.
-        """
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def constraint_cost(self,x,u,alpha,**kwargs):
-        """ Create the current constraint penalty cost
-        """
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def init_state(self,batch_size, seed, **kwargs):
-        """ initialize the parameter value
-        """
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def prob_constr_violation(self,x,u,**kwargs):
-        """ calculate current probability of constraint violation
-        """
-        return torch.tensor(0,dtype = settings.DTYPE)
-
-
-
-class Default_Simulator(ABC):
-    def __init__(self,trainer):
-        self.trainer = trainer
-
-    def simulate(self,x,u,**kwargs):
-        """Simulate next set of parameters using current parameters x
-        and variables u, with added uncertainty
-        """
-        return x
-
-    def stage_cost(self,x,u,**kwargs):
-        """ Create the current stage cost using the current state x
-        and decision u
-        """
-        return kwargs['trainer'].train_objective(kwargs['batch_int'], kwargs['eval_args'])
-
-
-    def stage_cost_eval(self,x,u,**kwargs):
-        """ Create the current stage evaluation cost using the current state x
-        and decision u
-        """
-        return torch.tensor(kwargs['trainer'].evaluation_metric(
-            kwargs['batch_int'], kwargs['eval_args'],
-            kwargs['quantiles']),dtype=settings.DTYPE)
-
-
-    def constraint_cost(self,x,u,alpha, **kwargs):
-        """ Create the current constraint penalty cost
-        """
-        return kwargs['trainer'].train_constraint(kwargs['batch_int'],
-                                                  kwargs['eval_args'],
-                                                    alpha,
-                                                    kwargs['slack'],
-                                                    kwargs['eta'],
-                                                    kwargs['kappa'])
-
-    def init_state(self,batch_size, seed,**kwargs):
-        """ initialize the parameter value
-        """
-        if kwargs['trainer']._eval_flag:
-            return kwargs['trainer']._gen_batch(kwargs['trainer'].test_size,
-                                                kwargs['trainer'].x_test_tch,
-                                                kwargs['trainer'].u_test_set,
-                                                1, kwargs["max_batch_size"])
-
-        else:
-            return kwargs['trainer']._gen_batch(kwargs['trainer'].train_size,
-                                                kwargs['trainer'].x_train_tch,
-                                                kwargs['trainer'].u_train_set,
-                                                kwargs['batch_percentage'],
-                                                kwargs["max_batch_size"])
-
-    def prob_constr_violation(self,x,u,**kwargs):
-        """ calculate current probability of constraint violation
-        """
-        return kwargs['trainer'].prob_constr_violation(kwargs['batch_int'],
-                                                kwargs['eval_args'])
 
 class Trainer():
     _EVAL_INPUT_CASE = Enum("_EVAL_INPUT_CASE", "MEAN EVALMEAN MAX")

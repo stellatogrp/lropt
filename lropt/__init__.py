@@ -10,4 +10,5 @@ from lropt.uncertainty_sets.mro import MRO
 from lropt.uncertainty_sets.norm import Norm
 from lropt.uncertainty_sets.polyhedral import Polyhedral
 from lropt.uncertain_canon.max_of_uncertain import max_of_uncertain, sum_of_max_of_uncertain
-from lropt.train.trainer import Trainer, Simulator
+from lropt.train.trainer import Trainer
+from lropt.train.simulator import Simulator
