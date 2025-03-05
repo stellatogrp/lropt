@@ -383,9 +383,9 @@ class TestMultiStage(unittest.TestCase):
                 _ = x_hat.shape[0]
                 # return (torch.sum(c[:T].repeat((batch_size,1))*q_hat,axis=1)
                 # + torch.sum(y_hat,axis=1)+torch.sum(u_hat,axis=1))
-                return T*(c[t-1]*q_hat[:,t-1] +
+                return ((c[t-1]*q_hat[:,t-1] +
                            torch.max(-p[t-1]*x_hat, h[t-1]*x_hat) +
-                             u_hat[:,t-1])
+                             u_hat[:,t-1])).mean()
 
 
             def stage_cost(self,x,u):
@@ -394,8 +394,8 @@ class TestMultiStage(unittest.TestCase):
                 _, _, _, _, _, _, _,_,_ = x
                 assert x_hat.shape[0] == u.shape[0]
                 batch_size = x_hat.shape[0]
-                return (torch.sum(c[:T].repeat((batch_size,1))*q_hat,axis=1)
-                        + torch.sum(y_hat,axis=1)+torch.sum(u_hat,axis=1))
+                return ((torch.sum(c[:T].repeat((batch_size,1))*q_hat,axis=1)
+                        + torch.sum(y_hat,axis=1)+torch.sum(u_hat,axis=1))).mean()/T
 
 
             def constraint_cost(self,x,u,alpha):
@@ -413,14 +413,14 @@ class TestMultiStage(unittest.TestCase):
                 cvar_term =(1/eta)*torch.max(torch.max(-p[t-1]*x_hat,
                                 h[t-1]*x_hat) - y_hat  - alpha,
                                 torch.zeros(batch_size)) + alpha
-                return (cvar_term + 0.01)
+                return ((cvar_term + 0.01)).mean()/T
 
             def init_state(self,batch_size, seed=None):
                 if seed is not None:
                     torch.manual_seed(seed)
                 t = 0
-                x_new = torch.zeros((batch_size,T+1))
-                x_orig = 100*torch.ones((batch_size,))
+                x_new = torch.zeros((batch_size,T+1),dtype=torch.double)
+                x_orig = 100*torch.ones((batch_size,),dtype=torch.double)
                 w_new = w_tch[t:t+K].repeat((batch_size,1))
                 x_new[:,0] = x_orig
                 q_new = torch.zeros((batch_size,T))
@@ -445,10 +445,14 @@ class TestMultiStage(unittest.TestCase):
                 x = [x_new,d_star_val,q_new,d_new,y_new,u_new,\
                      p_x,h_x,w_new,t_new,e_new,p_new,h_new,c_new,Ymat_ref_new]
                 return x
+
+            def prob_constr_violation(self, x, u, **kwargs):
+                return super().prob_constr_violation(x, u, **kwargs)
+
         simulator = InvSimulator()
 
         # Perform training
-        epochs = 21
+        epochs = 10
         batch_size = 5
         test_batch_size = 5
         lr = 0.0001
@@ -458,13 +462,11 @@ class TestMultiStage(unittest.TestCase):
         # init_b = d_star[:K]
         init_weights = torch.zeros((K*K+K,x_endind))
         init_weights[K*K:,T+1:] = torch.eye(K)
-        _, _, \
-        _, _, _, \
-            _, _ = trainer.multistage_train(simulator,
-                                                            policy = policy,
-                                time_horizon = T, epochs = epochs,
+        _ = trainer.train(simulator = simulator,multistage = True,
+                                policy = policy,
+                                time_horizon = T, num_iter = epochs,
                                 batch_size = batch_size, init_rho=1.5, seed=0,
-                                init_a = init_a, init_b = init_b,
+                                init_A = init_a, init_b = init_b,
                                 optimizer = "SGD",lr= lr, momentum = 0,
                                 init_alpha = 0.0, scheduler = True,
                                 lr_step_size = 20, lr_gamma = 0.5,
