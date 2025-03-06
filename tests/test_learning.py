@@ -400,3 +400,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         result.df
         # A_fin = result.A
         # b_fin = result.b
+
+        # trainer.grid(rholst=[0.1,1],init_A=A_fin, init_b=b_fin, seed=s,
+        # init_alpha=0., test_percentage=test_p,quantiles = (0.3,0.7),
+        # contextual = True, linear = result._linear)

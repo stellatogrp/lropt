@@ -1137,11 +1137,11 @@ class Trainer():
         self.x_endind = trainer_settings.x_endind
 
         if trainer_settings.random_init:
-            trainer_settings.num_random_init = trainer_settings.num_random_init 
+            trainer_settings.num_random_init = trainer_settings.num_random_init
         else:
             trainer_settings.num_random_init = 1
         if trainer_settings.train_shape:
-            trainer_settings.num_random_init = trainer_settings.num_random_init 
+            trainer_settings.num_random_init = trainer_settings.num_random_init
         else:
             trainer_settings.num_random_init = 1
         kwargs = {  "train_size": trainer_settings.train_size,
@@ -1218,11 +1218,11 @@ class Trainer():
             # kwargs["init_rho"] = 1
             kwargs["random_init"] = False
             if trainer_settings.lr_size:
-                kwargs["lr"] = trainer_settings.lr_size  
+                kwargs["lr"] = trainer_settings.lr_size
             else:
                 kwargs["lr"] = trainer_settings.lr
             if trainer_settings.num_iter_size:
-                kwargs["num_iter"] = trainer_settings.num_iter_size 
+                kwargs["num_iter"] = trainer_settings.num_iter_size
             else:
                 kwargs["num_iter"] = trainer_settings.num_iter
             kwargs["init_mu"] = mu_val[index_chosen]
@@ -1471,7 +1471,7 @@ class Trainer():
             new_row = train_stats.generate_test_row(
                 self._calc_coverage, a_tch_init,b_tch_init,
                 alpha, self.u_test_tch,rho_tch, self.unc_set, z_unique,
-                contextual,linear, self.x_test_tch)
+                contextual,linear, [self.x_test_tch])
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
         self.orig_problem._trained = True

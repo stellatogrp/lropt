@@ -2,7 +2,7 @@ from lropt._version import __version__
 from lropt.robust_problem import RobustProblem
 from lropt.train.settings import OPTIMIZERS
 from lropt.uncertain_parameter import UncertainParameter
-from lropt.train.parameter import ContextParameter
+from lropt.train.parameter import ContextParameter, Parameter
 from lropt.uncertainty_sets.box import Box
 from lropt.uncertainty_sets.budget import Budget
 from lropt.uncertainty_sets.ellipsoidal import Ellipsoidal

@@ -194,8 +194,10 @@ class UncertainCanonicalization(Reduction):
             A_certain, b_certain = _finalize_expressions(vec_Ab_certain, n_var=n_var)
             A_certain_param, b_certain_param = _finalize_expressions(vec_Ab_certain_param,
                                                                      n_var=n_var)
-            A_certain_total = A_certain + promote_expr(A_certain_param)
-            b_certain_total = b_certain + promote_expr(b_certain_param)
+            A_certain_total = promote_expr(A_certain)\
+                + promote_expr(A_certain_param)
+            b_certain_total = promote_expr(b_certain) \
+                + promote_expr(b_certain_param)
             A_uncertain_dict, b_uncertain_dict \
                   = _finalize_expressions_uncertain(T_Ab_list_unc, n_var=n_var)
             return A_certain_total, A_uncertain_dict, b_certain_total,\
