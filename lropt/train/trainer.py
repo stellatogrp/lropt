@@ -702,7 +702,7 @@ class Trainer():
         return args
 
     #BATCHED
-    def _eval_input(self, batch_int,eval_func, eval_args, init_val,
+    def _eval_input(self, batch_int, eval_func, eval_args, init_val,
                     eval_input_case, quantiles, serial_flag=False, **kwargs):
         """
         This function takes decision variables, y's, and u's,

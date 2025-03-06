@@ -461,18 +461,6 @@ class RobustProblem(Problem):
                                         gen_and_apply_chain(self.problem_canon,
                                                             reductions=[RemoveUncertainty()])
 
-            #DEBUG ONLY
-            # unc_reductions = []
-            # if type(self.objective) == Maximize:
-            #     unc_reductions += [FlipObjective()]
-            # # unc_reductions += [RemoveUncertainty()]
-            # unc_reductions += [RemoveSumOfMaxOfUncertain(), \
-            #                    UncertainCanonicalization(),RemoveUncertainty()]
-            # newchain = Chain(self, reductions=unc_reductions)
-            # newchain.accepts(self)
-            # self.problem_no_unc, self.inverse_data = newchain.apply(self)
-            # self.uncertain_chain = newchain
-
     def solve(self,
                solver: str = None,
                warm_start: bool = True,
@@ -549,6 +537,27 @@ class RobustProblem(Problem):
         solution = prob._solution
         self.unpack_results_unc(solution, uncertain_chain, inverse_data,solvername)
         return self.value
+
+    # def evaluate(self, x: list[torch.Tensor], u: list[torch.Tensor]) -> float:
+    #     """
+    #     TODO: Irina, add docstring
+    #     x (context parameters) Every element is a b x w tensor, b is the batch size, w is the dimension of x.
+    #     u (uncertain parameter) Every element is a b x d tensor, b is the batch size, d is the dimension of u.
+    #     """
+
+    #     #To generate eval_args:
+    #     #Need to take self.variables, x (input dataset - context parameters), u (input dataset - uncertain_parameter),
+    #     #And then reorder them (like in what we do in Trainer.order_args but tailored for self.problem_canon.eval)
+        
+        
+    #     eval_input(batch_int=b,
+    #                eval_func=self.problem_canon.eval,
+    #                eval_args=SEE_ABOVE,
+    #                init_val=0,
+    #                eval_input_case=Trainer._EVAL_INPUT_CASE.MEAN,
+    #                quantiles=None,
+    #                serial_flag=False)
+
 
 
 @dataclass
