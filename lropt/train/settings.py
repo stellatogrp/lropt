@@ -111,3 +111,4 @@ TEST_BATCH_SIZE_DEFAULT = 1
 SIMULATOR_DEFAULT = None
 KWARGS_SIM_DEFAULT = {}
 MULTISTAGE_DEFAULT = False
+DEFAULT_MAX_ITER_LINE_SEARCH = int(1e1) # Amount of times to check feasibility before timing outs

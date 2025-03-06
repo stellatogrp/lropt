@@ -13,7 +13,9 @@ from joblib import Parallel, delayed
 import lropt.train.settings as settings
 from lropt import RobustProblem
 from lropt.train.parameter import ContextParameter, ShapeParameter, SizeParameter
+from lropt.train.settings import DEFAULT_MAX_ITER_LINE_SEARCH
 from lropt.train.simulator import Default_Simulator
+from lropt.train.trainer_settings import TrainerSettings
 from lropt.train.utils import (
     get_n_processes,
     halve_step_size,
@@ -23,7 +25,6 @@ from lropt.train.utils import (
 )
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.utils import unique_list
-from lropt.violation_checker.settings import DEFAULT_MAX_ITER_LINE_SEARCH
 from lropt.violation_checker.utils import CONSTRAINT_STATUS, InfeasibleConstraintException
 from lropt.violation_checker.violation_checker import ViolationChecker
 
@@ -1082,154 +1083,15 @@ class Trainer():
 
     def train(
         self,
-        train_size=settings.TRAIN_SIZE_DEFAULT,
-        train_shape=settings.TRAIN_SHAPE_DEFAULT,
-        fixb=settings.FIXB_DEFAULT,
-        num_iter=settings.NUM_ITER_DEFAULT,  # Used to be "step"
-        num_iter_size = settings.NUM_ITER_SIZE_DEFAULT,
-        lr=settings.LR_DEFAULT,
-        lr_size = settings.LR_SIZE_DEFAULT,
-        scheduler=settings.SCHEDULER_STEPLR_DEFAULT,
-        momentum=settings.MOMENTUM_DEFAULT,
-        optimizer=settings.OPT_DEFAULT,
-        init_rho=settings.INIT_RHO_DEFAULT,
-        init_A=settings.INIT_A_DEFAULT,
-        init_b=settings.INIT_B_DEFAULT,
-        save_history=settings.SAVE_HISTORY_DEFAULT,
-        seed=settings.SEED_DEFAULT,
-        init_lam=settings.INIT_LAM_DEFAULT,
-        init_mu=settings.INIT_MU_DEFAULT,
-        mu_multiplier=settings.MU_MULTIPLIER_DEFAULT,
-        init_alpha=settings.INIT_ALPHA_DEFAULT,
-        eta=settings.ETA_LAGRANGIAN_DEFAULT,
-        kappa=settings.KAPPA_DEFAULT,  # (originall target_cvar)
-        random_init=settings.RANDOM_INIT_DEFAULT,
-        num_random_init=settings.NUM_RANDOM_INIT_DEFAULT,
-        test_frequency=settings.TEST_FREQUENCY_DEFAULT,
-        test_percentage=settings.TEST_PERCENTAGE_DEFAULT,
-        batch_percentage=settings.BATCH_PERCENTAGE_DEFAULT,
-        solver_args=settings.LAYER_SOLVER,
-        n_jobs=settings.N_JOBS,
-        quantiles=settings.QUANTILES,
-        lr_step_size=settings.LR_STEP_SIZE,
-        lr_gamma=settings.LR_GAMMA,
-        position=settings.POSITION,
-        parallel=settings.PARALLEL,
-        aug_lag_update_interval = settings.UPDATE_INTERVAL,
-        lambda_update_threshold = settings.LAMBDA_UPDATE_THRESHOLD,
-        lambda_update_max = settings.LAMBDA_UPDATE_MAX,
-        max_batch_size = settings.MAX_BATCH_SIZE,
-        contextual = settings.CONTEXTUAL_DEFAULT,
-        linear = settings.CONTEXTUAL_LINEAR_DEFAULT,
-        init_weight = settings.CONTEXTUAL_WEIGHT_DEFAULT,
-        init_bias = settings.CONTEXTUAL_BIAS_DEFAULT,
-        x_endind = settings.X_ENDIND_DEFAULT,
-        max_iter_line_search = DEFAULT_MAX_ITER_LINE_SEARCH,
-        policy = settings.POLICY_DEFAULT,
-        time_horizon = settings.TIME_HORIZON_DEFAULT,
-        batch_size = settings.BATCH_SIZE_DEFAULT,
-        test_batch_size = settings.TEST_BATCH_SIZE_DEFAULT,
-        simulator = settings.SIMULATOR_DEFAULT,
-        kwargs_simulator = settings.KWARGS_SIM_DEFAULT,
-        multistage = settings.MULTISTAGE_DEFAULT
+        trainer_settings: TrainerSettings | None = None,
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set
         w.r.t. augmented lagrangian metric
 
-        Parameters TODO (Amit): Irina - update all the variables
+        Args:
         -----------
-        train_size : bool, optional
-           If True, train only rho
-        train_shape: bool, optional
-            If True, train both the shape A, b, and size rhos
-        fixb : bool, optional
-            If True, do not train b
-        num_iter : int, optional
-            The total number of gradient steps performed.
-        num_iter_size : int, optional
-            The total number of gradient steps performed for training
-            only rho
-        lr : float, optional
-            The learning rate of gradient descent.
-        lr_size : float, optional
-            The learning rate of gradient descent for training only rho
-        momentum: float between 0 and 1, optional
-            The momentum for gradient descent.
-        optimizer: str or letters, optional
-            The optimizer to use tor the descent algorithm.
-        init_rho : float, optional
-            The rho (radius) to initialize :math:`A` and :math:`b`, if passed.
-        init_A : numpy array, optional
-            Initialization for the reshaping matrix, if passed.
-            If not passed, :math:`A` will be initialized as the
-            inverse square root of the
-            covariance of the data.
-        init_b : numpy array, optional
-            Initialization for the relocation vector, if passed.
-            If not passed, b will be initialized as :math:`\bar{d}`.
-        save_history: bool, optional
-            Whether or not to save the A and b over the training iterations
-        init_alpha : float, optional
-            The initial alpha value for the CVaR constraint in the outer
-            level problem.
-        eta: float, optional
-            The eta value for the CVaR constraint
-        init_lam : float, optional
-            The initial lambda value for the outer level lagrangian function.
-        init_mu : float, optional
-            The initial mu value for the outer level lagrangian function.
-        mu_multiplier : float, optional
-            The initial mu multiplier for the outer level lagrangian function.
-        kappa : float, optional
-            The target threshold for the outer level CVaR constraint.
-        random_int : bool, optional
-            Whether or not to initialize the set with random values
-        num_random_int : int, optional
-            The number of random initializations performed if random_int is True
-        test_frequency : int, optional
-            The number of iterations before testing results are recorded
-        test_percentage : float, optional
-            The percentage of data to use in the testing set.
-        seed : int, optional
-            The seed to control the random state of the train-test data split.
-        batch_percentage : float, optional
-            The percentage of data to use in each training step.
-        solver_args:
-            The optional arguments passed to the solver
-        parallel : bool, optional
-            Whether or not to parallelize the training loops
-        position: bool, optional
-            The position of the tqdm statements for the training loops
-        scheduler: bool, optional
-            Whether or not the learning rate is decreased over steps
-        lr_step_size: int, optional
-            The number of iterations before the learning rate is decreased,
-            if scheduler is enabled
-        lr_gamma: float, optional
-            The multiplier of the lr if the scheduler is enabled
-        quantiles: tuple, optional
-            The lower and upper quantiles of the test values desired
-        aug_lag_update_interval: int, optional
-            The number of iterations before the augmented lagrangian parameters
-            (lambda, mu) are updated
-        lambda_update_threshold: float, optional
-            The threshold of CVaR improvement, between 0 and 1, where an update
-            to lambda is accepted. Otherwise, mu is updated.
-        lambda_update_max: float, optional
-            The maximum allowed lambda value
-        max_batch_size: int, optional
-            The maximum data batch size allowed for each iteration
-        contextual: bool, optional
-            Whether or not the learned set is contextual
-        linear: NN model, optional
-            The linear NN model to use
-        init_weight: np.array, optional
-            The initial weight of the NN model
-        init_bias: np.array, optional
-            The initial bias of the NN model
-        n_jobs:
-            The number of parallel processes
+
 
         Returns:
         A Result object, including a pandas data frame with the following columns:
@@ -1248,64 +1110,82 @@ class Trainer():
             var_values: list
                 A list of returned variable values from the last solve
         """
+        if trainer_settings is None:
+            trainer_settings = TrainerSettings()
         self.train_flag = True
-        if contextual and not train_shape:
-            if linear is None:
+        if trainer_settings.contextual and not trainer_settings.train_shape:
+            if trainer_settings.linear is None:
                 raise ValueError("You must give a model if you do not train a model")
-        _,_,_,_,_,_,_ = self._split_dataset(test_percentage, seed)
-        self._multistage = multistage
+        _,_,_,_,_,_,_ = self._split_dataset(trainer_settings.test_percentage, trainer_settings.seed)
+        self._multistage = trainer_settings.multistage
         if self._multistage:
             self.num_g_total = 1
         else:
-            assert (time_horizon == 1)
-        self.cvxpylayer = self.create_cvxpylayer() if not policy else policy
-        if simulator:
-            self.simulator = simulator
+            assert (trainer_settings.time_horizon == 1)
+        if not trainer_settings.policy:
+            self.cvxpylayer = self.create_cvxpylayer()
+        else:
+            self.cvxpylayer = trainer_settings.policy
+        if trainer_settings.simulator:
+            self.simulator = trainer_settings.simulator
             self._default_simulator = False
         else:
             self.simulator = Default_Simulator(self)
             self._default_simulator = True
         self.violation_checker = ViolationChecker(self.cvxpylayer, self.problem_no_unc.constraints)
-        self._max_iter_line_search = max_iter_line_search
-        self.x_endind = x_endind
+        self._max_iter_line_search = trainer_settings.max_iter_line_search
+        self.x_endind = trainer_settings.x_endind
 
-        num_random_init = num_random_init if random_init else 1
-        num_random_init = num_random_init if train_shape else 1
-        kwargs = {"train_size": train_size,
-                   "trained_shape": not train_shape, "train_shape": train_shape,
-                  "init_A": init_A, "init_b": init_b,
-                  "init_rho": init_rho,
-                  "random_init": random_init,
-                  "seed": seed,
-                  "init_alpha": init_alpha, "save_history": save_history,
-                  "fixb": fixb, "optimizer": optimizer,
-                  "lr": lr, "momentum": momentum,
-                  "scheduler": scheduler, "init_lam":
-                  init_lam, "init_mu": init_mu,
-                  "num_iter": num_iter,
-                  "batch_percentage": batch_percentage,
-                  "solver_args": solver_args,
-                  "kappa": kappa, "test_frequency": test_frequency,
-                  "mu_multiplier": mu_multiplier,
-                  "quantiles": quantiles, "lr_step_size": lr_step_size,
-                  "lr_gamma": lr_gamma, "eta": eta,
-                  "position": position, "test_percentage": test_percentage,
-                  "aug_lag_update_interval": aug_lag_update_interval,
-                  "lambda_update_threshold":lambda_update_threshold,
-                  "lambda_update_max":lambda_update_max,
-                  "max_batch_size":max_batch_size,"contextual":contextual,
-                  "linear": linear,'init_weight':init_weight,
-                  'init_bias':init_bias, 'batch_size': batch_size,
-                  'test_batch_size':test_batch_size,
-                  'time_horizon': time_horizon,
-                  'kwargs_simulator': kwargs_simulator}
+        if trainer_settings.random_init:
+            trainer_settings.num_random_init = trainer_settings.num_random_init 
+        else:
+            trainer_settings.num_random_init = 1
+        if trainer_settings.train_shape:
+            trainer_settings.num_random_init = trainer_settings.num_random_init 
+        else:
+            trainer_settings.num_random_init = 1
+        kwargs = {  "train_size": trainer_settings.train_size,
+                    "trained_shape": not trainer_settings.train_shape,
+                    "train_shape": trainer_settings.train_shape,
+                    "init_A": trainer_settings.init_A, "init_b": trainer_settings.init_b,
+                    "init_rho": trainer_settings.init_rho,
+                    "random_init": trainer_settings.random_init,
+                    "seed": trainer_settings.seed,
+                    "init_alpha": trainer_settings.init_alpha,
+                    "save_history": trainer_settings.save_history,
+                    "fixb": trainer_settings.fixb, "optimizer": trainer_settings.optimizer,
+                    "lr": trainer_settings.lr, "momentum": trainer_settings.momentum,
+                    "scheduler": trainer_settings.scheduler, "init_lam":
+                    trainer_settings.init_lam, "init_mu": trainer_settings.init_mu,
+                    "num_iter": trainer_settings.num_iter,
+                    "batch_percentage": trainer_settings.batch_percentage,
+                    "solver_args": trainer_settings.solver_args,
+                    "kappa": trainer_settings.kappa,
+                    "test_frequency": trainer_settings.test_frequency,
+                    "mu_multiplier": trainer_settings.mu_multiplier,
+                    "quantiles": trainer_settings.quantiles,
+                    "lr_step_size": trainer_settings.lr_step_size,
+                    "lr_gamma": trainer_settings.lr_gamma, "eta": trainer_settings.eta,
+                    "position": trainer_settings.position,
+                    "test_percentage": trainer_settings.test_percentage,
+                    "aug_lag_update_interval": trainer_settings.aug_lag_update_interval,
+                    "lambda_update_threshold":trainer_settings.lambda_update_threshold,
+                    "lambda_update_max":trainer_settings.lambda_update_max,
+                    "max_batch_size":trainer_settings.max_batch_size,
+                    "contextual":trainer_settings.contextual,
+                    "linear": trainer_settings.linear,'init_weight':trainer_settings.init_weight,
+                    'init_bias':trainer_settings.init_bias,
+                    'batch_size': trainer_settings.batch_size,
+                    'test_batch_size':trainer_settings.test_batch_size,
+                    'time_horizon': trainer_settings.time_horizon,
+                    'kwargs_simulator': trainer_settings.kwargs_simulator}
 
         # Debugging code - one iteration
         # res = self._train_loop(0, **kwargs)
         # Debugging code - serial
-        if not parallel:
+        if not trainer_settings.parallel:
             res = []
-            for init_num in range(num_random_init):
+            for init_num in range(trainer_settings.num_random_init):
                 res.append(self._train_loop(init_num, **kwargs))
         # n_jobs = get_n_processes() if parallel else 1
         # pool_obj = Pool(processes=n_jobs)
@@ -1313,23 +1193,23 @@ class Trainer():
         # res = pool_obj.map(loop_fn, range(num_random_init))
         # Joblib version
         else:
-            n_jobs = get_n_processes() if parallel else 1
-            res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
-                init_num, **kwargs) for init_num in range(num_random_init))
+            trainer_settings.n_jobs = get_n_processes() if trainer_settings.parallel else 1
+            res = Parallel(n_jobs=trainer_settings.n_jobs)(delayed(self._train_loop)(
+                init_num, **kwargs) for init_num in range(trainer_settings.num_random_init))
         df, df_test, a_history, b_history, rho_history, param_vals, \
             fin_val, var_values, mu_val, linear_models = zip(*res)
         index_chosen = np.argmin(np.array(fin_val))
         self.orig_problem_trained = True
         self.unc_set._trained = True
         return_rho = param_vals[index_chosen][2]
-        if contextual:
+        if trainer_settings.contextual:
             self.unc_set.a.value = param_vals[index_chosen][0][0]
             self.unc_set.b.value = param_vals[index_chosen][1][0]
         else:
             self.unc_set.a.value = param_vals[index_chosen][0]
             self.unc_set.b.value = param_vals[index_chosen][1]
 
-        if train_shape and train_size:
+        if trainer_settings.train_shape and trainer_settings.train_size:
             kwargs["init_rho"] = return_rho
             kwargs["trained_shape"] = True
             kwargs["train_shape"] = False
@@ -1337,15 +1217,21 @@ class Trainer():
             kwargs["init_b"] = self.unc_set.b.value
             # kwargs["init_rho"] = 1
             kwargs["random_init"] = False
-            kwargs["lr"] = lr_size if lr_size else lr
-            kwargs["num_iter"] = num_iter_size if num_iter_size else num_iter
+            if trainer_settings.lr_size:
+                kwargs["lr"] = trainer_settings.lr_size  
+            else:
+                kwargs["lr"] = trainer_settings.lr
+            if trainer_settings.num_iter_size:
+                kwargs["num_iter"] = trainer_settings.num_iter_size 
+            else:
+                kwargs["num_iter"] = trainer_settings.num_iter
             kwargs["init_mu"] = mu_val[index_chosen]
-            if not parallel:
+            if not trainer_settings.parallel:
                 res = []
                 for init_num in range(1):
                     res.append(self._train_loop(init_num, **kwargs))
             else:
-                res = Parallel(n_jobs=n_jobs)(delayed(self._train_loop)(
+                res = Parallel(n_jobs=trainer_settings.n_jobs)(delayed(self._train_loop)(
                 init_num, **kwargs) for init_num in range(1))
             df_s, df_test_s, a_history_s, b_history_s,rho_history_s,\
             param_vals_s, fin_val_s, var_values_s, mu_s, \

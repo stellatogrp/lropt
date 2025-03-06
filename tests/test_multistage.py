@@ -6,6 +6,7 @@ import scipy as sc
 import torch
 
 import lropt
+from lropt import TrainerSettings
 
 
 class TestMultiStage(unittest.TestCase):
@@ -462,17 +463,29 @@ class TestMultiStage(unittest.TestCase):
         # init_b = d_star[:K]
         init_weights = torch.zeros((K*K+K,x_endind))
         init_weights[K*K:,T+1:] = torch.eye(K)
-        _ = trainer.train(simulator = simulator,multistage = True,
-                                policy = policy,
-                                time_horizon = T, num_iter = epochs,
-                                batch_size = batch_size, init_rho=1.5, seed=0,
-                                init_A = init_a, init_b = init_b,
-                                optimizer = "SGD",lr= lr, momentum = 0,
-                                init_alpha = 0.0, scheduler = True,
-                                lr_step_size = 20, lr_gamma = 0.5,
-                                contextual = True,
-                                test_batch_size = test_batch_size,
-                                x_endind = x_endind,
-                                init_weight=init_weights,
-                                init_lam = 0.001,
-                                init_mu = 0.001, mu_multiplier = 1.01)
+        trainer_settings = TrainerSettings()
+        trainer_settings.simulator = simulator
+        trainer_settings.multistage = True
+        trainer_settings.policy = policy
+        trainer_settings.time_horizon = T
+        trainer_settings.num_iter = epochs
+        trainer_settings.batch_size = batch_size
+        trainer_settings.init_rho=1.5
+        trainer_settings.seed=0
+        trainer_settings.init_A = init_a
+        trainer_settings.init_b = init_b
+        trainer_settings.optimizer = "SGD"
+        trainer_settings.lr= lr
+        trainer_settings.momentum = 0
+        trainer_settings.init_alpha = 0.0
+        trainer_settings.scheduler = True
+        trainer_settings.lr_step_size = 20
+        trainer_settings.lr_gamma = 0.5
+        trainer_settings.contextual = True
+        trainer_settings.test_batch_size = test_batch_size
+        trainer_settings.x_endind = x_endind
+        trainer_settings.init_weight=init_weights
+        trainer_settings.init_lam = 0.001
+        trainer_settings.init_mu = 0.001
+        trainer_settings.mu_multiplier = 1.01
+        _ = trainer.train(trainer_settings=trainer_settings)

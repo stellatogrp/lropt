@@ -13,7 +13,7 @@ import torch
 # from tests.settings import SOLVER
 from sklearn.model_selection import train_test_split
 
-from lropt import Trainer, max_of_uncertain
+from lropt import Trainer, TrainerSettings, max_of_uncertain
 from lropt.robust_problem import RobustProblem
 from lropt.train.parameter import ContextParameter
 from lropt.uncertain_parameter import UncertainParameter
@@ -63,7 +63,12 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         prob = RobustProblem(objective, constraints)
         trainer = Trainer(prob)
-        trainer.train(lr=0.001, num_iter=2, momentum=0.8, optimizer="SGD")
+        trainer_settings = TrainerSettings()
+        trainer_settings.lr = 0.001
+        trainer_settings.num_iter = 2
+        trainer_settings.momentum = 0.8
+        trainer_settings.optimizer = "SGD"
+        trainer.train(trainer_settings=trainer_settings)
         # prob.solve()
 
     def test_multidim_learn(self):
@@ -87,7 +92,12 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         prob = RobustProblem(objective, constraints)
         trainer = Trainer(prob)
-        trainer.train(lr=0.001, num_iter=10, momentum=0.8, optimizer="SGD")
+        trainer_settings = TrainerSettings()
+        trainer_settings.lr = 0.001
+        trainer_settings.num_iter = 10
+        trainer_settings.momentum = 0.8
+        trainer_settings.optimizer = "SGD"
+        trainer.train(trainer_settings=trainer_settings)
         # prob.solve()
 
     def test_portfolio_intro(self):
@@ -131,15 +141,26 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         # Train A and b
         trainer = Trainer(prob)
-        result = trainer.train(lr=0.0001, num_iter=100, momentum=0.8,
-                            optimizer="SGD",
-                            seed=5, init_A=init, init_b=init_bval,
-                            init_lam=0.5, init_mu=0.01,
-                            mu_multiplier=1.001,
-                            init_alpha=0., test_percentage=test_p, kappa=kappa,
-                            n_jobs=8, random_init=True,
-                            num_random_init=5, parallel = True,
-                            position=False)
+        trainer_settings = TrainerSettings()
+        trainer_settings.lr=0.0001
+        trainer_settings.num_iter=100
+        trainer_settings.momentum=0.8
+        trainer_settings.optimizer="SGD"
+        trainer_settings.seed=5
+        trainer_settings.init_A=init
+        trainer_settings.init_b=init_bval
+        trainer_settings.init_lam=0.5
+        trainer_settings.init_mu=0.01
+        trainer_settings.mu_multiplier=1.001
+        trainer_settings.init_alpha=0.
+        trainer_settings.test_percentage=test_p
+        trainer_settings.kappa=kappa
+        trainer_settings.n_jobs=8
+        trainer_settings.random_init=True
+        trainer_settings.num_random_init=5
+        trainer_settings.parallel = True
+        trainer_settings.position=False
+        result = trainer.train(trainer_settings=trainer_settings)
 
         timefin = time.time()
         timefin - timestart
@@ -215,15 +236,30 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         init = sc.linalg.sqrtm(np.cov(train.T))
         init_bval = np.mean(train, axis=0)
         trainer = Trainer(prob)
-        result = trainer.train(lr=0.0001, train_size = False,
-                num_iter=3, optimizer="SGD",seed=8, init_A=init,
-                init_b=init_bval, init_lam=1, init_mu=1,
-                mu_multiplier=1.001, kappa=0., init_alpha=0.,
-                test_percentage = test_p,save_history = True,
-                quantiles = (0.4,0.6), lr_step_size = 50,
-                 lr_gamma = 0.5, random_init = False,
-                 num_random_init = 5, parallel = False,
-                 position = False, eta=0.05)
+        trainer_settings = TrainerSettings()
+        trainer_settings.lr=0.0001
+        trainer_settings.train_size = False
+        trainer_settings.num_iter=3
+        trainer_settings.optimizer="SGD"
+        trainer_settings.seed=8
+        trainer_settings.init_A=init
+        trainer_settings.init_b=init_bval
+        trainer_settings.init_lam=1
+        trainer_settings.init_mu=1
+        trainer_settings.mu_multiplier=1.001
+        trainer_settings.kappa=0.
+        trainer_settings.init_alpha=0.
+        trainer_settings.test_percentage = test_p
+        trainer_settings.save_history = True
+        trainer_settings.quantiles = (0.4,0.6)
+        trainer_settings.lr_step_size = 50
+        trainer_settings.lr_gamma = 0.5
+        trainer_settings.random_init = False
+        trainer_settings.num_random_init = 5
+        trainer_settings.parallel = False
+        trainer_settings.position = False
+        trainer_settings.eta=0.05
+        result = trainer.train(trainer_settings=trainer_settings)
         npt.assert_array_less(np.array(
             result.df["Violations_train"])[-1], 0.1)
 
@@ -336,18 +372,31 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         # Train A and b
         from lropt import Trainer
         trainer = Trainer(prob)
-        result = trainer.train(lr=0.0001, train_size = False,
-                               num_iter=50, optimizer="SGD",seed=5,
-                               init_A=initn, init_b=init_bvaln,
-                               init_lam=0.1, init_mu=0.1,
-                            mu_multiplier=1.001, kappa=0.,
-                            init_alpha=0., test_percentage = test_p,
-                            save_history = True,
-                            quantiles = (0.4,0.6),
-                            lr_step_size = 50, lr_gamma = 0.5,
-                            random_init = True, num_random_init = 5,
-                            parallel = True, position = False,
-                            eta=0.3, contextual = True)
+        trainer_settings = TrainerSettings()
+        trainer_settings.lr=0.0001
+        trainer_settings.train_size = False
+        trainer_settings.num_iter=50
+        trainer_settings.optimizer="SGD"
+        trainer_settings.seed=5
+        trainer_settings.init_A=initn
+        trainer_settings.init_b=init_bvaln
+        trainer_settings.init_lam=0.1
+        trainer_settings.init_mu=0.1
+        trainer_settings.mu_multiplier=1.001
+        trainer_settings.kappa=0.
+        trainer_settings.init_alpha=0.
+        trainer_settings.test_percentage = test_p
+        trainer_settings.save_history = True
+        trainer_settings.quantiles = (0.4,0.6)
+        trainer_settings.lr_step_size = 50
+        trainer_settings.lr_gamma = 0.5
+        trainer_settings.random_init = True
+        trainer_settings.num_random_init = 5
+        trainer_settings.parallel = True
+        trainer_settings.position = False
+        trainer_settings.eta=0.3
+        trainer_settings.contextual = True
+        result = trainer.train(trainer_settings=trainer_settings)
         result.df
         # A_fin = result.A
         # b_fin = result.b
