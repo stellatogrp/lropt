@@ -1,13 +1,16 @@
 import multiprocessing
 import os
 from functools import partial
+from enum import Enum
 
 import numpy as np
 import torch
 from cvxpy.atoms.atom import Atom
 from cvxpy.expressions.expression import Expression
 from torch import Tensor
+import lropt.train.settings as settings
 
+EVAL_INPUT_CASE = Enum("_EVAL_INPUT_CASE", "MEAN EVALMEAN MAX")
 
 def get_n_processes(max_n=np.inf):
 
@@ -20,6 +23,89 @@ def get_n_processes(max_n=np.inf):
     n_proc = max(min(max_n, n_cpus), 1)
 
     return n_proc
+
+
+def eval_input(batch_int, eval_func, eval_args, init_val,
+                eval_input_case, quantiles, serial_flag=False, **kwargs):
+    """
+    This function takes decision variables, y's, and u's,
+        evaluates them and averages them on a given function.
+
+    Args:
+        batch_int:
+            The number of samples in the batch, to take the mean over
+        eval_func:
+            The function used for evaluation.
+        eval_args:
+            The arguments for eval_func
+        init_val:
+            The placeholder for the returned values
+        eval_input_case:
+            The type of evaluation performed. Can be MEAN, EVALMEAN, or MAX
+        quantiles:
+            The quantiles for mean values. can be None.
+        serial_flag:
+            Whether or not to evalute the function in serial
+        kwargs:
+            Additional arguments for the eval_func
+
+    Returns:
+        The average among all evaluated J x N pairs
+    """
+    def _serial_eval(batch_int, eval_args, init_val=None, **kwargs):
+        """
+        This is a helper function that calls eval_func in a serial way.
+        """
+        def _sample_args(eval_args, sample_ind):
+            """
+            This is a helper function that samples arguments to be passed to eval_func.
+            """
+            res = []
+            for eval_arg in eval_args:
+                curr_arg = eval_arg[sample_ind]
+                res.append(curr_arg)
+            return res
+        curr_result = {}
+        for j in range(batch_int):
+            curr_eval_args = _sample_args(eval_args, j)
+            if init_val:
+                init_val[:,j] = eval_func(*curr_eval_args, **kwargs)
+            else:
+                curr_result[j] = eval_func(*curr_eval_args, **kwargs)
+        return curr_result
+
+    if eval_input_case != EVAL_INPUT_CASE.MAX:
+        if serial_flag:
+            curr_result = _serial_eval(batch_int, eval_args, **kwargs)
+        else:
+            curr_result = eval_func(*eval_args, **kwargs)
+    if eval_input_case == EVAL_INPUT_CASE.MEAN:
+        if serial_flag:
+            init_val = torch.vstack([curr_result[v] for v in curr_result])
+        else:
+            init_val = curr_result
+        init_val = torch.mean(init_val,axis=0)
+    elif eval_input_case == EVAL_INPUT_CASE.EVALMEAN:
+        if serial_flag:
+            init_val = torch.vstack([curr_result[v] for v in curr_result])
+        else:
+            init_val = curr_result
+        bot_q, top_q = quantiles
+        init_val_lower = torch.quantile(init_val, bot_q, axis=0)
+        init_val_mean = torch.mean(init_val,axis=0)
+        init_val_upper = torch.quantile(init_val, top_q,axis=0)
+        return (init_val_lower, init_val_mean, init_val_upper)
+    elif eval_input_case == EVAL_INPUT_CASE.MAX:
+        # We want to see if there's a violation: either 1 from previous iterations,
+        # or new positive value from now
+        if serial_flag:
+            _ = _serial_eval(batch_int, eval_args, init_val, **kwargs)
+        else:
+            init_val = eval_func(*eval_args, **kwargs)
+            if len(init_val.shape) > 1:
+                init_val = init_val.T
+        init_val = (init_val > settings.TOLERANCE_DEFAULT).float()
+    return init_val
 
 ##########################
 #Batch utilitiy functions

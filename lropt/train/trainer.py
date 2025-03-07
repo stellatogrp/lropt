@@ -1,5 +1,4 @@
 from abc import ABC
-from enum import Enum
 
 import numpy as np
 import pandas as pd
@@ -22,6 +21,8 @@ from lropt.train.utils import (
     restore_step_size,
     take_step,
     undo_step,
+    eval_input,
+    EVAL_INPUT_CASE
 )
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.utils import unique_list
@@ -30,7 +31,6 @@ from lropt.violation_checker.violation_checker import ViolationChecker
 
 
 class Trainer():
-    _EVAL_INPUT_CASE = Enum("_EVAL_INPUT_CASE", "MEAN EVALMEAN MAX")
 
     """Create a class to handle training"""
     def __init__(self, problem: RobustProblem):
@@ -701,88 +701,7 @@ class Trainer():
 
         return args
 
-    #BATCHED
-    def _eval_input(self, batch_int, eval_func, eval_args, init_val,
-                    eval_input_case, quantiles, serial_flag=False, **kwargs):
-        """
-        This function takes decision variables, y's, and u's,
-            evaluates them and averages them on a given function.
-
-        Args:
-            batch_int:
-                The number of samples in the batch, to take the mean over
-            eval_func:
-                The function used for evaluation.
-            eval_args:
-                The arguments for eval_func
-            init_val:
-                The placeholder for the returned values
-            eval_input_case:
-                The type of evaluation performed. Can be MEAN, EVALMEAN, or MAX
-            quantiles:
-                The quantiles for mean values. can be None.
-            serial_flag:
-                Whether or not to evalute the function in serial
-            kwargs:
-                Additional arguments for the eval_func
-
-        Returns:
-            The average among all evaluated J x N pairs
-        """
-        def _serial_eval(batch_int, eval_args, init_val=None, **kwargs):
-            """
-            This is a helper function that calls eval_func in a serial way.
-            """
-            def _sample_args(eval_args, sample_ind):
-                """
-                This is a helper function that samples arguments to be passed to eval_func.
-                """
-                res = []
-                for eval_arg in eval_args:
-                    curr_arg = eval_arg[sample_ind]
-                    res.append(curr_arg)
-                return res
-            curr_result = {}
-            for j in range(batch_int):
-                curr_eval_args = _sample_args(eval_args, j)
-                if init_val:
-                    init_val[:,j] = eval_func(*curr_eval_args, **kwargs)
-                else:
-                    curr_result[j] = eval_func(*curr_eval_args, **kwargs)
-            return curr_result
-
-        if eval_input_case != Trainer._EVAL_INPUT_CASE.MAX:
-            if serial_flag:
-                curr_result = _serial_eval(batch_int, eval_args, **kwargs)
-            else:
-                curr_result = eval_func(*eval_args, **kwargs)
-        if eval_input_case == Trainer._EVAL_INPUT_CASE.MEAN:
-            if serial_flag:
-                init_val = torch.vstack([curr_result[v] for v in curr_result])
-            else:
-                init_val = curr_result
-            init_val = torch.mean(init_val,axis=0)
-        elif eval_input_case == Trainer._EVAL_INPUT_CASE.EVALMEAN:
-            if serial_flag:
-                init_val = torch.vstack([curr_result[v] for v in curr_result])
-            else:
-                init_val = curr_result
-            bot_q, top_q = quantiles
-            init_val_lower = torch.quantile(init_val, bot_q, axis=0)
-            init_val_mean = torch.mean(init_val,axis=0)
-            init_val_upper = torch.quantile(init_val, top_q,axis=0)
-            return (init_val_lower, init_val_mean, init_val_upper)
-        elif eval_input_case == Trainer._EVAL_INPUT_CASE.MAX:
-            # We want to see if there's a violation: either 1 from previous iterations,
-            # or new positive value from now
-            if serial_flag:
-                _ = _serial_eval(batch_int, eval_args, init_val, **kwargs)
-            else:
-                init_val = eval_func(*eval_args, **kwargs)
-                if len(init_val.shape) > 1:
-                    init_val = init_val.T
-            init_val = (init_val > settings.TOLERANCE_DEFAULT).float()
-        return init_val
+    
 
     def train_objective(self, batch_int, eval_args):
         """
@@ -795,8 +714,8 @@ class Trainer():
         Returns:
             The average among all evaluated J x N pairs
         """
-        return self._eval_input(batch_int,eval_func=self.f, eval_args=eval_args, init_val=0,
-                                eval_input_case=Trainer._EVAL_INPUT_CASE.MEAN, quantiles=None)
+        return eval_input(batch_int,eval_func=self.f, eval_args=eval_args, init_val=0,
+                                eval_input_case=EVAL_INPUT_CASE.MEAN, quantiles=None)
 
     def train_constraint(self, batch_int,eval_args, alpha, slack, eta, kappa):
         """
@@ -818,8 +737,8 @@ class Trainer():
         """
         H = torch.zeros(self.num_g_total, dtype=settings.DTYPE)
         for k, h_k in enumerate(self.h):
-            init_val = self._eval_input(batch_int,h_k, eval_args, 0,
-                                        Trainer._EVAL_INPUT_CASE.MEAN, quantiles=None,
+            init_val = eval_input(batch_int,h_k, eval_args, 0,
+                                        EVAL_INPUT_CASE.MEAN, quantiles=None,
                                         alpha=alpha, eta=eta)
             h_k_expectation = init_val + alpha - kappa + \
                 slack[sum(self.g_shapes[:k]):sum(self.g_shapes[:(k+1)])]
@@ -843,8 +762,8 @@ class Trainer():
         if (self.eval is None):
             return 0
 
-        return self._eval_input(batch_int,eval_func=self.eval, eval_args=eval_args,init_val=0,
-                                eval_input_case=Trainer._EVAL_INPUT_CASE.EVALMEAN,
+        return eval_input(batch_int,eval_func=self.eval, eval_args=eval_args,init_val=0,
+                                eval_input_case=EVAL_INPUT_CASE.EVALMEAN,
                                 quantiles=quantiles, serial_flag=True)
 
     def prob_constr_violation(self, batch_int, eval_args):
@@ -862,9 +781,9 @@ class Trainer():
         G = torch.zeros((self.num_g_total, batch_int), dtype=settings.DTYPE)
         for k, g_k in enumerate(self.g):
             G[sum(self.g_shapes[:k]):sum(self.g_shapes[:(k+1)])] = \
-            self._eval_input(batch_int, eval_func=g_k, eval_args=eval_args, init_val=\
+            eval_input(batch_int, eval_func=g_k, eval_args=eval_args, init_val=\
                         G[sum(self.g_shapes[:k]):sum(self.g_shapes[:(k+1)])],
-                        eval_input_case=Trainer._EVAL_INPUT_CASE.MAX, quantiles=None)
+                        eval_input_case=EVAL_INPUT_CASE.MAX, quantiles=None)
         return G.mean(axis=1)
 
     def lagrangian(self, batch_int,eval_args, alpha, slack, lam, mu,
