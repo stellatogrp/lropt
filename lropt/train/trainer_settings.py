@@ -8,24 +8,24 @@ class TrainerSettings():
     Args:
     -------------
         train_size : bool, optional
-           If True, train only rho
+           If True, train only rho. Default False.
         train_shape: bool, optional
-            If True, train both the shape A, b, and size rhos
+            If True, train both the shape A, b, and size rhos. Default True.
         fixb : bool, optional
-            If True, do not train b
+            If True, do not train b. Default False.
         num_iter : int, optional
-            The total number of gradient steps performed.
+            The total number of gradient steps performed. Default 45.
         num_iter_size : int, optional
             The total number of gradient steps performed for training
-            only rho
+            only rho. Default None.
         lr : float, optional
-            The learning rate of gradient descent.
+            The learning rate of gradient descent. Default 0.0001.
         lr_size : float, optional
-            The learning rate of gradient descent for training only rho
+            The learning rate of gradient descent for training only rho. Default 0.0001.
         momentum: float between 0 and 1, optional
-            The momentum for gradient descent.
+            The momentum for gradient descent. Default 0.8.
         optimizer: str or letters, optional
-            The optimizer to use tor the descent algorithm.
+            The optimizer to use tor the descent algorithm. Default SGD.
         init_rho : float, optional
             The rho (radius) to initialize :math:`A` and :math:`b`, if passed.
         init_A : numpy array, optional
@@ -37,67 +37,96 @@ class TrainerSettings():
             Initialization for the relocation vector, if passed.
             If not passed, b will be initialized as :math:`\bar{d}`.
         save_history: bool, optional
-            Whether or not to save the A and b over the training iterations
+            Whether or not to save the A and b over the training iterations. Default False.
         init_alpha : float, optional
             The initial alpha value for the CVaR constraint in the outer
-            level problem.
+            level problem. Default 0.
         eta: float, optional
-            The eta value for the CVaR constraint
+            The eta value for the CVaR constraint. Default 0.05.
         init_lam : float, optional
-            The initial lambda value for the outer level lagrangian function.
+            The initial lambda value for the outer level lagrangian function. Default 0.
         init_mu : float, optional
-            The initial mu value for the outer level lagrangian function.
+            The initial mu value for the outer level lagrangian function. Default 0.5.
         mu_multiplier : float, optional
-            The initial mu multiplier for the outer level lagrangian function.
+            The initial mu multiplier for the outer level lagrangian function. Default 1.01.
         kappa : float, optional
-            The target threshold for the outer level CVaR constraint.
+            The target threshold for the outer level CVaR constraint. Default -0.01.
         random_int : bool, optional
-            Whether or not to initialize the set with random values
+            Whether or not to initialize the set with random values. Default False.
         num_random_int : int, optional
-            The number of random initializations performed if random_int is True
+            The number of random initializations performed if random_int is True. Default 10.
         test_frequency : int, optional
             The number of iterations before testing results are recorded
-        test_percentage : float, optional
-            The percentage of data to use in the testing set.
+        test_percentage : float, optional. Default 10.
+            The percentage of data to use in the testing set. Default 0.2.
         seed : int, optional
-            The seed to control the random state of the train-test data split.
+            The seed to control the random state of the train-test data split. Default 1.
         batch_percentage : float, optional
-            The percentage of data to use in each training step.
+            The percentage of data to use in each training step. Default 0.1
         solver_args:
-            The optional arguments passed to the solver
+            The optional arguments passed to the solver. Default Clarabel.
         parallel : bool, optional
-            Whether or not to parallelize the training loops
+            Whether or not to parallelize the training loops. Default True.
         position: bool, optional
-            The position of the tqdm statements for the training loops
+            The position of the tqdm statements for the training loops. Default False.
         scheduler: bool, optional
-            Whether or not the learning rate is decreased over steps
+            Whether or not the learning rate is decreased over steps. Default True.
         lr_step_size: int, optional
             The number of iterations before the learning rate is decreased,
-            if scheduler is enabled
+            if scheduler is enabled. Default 500.
         lr_gamma: float, optional
-            The multiplier of the lr if the scheduler is enabled
+            The multiplier of the lr if the scheduler is enabled. DEfault 0.1.
         quantiles: tuple, optional
-            The lower and upper quantiles of the test values desired
+            The lower and upper quantiles of the test values desired. Default (0.25, 0.75)
         aug_lag_update_interval: int, optional
             The number of iterations before the augmented lagrangian parameters
-            (lambda, mu) are updated
+            (lambda, mu) are updated. Default 20.
         lambda_update_threshold: float, optional
             The threshold of CVaR improvement, between 0 and 1, where an update
-            to lambda is accepted. Otherwise, mu is updated.
+            to lambda is accepted. Otherwise, mu is updated. Default 0.99.
         lambda_update_max: float, optional
-            The maximum allowed lambda value
+            The maximum allowed lambda value, default 1000.
         max_batch_size: int, optional
-            The maximum data batch size allowed for each iteration
+            The maximum data batch size allowed for each iteration. Default 30.
         contextual: bool, optional
-            Whether or not the learned set is contextual
+            Whether or not the learned set is contextual. Default False.
         linear: NN model, optional
-            The linear NN model to use
+            The linear NN model to use, Default None.
         init_weight: np.array, optional
-            The initial weight of the NN model
+            The initial weight of the NN model. Default None.
         init_bias: np.array, optional
-            The initial bias of the NN model
+            The initial bias of the NN model. Default None.
         n_jobs:
-            The number of parallel processes
+            The number of parallel processes. Default 5.
+        max_iter_line_search
+            The maximum number of times we halve the step size when an
+            infeasibility occurs. Default 10.
+        x_endind
+            If given, the ending index for the context parameters we want to
+            use for training the shape parameters. All parameters after this
+            index will not be used for training. Default None.
+        policy
+            The cvxpylayers object for the robust problem. Default is to use
+            all variables and parameters (when set to None).
+        time_horizon
+            The time horizon for the multistage problem. Single-stage problems
+            must have a horizon of 1. Default 1.
+        batch_size
+            The training batch size for multi-stage problems. Default 1.
+        test_batch_size
+            The testing batch size for multi-stage problems. Default 1.
+        simulator
+            The self-defined functions for propagating states and constructing
+            cost functions for the multi-stage problem. Initialized to a
+            default version for the single-stage problem if not given.
+            Default None.
+        kwargs_simulator
+            The extra keyword arguments required for the self-defined simulator
+            class. The simulator functions must be defined with these keyword
+            arguments as inputs. Default {}.
+        multistage
+            Flag for whether or not the problem is multistage. Default False.
+
     """
     def __init__(self):
         self.train_size=settings.TRAIN_SIZE_DEFAULT
@@ -150,9 +179,9 @@ class TrainerSettings():
         self.simulator = settings.SIMULATOR_DEFAULT
         self.kwargs_simulator = settings.KWARGS_SIM_DEFAULT
         self.multistage = settings.MULTISTAGE_DEFAULT
-        
+
         self._generate_slots()
-    
+
     def _attr_exists(self, name) -> None:
         """
         This function raises an AttributeError if this object does not have a name property.
@@ -187,7 +216,7 @@ class TrainerSettings():
         #Check that all the keys are valid
         for key in kwargs.keys():
             self._attr_exists(key)
-        
+
         #Assign
         for key, item in kwargs.items():
             super().__setattr__(key, item)
