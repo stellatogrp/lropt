@@ -5,7 +5,6 @@ import pandas as pd
 import scipy as sc
 import torch
 from cvxpy import Parameter as OrigParameter
-from cvxpy.expressions.variable import Variable
 from cvxpylayers.torch import CvxpyLayer
 from joblib import Parallel, delayed
 
@@ -16,13 +15,13 @@ from lropt.train.settings import DEFAULT_MAX_ITER_LINE_SEARCH
 from lropt.train.simulator import Default_Simulator
 from lropt.train.trainer_settings import TrainerSettings
 from lropt.train.utils import (
+    EVAL_INPUT_CASE,
+    eval_input,
     get_n_processes,
     halve_step_size,
     restore_step_size,
     take_step,
     undo_step,
-    eval_input,
-    EVAL_INPUT_CASE
 )
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.utils import unique_list
@@ -670,38 +669,7 @@ class Trainer():
         u_batch (uncertainty) according to the order in vars_params.
         """
         problem = self.problem_canon
-        args = []
-        # self.vars_params is a dictionary, hence unsorted. Need to iterate over it in order
-        ind_dict = {
-            Variable: 0,
-            ContextParameter: 0,
-            UncertainParameter: 0,
-        }
-        args_dict = {
-            Variable: z_batch,
-            ContextParameter: x_batch,
-            UncertainParameter: u_batch,
-        }
-
-        for i in range(len(problem.vars_params)):
-            curr_type = type(problem.vars_params[i])
-            if curr_type == OrigParameter:
-                continue
-            # This checks for list/tuple or not, to support the fact that currently
-            # u_batch is not a list. Irina said in the future this might change.
-
-            # If list or tuple: append the next element
-            if isinstance(args_dict[curr_type], tuple) or isinstance(args_dict[curr_type], list):
-                append_item = args_dict[curr_type][ind_dict[curr_type]]
-                ind_dict[curr_type] += 1
-            # If not list-like (e.g. a tensor), append it
-            else:
-                append_item = args_dict[curr_type]
-            args.append(append_item)
-
-        return args
-
-    
+        return problem.order_args(z_batch, x_batch, u_batch)
 
     def train_objective(self, batch_int, eval_args):
         """

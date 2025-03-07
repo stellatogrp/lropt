@@ -6,10 +6,12 @@ from typing import Optional
 
 import cvxpy as cp
 import torch
+from cvxpy import Parameter as OrigParameter
 from cvxpy import error
 from cvxpy import settings as s
 from cvxpy.expressions.expression import Expression
 from cvxpy.expressions.leaf import Leaf
+from cvxpy.expressions.variable import Variable
 from cvxpy.problems.objective import Maximize
 from cvxpy.problems.problem import Problem
 from cvxpy.reductions.solution import INF_OR_UNB_MESSAGE
@@ -538,26 +540,75 @@ class RobustProblem(Problem):
         self.unpack_results_unc(solution, uncertain_chain, inverse_data,solvername)
         return self.value
 
-    # def evaluate(self, x: list[torch.Tensor], u: list[torch.Tensor]) -> float:
-    #     """
-    #     TODO: Irina, add docstring
-    #     x (context parameters) Every element is a b x w tensor, b is the batch size, w is the dimension of x.
-    #     u (uncertain parameter) Every element is a b x d tensor, b is the batch size, d is the dimension of u.
-    #     """
+    def evaluate(self, x: list[torch.Tensor], u: list[torch.Tensor]) -> float:
+        """
+        TODO: Irina, add docstring
+        x (context parameters) Every element is a b x w tensor, b is the batch size, w is the dimension of x.
+        u (uncertain parameter) Every element is a b x d tensor, b is the batch size, d is the dimension of u.
+        """
 
-    #     #To generate eval_args:
-    #     #Need to take self.variables, x (input dataset - context parameters), u (input dataset - uncertain_parameter),
-    #     #And then reorder them (like in what we do in Trainer.order_args but tailored for self.problem_canon.eval)
+        #To generate eval_args:
+        #Need to take self.variables, x (input dataset - context parameters), u (input dataset - uncertain_parameter),
+        #And then reorder them (like in what we do in Trainer.order_args but tailored for self.problem_canon.eval)
         
+        def _get_batch_size(tch_list: list[torch.Tensor]) -> int:
+            """
+            This function returns the batch size. If inconsistent, raises an error.
+            """
+            b = None
+            for tch in tch_list:
+                curr_b = tch.shape[0]
+                if b is None:
+                    b = curr_b
+                elif b != curr_b:
+                    raise ValueError("Inconsistent batch sizes.")
+            return b
         
-    #     eval_input(batch_int=b,
-    #                eval_func=self.problem_canon.eval,
-    #                eval_args=SEE_ABOVE,
-    #                init_val=0,
-    #                eval_input_case=Trainer._EVAL_INPUT_CASE.MEAN,
-    #                quantiles=None,
-    #                serial_flag=False)
+        b = _get_batch_size(x+u)
+        
+        # eval_input(batch_int=b,
+        #            eval_func=self.problem_canon.eval,
+        #            eval_args=SEE_ABOVE,
+        #            init_val=0,
+        #            eval_input_case=EVAL_INPUT_CASE.MEAN,
+        #            quantiles=None,
+        #            serial_flag=False)
 
+    def order_args(self, z_batch, x_batch, u_batch):
+        """
+        This function orders z_batch (decisions), x_batch (context), and
+        u_batch (uncertainty) according to the order in vars_params.
+        """
+        args = []
+        # self.vars_params is a dictionary, hence unsorted. Need to iterate over it in order
+        ind_dict = {
+            Variable: 0,
+            ContextParameter: 0,
+            UncertainParameter: 0,
+        }
+        args_dict = {
+            Variable: z_batch,
+            ContextParameter: x_batch,
+            UncertainParameter: u_batch,
+        }
+
+        for i in range(len(self.vars_params)):
+            curr_type = type(self.vars_params[i])
+            if curr_type == OrigParameter:
+                continue
+            # This checks for list/tuple or not, to support the fact that currently
+            # u_batch is not a list. Irina said in the future this might change.
+
+            # If list or tuple: append the next element
+            if isinstance(args_dict[curr_type], tuple) or isinstance(args_dict[curr_type], list):
+                append_item = args_dict[curr_type][ind_dict[curr_type]]
+                ind_dict[curr_type] += 1
+            # If not list-like (e.g. a tensor), append it
+            else:
+                append_item = args_dict[curr_type]
+            args.append(append_item)
+
+        return args
 
 
 @dataclass

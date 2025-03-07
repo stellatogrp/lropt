@@ -1,13 +1,14 @@
 import multiprocessing
 import os
-from functools import partial
 from enum import Enum
+from functools import partial
 
 import numpy as np
 import torch
 from cvxpy.atoms.atom import Atom
 from cvxpy.expressions.expression import Expression
 from torch import Tensor
+
 import lropt.train.settings as settings
 
 EVAL_INPUT_CASE = Enum("_EVAL_INPUT_CASE", "MEAN EVALMEAN MAX")
