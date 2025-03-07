@@ -51,12 +51,13 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         u_data = np.array([[0.1,0.2,0.3,0.1,0.1],
                            [0.1,0.5,-0.3,0.1,0.1],
                            [0.4,0.2,0.3,-0.1,0.1]])
+        a.eval_data = u_data
 
         # note that even though the objective has param_val, since it is a
         #  cvxpy parameter, the value should already be built-in and does not
         # need an additional input
 
-        eval_value = prob_robust.evaluate(u=u_data)
+        eval_value = prob_robust.evaluate()
         actual_value = np.mean(-u_data@x_robust+0.3)
         npt.assert_allclose(eval_value, actual_value, rtol=RTOL, atol=ATOL)
 
@@ -80,8 +81,10 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         u_data = np.array([[0.1,0.2,0.3,0.1,0.1],
                            [0.1,0.5,-0.3,0.1,0.1],
                            [0.4,0.2,0.3,-0.1,0.1]])
+        a.eval_data = u_data
+        self.context_param.eval_data = x_data
 
-        eval_value = prob_robust.evaluate(u=u_data, x=[x_data])
+        eval_value = prob_robust.evaluate()
         actual_value = np.mean(-u_data@x_robust+0.3+x_data)
         npt.assert_allclose(eval_value, actual_value, rtol=RTOL, atol=ATOL)
 
@@ -109,6 +112,10 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
                            [0.4,0.2,0.3,-0.1,0.1]])
         u1_data = 0.1*np.ones((3,n))
 
-        eval_value = prob_robust.evaluate(u=[u_data, u1_data], x=[x_data])
+        a.eval_data = u_data
+        self.context_param.eval_data = x_data
+        a1.eval_data = u1_data
+
+        eval_value = prob_robust.evaluate()
         actual_value = np.mean(-u_data@x_robust+u1_data@x_robust + 0.3+x_data)
         npt.assert_allclose(eval_value, actual_value, rtol=RTOL, atol=ATOL)

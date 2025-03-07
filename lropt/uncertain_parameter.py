@@ -8,6 +8,8 @@ class UncertainParameter(cp.Parameter):
     def __init__(self, *args, **kwargs):
 
         uncertainty_set = kwargs.pop('uncertainty_set', None)
+        eval_data = kwargs.pop('eval_data', None)
+        self.eval_data = eval_data
 
         if uncertainty_set is None:
             raise ValueError("You must specify an uncertainty set.")
@@ -24,6 +26,7 @@ class UncertainParameter(cp.Parameter):
                                               n, SUPPORT_TYPE.LOWER_BOUND)
         self.uncertainty_set.add_support_type(self.uncertainty_set.sum_eq,
                                               n, SUPPORT_TYPE.SUM_EQUALITY)
+
 
 
     def remove_uncertain(self, x, var):

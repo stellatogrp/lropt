@@ -6,6 +6,7 @@ class ContextParameter(cp.Parameter):
     # Context parameter with data
     def __init__(self, *args, **kwargs):
         data = kwargs.pop('data', None)
+        eval_data = kwargs.pop('eval_data', None)
 
         if data is None:
             raise ValueError("You must provide data")
@@ -20,6 +21,7 @@ class ContextParameter(cp.Parameter):
 
         self.data = data
         self.value = data[0]
+        self.eval_data = eval_data
 
 class Parameter(cp.Parameter):
     # CVXPY parameter
