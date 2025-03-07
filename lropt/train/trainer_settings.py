@@ -153,6 +153,13 @@ class TrainerSettings():
         
         self._generate_slots()
     
+    def _attr_exists(self, name) -> None:
+        """
+        This function raises an AttributeError if this object does not have a name property.
+        """
+        if hasattr(self, '__slots__') and name not in self.__slots__:
+            raise AttributeError(f"TrainerSettings objects do not have a property called {name}.")
+
     def _generate_slots(self) -> None:
         """
         This function generates __slots__.
@@ -168,6 +175,19 @@ class TrainerSettings():
         """
         This function prevents adding new fields to the object.
         """
-        if hasattr(self, '__slots__') and name not in self.__slots__:
-            raise AttributeError(f"TrainerSettings objects do not have a property called {name}.")
+        self._attr_exists(name)
         super().__setattr__(name, value)
+
+    def set(self, **kwargs) -> None:
+        """
+        This function sets all the values of kwargs to the keys.
+        It sets only if all the keys are valid.
+        Raises AttributeError if a key in kwargs does not exist.
+        """
+        #Check that all the keys are valid
+        for key in kwargs.keys():
+            self._attr_exists(key)
+        
+        #Assign
+        for key, item in kwargs.items():
+            super().__setattr__(key, item)
