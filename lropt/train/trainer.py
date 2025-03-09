@@ -24,6 +24,7 @@ from lropt.train.utils import (
     undo_step,
 )
 from lropt.uncertain_parameter import UncertainParameter
+from lropt.uncertainty_sets.scenario import Scenario
 from lropt.utils import unique_list
 from lropt.violation_checker.utils import CONSTRAINT_STATUS, InfeasibleConstraintException
 from lropt.violation_checker.violation_checker import ViolationChecker
@@ -214,6 +215,8 @@ class Trainer():
             raise ValueError("Cannot train without uncertainty set data")
         if self.unc_set.a is None:
             raise ValueError("unc_set.a is None")
+        if isinstance(self.unc_set, Scenario):
+            raise ValueError("Cannot train a scenario set")
 
     def count_unq_uncertain_param(self,problem) -> int:
         unc_params = self.uncertain_parameters(problem)
@@ -978,7 +981,6 @@ class Trainer():
 
         Args:
         -----------
-
 
         Returns:
         A Result object, including a pandas data frame with the following columns:

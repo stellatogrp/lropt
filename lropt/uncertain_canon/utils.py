@@ -1,3 +1,5 @@
+from itertools import product
+
 import cvxpy as cp
 import numpy as np
 from cvxpy.constraints.constraint import Constraint
@@ -67,7 +69,7 @@ def promote_expr(expr: Expression | int) -> Expression | int:
     ndim = expr.ndim
     if ndim > 1:
         return expr
-    
+
     return cp.reshape(expr, shape=(expr.size, 1))
 
 def scalarize(arg: Expression) -> Expression:
@@ -78,7 +80,7 @@ def scalarize(arg: Expression) -> Expression:
     Parameter:
         arg (Expression):
             A CVXPY expression.
-    
+
     Returns:
         A CVXPY expression with shape=(,) if it has a single element, or the original one otherwise.
     """
@@ -95,3 +97,16 @@ def gen_constraint_by_type() -> dict:
     It also generates two pairs: UNCERTAIN_NO_MAX_ID -> [], CERTAIN_ID -> [].
     """
     return {x: [] for x in [UNCERTAIN_NO_MAX_ID, CERTAIN_ID]}
+
+
+def cross_product(*arrays):
+  """
+  Calculate the cross product of multiple arrays and return the result as a list of tuples.
+
+  Args:
+    *arrays: A variable number of iterable arrays.
+
+  Returns:
+    A list of tuples, where each tuple is a combination of elements from the input arrays.
+  """
+  return list(product(*arrays))

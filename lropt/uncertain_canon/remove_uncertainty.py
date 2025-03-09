@@ -1,12 +1,15 @@
 
+import operator
+
 import numpy as np
 from cvxpy import Variable, problems
 from cvxpy.atoms.affine.promote import Promote
 from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
 
-from lropt.uncertain_canon.utils import standard_invert
+from lropt.uncertain_canon.utils import cross_product, standard_invert
 from lropt.uncertainty_sets.mro import MRO
+from lropt.uncertainty_sets.scenario import Scenario
 
 # from lropt.uncertain_canon.atom_canonicalizers.mul_canon import mul_canon_transform
 # from lropt.uncertain_canon.remove_constant import REMOVE_CONSTANT_METHODS as rm_const_methods
@@ -211,6 +214,87 @@ class RemoveUncertainty(Reduction):
             #     cur_cons_data = cur_cons_data, is_mro= is_mro, has_uncertain=False)
         return fin_expr <= 0, aux_constraint, lmbda, sval
 
+    def scenario_helper(self,cur_cons_data):
+        """For the scenario approach, duplicate the constraint for each
+        uncertainty realization. If there are multiple uncertain parameters,
+        use the cartesian product of the realizations, unless cartesian is set
+        to false."""
+        aux_constraint = []
+        data_list = []
+        other_list = []
+        u_info = {}
+        u_info['op'] = []
+        u_info['cartesian'] = []
+        u_info['other'] = []
+        u_info['cart_ind'] = []
+        u_info['other_ind'] = []
+        cur_vars = cur_cons_data["var"]
+        for u_ind, uvar in enumerate(cur_cons_data["unc_param_list"]):
+            if uvar.uncertainty_set._cartesian:
+                u_info['cartesian'].append(uvar)
+                data_list.append(uvar.uncertainty_set.data)
+                u_info['cart_ind'].append(u_ind)
+            else:
+                u_info['other'].append(uvar)
+                other_list.append(uvar.uncertainty_set.data)
+                u_info['other_ind'].append(u_ind)
+            if len(uvar.shape)!=0 and uvar.shape[0]>1:
+                u_info['op'].append(operator.matmul)
+            else:
+                u_info['op'].append(operator.matmul)
+
+        if len(data_list)>=1:
+            cross_list = cross_product(*data_list)
+            num_reps = len(cross_list)
+        else:
+            num_reps = 0
+        num_reps_other = 0
+        if len(other_list)!= 0:
+            num_reps_other = other_list[0].shape[0]
+            for cur_array in other_list[1:]:
+                assert num_reps_other == cur_array.shape[0], "if not cartesian,\
+                      arrays must have the same number of realizations"
+        if num_reps_other!=0 and num_reps != 0:
+            assert num_reps == num_reps_other, "if not cartesian,\
+                      arrays must have the same number of realizations"
+
+        num_reps = np.maximum(num_reps, num_reps_other)
+        for reps in range(num_reps):
+            cur_con = cur_cons_data["std_lst"][0]
+            for cur_ind, uvar in enumerate(u_info['cartesian']):
+            # add uncertain constraints that are multiplied against x
+                u_ind = u_info['cart_ind'][cur_ind]
+                if cur_cons_data[u_ind]['has_uncertain_mult']:
+                    cur_con  = cur_con + cur_vars@(
+                        u_info['op'][u_ind](
+                            cur_cons_data[u_ind]["unc_term"],
+                            cross_list[reps][cur_ind]))
+
+            # canonicalize isolated uncertain constrains
+                if cur_cons_data[u_ind]['has_uncertain_isolated']:
+                    cur_con = cur_con + u_info['op'][u_ind](
+                        cur_cons_data[u_ind]["unc_isolated"],
+                        cross_list[reps][cur_ind])
+
+            for cur_ind, uvar in enumerate(u_info['other']):
+                u_ind = u_info['other_ind'][cur_ind]
+                if cur_cons_data[u_ind]['has_uncertain_mult']:
+                    cur_con  = cur_con + cur_vars@(
+                        u_info['op'][u_ind](
+                            cur_cons_data[u_ind]["unc_term"],
+                            other_list[cur_ind][reps]))
+
+            # canonicalize isolated uncertain constrains
+                if cur_cons_data[u_ind]['has_uncertain_isolated']:
+                    cur_con = cur_con \
+                        + u_info['op'][u_ind](
+                            cur_cons_data[u_ind]["unc_isolated"],
+                            other_list[cur_ind][reps])
+
+            aux_constraint += [cur_con <= 0]
+        return aux_constraint[0], aux_constraint[1:], 0, None
+
+
     def get_u_shape(self, uvar):
         trans = uvar.uncertainty_set.affine_transform
 
@@ -240,8 +324,12 @@ class RemoveUncertainty(Reduction):
                 raise ValueError("Multiple uncertainty sets is not " + \
                                   "supported for MRO uncertainty")
 
-        canon_constr, aux_constr, new_lmbda, new_sval = \
-            self.remove_uncertainty_helper(cur_cons_data, is_mro)
+        if isinstance(unc_param.uncertainty_set, Scenario):
+            canon_constr, aux_constr, new_lmbda, new_sval = \
+                self.scenario_helper(cur_cons_data)
+        else:
+            canon_constr, aux_constr, new_lmbda, new_sval = \
+                self.remove_uncertainty_helper(cur_cons_data, is_mro)
         canon_constraints += aux_constr + [canon_constr]
         if lmbda is None:
             lmbda = new_lmbda

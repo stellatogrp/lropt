@@ -21,10 +21,12 @@ from cvxtorch import TorchExpression
 import lropt.train.settings as settings
 from lropt.train.batch import batchify
 from lropt.train.parameter import ContextParameter
+from lropt.train.trainer_settings import TrainerSettings
 from lropt.uncertain_canon.remove_uncertainty import RemoveUncertainty
 from lropt.uncertain_canon.utils import CERTAIN_ID, UNCERTAIN_NO_MAX_ID
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.mro import MRO
+from lropt.uncertainty_sets.scenario import Scenario
 from lropt.utils import gen_and_apply_chain
 
 torch.manual_seed(0) #TODO: Remove all seed setters
@@ -488,18 +490,24 @@ class RobustProblem(Problem):
                 # if no data is passed, no training is needed
                 if unc_param_lst[0].uncertainty_set.data is None:
                     self.remove_uncertainty(solver = solver)
+                elif isinstance(unc_param_lst[0].uncertainty_set, Scenario):
+                    self.remove_uncertainty(solver = solver)
                 else:
                     from lropt.train.trainer import Trainer
                     # if not MRO set and not trained
                     if not isinstance(unc_param_lst[0].uncertainty_set, MRO):
-                        self.trainer = Trainer(self, solver= solver)
-                        _ = self.trainer.train()
+                        self.trainer = Trainer(self)
+                        trainer_settings = TrainerSettings()
+                        _ = self.trainer.train(trainer_settings=
+                                               trainer_settings)
                         for x in self.x_parameters():
                             x.value = x.data[0]
                     # if MRO set and training needed
                     elif unc_param_lst[0].uncertainty_set._train:
-                        self.trainer = Trainer(self, solver= solver)
-                        _ = self.trainer.train()
+                        self.trainer = Trainer(self)
+                        trainer_settings = TrainerSettings()
+                        _ = self.trainer.train(trainer_settings=
+                                               trainer_settings)
                         for x in self.x_parameters():
                             x.value = x.data[0]
                     else:
@@ -543,14 +551,18 @@ class RobustProblem(Problem):
     def evaluate(self, x: list[torch.Tensor], u: list[torch.Tensor]) -> float:
         """
         TODO: Irina, add docstring
-        x (context parameters) Every element is a b x w tensor, b is the batch size, w is the dimension of x.
-        u (uncertain parameter) Every element is a b x d tensor, b is the batch size, d is the dimension of u.
+        x (context parameters) Every element is a b x w tensor, b is the batch
+        size, w is the dimension of x.
+        u (uncertain parameter) Every element is a b x d tensor, b is the batch
+        size, d is the dimension of u.
         """
 
         #To generate eval_args:
-        #Need to take self.variables, x (input dataset - context parameters), u (input dataset - uncertain_parameter),
-        #And then reorder them (like in what we do in Trainer.order_args but tailored for self.problem_canon.eval)
-        
+        #Need to take self.variables, x (input dataset - context parameters), u
+        # (input dataset - uncertain_parameter),
+        #And then reorder them (like in what we do in Trainer.order_args but
+        # tailored for self.problem_canon.eval)
+
         def _get_batch_size(tch_list: list[torch.Tensor]) -> int:
             """
             This function returns the batch size. If inconsistent, raises an error.
@@ -563,9 +575,9 @@ class RobustProblem(Problem):
                 elif b != curr_b:
                     raise ValueError("Inconsistent batch sizes.")
             return b
-        
-        b = _get_batch_size(x+u)
-        
+
+        #b = _get_batch_size(x+u)
+
         # eval_input(batch_int=b,
         #            eval_func=self.problem_canon.eval,
         #            eval_args=SEE_ABOVE,
