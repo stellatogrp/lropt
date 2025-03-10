@@ -5,6 +5,7 @@ from functools import partial
 from typing import Optional
 
 import cvxpy as cp
+import numpy as np
 import torch
 from cvxpy import Parameter as OrigParameter
 from cvxpy import error
@@ -15,13 +16,14 @@ from cvxpy.expressions.variable import Variable
 from cvxpy.problems.objective import Maximize
 from cvxpy.problems.problem import Problem
 from cvxpy.reductions.solution import INF_OR_UNB_MESSAGE
-from cvxtorch import TorchExpression
+from cvxtorch import TorchExpression, VariablesDict
 
 # from pathos.multiprocessing import ProcessPool as Pool
 import lropt.train.settings as settings
 from lropt.train.batch import batchify
 from lropt.train.parameter import ContextParameter
 from lropt.train.trainer_settings import TrainerSettings
+from lropt.train.utils import EVAL_INPUT_CASE, eval_input
 from lropt.uncertain_canon.remove_uncertainty import RemoveUncertainty
 from lropt.uncertain_canon.utils import CERTAIN_ID, UNCERTAIN_NO_MAX_ID
 from lropt.uncertain_parameter import UncertainParameter
@@ -272,7 +274,8 @@ class RobustProblem(Problem):
                 args_inds_to_pass[global_ind] = vars_dict.vars_dict[var_param]
             return args_inds_to_pass
 
-        def wrapped_function(torch_exp, args_inds_to_pass: dict[int, int], batch_flag: bool, *args):
+        def wrapped_function(torch_exp, args_inds_to_pass: dict[int, int], batch_flag: bool,
+                             vars_dict: VariablesDict, *args):
             """
             This is the function that wraps the torch expression.
 
@@ -284,6 +287,10 @@ class RobustProblem(Problem):
                     Note that len(args) > len(args_inds_to_pass) is possible.
                 batch_flag (bool):
                     Batch mode on/off.
+                vars_dict (VariablesDict):
+                    The VariablesDict of the torch expression. It is not used by this function,
+                    but it is passed in case it will need to be accessed by another function in
+                    the future.
                 *args
                     The arguments of torch_exp
             """
@@ -361,7 +368,7 @@ class RobustProblem(Problem):
         # Create a dictionary from index -> variable/param (for the problem)
         args_inds_to_pass = gen_args_inds_to_pass(self.vars_params, vars_dict)
 
-        return partial(wrapped_function, torch_exp, args_inds_to_pass, batch_flag)
+        return partial(wrapped_function, torch_exp, args_inds_to_pass, batch_flag, vars_dict)
 
     def _gen_all_torch_expressions(self, eval_exp: Expression | None = None):
         """
@@ -548,45 +555,123 @@ class RobustProblem(Problem):
         self.unpack_results_unc(solution, uncertain_chain, inverse_data,solvername)
         return self.value
 
-    def evaluate(self, x: list[torch.Tensor], u: list[torch.Tensor]) -> float:
+    def _get_eval_batch_size(self) -> int:
+        """
+        This function returns the batch size based on all ContextParameters and UncertainParameters.
+        If there are no ContextParameters or UncertainParameters, returns 1.
+
+        Raises:
+            ValueError if inconsistent batch sizes are found.
+
+            AttributeError if eval_data is missing from a ContextParameter or an UncertainParameter.
+        """
+        def _get_curr_batch_size(var_param: ContextParameter|UncertainParameter) -> int:
+            """
+            This functino returns the batch size of the current var_param.
+            Raises AttributeError if eval_data does not exist.
+            """
+            if not hasattr(var_param, "eval_data"):
+                raise AttributeError(f"The parameter {var_param} has no eval_data.")
+            eval_data = var_param.eval_data
+            if isinstance(eval_data, (float, int)):
+                return 1
+            if isinstance(eval_data, (torch.Tensor, np.ndarray)):
+                return eval_data.shape[0]
+            return len(eval_data)
+            
+
+        batch_size = None
+        for var_param in self.problem_canon.vars_params.values():
+            if not isinstance(var_param, (ContextParameter, UncertainParameter)):
+                continue
+            if not batch_size:
+                batch_size = _get_curr_batch_size(var_param=var_param)
+            else:
+                if batch_size != _get_curr_batch_size(var_param=var_param):
+                    raise ValueError("Inconsistent batch sizes.")
+        if not batch_size:
+            batch_size=1
+        return batch_size
+                
+                
+
+    def evaluate(self) -> float:
         """
         TODO: Irina, add docstring
-        x (context parameters) Every element is a b x w tensor, b is the batch
-        size, w is the dimension of x.
-        u (uncertain parameter) Every element is a b x d tensor, b is the batch
-        size, d is the dimension of u.
+        TODO (Amit): Finisht his function
         """
 
-        #To generate eval_args:
-        #Need to take self.variables, x (input dataset - context parameters), u
-        # (input dataset - uncertain_parameter),
-        #And then reorder them (like in what we do in Trainer.order_args but
-        # tailored for self.problem_canon.eval)
+        batch_size = self._get_eval_batch_size()
+        
+        #Get TorchExpression related data
+        tch_exp = self.problem_canon.eval #Not actually torch expression, but partial.
 
-        def _get_batch_size(tch_list: list[torch.Tensor]) -> int:
+
+        res = [None]*batch_size
+        for batch_num in range(batch_size):
+            eval_args = self._gen_eval_data(tch_exp=tch_exp, batch_num=batch_num)        
+            eval_res = eval_input(batch_int=batch_size,
+                       eval_func=self.problem_canon.eval,
+                       eval_args=eval_args,
+                       init_val=0,
+                       eval_input_case=EVAL_INPUT_CASE.MEAN,
+                       quantiles=None,
+                       serial_flag=False)
+            res[batch_num] = eval_res
+        return res
+
+
+    def _gen_eval_data(self, tch_exp: partial, batch_num: int) -> list[torch.Tensor]:
+        """
+        This function generates a list of inputs (as torch.expressions) from eval_data of all the
+        Contextual Parameters and Uncertain Parameters, as well as value from CVXPY variables
+        and Parameters.
+
+        Args:
+            tch_exp (partial):
+                A torch expression, as the output of self._gen_torch_exp
+            batch (int):
+                Batch number.
+
+        Returns:
+            A list of inputs (as torch.Tensor) for the torch expression.
+        """
+        def _get_data(var_param: cp.Variable | cp.Parameter, batch_num: int) -> torch.Tensor:
             """
-            This function returns the batch size. If inconsistent, raises an error.
+            This helper function returns eval_data for LROPT types, or value for CVXPY types.
             """
-            b = None
-            for tch in tch_list:
-                curr_b = tch.shape[0]
-                if b is None:
-                    b = curr_b
-                elif b != curr_b:
-                    raise ValueError("Inconsistent batch sizes.")
-            return b
+            #Get the data from the corret field.
+            if isinstance(var_param, (ContextParameter, UncertainParameter)):
+                value = var_param.eval_data[batch_num]
+            else:
+                value = var_param.value
+            
+            #Trnasform into a torch.Tensor
+            if isinstance(value, (float, int)):
+                value = [value]
+            return torch.Tensor(value)
+            
+        #Get the vars_dict
+        vars_dict = tch_exp.args[3]
+        assert isinstance(vars_dict, VariablesDict)
 
-        #b = _get_batch_size(x+u)
+        #Populate eval_data
+        eval_data = [None]*len(vars_dict)
+        for var_param in self.problem_canon.vars_params.values():
+            if var_param not in vars_dict.vars_dict:
+                continue
+            #Get data
+            data = _get_data(var_param=var_param, batch_num=batch_num)
+            
+            #Set in the correct position
+            ind = vars_dict.vars_dict[var_param]
+            eval_data[ind] = data
 
-        # eval_input(batch_int=b,
-        #            eval_func=self.problem_canon.eval,
-        #            eval_args=SEE_ABOVE,
-        #            init_val=0,
-        #            eval_input_case=EVAL_INPUT_CASE.MEAN,
-        #            quantiles=None,
-        #            serial_flag=False)
+        return eval_data
 
-    def order_args(self, z_batch, x_batch, u_batch):
+
+    def order_args(self, z_batch: list[torch.Tensor], x_batch: list[torch.Tensor],
+                   u_batch: list[torch.Tensor] | torch.Tensor):
         """
         This function orders z_batch (decisions), x_batch (context), and
         u_batch (uncertainty) according to the order in vars_params.

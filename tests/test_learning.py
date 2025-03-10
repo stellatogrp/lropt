@@ -68,6 +68,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         trainer_settings.num_iter = 2
         trainer_settings.momentum = 0.8
         trainer_settings.optimizer = "SGD"
+        trainer_settings.parallel = False
         trainer.train(trainer_settings=trainer_settings)
         # prob.solve()
 

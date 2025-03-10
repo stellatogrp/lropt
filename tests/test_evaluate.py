@@ -14,7 +14,7 @@ RTOL = 1e-4
 SOLVER = cp.CLARABEL
 SOLVER_SETTINGS = { "equilibrate_enable": False, "verbose": False }
 
-class TestEllipsoidalUncertainty(unittest.TestCase):
+class TestEvaluate(unittest.TestCase):
 
     def setUp(self):
         """Setup basic problem"""
