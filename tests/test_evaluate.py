@@ -31,7 +31,6 @@ class TestEvaluate(unittest.TestCase):
         self.rho = 0.2
         self.p = 2
 
-    @unittest.SkipTest
     def test_evaluate_no_context(self):
         b, x, n, rho, p = \
             self.b, self.x, self.n, self.rho, self.p
@@ -57,11 +56,10 @@ class TestEvaluate(unittest.TestCase):
         #  cvxpy parameter, the value should already be built-in and does not
         # need an additional input
 
-        eval_value = prob_robust.evaluate()
+        eval_value = np.mean(prob_robust.evaluate())
         actual_value = np.mean(-u_data@x_robust+0.3)
         npt.assert_allclose(eval_value, actual_value, rtol=RTOL, atol=ATOL)
 
-    @unittest.SkipTest
     def test_evaluate_context(self):
         b, x, n, rho, p = \
             self.b, self.x, self.n, self.rho, self.p
@@ -81,14 +79,13 @@ class TestEvaluate(unittest.TestCase):
         u_data = np.array([[0.1,0.2,0.3,0.1,0.1],
                            [0.1,0.5,-0.3,0.1,0.1],
                            [0.4,0.2,0.3,-0.1,0.1]])
+        actual_value = np.mean(-u_data@x_robust+0.3+x_data)
         a.eval_data = u_data
         self.context_param.eval_data = x_data
 
-        eval_value = prob_robust.evaluate()
-        actual_value = np.mean(-u_data@x_robust+0.3+x_data)
+        eval_value = np.mean(prob_robust.evaluate())
         npt.assert_allclose(eval_value, actual_value, rtol=RTOL, atol=ATOL)
 
-    @unittest.SkipTest
     def test_evaluate_multiple_u(self):
         b, x, n, rho, p = \
             self.b, self.x, self.n, self.rho, self.p
@@ -116,6 +113,6 @@ class TestEvaluate(unittest.TestCase):
         self.context_param.eval_data = x_data
         a1.eval_data = u1_data
 
-        eval_value = prob_robust.evaluate()
+        eval_value = np.mean(prob_robust.evaluate())
         actual_value = np.mean(-u_data@x_robust+u1_data@x_robust + 0.3+x_data)
         npt.assert_allclose(eval_value, actual_value, rtol=RTOL, atol=ATOL)
