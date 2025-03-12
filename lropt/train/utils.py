@@ -25,6 +25,31 @@ def get_n_processes(max_n=np.inf):
 
     return n_proc
 
+def eval_prob_constr_violation(g: list[partial], g_shapes: list[int],
+                               batch_int: int, eval_args: list[torch.Tensor]) -> torch.Tensor:
+    """
+    This function evaluates the probability of constraint violation of all uncertain constraints
+    over the batched set.
+    Args:
+        g (list[partial]):
+            Constraints to evaluate.
+        g_shapes (list[int]):
+            Shapes of the constraints of g.
+        batch_int (int):
+            The number of samples in the batch, to take the mean over
+        eval_args (list[torch.Tensor]):
+            The arguments of the constraints
+    Returns:
+        The average among all evaluated J x N pairs
+    """
+    num_g_total = len(g)
+    G = torch.zeros((num_g_total, batch_int), dtype=settings.DTYPE)
+    for k, g_k in enumerate(g):
+        G[sum(g_shapes[:k]):sum(g_shapes[:(k+1)])] = \
+        eval_input(batch_int, eval_func=g_k, eval_args=eval_args, init_val=\
+                    G[sum(g_shapes[:k]):sum(g_shapes[:(k+1)])],
+                    eval_input_case=EVAL_INPUT_CASE.MAX, quantiles=None)
+    return G.mean(axis=1)
 
 def eval_input(batch_int, eval_func, eval_args, init_val,
                 eval_input_case, quantiles, serial_flag=False, **kwargs):
