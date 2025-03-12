@@ -198,6 +198,8 @@ class Trainer():
                                                           self._covpred)
             self._a_tch = a_tch
             self._b_tch = b_tch
+            self._cur_x = x_t
+            self._cur_u = u_0
         return cost, constraint_cost, x_hist, z_hist, constraints_status, eval_cost, prob_vio, u_0
 
     def _validate_unc_set_T(self):
@@ -1009,12 +1011,13 @@ class Trainer():
         # tqdm.write("Testing objective: {}".format(obj_test[1].item()))
         # tqdm.write("Probability of constraint violation: {}".format(
         #            prob_violation_test))
+        ret_context = (self._cur_x, self._cur_u)
         if self._covpred:
             predvals = (self._Apred, self._bpred, self._Cpred, self._dpred, self._Areg, self._breg)
         else:
             predvals = None
         return df, df_test, a_history, b_history, rho_history, \
-            param_vals, fin_val, z_batch, mu, kwargs["linear"], predvals
+            param_vals, fin_val, z_batch, mu, kwargs["linear"], predvals, ret_context
 
     def train(
         self,
@@ -1139,12 +1142,15 @@ class Trainer():
             res = Parallel(n_jobs=trainer_settings.n_jobs)(delayed(self._train_loop)(
                 init_num, **kwargs) for init_num in range(trainer_settings.num_random_init))
         df, df_test, a_history, b_history, rho_history, param_vals, \
-            fin_val, var_values, mu_val, linear_models, predvals = zip(*res)
+            fin_val, var_values, mu_val, linear_models, predvals, ret_context\
+                  = zip(*res)
         index_chosen = np.argmin(np.array(fin_val))
         self.orig_problem_trained = True
         self.unc_set._trained = True
         return_rho = param_vals[index_chosen][2]
         self._rho_mult_parameter[0].value = return_rho
+        self._cur_x = ret_context[index_chosen][0]
+        self._cur_u = ret_context[index_chosen][1]
         if self._covpred:
             self._Apred = predvals[index_chosen][0]
             self._bpred = predvals[index_chosen][1]
@@ -1185,9 +1191,11 @@ class Trainer():
                 init_num, **kwargs) for init_num in range(1))
             df_s, df_test_s, a_history_s, b_history_s,rho_history_s,\
             param_vals_s, fin_val_s, var_values_s, mu_s, \
-                linear_models_s , pred_vals_s= zip(*res)
+                linear_models_s , pred_vals_s, ret_context_s = zip(*res)
             return_rho = param_vals_s[0][2]
             self._rho_mult_parameter[0].value = return_rho
+            self._cur_x = ret_context[0][0]
+            self._cur_u = ret_context[0][1]
             return_df = pd.concat([df[index_chosen],df_s[0]])
             return_df_test = pd.concat([df_test[index_chosen], df_test_s[0]])
             return_a_history = a_history[index_chosen] + a_history_s[0]
@@ -1212,27 +1220,27 @@ class Trainer():
                       rho_history = rho_history[index_chosen],
                       linear = linear_models[index_chosen])
 
-    def gen_unique_x(self,y_batch):
-        """ get unique y's from a list of y parameters. """
-        y_batch_array = [np.array(ele) for ele in y_batch]
-        all_indices = [np.unique(ele,axis=0, return_index=True)[1] for ele in y_batch_array]
+    def gen_unique_x(self,x_batch):
+        """ get unique x's from a list of x parameters. """
+        x_batch_array = [np.array(ele) for ele in x_batch]
+        all_indices = [np.unique(ele,axis=0, return_index=True)[1] for ele in x_batch_array]
         unique_indices = np.unique(np.concatenate(all_indices))
         num_unique_indices = len(unique_indices)
-        y_unique = [torch.tensor(ele, dtype=settings.DTYPE)[unique_indices] \
-                    for ele in y_batch_array]
-        y_unique_array = [ele[unique_indices] for ele in y_batch_array]
-        return y_batch_array, num_unique_indices, y_unique, y_unique_array
+        x_unique = [torch.tensor(ele, dtype=settings.DTYPE)[unique_indices] \
+                    for ele in x_batch_array]
+        _unique_array = [ele[unique_indices] for ele in x_batch_array]
+        return x_batch_array, num_unique_indices, x_unique, _unique_array
 
     def gen_new_z(self, num_unique_indices,
-                y_unique_array, var_values, batch_int,
-            y_batch_array, contextual=False, a_tch=None, b_tch=None):
-        """get var_values for all y's, repeated for the repeated y's """
+                x_unique_array, var_values, batch_int,
+            x_batch_array, contextual=False, a_tch=None, b_tch=None):
+        """get var_values for all x's, repeated for the repeated x's """
         # create dictionary from unique y's to var_values
         if not contextual:
-            y_to_var_values_dict = {}
+            x_to_var_values_dict = {}
             for i in range(num_unique_indices):
-                y_to_var_values_dict[tuple(tuple(v[i].flatten())\
-                        for v in y_unique_array)] = [v[i] for v in var_values]
+                x_to_var_values_dict[tuple(tuple(v[i].flatten())\
+                        for v in x_unique_array)] = [v[i] for v in var_values]
             # initialize new var_values
             shapes = [torch.tensor(v.shape) for v in var_values]
             for i in range(len(shapes)):
@@ -1241,17 +1249,17 @@ class Trainer():
 
             # populate new_var_values using the dictionary
             for i in range(batch_int):
-                values_list = y_to_var_values_dict[tuple(tuple(v[i].flatten())\
-                        for v in y_batch_array)]
+                values_list = x_to_var_values_dict[tuple(tuple(v[i].flatten())\
+                        for v in x_batch_array)]
                 for j in range(len(var_values)):
                     new_var_values[j][i] = values_list[j]
             return new_var_values, a_tch, b_tch
         else:
             # create dictionary from unique y's to var_values
-            y_to_var_values_dict = {}
+            x_to_var_values_dict = {}
             for i in range(num_unique_indices):
-                y_to_var_values_dict[tuple(tuple(v[i].flatten())\
-                        for v in y_unique_array)] = ([v[i] for v in var_values], a_tch[i], b_tch[i])
+                x_to_var_values_dict[tuple(tuple(v[i].flatten())\
+                        for v in x_unique_array)] = ([v[i] for v in var_values], a_tch[i], b_tch[i])
             # initialize new var_values
             shapes = [torch.tensor(v.shape) for v in var_values]
             for i in range(len(shapes)):
@@ -1264,8 +1272,8 @@ class Trainer():
             new_b_tch = torch.zeros(*ab_shapes[1], dtype=settings.DTYPE)
             # populate new_var_values using the dictionary
             for i in range(batch_int):
-                values_list = y_to_var_values_dict[tuple(tuple(v[i].flatten())\
-                        for v in y_batch_array)]
+                values_list = x_to_var_values_dict[tuple(tuple(v[i].flatten())\
+                        for v in x_batch_array)]
                 for j in range(len(var_values)):
                     new_var_values[j][i] = values_list[0][j]
                 new_a_tch[i] = values_list[1]
