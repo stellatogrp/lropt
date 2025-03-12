@@ -10,6 +10,7 @@ from joblib import Parallel, delayed
 
 import lropt.train.settings as settings
 from lropt import RobustProblem
+from lropt.train.cov_predict import fit, predict
 from lropt.train.parameter import ContextParameter, ShapeParameter, SizeParameter
 from lropt.train.settings import DEFAULT_MAX_ITER_LINE_SEARCH
 from lropt.train.simulator import Default_Simulator
@@ -158,7 +159,7 @@ class Trainer():
             x_0 = [x_0]
         x_0 = [torch.tensor(x, dtype=settings.DTYPE) for x in x_0]
         if contextual:
-            a_tch, b_tch = self.create_tensors_linear(x_0, model)
+            a_tch, b_tch = self.create_tensors_linear(x_0, model, self._covpred)
 
         cost = 0.0
         constraint_cost = 0.0
@@ -192,7 +193,8 @@ class Trainer():
             x_hist.append([xval.detach().numpy().copy() for xval in x_t])
             z_hist.append(z_t)
             if contextual:
-                a_tch, b_tch = self.create_tensors_linear(x_t,model)
+                a_tch, b_tch = self.create_tensors_linear(x_t,model,
+                                                          self._covpred)
             self._a_tch = a_tch
             self._b_tch = b_tch
         return cost, constraint_cost, x_hist, z_hist, constraints_status, eval_cost, prob_vio, u_0
@@ -288,29 +290,60 @@ class Trainer():
         out_shape = int(a_shape[0]*a_shape[1]+ b_shape[0])
         return in_shape, out_shape, a_shape[0]*a_shape[1]
 
-    def create_tensors_linear(self,x_batch, linear):
+    def create_tensors_linear(self,x_batch, linear, covpred = False):
         """Create the tensors of a's and b's using the trained linear model"""
-        x_endind = self.x_endind
-        a_shape = self.unc_set._a.shape
-        b_shape = self.unc_set._b.shape
-        x_batch = [torch.flatten(x, start_dim = 1) for x in x_batch]
-        if x_endind:
-            input_tensors = torch.hstack(x_batch)[:,:x_endind]
+        if covpred:
+            x_endind = self.x_endind
+            x_batch = [torch.flatten(x, start_dim = 1) for x in x_batch]
+            if x_endind:
+                input_tensors = torch.hstack(x_batch)[:,:x_endind]
+            else:
+                input_tensors = torch.hstack(x_batch)
+            b_tch, a_tch = predict(input_tensors, self._Apred, self._bpred,
+                                   self._Cpred,
+                                    self._dpred, self._Areg, self._breg)
         else:
-            input_tensors = torch.hstack(x_batch)
-        theta = linear(input_tensors)
-        raw_a = theta[:,:a_shape[0]*a_shape[1]]
-        raw_b = theta[:,a_shape[0]*a_shape[1]:]
-        a_tch = raw_a.view(theta.shape[0],a_shape[0],a_shape[1])
-        b_tch = raw_b.view(theta.shape[0],b_shape[0])
-        if not self.train_flag:
-            a_tch = torch.tensor(a_tch, requires_grad=False)
-            b_tch = torch.tensor(b_tch, requires_grad=False)
+            x_endind = self.x_endind
+            a_shape = self.unc_set._a.shape
+            b_shape = self.unc_set._b.shape
+            x_batch = [torch.flatten(x, start_dim = 1) for x in x_batch]
+            if x_endind:
+                input_tensors = torch.hstack(x_batch)[:,:x_endind]
+            else:
+                input_tensors = torch.hstack(x_batch)
+            theta = linear(input_tensors)
+            raw_a = theta[:,:a_shape[0]*a_shape[1]]
+            raw_b = theta[:,a_shape[0]*a_shape[1]:]
+            a_tch = raw_a.view(theta.shape[0],a_shape[0],a_shape[1])
+            b_tch = raw_b.view(theta.shape[0],b_shape[0])
+            if not self.train_flag:
+                a_tch = torch.tensor(a_tch, requires_grad=False)
+                b_tch = torch.tensor(b_tch, requires_grad=False)
         return a_tch, b_tch
 
     def init_linear_model(self, a_tch, b_tch, random_init = False,
-                    init_num=1,seed = 0, init_weight = None, init_bias = None):
+                    init_num=1,seed = 0, init_weight = None, init_bias = None, covpred = False):
         """Initializes the linear model weights and bias"""
+        if covpred and (self._Apred is None):
+            x_endind = self.x_endind
+            x_batch = [torch.flatten(x, start_dim = 1) for x in self.x_train_tch]
+            if x_endind:
+                input_tensors = torch.hstack(x_batch)[:,:x_endind]
+            else:
+                input_tensors = torch.hstack(x_batch)
+
+            Apred, bpred, Cpred, dpred, Areg, breg = fit(
+                input_tensors.detach().numpy(),
+                  self.u_train_tch.detach().numpy())
+            self._Apred = Apred
+            self._bpred = bpred
+            self._Cpred = Cpred
+            self._dpred = dpred
+            self._Areg = Areg
+            self._breg = breg
+            return None
+        elif covpred:
+            return None
         in_shape, out_shape, a_totsize = \
                                 self.initialize_dimensions_linear()
         torch.manual_seed(seed+init_num)
@@ -429,7 +462,6 @@ class Trainer():
                     dtype=settings.DTYPE))
 
 
-
         self.u_train_tch = unc_train_tch
         self.u_test_tch = unc_test_tch
         self.u_train_set = unc_train_set
@@ -439,6 +471,14 @@ class Trainer():
         self.train_size = num_train
         self.test_size = num_test
         self.cp_param_tch = cp_param_tchs
+        if self._multistage and self._covpred:
+            if (self._init_uncertain_parameter is None) or (self._init_context is None):
+                raise ValueError("You must provide init_uncertain_param and \
+                                  init_context in the trainer settings")
+            self.u_train_tch = torch.tensor(
+                self._init_uncertain_parameter, requires_grad= True,
+                  dtype = settings.DTYPE)
+            self.x_train_tch = self._init_context
 
         return unc_train_set, unc_test_set, unc_train_tch, \
                 unc_test_tch, x_train_tchs, x_test_tchs, cp_param_tchs
@@ -612,6 +652,9 @@ class Trainer():
             variables = [rho_tch, alpha, slack]
         elif fixb:
             variables = [rho_tch, a_tch, alpha, slack]
+        elif self._covpred:
+            variables = [rho_tch, alpha,slack, self._Apred, self._bpred,
+                         self._Cpred, self._dpred, self._Areg, self._breg]
         elif contextual:
             variables = [rho_tch, alpha,slack]
             variables.extend(list(model.parameters()))
@@ -646,7 +689,8 @@ class Trainer():
             return 0
         coverage = 0
         if contextual:
-            a_tch, b_tch = self.create_tensors_linear([torch.tensor(y) for y in y_set[-1]], linear)
+            a_tch, b_tch = self.create_tensors_linear([torch.tensor(
+                y) for y in y_set[-1]], linear,self._covpred)
             for i in range(dset.shape[0]):
                 coverage += torch.where(
                     torch.norm((a_tch[i].T@torch.linalg.inv(a_tch[i]@a_tch[i].T)) @ (dset[i]-
@@ -828,7 +872,7 @@ class Trainer():
                 kwargs['linear'] = self.init_linear_model(a_tch, b_tch,
                                     kwargs['random_init'],init_num,
                                     kwargs['seed'],kwargs['init_weight'],
-                                    kwargs['init_bias'])
+                                    kwargs['init_bias'], self._covpred)
             kwargs['model'] = torch.nn.Sequential(kwargs['linear'])
         else:
             kwargs['model'] = None
@@ -836,7 +880,7 @@ class Trainer():
 
         variables = self._set_train_variables(kwargs['fixb'], alpha,
                                               slack, a_tch, b_tch,rho_tch,kwargs["trained_shape"],
-                                            kwargs["contextual"], kwargs['linear'])
+                                            kwargs["contextual"], kwargs['linear'] )
         if kwargs['optimizer'] == "SGD":
             opt = settings.OPTIMIZERS[kwargs['optimizer']](
                 variables, lr=kwargs['lr'], momentum=kwargs['momentum'])
@@ -922,7 +966,7 @@ class Trainer():
 
             new_row = train_stats.generate_train_row(self._a_tch, rho_tch, lam,
                                         mu, alpha, slack,
-                                        kwargs["contextual"], kwargs['linear'])
+                                        kwargs["contextual"], kwargs['linear'], self)
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
             self._update_iters(kwargs['save_history'], a_history,
@@ -963,13 +1007,18 @@ class Trainer():
             fin_val = record_eval_cost[1].item() + 10*abs(constr_cost.detach().numpy().sum())
         a_val = self._a_tch.detach().numpy().copy()
         b_val = self._b_tch.detach().numpy().copy()
-        rho_val = rho_tch.detach().numpy().copy() if kwargs['trained_shape'] else 1
+        rho_val = rho_tch.detach().numpy().copy()
+        # if kwargs['trained_shape'] else 1
         param_vals = (a_val, b_val, rho_val, record_eval_cost[1].item())
         # tqdm.write("Testing objective: {}".format(obj_test[1].item()))
         # tqdm.write("Probability of constraint violation: {}".format(
         #            prob_violation_test))
+        if self._covpred:
+            predvals = (self._Apred, self._bpred, self._Cpred, self._dpred, self._Areg, self._breg)
+        else:
+            predvals = None
         return df, df_test, a_history, b_history, rho_history, \
-            param_vals, fin_val, z_batch, mu, kwargs["linear"]
+            param_vals, fin_val, z_batch, mu, kwargs["linear"], predvals
 
     def train(
         self,
@@ -1005,8 +1054,16 @@ class Trainer():
         if trainer_settings.contextual and not trainer_settings.train_shape:
             if trainer_settings.linear is None:
                 raise ValueError("You must give a model if you do not train a model")
-        _,_,_,_,_,_,_ = self._split_dataset(trainer_settings.test_percentage, trainer_settings.seed)
         self._multistage = trainer_settings.multistage
+        self._covpred = trainer_settings.covpred
+        if self._covpred:
+            trainer_settings.contextual = True
+            trainer_settings.linear = None
+            self._Apred = None
+        self._init_uncertain_parameter = trainer_settings.init_uncertain_param
+        self._init_context = trainer_settings.init_context
+        _,_,_,_,_,_,_ = self._split_dataset(trainer_settings.test_percentage, trainer_settings.seed)
+
         if self._multistage:
             self.num_g_total = 1
         else:
@@ -1086,11 +1143,19 @@ class Trainer():
             res = Parallel(n_jobs=trainer_settings.n_jobs)(delayed(self._train_loop)(
                 init_num, **kwargs) for init_num in range(trainer_settings.num_random_init))
         df, df_test, a_history, b_history, rho_history, param_vals, \
-            fin_val, var_values, mu_val, linear_models = zip(*res)
+            fin_val, var_values, mu_val, linear_models, predvals = zip(*res)
         index_chosen = np.argmin(np.array(fin_val))
         self.orig_problem_trained = True
         self.unc_set._trained = True
         return_rho = param_vals[index_chosen][2]
+        self._rho_mult_parameter[0].value = return_rho
+        if self._covpred:
+            self._Apred = predvals[index_chosen][0]
+            self._bpred = predvals[index_chosen][1]
+            self._Cpred = predvals[index_chosen][2]
+            self._dpred = predvals[index_chosen][3]
+            self._Areg = predvals[index_chosen][4]
+            self._breg = predvals[index_chosen][5]
         if trainer_settings.contextual:
             self.unc_set.a.value = param_vals[index_chosen][0][0]
             self.unc_set.b.value = param_vals[index_chosen][1][0]
@@ -1124,8 +1189,9 @@ class Trainer():
                 init_num, **kwargs) for init_num in range(1))
             df_s, df_test_s, a_history_s, b_history_s,rho_history_s,\
             param_vals_s, fin_val_s, var_values_s, mu_s, \
-                linear_models_s = zip(*res)
+                linear_models_s , pred_vals_s= zip(*res)
             return_rho = param_vals_s[0][2]
+            self._rho_mult_parameter[0].value = return_rho
             return_df = pd.concat([df[index_chosen],df_s[0]])
             return_df_test = pd.concat([df_test[index_chosen], df_test_s[0]])
             return_a_history = a_history[index_chosen] + a_history_s[0]
@@ -1224,7 +1290,8 @@ class Trainer():
         newdata = settings.NEWDATA_DEFAULT,
         eta = settings.ETA_LAGRANGIAN_DEFAULT,
         contextual = settings.CONTEXTUAL_DEFAULT,
-        linear = settings.CONTEXTUAL_LINEAR_DEFAULT
+        linear = settings.CONTEXTUAL_LINEAR_DEFAULT,
+        covpred = False
     ):
         r"""
         Perform gridsearch to find optimal :math:`\rho`-ball around data.
@@ -1268,9 +1335,12 @@ class Trainer():
             Rho: float
                 The rho value
         """
-
+        self._multistage = False
+        self._covpred = covpred
+        if self._covpred:
+            contextual = True
         if contextual:
-            if linear is None:
+            if linear is None and covpred is False:
                 raise ValueError("Missing NN-Model")
 
         self.train_flag = False
@@ -1311,7 +1381,7 @@ class Trainer():
                 rho*init_rho, requires_grad=self.train_flag, dtype=settings.DTYPE)
             if contextual:
                 a_tch_init, b_tch_init = self.create_tensors_linear(
-                                    x_unique, linear)
+                                    x_unique, linear,self._covpred)
             z_unique = self.cvxpylayer(rho_tch, *self.cp_param_tch,
                                     *x_unique, a_tch_init,b_tch_init,
                                     solver_args=solver_args)
@@ -1321,7 +1391,7 @@ class Trainer():
 
             if contextual:
                 a_tch_init, b_tch_init = self.create_tensors_linear(
-                                    x_unique_t, linear)
+                                    x_unique_t, linear,self._covpred)
             z_unique_t = self.cvxpylayer(rho_tch, *self.cp_param_tch,
                                     *x_unique_t, a_tch_init,b_tch_init,
                                     solver_args=solver_args)
@@ -1451,7 +1521,7 @@ class TrainLoopStats():
         self.violation_test = var_vio.numpy().sum()/self.num_g_total
 
     def generate_train_row(self, a_tch, rho_tch, lam, mu, alpha,
-                            slack,contextual=False, linear = None):
+                            slack,contextual=False, linear = None, trainer=None):
         """
         This function generates a new row with the statistics
         """
@@ -1470,12 +1540,15 @@ class TrainLoopStats():
         row_dict["alpha"] = alpha.item()
         row_dict["slack"] = slack.detach().numpy().copy()
         row_dict["alphagrad"] = alpha.grad
-        if contextual:
+        if contextual and linear:
             row_dict["dfnorm"] = np.linalg.norm(linear.weight.grad) \
                         + np.linalg.norm(linear.bias.grad)
             row_dict["gradnorm"] = torch.hstack([linear.weight.grad,
                                                  linear.bias.grad.view(
                                             linear.bias.grad.shape[0],1)])
+        elif contextual:
+            row_dict["dfnorm"] = np.linalg.norm(trainer._Apred.detach().numpy())
+            row_dict["gradnorm"] = trainer._Apred.detach().numpy()
         else:
             row_dict["dfnorm"] = np.linalg.norm(a_tch.grad)
             row_dict["gradnorm"] = a_tch.grad
