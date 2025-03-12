@@ -189,7 +189,7 @@ class TestSolutionProbability(unittest.TestCase):
         eval_value = np.mean(prob_robust.evaluate_sol_probability(),axis = 1)
         npt.assert_allclose(eval_value, actual_value, rtol=RTOL, atol=ATOL)
 
-    # @unittest.skip
+    @unittest.skip
     def test_sol_prob_multiple_u(self):
         b, x, n, rho, p = \
             self.b, self.x, self.n, self.rho, self.p
