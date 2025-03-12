@@ -18,6 +18,7 @@ from lropt.train.trainer_settings import TrainerSettings
 from lropt.train.utils import (
     EVAL_INPUT_CASE,
     eval_input,
+    eval_prob_constr_violation,
     get_n_processes,
     halve_step_size,
     restore_step_size,
@@ -793,13 +794,8 @@ class Trainer():
         Returns:
             The average among all evaluated J x N pairs
         """
-        G = torch.zeros((self.num_g_total, batch_int), dtype=settings.DTYPE)
-        for k, g_k in enumerate(self.g):
-            G[sum(self.g_shapes[:k]):sum(self.g_shapes[:(k+1)])] = \
-            eval_input(batch_int, eval_func=g_k, eval_args=eval_args, init_val=\
-                        G[sum(self.g_shapes[:k]):sum(self.g_shapes[:(k+1)])],
-                        eval_input_case=EVAL_INPUT_CASE.MAX, quantiles=None)
-        return G.mean(axis=1)
+        return eval_prob_constr_violation(g=self.g, g_shapes=self.g_shapes, batch_int=batch_int,
+                                          eval_args=eval_args)
 
     def lagrangian(self, batch_int,eval_args, alpha, slack, lam, mu,
                    eta=settings.ETA_LAGRANGIAN_DEFAULT, kappa=settings.KAPPA_LAGRANGIAN_DEFAULT):
