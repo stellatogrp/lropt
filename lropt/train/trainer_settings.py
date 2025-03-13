@@ -179,7 +179,9 @@ class TrainerSettings():
         self.simulator = settings.SIMULATOR_DEFAULT
         self.kwargs_simulator = settings.KWARGS_SIM_DEFAULT
         self.multistage = settings.MULTISTAGE_DEFAULT
-
+        self.init_context = None
+        self.init_uncertain_param = None
+        self.covpred = False
         self._generate_slots()
 
     def _attr_exists(self, name) -> None:

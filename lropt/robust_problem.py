@@ -61,7 +61,7 @@ class RobustProblem(Problem):
 
         self.num_xs = self.verify_x_parameters() if verify_x_parameters else None
         self._store_variables_parameters()
-        self.eval_exp = eval_exp
+        self.eval_exp = eval_exp if eval_exp else self.objective.expr
 
     @property
     def trained(self):
@@ -578,7 +578,7 @@ class RobustProblem(Problem):
             if isinstance(eval_data, (torch.Tensor, np.ndarray)):
                 return eval_data.shape[0]
             return len(eval_data)
-            
+
 
         batch_size = None
         for var_param in self.problem_canon.vars_params.values():
@@ -592,26 +592,28 @@ class RobustProblem(Problem):
         if not batch_size:
             batch_size=1
         return batch_size
-                
-                
 
     def evaluate(self) -> float:
         """
-        TODO: Irina, add docstring
+        Evaluates the out-of-sample value of the current solution and
+        cvxpy/context parameters, with respect to the input data-set
+        of uncertain parameters. The dataset is taken from u.eval_data_sol
+        for each uncertain parameter u.
         TODO (Amit): Finisht his function
         """
 
         batch_size = self._get_eval_batch_size()
-        
+
         #Get TorchExpression related data
-        tch_exp = self.problem_canon.eval #Not actually torch expression, but partial.
+        #Not actually torch expression, but partial.
+        tch_exp = TorchExpression(self.eval_exp).torch_expression
 
 
         res = [None]*batch_size
         for batch_num in range(batch_size):
-            eval_args = self._gen_eval_data(tch_exp=tch_exp, batch_num=batch_num)        
+            eval_args = self._gen_eval_data(tch_exp=tch_exp, batch_num=batch_num)
             eval_res = eval_input(batch_int=batch_size,
-                       eval_func=self.problem_canon.eval,
+                       eval_func=tch_exp,
                        eval_args=eval_args,
                        init_val=0,
                        eval_input_case=EVAL_INPUT_CASE.MEAN,
@@ -619,7 +621,6 @@ class RobustProblem(Problem):
                        serial_flag=False)
             res[batch_num] = eval_res
         return res
-
 
     def _gen_eval_data(self, tch_exp: partial, batch_num: int) -> list[torch.Tensor]:
         """
@@ -645,30 +646,30 @@ class RobustProblem(Problem):
                 value = var_param.eval_data[batch_num]
             else:
                 value = var_param.value
-            
+
             #Trnasform into a torch.Tensor
             if isinstance(value, (float, int)):
                 value = [value]
             return torch.Tensor(value)
-            
+
         #Get the vars_dict
         vars_dict = tch_exp.args[3]
         assert isinstance(vars_dict, VariablesDict)
 
         #Populate eval_data
         eval_data = [None]*len(vars_dict)
-        for var_param in self.problem_canon.vars_params.values():
+        # for var_param in self.problem_canon.vars_params.values():
+        for var_param in self.vars_params.values():
             if var_param not in vars_dict.vars_dict:
                 continue
             #Get data
             data = _get_data(var_param=var_param, batch_num=batch_num)
-            
+
             #Set in the correct position
             ind = vars_dict.vars_dict[var_param]
             eval_data[ind] = data
 
         return eval_data
-
 
     def order_args(self, z_batch: list[torch.Tensor], x_batch: list[torch.Tensor],
                    u_batch: list[torch.Tensor] | torch.Tensor):
