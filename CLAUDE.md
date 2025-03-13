@@ -1,6 +1,7 @@
-# LRopt Development Guide
+# LROPT Development Guide
 
 ## Build & Test Commands
+
 - Install dev dependencies: `pip install -e ".[dev]"`
 - Run all tests: `pytest tests`
 - Run a specific test: `pytest tests/test_file.py::test_function_name`
@@ -10,6 +11,7 @@
 - Format code: `ruff format .`
 
 ## Code Style Guidelines
+
 - **Imports**: Standard library first, third-party next, project-specific last
 - **Formatting**: 4-space indentation, 100 char line length, single quotes
 - **Naming**: snake_case for functions/variables, CamelCase for classes
