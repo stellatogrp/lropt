@@ -10,3 +10,4 @@ When writing code, you MUST follow these principles:
 - When comments are used, they should add useful information that is not readily apparent from the code itself.
 - Properly handle errors and exceptions to ensure the software's robustness.
 - Use exceptions rather than error codes for handling errors.
+- Python executable at "./.venv/bin/python"

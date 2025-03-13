@@ -237,13 +237,13 @@ def plot_iters(dftrain, dftest, title, steps=2000, logscale=True):
 ipdb.set_trace()
 
 # training with linear NN - erratic balues
-plot_iters(result.df, steps=trainer_settings.num_iter, title="training")
+plot_iters(result.df, result.df_test, steps=trainer_settings.num_iter, title="training")
 
 
 ipdb.set_trace()
 
 # training with covpred initialization - converges better but objective is much worse
-plot_iters(result4.df, steps=trainer_settings.num_iter, title="training")
+plot_iters(result4.df, result4.df_test, steps=trainer_settings.num_iter, title="training")
 
 
 ipdb.set_trace()
