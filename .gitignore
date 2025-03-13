@@ -152,3 +152,4 @@ lropt/_version.py
 .csv
 .npy
 examples_test/
+.aider*
