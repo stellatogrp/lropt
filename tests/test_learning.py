@@ -13,7 +13,7 @@ import torch
 # from tests.settings import SOLVER
 from sklearn.model_selection import train_test_split
 
-from lropt import Trainer, TrainerSettings, max_of_uncertain
+from lropt import DefaultTrainerSettings, Trainer, max_of_uncertain
 from lropt.robust_problem import RobustProblem
 from lropt.train.parameter import ContextParameter
 from lropt.uncertain_parameter import UncertainParameter
@@ -27,16 +27,13 @@ RTOL = 1e-5
 
 
 class TestEllipsoidalUncertainty(unittest.TestCase):
-
     def setUp(self):
-
         self.n = 4
         self.N = 20
-        norms = npr.multivariate_normal(
-            np.zeros(self.n), np.eye(self.n), self.N)
+        norms = npr.multivariate_normal(np.zeros(self.n), np.eye(self.n), self.N)
         self.data = np.exp(norms)
-        self.ATOL=ATOL
-        self.RTOL=RTOL
+        self.ATOL = ATOL
+        self.RTOL = RTOL
 
     # @unittest.skip('learning not ready')
     def test_simple_learn(self):
@@ -58,12 +55,11 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         objective = cp.Maximize(a @ x)
 
-
-        constraints = [x @ (u + y) <= c, cp.norm(x) <= 2*c]
+        constraints = [x @ (u + y) <= c, cp.norm(x) <= 2 * c]
 
         prob = RobustProblem(objective, constraints)
         trainer = Trainer(prob)
-        trainer_settings = TrainerSettings()
+        trainer_settings = DefaultTrainerSettings()
         trainer_settings.lr = 0.001
         trainer_settings.num_iter = 2
         trainer_settings.momentum = 0.8
@@ -88,12 +84,12 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         objective = cp.Maximize(y @ x)
 
         constraints = [u >= -100]
-        constraints += [cp.sum(x) == 1, x>=0]
-        constraints += [np.ones(n)@u <= 100]
+        constraints += [cp.sum(x) == 1, x >= 0]
+        constraints += [np.ones(n) @ u <= 100]
 
         prob = RobustProblem(objective, constraints)
         trainer = Trainer(prob)
-        trainer_settings = TrainerSettings()
+        trainer_settings = DefaultTrainerSettings()
         trainer_settings.lr = 0.001
         trainer_settings.num_iter = 10
         trainer_settings.momentum = 0.8
@@ -107,8 +103,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         kappa = -0.01
         seed = 15
         np.random.seed(seed)
-        dist = (np.array([25, 10, 60, 50, 40, 30, 30, 20,
-                20, 15, 10, 10, 10, 10, 10, 10])/10)[:n]
+        dist = (np.array([25, 10, 60, 50, 40, 30, 30, 20, 20, 15, 10, 10, 10, 10, 10, 10]) / 10)[:n]
 
         # formulate the family parameter
         y_data = np.random.dirichlet(dist, self.N)
@@ -123,50 +118,48 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         # formulate the uncertain parameter
         data = gen_demand_intro(self.N, seed=seed)
-        u = UncertainParameter(n,uncertainty_set=Ellipsoidal(p=2,data=data))
+        u = UncertainParameter(n, uncertainty_set=Ellipsoidal(p=2, data=data))
 
         # formulate the Robust Problem
         x = cp.Variable(n)
         t = cp.Variable()
 
-        objective = cp.Minimize(t + 0.2*cp.norm(x - y,1))
-        constraints = [-x@u <= t, cp.sum(x) == 1, x >= 0]
-        eval_exp = -x @ u + 0.2*cp.norm(x-y, 1)
+        objective = cp.Minimize(t + 0.2 * cp.norm(x - y, 1))
+        constraints = [-x @ u <= t, cp.sum(x) == 1, x >= 0]
+        eval_exp = -x @ u + 0.2 * cp.norm(x - y, 1)
         prob = RobustProblem(objective, constraints, eval_exp=eval_exp)
         # initialize reshaping parameters
         test_p = 0.1
-        train, _ = train_test_split(data, test_size=int(
-            data.shape[0]*test_p), random_state=5)
+        train, _ = train_test_split(data, test_size=int(data.shape[0] * test_p), random_state=5)
         init = sc.linalg.sqrtm(np.cov(train.T))
         init_bval = np.mean(train, axis=0)
 
         # Train A and b
         trainer = Trainer(prob)
-        trainer_settings = TrainerSettings()
-        trainer_settings.lr=0.0001
-        trainer_settings.num_iter=100
-        trainer_settings.momentum=0.8
-        trainer_settings.optimizer="SGD"
-        trainer_settings.seed=5
-        trainer_settings.init_A=init
-        trainer_settings.init_b=init_bval
-        trainer_settings.init_lam=0.5
-        trainer_settings.init_mu=0.01
-        trainer_settings.mu_multiplier=1.001
-        trainer_settings.init_alpha=0.
-        trainer_settings.test_percentage=test_p
-        trainer_settings.kappa=kappa
-        trainer_settings.n_jobs=8
-        trainer_settings.random_init=True
-        trainer_settings.num_random_init=5
+        trainer_settings = DefaultTrainerSettings()
+        trainer_settings.lr = 0.0001
+        trainer_settings.num_iter = 100
+        trainer_settings.momentum = 0.8
+        trainer_settings.optimizer = "SGD"
+        trainer_settings.seed = 5
+        trainer_settings.init_A = init
+        trainer_settings.init_b = init_bval
+        trainer_settings.init_lam = 0.5
+        trainer_settings.init_mu = 0.01
+        trainer_settings.mu_multiplier = 1.001
+        trainer_settings.init_alpha = 0.0
+        trainer_settings.test_percentage = test_p
+        trainer_settings.kappa = kappa
+        trainer_settings.n_jobs = 8
+        trainer_settings.random_init = True
+        trainer_settings.num_random_init = 5
         trainer_settings.parallel = True
-        trainer_settings.position=False
+        trainer_settings.position = False
         result = trainer.train(trainer_settings=trainer_settings)
 
         timefin = time.time()
         timefin - timestart
-        npt.assert_array_less(np.array(
-            result.df["Violations_train"])[-1], kappa)
+        npt.assert_array_less(np.array(result.df["Violations_train"])[-1], kappa)
 
         # print(df)
         # # Grid search epsilon
@@ -185,14 +178,14 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
     def test_max_learning(self):
         n = 2
         N = 500
-        k = np.array([4.,5.])
-        p = np.array([5,6.5])
+        k = np.array([4.0, 5.0])
+        p = np.array([5, 6.5])
 
         def gen_demand_intro(N, seed):
             np.random.seed(seed)
-            sig = np.array([[0.6,-0.4],[-0.3,0.1]])
-            mu = np.array((0.9,0.7))
-            norms = np.random.multivariate_normal(mu,sig, N)
+            sig = np.array([[0.6, -0.4], [-0.3, 0.1]])
+            mu = np.array((0.9, 0.7))
+            norms = np.random.multivariate_normal(mu, sig, N)
             d_train = np.exp(norms)
             return d_train
 
@@ -200,16 +193,14 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         data = gen_demand_intro(N, seed=5)
 
         num_scenarios = 10
-        num_reps = int(N/10)
-        p_data = p + np.random.normal(0,1,(num_scenarios,n))
-        k_data = k + np.random.normal(0,1,(num_scenarios,n))
-        p_data = np.vstack([p_data]*num_reps)
-        k_data = np.vstack([k_data]*num_reps)
+        num_reps = int(N / 10)
+        p_data = p + np.random.normal(0, 1, (num_scenarios, n))
+        k_data = k + np.random.normal(0, 1, (num_scenarios, n))
+        p_data = np.vstack([p_data] * num_reps)
+        k_data = np.vstack([k_data] * num_reps)
 
         # Formulate uncertainty set
-        u = UncertainParameter(n,
-                                uncertainty_set=Ellipsoidal(
-                                                            data=data))
+        u = UncertainParameter(n, uncertainty_set=Ellipsoidal(data=data))
         # Formulate the Robust Problem
         x_r = cp.Variable(n)
         t = cp.Variable()
@@ -217,52 +208,61 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         p = ContextParameter(2, data=p_data)
         p_x = cp.Variable(n)
         objective = cp.Minimize(t)
-        constraints = [max_of_uncertain([-p[0]*x_r[0] - p[1]*x_r[1],\
-                                         -p[0]*x_r[0] - p_x[1]*u[1], \
-                                            -p_x[0]*u[0] - p[1]*x_r[1],
-                                            -p_x[0]*u[0]- p_x[1]*u[1]]) \
-                                                + k@x_r <= t]
+        constraints = [
+            max_of_uncertain(
+                [
+                    -p[0] * x_r[0] - p[1] * x_r[1],
+                    -p[0] * x_r[0] - p_x[1] * u[1],
+                    -p_x[0] * u[0] - p[1] * x_r[1],
+                    -p_x[0] * u[0] - p_x[1] * u[1],
+                ]
+            )
+            + k @ x_r
+            <= t
+        ]
         constraints += [p_x == p]
         constraints += [x_r >= 0]
 
-        eval_exp = k@x_r + cp.maximum(-p[0]*x_r[0] - p[1]*x_r[1],\
-                                      -p[0]*x_r[0] - p[1]*u[1], -p[0]*u[0] \
-                                        - p[1]*x_r[1], -p[0]*u[0]- p[1]*u[1])
+        eval_exp = k @ x_r + cp.maximum(
+            -p[0] * x_r[0] - p[1] * x_r[1],
+            -p[0] * x_r[0] - p[1] * u[1],
+            -p[0] * u[0] - p[1] * x_r[1],
+            -p[0] * u[0] - p[1] * u[1],
+        )
 
-        prob = RobustProblem(objective, constraints,eval_exp = eval_exp)
+        prob = RobustProblem(objective, constraints, eval_exp=eval_exp)
         test_p = 0.9
         s = 13
         # setup intial A, b
-        train, test = train_test_split(data, test_size=int(data.shape[0]*test_p), random_state=s)
+        train, test = train_test_split(data, test_size=int(data.shape[0] * test_p), random_state=s)
         init = sc.linalg.sqrtm(np.cov(train.T))
         init_bval = np.mean(train, axis=0)
         trainer = Trainer(prob)
-        trainer_settings = TrainerSettings()
-        trainer_settings.lr=0.0001
+        trainer_settings = DefaultTrainerSettings()
+        trainer_settings.lr = 0.0001
         trainer_settings.train_size = False
-        trainer_settings.num_iter=3
-        trainer_settings.optimizer="SGD"
-        trainer_settings.seed=8
-        trainer_settings.init_A=init
-        trainer_settings.init_b=init_bval
-        trainer_settings.init_lam=1
-        trainer_settings.init_mu=1
-        trainer_settings.mu_multiplier=1.001
-        trainer_settings.kappa=0.
-        trainer_settings.init_alpha=0.
+        trainer_settings.num_iter = 3
+        trainer_settings.optimizer = "SGD"
+        trainer_settings.seed = 8
+        trainer_settings.init_A = init
+        trainer_settings.init_b = init_bval
+        trainer_settings.init_lam = 1
+        trainer_settings.init_mu = 1
+        trainer_settings.mu_multiplier = 1.001
+        trainer_settings.kappa = 0.0
+        trainer_settings.init_alpha = 0.0
         trainer_settings.test_percentage = test_p
         trainer_settings.save_history = True
-        trainer_settings.quantiles = (0.4,0.6)
+        trainer_settings.quantiles = (0.4, 0.6)
         trainer_settings.lr_step_size = 50
         trainer_settings.lr_gamma = 0.5
         trainer_settings.random_init = False
         trainer_settings.num_random_init = 5
         trainer_settings.parallel = False
         trainer_settings.position = False
-        trainer_settings.eta=0.05
+        trainer_settings.eta = 0.05
         result = trainer.train(trainer_settings=trainer_settings)
-        npt.assert_array_less(np.array(
-            result.df["Violations_train"])[-1], 0.1)
+        npt.assert_array_less(np.array(result.df["Violations_train"])[-1], 0.1)
 
     @unittest.skip("This test requires some changes. Irina, I need your help.")
     def test_torch_exp(self):
@@ -283,45 +283,47 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         c_tch = torch.tensor(c, dtype=float)
 
         objective = cp.Maximize(a @ x)
-        constraints = [(u + y) @ x <= c, cp.norm(x) <= 2*c]
+        constraints = [(u + y) @ x <= c, cp.norm(x) <= 2 * c]
 
-        #Variabls and parameters are discovered, from left to right, first at the objective
-        #and then at each of the variables.
-        #Therefore, in this example, the order of the variables/parameters is:
-        #x, u, y
+        # Variabls and parameters are discovered, from left to right, first at the objective
+        # and then at each of the variables.
+        # Therefore, in this example, the order of the variables/parameters is:
+        # x, u, y
         x_test = torch.arange(n, dtype=float)
         u_test = torch.ones(n, dtype=float)
         y_test = torch.ones(n, dtype=float)
         vars_test = [x_test, u_test, y_test]
 
         def f_tch(x):
-            return a_tch@x
+            return a_tch @ x
 
         def g1_tch(x, u, y):
-            return (u+y)@x-c_tch
+            return (u + y) @ x - c_tch
 
         def g2_tch(x):
-            return torch.norm(x)-2*c_tch
+            return torch.norm(x) - 2 * c_tch
 
         prob = RobustProblem(objective, constraints)
 
-        #TODO: Changes should start here
+        # TODO: Changes should start here
         prob.remove_uncertainty()
         assert f_tch(x_test) == prob.problem_canon.f(*vars_test)
         assert g1_tch(x_test, u_test, y_test) == prob.problem_canon.g[0](*vars_test)
-        assert len(prob.g)==1 #The second constraint is not saved to g since it has no uncertainty
+        assert (
+            len(prob.g) == 1
+        )  # The second constraint is not saved to g since it has no uncertainty
 
     def test_news_learning(self):
         n = 2
         N = 500
-        k = np.array([4.,5.])
-        p = np.array([5,6.5])
+        k = np.array([4.0, 5.0])
+        p = np.array([5, 6.5])
 
         def gen_demand_intro(N, seed):
             np.random.seed(seed)
-            sig = np.array([[0.6,-0.3],[-0.3,0.1]])
-            mu = np.array((1.1,1.7))
-            norms = np.random.multivariate_normal(mu,sig, N)
+            sig = np.array([[0.6, -0.3], [-0.3, 0.1]])
+            mu = np.array((1.1, 1.7))
+            norms = np.random.multivariate_normal(mu, sig, N)
             d_train = np.exp(norms)
             return d_train
 
@@ -329,16 +331,14 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         data = gen_demand_intro(N, seed=18)
 
         num_scenarios = N
-        num_reps = int(N/num_scenarios)
-        k_data = k + np.random.normal(0,0.5,(num_scenarios,n))
-        p_data = k_data + np.maximum(0,np.random.normal(0,0.5,(num_scenarios,n)))
-        p_data = np.vstack([p_data]*num_reps)
-        k_data = np.vstack([k_data]*num_reps)
+        num_reps = int(N / num_scenarios)
+        k_data = k + np.random.normal(0, 0.5, (num_scenarios, n))
+        p_data = k_data + np.maximum(0, np.random.normal(0, 0.5, (num_scenarios, n)))
+        p_data = np.vstack([p_data] * num_reps)
+        k_data = np.vstack([k_data] * num_reps)
 
         # Formulate uncertainty set
-        u = UncertainParameter(n,
-                                uncertainty_set=Ellipsoidal(
-                                                            data=data))
+        u = UncertainParameter(n, uncertainty_set=Ellipsoidal(data=data))
         # Formulate the Robust Problem
         x_r = cp.Variable(n)
         t = cp.Variable()
@@ -346,56 +346,65 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         p = ContextParameter(2, data=p_data)
         p_x = cp.Variable(n)
         objective = cp.Minimize(t)
-        constraints = [max_of_uncertain([-p[0]*x_r[0] - p[1]*x_r[1],
-                                         -p[0]*x_r[0] - p_x[1]*u[1],
-                                         -p_x[0]*u[0] - p[1]*x_r[1],
-                                           -p_x[0]*u[0]- p_x[1]*u[1]]) +
-                                           k@x_r <= t]
+        constraints = [
+            max_of_uncertain(
+                [
+                    -p[0] * x_r[0] - p[1] * x_r[1],
+                    -p[0] * x_r[0] - p_x[1] * u[1],
+                    -p_x[0] * u[0] - p[1] * x_r[1],
+                    -p_x[0] * u[0] - p_x[1] * u[1],
+                ]
+            )
+            + k @ x_r
+            <= t
+        ]
         constraints += [p_x == p]
         constraints += [x_r >= 0]
 
-        eval_exp = k@x_r + cp.maximum(-p[0]*x_r[0] - p[1]*x_r[1],
-                                      -p[0]*x_r[0] - p[1]*u[1], -p[0]*u[0] -
-                                      p[1]*x_r[1], -p[0]*u[0]- p[1]*u[1])
+        eval_exp = k @ x_r + cp.maximum(
+            -p[0] * x_r[0] - p[1] * x_r[1],
+            -p[0] * x_r[0] - p[1] * u[1],
+            -p[0] * u[0] - p[1] * x_r[1],
+            -p[0] * u[0] - p[1] * u[1],
+        )
 
-        prob = RobustProblem(objective, constraints,eval_exp = eval_exp)
+        prob = RobustProblem(objective, constraints, eval_exp=eval_exp)
         test_p = 0.9
         s = 8
 
         # setup intial A, b
-        train, test = train_test_split(data,
-                                       test_size=int(data.shape[0]*test_p),
-                                       random_state=s)
+        train, test = train_test_split(data, test_size=int(data.shape[0] * test_p), random_state=s)
 
         np.random.seed(15)
         initn = sc.linalg.sqrtm(np.cov(train.T))
         init_bvaln = np.mean(train, axis=0)
         # Train A and b
         from lropt import Trainer
+
         trainer = Trainer(prob)
-        trainer_settings = TrainerSettings()
-        trainer_settings.lr=0.0001
+        trainer_settings = DefaultTrainerSettings()
+        trainer_settings.lr = 0.0001
         trainer_settings.train_size = False
-        trainer_settings.num_iter=50
-        trainer_settings.optimizer="SGD"
-        trainer_settings.seed=5
-        trainer_settings.init_A=initn
-        trainer_settings.init_b=init_bvaln
-        trainer_settings.init_lam=0.1
-        trainer_settings.init_mu=0.1
-        trainer_settings.mu_multiplier=1.001
-        trainer_settings.kappa=0.
-        trainer_settings.init_alpha=0.
+        trainer_settings.num_iter = 50
+        trainer_settings.optimizer = "SGD"
+        trainer_settings.seed = 5
+        trainer_settings.init_A = initn
+        trainer_settings.init_b = init_bvaln
+        trainer_settings.init_lam = 0.1
+        trainer_settings.init_mu = 0.1
+        trainer_settings.mu_multiplier = 1.001
+        trainer_settings.kappa = 0.0
+        trainer_settings.init_alpha = 0.0
         trainer_settings.test_percentage = test_p
         trainer_settings.save_history = True
-        trainer_settings.quantiles = (0.4,0.6)
+        trainer_settings.quantiles = (0.4, 0.6)
         trainer_settings.lr_step_size = 50
         trainer_settings.lr_gamma = 0.5
         trainer_settings.random_init = True
         trainer_settings.num_random_init = 5
         trainer_settings.parallel = True
         trainer_settings.position = False
-        trainer_settings.eta=0.3
+        trainer_settings.eta = 0.3
         trainer_settings.contextual = True
         result = trainer.train(trainer_settings=trainer_settings)
         result.df

@@ -25,6 +25,7 @@ dependencies = [
     "tqdm",
     "cvxtorch @ git+https://github.com/cvxpy/cvxtorch@4dc06c182af10b65cd779f5e22a64f1e3d24fb9b"
 ]
+requires-python = ">= 3.12"
 
 [tool.setuptools]
 packages = ["lropt"]

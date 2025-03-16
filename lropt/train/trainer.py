@@ -8,13 +8,12 @@ from cvxpy import Parameter as OrigParameter
 from cvxpylayers.torch import CvxpyLayer
 from joblib import Parallel, delayed
 
-import lropt.train.settings as settings
+import lropt.train.settings as s
 from lropt import RobustProblem
 from lropt.train.cov_predict import fit, predict
 from lropt.train.parameter import ContextParameter, ShapeParameter, SizeParameter
-from lropt.train.settings import DEFAULT_MAX_ITER_LINE_SEARCH
+from lropt.train.settings import DEFAULT_SETTINGS as DS
 from lropt.train.simulator import Default_Simulator
-from lropt.train.trainer_settings import TrainerSettings
 from lropt.train.utils import (
     EVAL_INPUT_CASE,
     eval_input,
@@ -189,7 +188,7 @@ class Trainer:
         cost = 0.0
         constraint_cost = 0.0
         if self._default_simulator:
-            eval_cost = torch.tensor([0, 0, 0], dtype=settings.DTYPE)
+            eval_cost = torch.tensor([0, 0, 0], dtype=s.DTYPE)
         else:
             eval_cost = 0.0
         prob_vio = 0.0
@@ -279,7 +278,7 @@ class Trainer:
     def gen_rho_mult_tch(self, rhoparams=[]):
         """Generate the torch of the rho multiplier value, placed in a list"""
         return [
-            torch.tensor(rho.value, dtype=settings.DTYPE, requires_grad=self.train_flag)
+            torch.tensor(rho.value, dtype=s.DTYPE, requires_grad=self.train_flag)
             for rho in rhoparams
         ][0]
 
@@ -441,9 +440,7 @@ class Trainer:
         """
         cp_param_tchs = []
         for param in self._cp_parameters:
-            param_tch = torch.tensor(
-                param.value, dtype=settings.DTYPE, requires_grad=self.train_flag
-            )
+            param_tch = torch.tensor(param.value, dtype=s.DTYPE, requires_grad=self.train_flag)
             if num == 0:
                 cp_param_tchs.append(param_tch)
                 continue
@@ -459,14 +456,14 @@ class Trainer:
             cp_param_tchs.append(param_tch.repeat(shape))
         return cp_param_tchs
 
-    def _split_dataset(self, test_percentage=settings.BATCH_PERCENTAGE_DEFAULT, seed=0):
+    def _split_dataset(self, test_percentage=DS.test_percentage, seed=0):
         """
         This function splits the uncertainty set into train and test sets
             and also creates torch tensors
 
         Args:
         test_percentage
-            Fraction of data to place into the test set
+            Fraction of data to place into the test set.
         seed
             Random number generator seed
 
@@ -498,10 +495,10 @@ class Trainer:
         unc_train_set = np.array([self.unc_set.data[i] for i in train_indices])
         unc_test_set = np.array([self.unc_set.data[i] for i in test_indices])
         unc_train_tch = torch.tensor(
-            self.unc_set.data[train_indices], requires_grad=self.train_flag, dtype=settings.DTYPE
+            self.unc_set.data[train_indices], requires_grad=self.train_flag, dtype=s.DTYPE
         )
         unc_test_tch = torch.tensor(
-            self.unc_set.data[test_indices], requires_grad=self.train_flag, dtype=settings.DTYPE
+            self.unc_set.data[test_indices], requires_grad=self.train_flag, dtype=s.DTYPE
         )
 
         cp_param_tchs = []
@@ -515,14 +512,14 @@ class Trainer:
                     torch.tensor(
                         self._x_parameters[i].data[train_indices],
                         requires_grad=self.train_flag,
-                        dtype=settings.DTYPE,
+                        dtype=s.DTYPE,
                     )
                 )
                 x_test_tchs.append(
                     torch.tensor(
                         self._x_parameters[i].data[test_indices],
                         requires_grad=self.train_flag,
-                        dtype=settings.DTYPE,
+                        dtype=s.DTYPE,
                     )
                 )
 
@@ -542,7 +539,7 @@ class Trainer:
                                   init_context in the trainer settings"
                 )
             self.u_train_tch = torch.tensor(
-                self._init_uncertain_parameter, requires_grad=True, dtype=settings.DTYPE
+                self._init_uncertain_parameter, requires_grad=True, dtype=s.DTYPE
             )
             self.x_train_tch = self._init_context
 
@@ -582,9 +579,7 @@ class Trainer:
         for i in range(len(x_data)):
             x_tchs.append(x_data[i].data[random_int])
 
-        u_tch = torch.tensor(
-            u_data[random_int], requires_grad=self.train_flag, dtype=settings.DTYPE
-        )
+        u_tch = torch.tensor(u_data[random_int], requires_grad=self.train_flag, dtype=s.DTYPE)
 
         return batch_int, x_tchs, u_tch
 
@@ -602,7 +597,7 @@ class Trainer:
             Boolean flag set to True for MRO problem
         """
         scalar = init_rho if init_rho else 1.0
-        rho_tch = torch.tensor(scalar, requires_grad=self.train_flag, dtype=settings.DTYPE)
+        rho_tch = torch.tensor(scalar, requires_grad=self.train_flag, dtype=s.DTYPE)
 
         return rho_tch
 
@@ -645,18 +640,18 @@ class Trainer:
         """
         # train_set = train_set.detach().numpy()
         self._init = self._gen_init(train_set, init_A)
-        init_tensor = torch.tensor(self._init, requires_grad=self.train_flag, dtype=settings.DTYPE)
+        init_tensor = torch.tensor(self._init, requires_grad=self.train_flag, dtype=s.DTYPE)
         b_tch = None
 
         if init_b is not None:
             b_tch_data = np.array(init_b)
         else:
             b_tch_data = np.mean(train_set, axis=0)
-        b_tch = torch.tensor(b_tch_data, requires_grad=self.train_flag, dtype=settings.DTYPE)
+        b_tch = torch.tensor(b_tch_data, requires_grad=self.train_flag, dtype=s.DTYPE)
         a_tch = init_tensor
 
         alpha = torch.tensor(init_alpha, requires_grad=self.train_flag)
-        slack = torch.zeros(self.num_g_total, requires_grad=self.train_flag, dtype=settings.DTYPE)
+        slack = torch.zeros(self.num_g_total, requires_grad=self.train_flag, dtype=s.DTYPE)
         return a_tch, b_tch, alpha, slack
 
     def _update_iters(self, save_history, a_history, b_history, rho_history, a_tch, b_tch, rho_tch):
@@ -842,7 +837,7 @@ class Trainer:
         Returns:
             The average among all evaluated J x N pairs
         """
-        H = torch.zeros(self.num_g_total, dtype=settings.DTYPE)
+        H = torch.zeros(self.num_g_total, dtype=s.DTYPE)
         for k, h_k in enumerate(self.h):
             init_val = eval_input(
                 batch_int,
@@ -913,8 +908,8 @@ class Trainer:
         slack,
         lam,
         mu,
-        eta=settings.ETA_LAGRANGIAN_DEFAULT,
-        kappa=settings.KAPPA_LAGRANGIAN_DEFAULT,
+        eta=DS.eta,
+        kappa=DS.kappa,
     ):
         """
         The function evaluates generates the augmented lagrangian of
@@ -1011,11 +1006,11 @@ class Trainer:
             kwargs["linear"],
         )
         if kwargs["optimizer"] == "SGD":
-            opt = settings.OPTIMIZERS[kwargs["optimizer"]](
+            opt = s.OPTIMIZERS[kwargs["optimizer"]](
                 variables, lr=kwargs["lr"], momentum=kwargs["momentum"]
             )
         else:
-            opt = settings.OPTIMIZERS[kwargs["optimizer"]](variables, lr=kwargs["lr"])
+            opt = s.OPTIMIZERS[kwargs["optimizer"]](variables, lr=kwargs["lr"])
 
         if kwargs["scheduler"]:
             scheduler_ = torch.optim.lr_scheduler.StepLR(
@@ -1027,7 +1022,7 @@ class Trainer:
         #     scheduler_ = torch.optim.lr_scheduler.StepLR(
         #         opt, step_size=kwargs['lr_step_size'], gamma=kwargs['lr_gamma'])
         # y's and cvxpylayer begin
-        lam = kwargs["init_lam"] * torch.ones(self.num_g_total, dtype=settings.DTYPE)
+        lam = kwargs["init_lam"] * torch.ones(self.num_g_total, dtype=s.DTYPE)
         mu = kwargs["init_mu"]
         curr_cvar = np.inf
         if self._default_simulator:
@@ -1087,7 +1082,7 @@ class Trainer:
                     exception_message = "Infeasible uncertainty set initialization"
                 else:
                     exception_message = "Violation constraint check timed "
-                    +"out after " + f"{DEFAULT_MAX_ITER_LINE_SEARCH} attempts."
+                    +"out after " + f"{self.trainer_settings.max_iter_line_search} attempts."
                 raise InfeasibleConstraintException(exception_message)
             if not self._default_simulator:
                 eval_cost = eval_cost.repeat(3)
@@ -1106,8 +1101,7 @@ class Trainer:
                     curr_cvar = torch.norm(constr_cost.detach())
                     lam += torch.minimum(
                         mu * constr_cost.detach(),
-                        kwargs["lambda_update_max"]
-                        * torch.ones(self.num_g_total, dtype=settings.DTYPE),
+                        kwargs["lambda_update_max"] * torch.ones(self.num_g_total, dtype=s.DTYPE),
                     )
                 else:
                     mu = kwargs["mu_multiplier"] * mu
@@ -1218,7 +1212,7 @@ class Trainer:
 
     def train(
         self,
-        trainer_settings: TrainerSettings | None = None,
+        trainer_settings: s.DefaultTrainerSettings | None = s.DefaultTrainerSettings(),
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set
@@ -1244,8 +1238,6 @@ class Trainer:
             var_values: list
                 A list of returned variable values from the last solve
         """
-        if trainer_settings is None:
-            trainer_settings = TrainerSettings()
         self.train_flag = True
         if trainer_settings.contextual and not trainer_settings.train_shape:
             if trainer_settings.linear is None:
@@ -1470,9 +1462,7 @@ class Trainer:
         all_indices = [np.unique(ele, axis=0, return_index=True)[1] for ele in x_batch_array]
         unique_indices = np.unique(np.concatenate(all_indices))
         num_unique_indices = len(unique_indices)
-        x_unique = [
-            torch.tensor(ele, dtype=settings.DTYPE)[unique_indices] for ele in x_batch_array
-        ]
+        x_unique = [torch.tensor(ele, dtype=s.DTYPE)[unique_indices] for ele in x_batch_array]
         _unique_array = [ele[unique_indices] for ele in x_batch_array]
         return x_batch_array, num_unique_indices, x_unique, _unique_array
 
@@ -1499,7 +1489,7 @@ class Trainer:
             shapes = [torch.tensor(v.shape) for v in var_values]
             for i in range(len(shapes)):
                 shapes[i][0] = batch_int
-            new_var_values = [torch.zeros(*shape, dtype=settings.DTYPE) for shape in shapes]
+            new_var_values = [torch.zeros(*shape, dtype=s.DTYPE) for shape in shapes]
 
             # populate new_var_values using the dictionary
             for i in range(batch_int):
@@ -1522,12 +1512,12 @@ class Trainer:
             shapes = [torch.tensor(v.shape) for v in var_values]
             for i in range(len(shapes)):
                 shapes[i][0] = batch_int
-            new_var_values = [torch.zeros(*shape, dtype=settings.DTYPE) for shape in shapes]
+            new_var_values = [torch.zeros(*shape, dtype=s.DTYPE) for shape in shapes]
             ab_shapes = [torch.tensor(a_tch.shape), torch.tensor(b_tch.shape)]
             ab_shapes[0][0] = batch_int
             ab_shapes[1][0] = batch_int
-            new_a_tch = torch.zeros(*ab_shapes[0], dtype=settings.DTYPE)
-            new_b_tch = torch.zeros(*ab_shapes[1], dtype=settings.DTYPE)
+            new_a_tch = torch.zeros(*ab_shapes[0], dtype=s.DTYPE)
+            new_b_tch = torch.zeros(*ab_shapes[1], dtype=s.DTYPE)
             # populate new_var_values using the dictionary
             for i in range(batch_int):
                 values_list = x_to_var_values_dict[
@@ -1541,19 +1531,19 @@ class Trainer:
 
     def grid(
         self,
-        rholst=settings.RHO_LST_DEFAULT,
-        seed=settings.SEED_DEFAULT,
-        init_A=settings.INIT_A_DEFAULT,
-        init_b=settings.INIT_B_DEFAULT,
-        init_rho=settings.INIT_RHO_DEFAULT_GRID,
-        init_alpha=settings.INIT_ALPHA_DEFAULT,
-        test_percentage=settings.TEST_PERCENTAGE_DEFAULT,
-        solver_args=settings.LAYER_SOLVER,
-        quantiles=settings.QUANTILES,
-        newdata=settings.NEWDATA_DEFAULT,
-        eta=settings.ETA_LAGRANGIAN_DEFAULT,
-        contextual=settings.CONTEXTUAL_DEFAULT,
-        linear=settings.CONTEXTUAL_LINEAR_DEFAULT,
+        rholst=s.RHO_LST_DEFAULT,
+        seed=DS.seed,
+        init_A=DS.init_A,
+        init_b=DS.init_b,
+        init_rho=DS.init_rho,
+        init_alpha=DS.init_alpha,
+        test_percentage=DS.test_percentage,
+        solver_args=DS.solver_args,
+        quantiles=DS.quantiles,
+        newdata=None,
+        eta=DS.eta,
+        contextual=DS.contextual,
+        linear=DS.linear,
         covpred=False,
     ):
         r"""
@@ -1613,24 +1603,23 @@ class Trainer:
             newtest_set, x_set = newdata
             self.test_size = newtest_set.shape[0]
             self.u_test_tch = torch.tensor(
-                newtest_set, requires_grad=self.train_flag, dtype=settings.DTYPE
+                newtest_set, requires_grad=self.train_flag, dtype=s.DTYPE
             )
             self.u_test_set = newdata
             if not isinstance(x_set, list):
                 self.x_test_tch = [
-                    torch.tensor(x_set, requires_grad=self.train_flag, dtype=settings.DTYPE)
+                    torch.tensor(x_set, requires_grad=self.train_flag, dtype=s.DTYPE)
                 ]
             else:
                 self.x_test_tch = [
-                    torch.tensor(x, requires_grad=self.train_flag, dtype=settings.DTYPE)
-                    for x in x_set
+                    torch.tensor(x, requires_grad=self.train_flag, dtype=s.DTYPE) for x in x_set
                 ]
 
         self.cvxpylayer = self.create_cvxpylayer()
 
         grid_stats = GridStats()
 
-        lam = 1000 * torch.ones(self.num_g_total, dtype=settings.DTYPE)
+        lam = 1000 * torch.ones(self.num_g_total, dtype=s.DTYPE)
         # initialize torches
         rho_tch = self._gen_rho_tch(1)
         a_tch_init, b_tch_init, alpha, slack = self._init_torches(
@@ -1646,9 +1635,7 @@ class Trainer:
         )
 
         for rho in rholst:
-            rho_tch = torch.tensor(
-                rho * init_rho, requires_grad=self.train_flag, dtype=settings.DTYPE
-            )
+            rho_tch = torch.tensor(rho * init_rho, requires_grad=self.train_flag, dtype=s.DTYPE)
             if contextual:
                 a_tch_init, b_tch_init = self.create_tensors_linear(x_unique, linear, self._covpred)
             z_unique = self.cvxpylayer(
@@ -1783,7 +1770,7 @@ class TrainLoopStats:
             """
             This is an internal function that either initiates a tensor or a list
             """
-            return torch.tensor(0.0, dtype=settings.DTYPE)
+            return torch.tensor(0.0, dtype=s.DTYPE)
 
         self.step_num = step_num
         self.train_flag = train_flag

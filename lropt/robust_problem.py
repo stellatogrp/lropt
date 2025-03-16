@@ -21,7 +21,7 @@ from lropt.torch_expression_generator import (
     get_eval_data,
 )
 from lropt.train.parameter import ContextParameter
-from lropt.train.trainer_settings import TrainerSettings
+from lropt.train.settings import DefaultTrainerSettings
 from lropt.train.utils import EVAL_INPUT_CASE, eval_input
 from lropt.uncertain_canon.remove_uncertainty import RemoveUncertainty
 from lropt.uncertain_canon.utils import CERTAIN_ID, UNCERTAIN_NO_MAX_ID
@@ -335,7 +335,7 @@ class RobustProblem(Problem):
                     # if not MRO set and not trained
                     if not isinstance(unc_param_lst[0].uncertainty_set, MRO):
                         self.trainer = Trainer(self)
-                        trainer_settings = TrainerSettings()
+                        trainer_settings = DefaultTrainerSettings()
                         _ = self.trainer.train(trainer_settings=
                                                trainer_settings)
                         for x in self.x_parameters():
@@ -343,7 +343,7 @@ class RobustProblem(Problem):
                     # if MRO set and training needed
                     elif unc_param_lst[0].uncertainty_set._train:
                         self.trainer = Trainer(self)
-                        trainer_settings = TrainerSettings()
+                        trainer_settings = DefaultTrainerSettings()
                         _ = self.trainer.train(trainer_settings=
                                                trainer_settings)
                         for x in self.x_parameters():

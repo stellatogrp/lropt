@@ -6,7 +6,7 @@ import scipy as sc
 import torch
 
 import lropt
-from lropt import TrainerSettings
+from lropt import DefaultTrainerSettings
 
 
 class TestMultiStage(unittest.TestCase):
@@ -571,7 +571,7 @@ class TestMultiStage(unittest.TestCase):
         # init_b = d_star[:K]
         init_weights = torch.zeros((K * K + K, x_endind))
         init_weights[K * K :, T + 1 :] = torch.eye(K)
-        trainer_settings = TrainerSettings()
+        trainer_settings = DefaultTrainerSettings()
         trainer_settings.set(
             simulator=simulator,
             multistage=True,
