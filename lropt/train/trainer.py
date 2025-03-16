@@ -12,11 +12,9 @@ import lropt.train.settings as settings
 from lropt import RobustProblem
 from lropt.train.cov_predict import fit, predict
 from lropt.train.parameter import ContextParameter, ShapeParameter, SizeParameter
-from lropt.train.settings import DEFAULT_MAX_ITER_LINE_SEARCH
+from lropt.train.settings import DEFAULT_MAX_ITER_LINE_SEARCH, EVAL_INPUT_CASE, TrainerSettings
 from lropt.train.simulator import Default_Simulator
-from lropt.train.trainer_settings import TrainerSettings
 from lropt.train.utils import (
-    EVAL_INPUT_CASE,
     eval_input,
     eval_prob_constr_violation,
     get_n_processes,
