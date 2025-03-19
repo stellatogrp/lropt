@@ -3,14 +3,13 @@ name: Documentation
 on: [push]
 
 jobs:
-
   docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.12"
       - name: Install dependencies
         run: |
           sudo apt-get update
