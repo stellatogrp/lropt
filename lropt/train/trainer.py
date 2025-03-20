@@ -1212,7 +1212,7 @@ class Trainer:
 
     def train(
         self,
-        trainer_settings: s.DefaultTrainerSettings | None = s.DefaultTrainerSettings(),
+        trainer_settings: s.TrainerSettings | None = s.TrainerSettings(),
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set

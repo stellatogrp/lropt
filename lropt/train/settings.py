@@ -55,7 +55,7 @@ OPTIMIZERS = {
 }
 
 
-class DefaultTrainerSettings:
+class TrainerSettings:
     """
     A trainer settings class.
     Contains default settings unless changed.
@@ -280,4 +280,4 @@ class DefaultTrainerSettings:
 
 
 # Create a global default settings instance for use throughout the codebase
-DEFAULT_SETTINGS = DefaultTrainerSettings()
+DEFAULT_SETTINGS = TrainerSettings()
