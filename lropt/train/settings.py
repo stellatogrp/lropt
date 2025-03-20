@@ -244,7 +244,7 @@ class TrainerSettings:
         This function raises an AttributeError if this object does not have a name property.
         """
         if hasattr(self, "__slots__") and name not in self.__slots__:
-            raise AttributeError(f"DefaultTrainerSettings has no property called {name}.")
+            raise AttributeError(f"TrainerSettings has no property called {name}.")
 
     def _generate_slots(self) -> None:
         """

@@ -59,7 +59,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         prob = RobustProblem(objective, constraints)
         trainer = Trainer(prob)
-        trainer_settings = DefaultTrainerSettings()
+        trainer_settings = TrainerSettings()
         trainer_settings.lr = 0.001
         trainer_settings.num_iter = 2
         trainer_settings.momentum = 0.8
@@ -89,7 +89,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         prob = RobustProblem(objective, constraints)
         trainer = Trainer(prob)
-        trainer_settings = DefaultTrainerSettings()
+        trainer_settings = TrainerSettings()
         trainer_settings.lr = 0.001
         trainer_settings.num_iter = 10
         trainer_settings.momentum = 0.8
@@ -136,7 +136,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
 
         # Train A and b
         trainer = Trainer(prob)
-        trainer_settings = DefaultTrainerSettings()
+        trainer_settings = TrainerSettings()
         trainer_settings.lr = 0.0001
         trainer_settings.num_iter = 100
         trainer_settings.momentum = 0.8
@@ -238,7 +238,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         init = sc.linalg.sqrtm(np.cov(train.T))
         init_bval = np.mean(train, axis=0)
         trainer = Trainer(prob)
-        trainer_settings = DefaultTrainerSettings()
+        trainer_settings = TrainerSettings()
         trainer_settings.lr = 0.0001
         trainer_settings.train_size = False
         trainer_settings.num_iter = 3
@@ -382,7 +382,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         from lropt import Trainer
 
         trainer = Trainer(prob)
-        trainer_settings = DefaultTrainerSettings()
+        trainer_settings = TrainerSettings()
         trainer_settings.lr = 0.0001
         trainer_settings.train_size = False
         trainer_settings.num_iter = 50
