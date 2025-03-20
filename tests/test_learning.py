@@ -13,7 +13,7 @@ import torch
 # from tests.settings import SOLVER
 from sklearn.model_selection import train_test_split
 
-from lropt import DefaultTrainerSettings, Trainer, max_of_uncertain
+from lropt import TrainerSettings, Trainer, max_of_uncertain
 from lropt.robust_problem import RobustProblem
 from lropt.train.parameter import ContextParameter
 from lropt.uncertain_parameter import UncertainParameter
