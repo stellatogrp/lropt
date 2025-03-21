@@ -237,6 +237,9 @@ class TrainerSettings:
         self.init_context = None
         self.init_uncertain_param = None
         self.covpred = False
+        self.trained_shape = False
+        self.model = None
+
         self._generate_slots()
 
     def _attr_exists(self, name) -> None:
