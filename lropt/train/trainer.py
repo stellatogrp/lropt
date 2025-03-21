@@ -954,112 +954,108 @@ class Trainer:
                     break
         return res
 
-    def _train_loop(self, init_num, **kwargs):
-        if kwargs["random_init"] and kwargs["train_shape"]:
+    def _train_loop(self, init_num, trainer_settings: s.TrainerSettings):
+        if trainer_settings.random_init and trainer_settings.train_shape:
             if init_num >= 1:
-                np.random.seed(kwargs["seed"] + init_num)
+                np.random.seed(trainer_settings.seed + init_num)
                 shape = self.unc_set._a.shape
-                kwargs["init_A"] = np.random.rand(shape[0], shape[1])
-                #  + 0.01*np.eye(kwargs['u_size'])
-                kwargs["init_b"] = np.mean(self.u_train_set, axis=0)
+                trainer_settings.init_A = np.random.rand(shape[0], shape[1])
+                trainer_settings.init_b = np.mean(self.u_train_set, axis=0)
         a_history = []
         b_history = []
         rho_history = []
         df = pd.DataFrame(columns=["step"])
         df_test = pd.DataFrame(columns=["step"])
 
-        rho_tch = self._gen_rho_tch(kwargs["init_rho"])
+        rho_tch = self._gen_rho_tch(trainer_settings.init_rho)
         a_tch, b_tch, alpha, slack = self._init_torches(
-            kwargs["init_A"], kwargs["init_b"], kwargs["init_alpha"], self.u_train_set
+            trainer_settings.init_A, trainer_settings.init_b, trainer_settings.init_alpha, self.u_train_set
         )
 
         self._update_iters(
-            kwargs["save_history"], a_history, b_history, rho_history, a_tch, b_tch, rho_tch
+            trainer_settings.save_history, a_history, b_history, rho_history, a_tch, b_tch, rho_tch
         )
 
-        if kwargs["contextual"]:
-            if kwargs["linear"] is None:
-                kwargs["linear"] = self.init_linear_model(
+        if trainer_settings.contextual:
+            if trainer_settings.linear is None:
+                trainer_settings.linear = self.init_linear_model(
                     a_tch,
                     b_tch,
-                    kwargs["random_init"],
+                    trainer_settings.random_init,
                     init_num,
-                    kwargs["seed"],
-                    kwargs["init_weight"],
-                    kwargs["init_bias"],
+                    trainer_settings.seed,
+                    trainer_settings.init_weight,
+                    trainer_settings.init_bias,
                     self._covpred,
                 )
-            kwargs["model"] = torch.nn.Sequential(kwargs["linear"])
+            trainer_settings.model = torch.nn.Sequential(trainer_settings.linear)
         else:
-            kwargs["model"] = None
-            kwargs["linear"] = None
+            trainer_settings.model = None
+            trainer_settings.linear = None
 
         variables = self._set_train_variables(
-            kwargs["fixb"],
+            trainer_settings.fixb,
             alpha,
             slack,
             a_tch,
             b_tch,
             rho_tch,
-            kwargs["trained_shape"],
-            kwargs["contextual"],
-            kwargs["linear"],
+            trainer_settings.trained_shape,
+            trainer_settings.contextual,
+            trainer_settings.linear,
         )
-        if kwargs["optimizer"] == "SGD":
-            opt = s.OPTIMIZERS[kwargs["optimizer"]](
-                variables, lr=kwargs["lr"], momentum=kwargs["momentum"]
+        if trainer_settings.optimizer == "SGD":
+            opt = s.OPTIMIZERS[trainer_settings.optimizer](
+                variables, lr=trainer_settings.lr, momentum=trainer_settings.momentum
             )
         else:
-            opt = s.OPTIMIZERS[kwargs["optimizer"]](variables, lr=kwargs["lr"])
+            opt = s.OPTIMIZERS[trainer_settings.optimizer](variables, lr=trainer_settings.lr)
 
-        if kwargs["scheduler"]:
+        if trainer_settings.scheduler:
             scheduler_ = torch.optim.lr_scheduler.StepLR(
-                opt, step_size=kwargs["lr_step_size"], gamma=kwargs["lr_gamma"]
+                opt, step_size=trainer_settings.lr_step_size, gamma=trainer_settings.lr_gamma
             )
         else:
             scheduler_ = None
-        # if kwargs['scheduler']:
-        #     scheduler_ = torch.optim.lr_scheduler.StepLR(
-        #         opt, step_size=kwargs['lr_step_size'], gamma=kwargs['lr_gamma'])
         # y's and cvxpylayer begin
-        lam = kwargs["init_lam"] * torch.ones(self.num_g_total, dtype=s.DTYPE)
-        mu = kwargs["init_mu"]
+        lam = trainer_settings.init_lam * torch.ones(self.num_g_total, dtype=s.DTYPE)
+        mu = trainer_settings.init_mu
         curr_cvar = np.inf
         if self._default_simulator:
-            kwargs["kwargs_simulator"] = {
+            trainer_settings.kwargs_simulator = {
                 "trainer": self,
                 "slack": slack,
-                "eta": kwargs["eta"],
-                "kappa": kwargs["kappa"],
-                "quantiles": kwargs["quantiles"],
-                "max_batch_size": kwargs["max_batch_size"],
-                "batch_percentage": kwargs["batch_percentage"],
+                "eta": trainer_settings.eta,
+                "kappa": trainer_settings.kappa,
+                "quantiles": trainer_settings.quantiles,
+                "max_batch_size": trainer_settings.max_batch_size,
+                "batch_percentage": trainer_settings.batch_percentage,
             }
-        for step_num in range(kwargs["num_iter"]):
+        for step_num in range(trainer_settings.num_iter):
             if step_num > 0:
                 take_step(opt=opt, slack=slack, rho_tch=rho_tch, scheduler=scheduler_)
             train_stats = TrainLoopStats(
                 step_num=step_num, train_flag=self.train_flag, num_g_total=self.num_g_total
             )
 
-            torch.manual_seed(kwargs["seed"] + step_num)
+            torch.manual_seed(trainer_settings.seed + step_num)
             # In the first epoch we try only once
             current_iter_line_search = 1 if step_num == 0 else self._max_iter_line_search + 1
             for violation_counter in range(current_iter_line_search):
                 self._eval_flag = False
                 cost, constr_cost, _, _, constraint_status, eval_cost, prob_violation_train, _ = (
                     self.loss_and_constraints(
-                        time_horizon=kwargs["time_horizon"],
+                        time_horizon=trainer_settings.time_horizon,
                         a_tch=a_tch,
                         b_tch=b_tch,
-                        batch_size=kwargs["batch_size"],
-                        seed=kwargs["seed"] + step_num + 1,
+                        batch_size=trainer_settings.batch_size,
+                        seed=trainer_settings.seed + step_num + 1,
                         rho_tch=rho_tch,
                         alpha=alpha,
-                        solver_args=kwargs["solver_args"],
-                        contextual=kwargs["contextual"],
-                        kwargs_simulator=kwargs["kwargs_simulator"],
-                        model=kwargs["model"],
+                        solver_args=trainer_settings.solver_args,
+                        contextual=trainer_settings.contextual,
+                        kwargs_simulator=trainer_settings.kwargs_simulator,
+                        model=trainer_settings.model,
                     )
                 )
 
@@ -1093,18 +1089,18 @@ class Trainer:
                 constr_cost.detach(),
             )
 
-            if step_num % kwargs["aug_lag_update_interval"] == 0:
+            if step_num % trainer_settings.aug_lag_update_interval == 0:
                 if (
                     torch.norm(constr_cost.detach())
-                    <= kwargs["lambda_update_threshold"] * curr_cvar
+                    <= trainer_settings.lambda_update_threshold * curr_cvar
                 ):
                     curr_cvar = torch.norm(constr_cost.detach())
                     lam += torch.minimum(
                         mu * constr_cost.detach(),
-                        kwargs["lambda_update_max"] * torch.ones(self.num_g_total, dtype=s.DTYPE),
+                        trainer_settings.lambda_update_max * torch.ones(self.num_g_total, dtype=s.DTYPE),
                     )
                 else:
-                    mu = kwargs["mu_multiplier"] * mu
+                    mu = trainer_settings.mu_multiplier * mu
 
             new_row = train_stats.generate_train_row(
                 self._a_tch,
@@ -1113,14 +1109,14 @@ class Trainer:
                 mu,
                 alpha,
                 slack,
-                kwargs["contextual"],
-                kwargs["linear"],
+                trainer_settings.contextual,
+                trainer_settings.linear,
                 self,
             )
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
             self._update_iters(
-                kwargs["save_history"],
+                trainer_settings.save_history,
                 a_history,
                 b_history,
                 rho_history,
@@ -1129,7 +1125,7 @@ class Trainer:
                 rho_tch,
             )
 
-            if step_num % kwargs["test_frequency"] == 0:
+            if step_num % trainer_settings.test_frequency == 0:
                 self._eval_flag = True
                 (
                     val_cost,
@@ -1140,17 +1136,17 @@ class Trainer:
                     prob_constr_violation,
                     u_batch,
                 ) = self.monte_carlo(
-                    time_horizon=kwargs["time_horizon"],
+                    time_horizon=trainer_settings.time_horizon,
                     a_tch=a_tch,
                     b_tch=b_tch,
-                    batch_size=kwargs["test_batch_size"],
-                    seed=kwargs["seed"],
+                    batch_size=trainer_settings.test_batch_size,
+                    seed=trainer_settings.seed,
                     rho_tch=rho_tch,
                     alpha=alpha,
-                    solver_args=kwargs["solver_args"],
-                    contextual=kwargs["contextual"],
-                    kwargs_simulator=kwargs["kwargs_simulator"],
-                    model=kwargs["model"],
+                    solver_args=trainer_settings.solver_args,
+                    contextual=trainer_settings.contextual,
+                    kwargs_simulator=trainer_settings.kwargs_simulator,
+                    model=trainer_settings.model,
                 )
                 record_eval_cost = eval_cost
                 if not self._default_simulator:
@@ -1172,24 +1168,20 @@ class Trainer:
                     rho_tch,
                     self.unc_set,
                     z_batch,
-                    kwargs["contextual"],
-                    kwargs["linear"],
+                    trainer_settings.contextual,
+                    trainer_settings.linear,
                     x_batch,
                 )
                 df_test = pd.concat([df_test, new_row.to_frame().T], ignore_index=True)
 
-        if constr_cost.detach().numpy().sum() / self.num_g_total <= kwargs["kappa"]:
+        if constr_cost.detach().numpy().sum() / self.num_g_total <= trainer_settings.kappa:
             fin_val = record_eval_cost[1].item()
         else:
             fin_val = record_eval_cost[1].item() + 10 * abs(constr_cost.detach().numpy().sum())
         a_val = self._a_tch.detach().numpy().copy()
         b_val = self._b_tch.detach().numpy().copy()
         rho_val = rho_tch.detach().numpy().copy()
-        # if kwargs['trained_shape'] else 1
         param_vals = (a_val, b_val, rho_val, record_eval_cost[1].item())
-        # tqdm.write("Testing objective: {}".format(obj_test[1].item()))
-        # tqdm.write("Probability of constraint violation: {}".format(
-        #            prob_violation_test))
         ret_context = (self._cur_x, self._cur_u)
         if self._covpred:
             predvals = (self._Apred, self._bpred, self._Cpred, self._dpred, self._Areg, self._breg)
@@ -1205,7 +1197,7 @@ class Trainer:
             fin_val,
             z_batch,
             mu,
-            kwargs["linear"],
+            trainer_settings.linear,
             predvals,
             ret_context,
         )
@@ -1280,66 +1272,19 @@ class Trainer:
             trainer_settings.num_random_init = trainer_settings.num_random_init
         else:
             trainer_settings.num_random_init = 1
-        kwargs = {
-            "train_size": trainer_settings.train_size,
-            "trained_shape": not trainer_settings.train_shape,
-            "train_shape": trainer_settings.train_shape,
-            "init_A": trainer_settings.init_A,
-            "init_b": trainer_settings.init_b,
-            "init_rho": trainer_settings.init_rho,
-            "random_init": trainer_settings.random_init,
-            "seed": trainer_settings.seed,
-            "init_alpha": trainer_settings.init_alpha,
-            "save_history": trainer_settings.save_history,
-            "fixb": trainer_settings.fixb,
-            "optimizer": trainer_settings.optimizer,
-            "lr": trainer_settings.lr,
-            "momentum": trainer_settings.momentum,
-            "scheduler": trainer_settings.scheduler,
-            "init_lam": trainer_settings.init_lam,
-            "init_mu": trainer_settings.init_mu,
-            "num_iter": trainer_settings.num_iter,
-            "batch_percentage": trainer_settings.batch_percentage,
-            "solver_args": trainer_settings.solver_args,
-            "kappa": trainer_settings.kappa,
-            "test_frequency": trainer_settings.test_frequency,
-            "mu_multiplier": trainer_settings.mu_multiplier,
-            "quantiles": trainer_settings.quantiles,
-            "lr_step_size": trainer_settings.lr_step_size,
-            "lr_gamma": trainer_settings.lr_gamma,
-            "eta": trainer_settings.eta,
-            "position": trainer_settings.position,
-            "test_percentage": trainer_settings.test_percentage,
-            "aug_lag_update_interval": trainer_settings.aug_lag_update_interval,
-            "lambda_update_threshold": trainer_settings.lambda_update_threshold,
-            "lambda_update_max": trainer_settings.lambda_update_max,
-            "max_batch_size": trainer_settings.max_batch_size,
-            "contextual": trainer_settings.contextual,
-            "linear": trainer_settings.linear,
-            "init_weight": trainer_settings.init_weight,
-            "init_bias": trainer_settings.init_bias,
-            "batch_size": trainer_settings.batch_size,
-            "test_batch_size": trainer_settings.test_batch_size,
-            "time_horizon": trainer_settings.time_horizon,
-            "kwargs_simulator": trainer_settings.kwargs_simulator,
-        }
 
         # Debugging code - one iteration
-        # res = self._train_loop(0, **kwargs)
+        # res = self._train_loop(0, trainer_settings)
         # Debugging code - serial
         if not trainer_settings.parallel:
             res = []
             for init_num in range(trainer_settings.num_random_init):
-                res.append(self._train_loop(init_num, **kwargs))
-        # n_jobs = get_n_processes() if parallel else 1
-        # pool_obj = Pool(processes=n_jobs)
-        # loop_fn = partial(self._train_loop, **kwargs)
-        # res = pool_obj.map(loop_fn, range(num_random_init))
+                res.append(self._train_loop(init_num, trainer_settings))
         # Joblib version
         else:
             trainer_settings.n_jobs = get_n_processes() if trainer_settings.parallel else 1
             res = Parallel(n_jobs=trainer_settings.n_jobs)(
-                delayed(self._train_loop)(init_num, **kwargs)
+                delayed(self._train_loop)(init_num, trainer_settings)
                 for init_num in range(trainer_settings.num_random_init)
             )
         (
@@ -1378,29 +1323,28 @@ class Trainer:
             self.unc_set.b.value = param_vals[index_chosen][1]
 
         if trainer_settings.train_shape and trainer_settings.train_size:
-            kwargs["init_rho"] = return_rho
-            kwargs["trained_shape"] = True
-            kwargs["train_shape"] = False
-            kwargs["init_A"] = self.unc_set.a.value
-            kwargs["init_b"] = self.unc_set.b.value
-            # kwargs["init_rho"] = 1
-            kwargs["random_init"] = False
+            trainer_settings.init_rho = return_rho
+            trainer_settings.trained_shape = True
+            trainer_settings.train_shape = False
+            trainer_settings.init_A = self.unc_set.a.value
+            trainer_settings.init_b = self.unc_set.b.value
+            trainer_settings.random_init = False
             if trainer_settings.lr_size:
-                kwargs["lr"] = trainer_settings.lr_size
+                trainer_settings.lr = trainer_settings.lr_size
             else:
-                kwargs["lr"] = trainer_settings.lr
+                trainer_settings.lr = trainer_settings.lr
             if trainer_settings.num_iter_size:
-                kwargs["num_iter"] = trainer_settings.num_iter_size
+                trainer_settings.num_iter = trainer_settings.num_iter_size
             else:
-                kwargs["num_iter"] = trainer_settings.num_iter
-            kwargs["init_mu"] = mu_val[index_chosen]
+                trainer_settings.num_iter = trainer_settings.num_iter
+            trainer_settings.init_mu = mu_val[index_chosen]
             if not trainer_settings.parallel:
                 res = []
                 for init_num in range(1):
-                    res.append(self._train_loop(init_num, **kwargs))
+                    res.append(self._train_loop(init_num, trainer_settings))
             else:
                 res = Parallel(n_jobs=trainer_settings.n_jobs)(
-                    delayed(self._train_loop)(init_num, **kwargs) for init_num in range(1)
+                    delayed(self._train_loop)(init_num, trainer_settings) for init_num in range(1)
                 )
             (
                 df_s,
