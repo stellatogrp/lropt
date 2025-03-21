@@ -23,7 +23,7 @@ dependencies = [
     "cvxpylayers @ git+https://github.com/cvxgrp/cvxpylayers@755d93fef4319bd1bdb8390f9c98ff0ebcf8bdea",
     "pandas",
     "tqdm",
-    "cvxtorch @ git+https://github.com/cvxpy/cvxtorch@4dc06c182af10b65cd779f5e22a64f1e3d24fb9b"
+    "cvxtorch @ git+https://github.com/cvxpy/cvxtorch"
 ]
 requires-python = ">= 3.12"
 
