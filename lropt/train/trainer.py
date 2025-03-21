@@ -969,8 +969,8 @@ class Trainer:
 
         rho_tch = self._gen_rho_tch(trainer_settings.init_rho)
         a_tch, b_tch, alpha, slack = self._init_torches(
-            trainer_settings.init_A, trainer_settings.init_b, trainer_settings.init_alpha, self.u_train_set
-        )
+            trainer_settings.init_A, trainer_settings.init_b, trainer_settings.init_alpha,
+            self.u_train_set)
 
         self._update_iters(
             trainer_settings.save_history, a_history, b_history, rho_history, a_tch, b_tch, rho_tch
@@ -1097,8 +1097,8 @@ class Trainer:
                     curr_cvar = torch.norm(constr_cost.detach())
                     lam += torch.minimum(
                         mu * constr_cost.detach(),
-                        trainer_settings.lambda_update_max * torch.ones(self.num_g_total, dtype=s.DTYPE),
-                    )
+                        trainer_settings.lambda_update_max * torch.ones(self.num_g_total,
+                                                                        dtype=s.DTYPE))
                 else:
                     mu = trainer_settings.mu_multiplier * mu
 
