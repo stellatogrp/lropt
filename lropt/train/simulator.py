@@ -51,7 +51,7 @@ class Simulator(ABC):
 
 
 
-class Default_Simulator(ABC):
+class DefaultSimulator(ABC):
     def __init__(self,trainer):
         self.trainer = trainer
 

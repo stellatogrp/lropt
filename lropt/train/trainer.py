@@ -13,7 +13,7 @@ from lropt import RobustProblem
 from lropt.train.cov_predict import fit, predict
 from lropt.train.parameter import ContextParameter, ShapeParameter, SizeParameter
 from lropt.train.settings import DEFAULT_SETTINGS as DS
-from lropt.train.simulator import Default_Simulator
+from lropt.train.simulator import DefaultSimulator
 from lropt.train.utils import (
     EVAL_INPUT_CASE,
     eval_input,
@@ -1256,7 +1256,7 @@ class Trainer:
             self.simulator = self.trainer_settings.simulator
             self._default_simulator = False
         else:
-            self.simulator = Default_Simulator(self)
+            self.simulator = DefaultSimulator(self)
             self._default_simulator = True
         self.violation_checker = ViolationChecker(self.cvxpylayer, self.problem_no_unc.constraints)
         self._max_iter_line_search = self.trainer_settings.max_iter_line_search
