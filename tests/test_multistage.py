@@ -571,8 +571,8 @@ class TestMultiStage(unittest.TestCase):
         # init_b = d_star[:K]
         init_weights = torch.zeros((K * K + K, x_endind))
         init_weights[K * K :, T + 1 :] = torch.eye(K)
-        trainer_settings = TrainerSettings()
-        trainer_settings.set(
+        settings = TrainerSettings()
+        settings.set(
             simulator=simulator,
             multistage=True,
             policy=policy,
@@ -598,4 +598,4 @@ class TestMultiStage(unittest.TestCase):
             init_mu=0.001,
             mu_multiplier=1.01,
         )
-        _ = trainer.train(trainer_settings=trainer_settings)
+        _ = trainer.train(settings=settings)

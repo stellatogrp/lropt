@@ -372,8 +372,8 @@ dependencies = [
 
 [[package]]
 name = "cvxtorch"
-version = "0.0.0"
-source = { git = "https://github.com/cvxpy/cvxtorch?rev=4dc06c182af10b65cd779f5e22a64f1e3d24fb9b#4dc06c182af10b65cd779f5e22a64f1e3d24fb9b" }
+version = "0.1.0"
+source = { git = "https://github.com/cvxpy/cvxtorch#c32690f8780ad825951d4b6d0be5569285aeb18e" }
 dependencies = [
     { name = "cvxpy" },
     { name = "numpy" },
@@ -1019,7 +1019,7 @@ wheels = [
 
 [[package]]
 name = "lropt"
-version = "0.0.1.dev487+g66c6b21.d20250313"
+version = "0.0.1.dev508+gda76140.d20250328"
 source = { editable = "." }
 dependencies = [
     { name = "cvxpy" },
@@ -1054,7 +1054,7 @@ dev = [
 requires-dist = [
     { name = "cvxpy" },
     { name = "cvxpylayers", git = "https://github.com/cvxgrp/cvxpylayers?rev=755d93fef4319bd1bdb8390f9c98ff0ebcf8bdea#755d93fef4319bd1bdb8390f9c98ff0ebcf8bdea" },
-    { name = "cvxtorch", git = "https://github.com/cvxpy/cvxtorch?rev=4dc06c182af10b65cd779f5e22a64f1e3d24fb9b#4dc06c182af10b65cd779f5e22a64f1e3d24fb9b" },
+    { name = "cvxtorch", git = "https://github.com/cvxpy/cvxtorch" },
     { name = "diffcp", git = "https://github.com/cvxgrp/diffcp?rev=eaac7bc4d637e8854801929ebf01d7db45554f5d#eaac7bc4d637e8854801929ebf01d7db45554f5d" },
     { name = "furo", marker = "extra == 'dev'" },
     { name = "ipdb", marker = "extra == 'dev'" },

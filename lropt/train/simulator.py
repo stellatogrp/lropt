@@ -74,7 +74,7 @@ class DefaultSimulator(ABC):
         """
         return torch.tensor(self.trainer.evaluation_metric(
             kwargs['batch_int'], kwargs['eval_args'],
-            self.trainer.trainer_settings.quantiles),dtype=settings.DTYPE)
+            self.trainer.settings.quantiles),dtype=settings.DTYPE)
 
 
     def constraint_cost(self,x,u,alpha, **kwargs):
@@ -84,8 +84,8 @@ class DefaultSimulator(ABC):
                                                   kwargs['eval_args'],
                                                     alpha,
                                                     kwargs['slack'],
-                                                    self.trainer.trainer_settings.eta,
-                                                    self.trainer.trainer_settings.kappa)
+                                                    self.trainer.settings.eta,
+                                                    self.trainer.settings.kappa)
 
     def init_state(self,batch_size, seed,**kwargs):
         """ initialize the parameter value
@@ -94,14 +94,14 @@ class DefaultSimulator(ABC):
             return self.trainer._gen_batch(self.trainer.test_size,
                                                 self.trainer.x_test_tch,
                                                 self.trainer.u_test_set,
-                                                1, self.trainer.trainer_settings.max_batch_size)
+                                                1, self.trainer.settings.max_batch_size)
 
         else:
             return self.trainer._gen_batch(self.trainer.train_size,
                                                 self.trainer.x_train_tch,
                                                 self.trainer.u_train_set,
-                                                self.trainer.trainer_settings.batch_percentage,
-                                                self.trainer.trainer_settings.max_batch_size)
+                                                self.trainer.settings.batch_percentage,
+                                                self.trainer.settings.max_batch_size)
 
     def prob_constr_violation(self,x,u,**kwargs):
         """ calculate current probability of constraint violation
