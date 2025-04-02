@@ -1631,9 +1631,11 @@ class Trainer:
                 step_num=np.NAN, train_flag=self.train_flag, num_g_total=self.num_g_total
             )
             with torch.no_grad():
-                test_args = self.order_args(
-                    z_batch=new_z_batch, x_batch=self.x_test_tch, u_batch=self.u_test_tch
-                )
+                new_z_batch = self._reduce_variables(new_z_batch)
+                new_z_batch_t = self._reduce_variables(new_z_batch_t)
+                test_args = self.order_args(z_batch=new_z_batch,
+                                             x_batch=self.x_test_tch,
+                                             u_batch=self.u_test_tch)
                 obj_test = self.evaluation_metric(self.test_size, test_args, quantiles)
                 prob_violation_test = self.prob_constr_violation(self.test_size, test_args)
                 _, var_vio = self.lagrangian(self.test_size, test_args, alpha, slack, lam, 1, eta)
@@ -1648,22 +1650,13 @@ class Trainer:
                 )
 
             train_stats.update_test_stats(obj_test, prob_violation_test, var_vio)
-            train_stats.update_train_stats(None, obj_train, prob_violation_train, var_vio_train)
-            grid_stats.update(train_stats, obj_test, rho_tch, a_tch_init, z_unique)
+            train_stats.update_train_stats(None, obj_train, prob_violation_train,var_vio_train)
+            grid_stats.update(train_stats, obj_test, rho_tch, a_tch_init, new_z_batch)
 
             new_row = train_stats.generate_test_row(
-                self._calc_coverage,
-                a_tch_init,
-                b_tch_init,
-                alpha,
-                self.u_test_tch,
-                rho_tch,
-                self.unc_set,
-                z_unique,
-                contextual,
-                linear,
-                [self.x_test_tch],
-            )
+                self._calc_coverage, a_tch_init,b_tch_init,
+                alpha, self.u_test_tch,rho_tch, self.unc_set, new_z_batch,
+                contextual,linear, [self.x_test_tch])
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
         self.orig_problem._trained = True
