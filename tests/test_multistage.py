@@ -406,7 +406,7 @@ class TestMultiStage(unittest.TestCase):
         policy = trainer.create_cvxpylayer(parameters=all_params, variables=[uall])
 
         class InvSimulator(lropt.Simulator):
-            def simulate(self, x, u):
+            def simulate(self, x, u, **kwargs):
                 u = u[0]
                 x_hat, d_star_val, q_hat, d_hat, y_hat, u_hat, _, _, _, tval, _, _, _, _, _ = x
                 t = int(tval[0])

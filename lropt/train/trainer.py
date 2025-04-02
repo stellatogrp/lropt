@@ -219,7 +219,9 @@ class Trainer:
             x_t = self.simulator.simulate(x_t, z_t, **kwargs_simulator)
             cost += self.simulator.stage_cost(x_t, z_t, **kwargs_simulator)
             eval_cost += self.simulator.stage_cost_eval(x_t, z_t, **kwargs_simulator)
-            constraint_cost += self.simulator.constraint_cost(x_t, z_t, alpha, **kwargs_simulator)
+            constraint_kwargs = kwargs_simulator.copy() if kwargs_simulator is not None else {}
+            constraint_kwargs["alpha"] = alpha
+            constraint_cost += self.simulator.constraint_cost(x_t, z_t, **constraint_kwargs)
             prob_vio += self.simulator.prob_constr_violation(x_t, z_t, **kwargs_simulator)
             x_hist.append([xval.detach().numpy().copy() for xval in x_t])
             z_hist.append(z_t)

@@ -32,7 +32,7 @@ class Simulator(ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def constraint_cost(self,x,u,alpha,**kwargs):
+    def constraint_cost(self,x,u,**kwargs):
         """ Create the current constraint penalty cost
         """
         raise NotImplementedError()
@@ -77,12 +77,12 @@ class DefaultSimulator(ABC):
             self.trainer.settings.quantiles),dtype=settings.DTYPE)
 
 
-    def constraint_cost(self,x,u,alpha, **kwargs):
+    def constraint_cost(self,x,u,**kwargs):
         """ Create the current constraint penalty cost
         """
         return self.trainer.train_constraint(kwargs['batch_int'],
                                                   kwargs['eval_args'],
-                                                    alpha,
+                                                    kwargs['alpha'],
                                                     kwargs['slack'],
                                                     self.trainer.settings.eta,
                                                     self.trainer.settings.kappa)
