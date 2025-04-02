@@ -10,7 +10,7 @@ license = { text = "Apache 2.0" }
 dynamic = ["version"]
 authors = [
     { name = "Irina Wang", email = "iywang@princeton.edu" },
-    { name = "Cole Becker", email = "colebecker@princeton.edu" },
+    { name = "Amit Solomon", email = "as3993@princeton.edu" },
     { name = "Bart Van Parys", email = "vanparys@mit.edu" },
     { name = "Bartolomeo Stellato", email = "bstellato@princeton.edu" },
 ]
@@ -18,14 +18,14 @@ dependencies = [
     "scipy>=1.11.2",
     "cvxpy",
     "torch",
-    "diffcp @ git+https://github.com/cvxgrp/diffcp@eaac7bc4d637e8854801929ebf01d7db45554f5d",
+    "diffcp @ git+https://github.com/cvxgrp/diffcp",
     "scikit-learn",
     "cvxpylayers @ git+https://github.com/cvxgrp/cvxpylayers@755d93fef4319bd1bdb8390f9c98ff0ebcf8bdea",
     "pandas",
     "tqdm",
-    "diffcp @ git+https://github.com/cvxgrp/diffcp@eaac7bc4d637e8854801929ebf01d7db45554f5d",
     "cvxtorch @ git+https://github.com/cvxpy/cvxtorch"
 ]
+requires-python = ">= 3.12"
 
 [tool.setuptools]
 packages = ["lropt"]

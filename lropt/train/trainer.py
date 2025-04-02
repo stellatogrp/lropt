@@ -8,13 +8,14 @@ from cvxpy import Parameter as OrigParameter
 from cvxpylayers.torch import CvxpyLayer
 from joblib import Parallel, delayed
 
-import lropt.train.settings as settings
+import lropt.train.settings as s
 from lropt import RobustProblem
 from lropt.train.cov_predict import fit, predict
 from lropt.train.parameter import ContextParameter, ShapeParameter, SizeParameter
-from lropt.train.settings import DEFAULT_MAX_ITER_LINE_SEARCH
-from lropt.train.simulator import Default_Simulator
-from lropt.train.trainer_settings import TrainerSettings
+from lropt.train.settings import DEFAULT_SETTINGS as DS
+
+# Import settings directly to use throughout the file
+from lropt.train.simulator import DefaultSimulator
 from lropt.train.utils import (
     EVAL_INPUT_CASE,
     eval_input,
@@ -32,13 +33,12 @@ from lropt.violation_checker.utils import CONSTRAINT_STATUS, InfeasibleConstrain
 from lropt.violation_checker.violation_checker import ViolationChecker
 
 
-class Trainer():
-
+class Trainer:
     """Create a class to handle training"""
+
     def __init__(self, problem: RobustProblem):
         if not (self.count_unq_uncertain_param(problem) == 1):
-            raise ValueError("Must have a single uncertain parameter " + \
-                             "for training")
+            raise ValueError("Must have a single uncertain parameter " + "for training")
         torch.set_default_dtype(torch.double)
         self.unc_set = self.uncertain_parameters(problem)[0].uncertainty_set
         self._validate_unc_set_T()
@@ -55,7 +55,6 @@ class Trainer():
         self.num_g_total = self.problem_canon.num_g_total
         self.eval = self.problem_canon.eval
 
-
         self._x_parameters = self.x_parameters(self.orig_problem)
         self._cp_parameters = self.cp_params(self.orig_problem)
         self._shape_parameters = self.shape_parameters(self.problem_no_unc)
@@ -71,11 +70,21 @@ class Trainer():
         self.x_test_tch = None
         self._x_tchs_init = True
 
-    def monte_carlo(self, rho_tch, alpha, solver_args, time_horizon,
-                    a_tch, b_tch, batch_size = 1,
-                    seed=None,contextual = False,
-                    kwargs_simulator = None, model = None):
-        """ This function calls the loss and constraint function, and returns
+    def monte_carlo(
+        self,
+        rho_tch,
+        alpha,
+        solver_args,
+        time_horizon,
+        a_tch,
+        b_tch,
+        batch_size=1,
+        seed=None,
+        contextual=False,
+        kwargs_simulator=None,
+        model=None,
+    ):
+        """This function calls the loss and constraint function, and returns
         an error if an infeasibility is encountered. This is infeasibility
         dependent on the testing data-set.
         """
@@ -83,27 +92,43 @@ class Trainer():
             torch.manual_seed(seed)
 
         # remove for loop, set batch size to trials
-        cost, constraint_cost, x_hist, z_hist, \
-            constraint_status, eval_cost, prob_vio, \
-                u_hist = self.loss_and_constraints(
-            time_horizon=time_horizon, a_tch=a_tch, b_tch=b_tch,
-            batch_size = batch_size,
-            seed=seed,rho_tch = rho_tch, alpha = alpha,
-            solver_args = solver_args,
-            contextual = contextual, kwargs_simulator=kwargs_simulator,
-            model = model)
+        cost, constraint_cost, x_hist, z_hist, constraint_status, eval_cost, prob_vio, u_hist = (
+            self.loss_and_constraints(
+                time_horizon=time_horizon,
+                a_tch=a_tch,
+                b_tch=b_tch,
+                batch_size=batch_size,
+                seed=seed,
+                rho_tch=rho_tch,
+                alpha=alpha,
+                solver_args=solver_args,
+                contextual=contextual,
+                kwargs_simulator=kwargs_simulator,
+                model=model,
+            )
+        )
         if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
             raise InfeasibleConstraintException(
                 "Found an infeasible constraint during a call to monte_carlo."
                 + "Possibly an infeasible uncertainty set initialization."
-                + "Or infeasibility encountered in the testing set")
+                + "Or infeasibility encountered in the testing set"
+            )
         return cost, constraint_cost, x_hist, z_hist, eval_cost, prob_vio, u_hist
 
-    def loss_and_constraints(self, rho_tch, alpha, solver_args,
-                             time_horizon, a_tch, b_tch,
-                             batch_size = 1, seed=None,
-                             contextual = False, kwargs_simulator = None,
-                             model = None):
+    def loss_and_constraints(
+        self,
+        rho_tch,
+        alpha,
+        solver_args,
+        time_horizon,
+        a_tch,
+        b_tch,
+        batch_size=1,
+        seed=None,
+        contextual=False,
+        kwargs_simulator=None,
+        model=None,
+    ):
         """
         This function propagates the system state, calculates the costs,
         and checks feasibility
@@ -151,21 +176,21 @@ class Trainer():
 
         if self._multistage:
             u_0 = 0
-            x_0 = self.simulator.init_state(batch_size, seed,**kwargs_simulator)
+            x_0 = self.simulator.init_state(batch_size, seed, **kwargs_simulator)
         else:
             batch_int, x_0, u_0 = self.simulator.init_state(batch_size, seed, **kwargs_simulator)
-            kwargs_simulator['batch_int'] = batch_int
+            kwargs_simulator["batch_int"] = batch_int
 
-        if not isinstance(x_0,list):
+        if not isinstance(x_0, list):
             x_0 = [x_0]
-        x_0 = [torch.tensor(x, dtype=settings.DTYPE) for x in x_0]
+        x_0 = [x.clone().detach() for x in x_0]
         if contextual:
             a_tch, b_tch = self.create_tensors_linear(x_0, model, self._covpred)
 
         cost = 0.0
         constraint_cost = 0.0
         if self._default_simulator:
-            eval_cost = torch.tensor([0,0,0],dtype=settings.DTYPE)
+            eval_cost = torch.tensor([0, 0, 0], dtype=s.DTYPE)
         else:
             eval_cost = 0.0
         prob_vio = 0.0
@@ -173,29 +198,38 @@ class Trainer():
         x_hist = [[xval.detach().numpy().copy() for xval in x_t.copy()]]
         z_hist = []
         for t in range(time_horizon):
-            z_t = self.cvxpylayer(rho_tch, *self.cp_param_tch,
-                *x_t,a_tch,b_tch,solver_args=solver_args)
-            constraints_status = self.violation_checker.check_constraints(z_batch=z_t,
-                                        rho_mult_parameter=self._rho_mult_parameter,
-                                        rho_tch=rho_tch, cp_parameters=self._cp_parameters,
-                                        cp_param_tch=self.cp_param_tch,
-                                        x_parameters=self._x_parameters, x_batch=x_t,
-                                        shape_parameters=self._shape_parameters,
-                                        shape_torches=[a_tch, b_tch])
+            z_t = self.cvxpylayer(
+                rho_tch, *self.cp_param_tch, *x_t, a_tch, b_tch, solver_args=solver_args
+            )
+            constraints_status = self.violation_checker.check_constraints(
+                z_batch=z_t,
+                rho_mult_parameter=self._rho_mult_parameter,
+                rho_tch=rho_tch,
+                cp_parameters=self._cp_parameters,
+                cp_param_tch=self.cp_param_tch,
+                x_parameters=self._x_parameters,
+                x_batch=x_t,
+                shape_parameters=self._shape_parameters,
+                shape_torches=[a_tch, b_tch],
+            )
             z_t = self._reduce_variables(z_t)
             if not self._multistage:
-                eval_args = self.order_args(z_t,x_t,u_0)
-                kwargs_simulator['eval_args'] = eval_args
-            x_t = self.simulator.simulate(x_t, z_t,**kwargs_simulator)
-            cost += self.simulator.stage_cost(x_t, z_t,**kwargs_simulator)
-            eval_cost += self.simulator.stage_cost_eval(x_t, z_t,**kwargs_simulator)
-            constraint_cost += self.simulator.constraint_cost(x_t, z_t, alpha,**kwargs_simulator)
+                eval_args = self.order_args(z_t, x_t, u_0)
+                kwargs_simulator["eval_args"] = eval_args
+            x_t = self.simulator.simulate(x_t, z_t, **kwargs_simulator)
+            cost += self.simulator.stage_cost(x_t, z_t, **kwargs_simulator)
+            eval_cost += self.simulator.stage_cost_eval(x_t, z_t, **kwargs_simulator)
+            constraint_kwargs = kwargs_simulator.copy() if kwargs_simulator is not None else {}
+
+            # TODO (bart): this is not ideal since we are copying the kwargs
+            constraint_kwargs["alpha"] = alpha
+            constraint_cost += self.simulator.constraint_cost(x_t, z_t, **constraint_kwargs)
+
             prob_vio += self.simulator.prob_constr_violation(x_t, z_t, **kwargs_simulator)
             x_hist.append([xval.detach().numpy().copy() for xval in x_t])
             z_hist.append(z_t)
             if contextual:
-                a_tch, b_tch = self.create_tensors_linear(x_t,model,
-                                                          self._covpred)
+                a_tch, b_tch = self.create_tensors_linear(x_t, model, self._covpred)
             self._a_tch = a_tch
             self._b_tch = b_tch
             self._cur_x = x_t
@@ -223,56 +257,67 @@ class Trainer():
         if isinstance(self.unc_set, Scenario):
             raise ValueError("Cannot train a scenario set")
 
-    def count_unq_uncertain_param(self,problem) -> int:
+    def count_unq_uncertain_param(self, problem) -> int:
         unc_params = self.uncertain_parameters(problem)
         return len(unique_list(unc_params))
 
-    def uncertain_parameters(self,problem):
+    def uncertain_parameters(self, problem):
         """Find uncertain (u) parameters"""
         return [v for v in problem.parameters() if isinstance(v, UncertainParameter)]
 
-    def x_parameters(self,problem):
+    def x_parameters(self, problem):
         """Find context (x) parameters"""
         return [v for v in problem.parameters() if isinstance(v, ContextParameter)]
 
-    def cp_params(self,problem):
+    def cp_params(self, problem):
         """Find cvxpy (noncontextual) parameters"""
-        return [v for v in problem.parameters() if isinstance(v, OrigParameter)
-                 and not (isinstance(v,ContextParameter) or
-                           isinstance(v,UncertainParameter))]
+        return [
+            v
+            for v in problem.parameters()
+            if isinstance(v, OrigParameter)
+            and not (isinstance(v, ContextParameter) or isinstance(v, UncertainParameter))
+        ]
 
-    def rho_mult_param(self,problem):
+    def rho_mult_param(self, problem):
         """Find the rho multiplier parameter"""
         return [v for v in problem.parameters() if isinstance(v, SizeParameter)]
 
-    def gen_rho_mult_tch(self,rhoparams=[]):
+    def gen_rho_mult_tch(self, rhoparams=[]):
         """Generate the torch of the rho multiplier value, placed in a list"""
-        return [torch.tensor(rho.value,
-                        dtype=settings.DTYPE,
-                        requires_grad=self.train_flag) for rho in rhoparams][0]
+        return [
+            torch.tensor(rho.value, dtype=s.DTYPE, requires_grad=self.train_flag)
+            for rho in rhoparams
+        ][0]
 
     def shape_parameters(self, problem):
         """Get the reshaping parameters a and b"""
         return [v for v in problem.parameters() if isinstance(v, ShapeParameter)]
 
-    def create_cvxpylayer(self,parameters = None, variables=None) -> CvxpyLayer:
+    def create_cvxpylayer(self, parameters=None, variables=None) -> CvxpyLayer:
         """Create cvxpylayers.
         Default parameter order: rho multiplier, cvxpy parameters, context parameters, a, b.
-        Default variable order: the variables of problem_canon """
+        Default variable order: the variables of problem_canon"""
         if parameters is None:
-            new_parameters = self._rho_mult_parameter + self._cp_parameters +\
-                  self._x_parameters + self._shape_parameters
+            new_parameters = (
+                self._rho_mult_parameter
+                + self._cp_parameters
+                + self._x_parameters
+                + self._shape_parameters
+            )
         else:
             assert isinstance(parameters, list)
             self._x_tchs_init = False
             self._x_parameters = parameters
             new_parameters = self._rho_mult_parameter + parameters + self._shape_parameters
         if variables is None:
-            #TODO: Clean up if works properly
+            # TODO: Clean up if works properly
             # variables = self.problem_no_unc.variables()
             variables = self.problem_canon.variables()
-        cvxpylayer = CvxpyLayer(self.problem_no_unc, parameters=new_parameters,
-                                variables=self.problem_no_unc.variables())
+        cvxpylayer = CvxpyLayer(
+            self.problem_no_unc,
+            parameters=new_parameters,
+            variables=self.problem_no_unc.variables(),
+        )
         self._reduced_variables = variables
         return cvxpylayer
 
@@ -290,54 +335,69 @@ class Trainer():
             in_shape = x_endind
         else:
             in_shape = sum(x_shapes)
-        out_shape = int(a_shape[0]*a_shape[1]+ b_shape[0])
-        return in_shape, out_shape, a_shape[0]*a_shape[1]
+        out_shape = int(a_shape[0] * a_shape[1] + b_shape[0])
+        return in_shape, out_shape, a_shape[0] * a_shape[1]
 
-    def create_tensors_linear(self,x_batch, linear, covpred = False):
+    def create_tensors_linear(self, x_batch, linear, covpred=False):
         """Create the tensors of a's and b's using the trained linear model"""
         if covpred:
             x_endind = self.x_endind
-            x_batch = [torch.flatten(x, start_dim = 1) for x in x_batch]
+            x_batch = [torch.flatten(x, start_dim=1) for x in x_batch]
             if x_endind:
-                input_tensors = torch.hstack(x_batch)[:,:x_endind]
+                input_tensors = torch.hstack(x_batch)[:, :x_endind]
             else:
                 input_tensors = torch.hstack(x_batch)
-            b_tch, a_tch = predict(input_tensors, self._Apred, self._bpred,
-                                   self._Cpred,
-                                    self._dpred, self._Areg, self._breg)
+            b_tch, a_tch = predict(
+                input_tensors,
+                self._Apred,
+                self._bpred,
+                self._Cpred,
+                self._dpred,
+                self._Areg,
+                self._breg,
+            )
         else:
             x_endind = self.x_endind
             a_shape = self.unc_set._a.shape
             b_shape = self.unc_set._b.shape
-            x_batch = [torch.flatten(x, start_dim = 1) for x in x_batch]
+            x_batch = [torch.flatten(x, start_dim=1) for x in x_batch]
             if x_endind:
-                input_tensors = torch.hstack(x_batch)[:,:x_endind]
+                input_tensors = torch.hstack(x_batch)[:, :x_endind]
             else:
                 input_tensors = torch.hstack(x_batch)
             theta = linear(input_tensors)
-            raw_a = theta[:,:a_shape[0]*a_shape[1]]
-            raw_b = theta[:,a_shape[0]*a_shape[1]:]
-            a_tch = raw_a.view(theta.shape[0],a_shape[0],a_shape[1])
-            b_tch = raw_b.view(theta.shape[0],b_shape[0])
+            raw_a = theta[:, : a_shape[0] * a_shape[1]]
+            raw_b = theta[:, a_shape[0] * a_shape[1] :]
+            a_tch = raw_a.view(theta.shape[0], a_shape[0], a_shape[1])
+            b_tch = raw_b.view(theta.shape[0], b_shape[0])
             if not self.train_flag:
                 a_tch = torch.tensor(a_tch, requires_grad=False)
                 b_tch = torch.tensor(b_tch, requires_grad=False)
         return a_tch, b_tch
 
-    def init_linear_model(self, a_tch, b_tch, random_init = False,
-                    init_num=1,seed = 0, init_weight = None, init_bias = None, covpred = False):
+    def init_linear_model(
+        self,
+        a_tch,
+        b_tch,
+        random_init=False,
+        init_num=1,
+        seed=0,
+        init_weight=None,
+        init_bias=None,
+        covpred=False,
+    ):
         """Initializes the linear model weights and bias"""
         if covpred and (self._Apred is None):
             x_endind = self.x_endind
-            x_batch = [torch.flatten(x, start_dim = 1) for x in self.x_train_tch]
+            x_batch = [torch.flatten(x, start_dim=1) for x in self.x_train_tch]
             if x_endind:
-                input_tensors = torch.hstack(x_batch)[:,:x_endind]
+                input_tensors = torch.hstack(x_batch)[:, :x_endind]
             else:
                 input_tensors = torch.hstack(x_batch)
 
             Apred, bpred, Cpred, dpred, Areg, breg = fit(
-                input_tensors.detach().numpy(),
-                  self.u_train_tch.detach().numpy())
+                input_tensors.detach().numpy(), self.u_train_tch.detach().numpy()
+            )
             self._Apred = Apred
             self._bpred = bpred
             self._Cpred = Cpred
@@ -347,11 +407,9 @@ class Trainer():
             return None
         elif covpred:
             return None
-        in_shape, out_shape, a_totsize = \
-                                self.initialize_dimensions_linear()
-        torch.manual_seed(seed+init_num)
-        lin_model = torch.nn.Linear(in_features = in_shape,
-                                out_features = out_shape).double()
+        in_shape, out_shape, a_totsize = self.initialize_dimensions_linear()
+        torch.manual_seed(seed + init_num)
+        lin_model = torch.nn.Linear(in_features=in_shape, out_features=out_shape).double()
         lin_model.bias.data[a_totsize:] = b_tch
         if not random_init:
             with torch.no_grad():
@@ -361,18 +419,19 @@ class Trainer():
             lin_model.weight.data.fill_(0.000)
             lin_model.bias.data = torch_concat
             if init_weight is not None:
-                lin_model.weight.data = torch.tensor(init_weight,
-                                    dtype=torch.double,requires_grad=True)
+                lin_model.weight.data = torch.tensor(
+                    init_weight, dtype=torch.double, requires_grad=True
+                )
             if init_bias is not None:
                 lin_model.bias.data = torch.tensor(
-                        init_bias, dtype=torch.double,
-                                    requires_grad=True)
+                    init_bias, dtype=torch.double, requires_grad=True
+                )
         return lin_model
 
-    def init_model(self,linear):
+    def init_model(self, linear):
         return torch.nn.Sequential(linear)
 
-    def create_cp_param_tch(self,num):
+    def create_cp_param_tch(self, num):
         """
         This function creates tensors for the cvxpy parameters
 
@@ -388,32 +447,30 @@ class Trainer():
         """
         cp_param_tchs = []
         for param in self._cp_parameters:
-            param_tch = torch.tensor(param.value,
-                    dtype=settings.DTYPE,
-                    requires_grad=self.train_flag)
+            param_tch = torch.tensor(param.value, dtype=s.DTYPE, requires_grad=self.train_flag)
             if num == 0:
                 cp_param_tchs.append(param_tch)
                 continue
             param_tch_dim = param_tch.dim()
             if param_tch_dim == 0:
-                shape = (num)
+                shape = num
             elif param_tch_dim == 1:
-                shape = (num,1)
+                shape = (num, 1)
             elif param_tch_dim == 2:
-                shape = (num, 1,1)
+                shape = (num, 1, 1)
             else:
                 raise ValueError("Maximum dimension of parameters is 2")
             cp_param_tchs.append(param_tch.repeat(shape))
         return cp_param_tchs
 
-    def _split_dataset(self, test_percentage=settings.BATCH_PERCENTAGE_DEFAULT, seed=0):
+    def _split_dataset(self, test_percentage=DS.test_percentage, seed=0):
         """
         This function splits the uncertainty set into train and test sets
             and also creates torch tensors
 
         Args:
         test_percentage
-            Fraction of data to place into the test set
+            Fraction of data to place into the test set.
         seed
             Random number generator seed
 
@@ -437,18 +494,19 @@ class Trainer():
 
         # Split the dataset into train_set and test, and create Tensors
         np.random.seed(seed)
-        num_test = max(1, int(self.unc_set.data.shape[0]*test_percentage))
+        num_test = max(1, int(self.unc_set.data.shape[0] * test_percentage))
         num_train = int(self.unc_set.data.shape[0] - num_test)
-        test_indices = np.random.choice(self.unc_set.data.shape[0],
-                                      num_test, replace=False)
+        test_indices = np.random.choice(self.unc_set.data.shape[0], num_test, replace=False)
         train_indices = [i for i in range(self.unc_set.data.shape[0]) if i not in test_indices]
 
         unc_train_set = np.array([self.unc_set.data[i] for i in train_indices])
         unc_test_set = np.array([self.unc_set.data[i] for i in test_indices])
         unc_train_tch = torch.tensor(
-            self.unc_set.data[train_indices], requires_grad=self.train_flag, dtype=settings.DTYPE)
+            self.unc_set.data[train_indices], requires_grad=self.train_flag, dtype=s.DTYPE
+        )
         unc_test_tch = torch.tensor(
-            self.unc_set.data[test_indices], requires_grad=self.train_flag, dtype=settings.DTYPE)
+            self.unc_set.data[test_indices], requires_grad=self.train_flag, dtype=s.DTYPE
+        )
 
         cp_param_tchs = []
         x_train_tchs = []
@@ -457,13 +515,20 @@ class Trainer():
         if self._x_tchs_init:
             cp_param_tchs = self.create_cp_param_tch(0)
             for i in range(len(self._x_parameters)):
-                x_train_tchs.append(torch.tensor(
-                    self._x_parameters[i].data[train_indices], requires_grad=self.train_flag,
-                    dtype=settings.DTYPE))
-                x_test_tchs.append(torch.tensor(
-                    self._x_parameters[i].data[test_indices], requires_grad=self.train_flag,
-                    dtype=settings.DTYPE))
-
+                x_train_tchs.append(
+                    torch.tensor(
+                        self._x_parameters[i].data[train_indices],
+                        requires_grad=self.train_flag,
+                        dtype=s.DTYPE,
+                    )
+                )
+                x_test_tchs.append(
+                    torch.tensor(
+                        self._x_parameters[i].data[test_indices],
+                        requires_grad=self.train_flag,
+                        dtype=s.DTYPE,
+                    )
+                )
 
         self.u_train_tch = unc_train_tch
         self.u_test_tch = unc_test_tch
@@ -476,17 +541,26 @@ class Trainer():
         self.cp_param_tch = cp_param_tchs
         if self._multistage and self._covpred:
             if (self._init_uncertain_parameter is None) or (self._init_context is None):
-                raise ValueError("You must provide init_uncertain_param and \
-                                  init_context in the trainer settings")
+                raise ValueError(
+                    "You must provide init_uncertain_param and \
+                                  init_context in the trainer settings"
+                )
             self.u_train_tch = torch.tensor(
-                self._init_uncertain_parameter, requires_grad= True,
-                  dtype = settings.DTYPE)
+                self._init_uncertain_parameter, requires_grad=True, dtype=s.DTYPE
+            )
             self.x_train_tch = self._init_context
 
-        return unc_train_set, unc_test_set, unc_train_tch, \
-                unc_test_tch, x_train_tchs, x_test_tchs, cp_param_tchs
+        return (
+            unc_train_set,
+            unc_test_set,
+            unc_train_tch,
+            unc_test_tch,
+            x_train_tchs,
+            x_test_tchs,
+            cp_param_tchs,
+        )
 
-    def _gen_batch(self, num_xs,x_data, u_data, batch_percentage, max_size=10000, min_size=1):
+    def _gen_batch(self, num_xs, x_data, u_data, batch_percentage, max_size=10000, min_size=1):
         """
         This function generates a list of torches for each x and u
         for all context parameters x and uncertain parameter u
@@ -506,15 +580,13 @@ class Trainer():
             minimum number of samples in a batch
         """
 
-        batch_int = max(min(int(num_xs*batch_percentage),max_size),min_size)
-        random_int = np.random.choice(
-            num_xs, batch_int, replace=False)
+        batch_int = max(min(int(num_xs * batch_percentage), max_size), min_size)
+        random_int = np.random.choice(num_xs, batch_int, replace=False)
         x_tchs = []
         for i in range(len(x_data)):
             x_tchs.append(x_data[i].data[random_int])
 
-        u_tch = torch.tensor(u_data[random_int], requires_grad=self.train_flag,
-                                dtype=settings.DTYPE)
+        u_tch = torch.tensor(u_data[random_int], requires_grad=self.train_flag, dtype=s.DTYPE)
 
         return batch_int, x_tchs, u_tch
 
@@ -532,8 +604,7 @@ class Trainer():
             Boolean flag set to True for MRO problem
         """
         scalar = init_rho if init_rho else 1.0
-        rho_tch = torch.tensor(
-            scalar, requires_grad=self.train_flag, dtype=settings.DTYPE)
+        rho_tch = torch.tensor(scalar, requires_grad=self.train_flag, dtype=s.DTYPE)
 
         return rho_tch
 
@@ -559,15 +630,14 @@ class Trainer():
             np.array (NOT TENSOR)
         """
 
-        cov_len_cond = (len(np.shape(np.cov(train_set.T))) >= 1)
-        if (init_A is None):
+        cov_len_cond = len(np.shape(np.cov(train_set.T))) >= 1
+        if init_A is None:
             if cov_len_cond:
                 return sc.linalg.sqrtm(np.cov(train_set.T))
             return np.array([[np.cov(train_set.T)]])
 
         mat_shape = train_set.shape[1] if cov_len_cond else 1
-        matrix = np.array(init_A) if (
-            init_A is not None) else np.eye(mat_shape)
+        matrix = np.array(init_A) if (init_A is not None) else np.eye(mat_shape)
         return matrix
 
     def _init_torches(self, init_A, init_b, init_alpha, train_set):
@@ -577,22 +647,21 @@ class Trainer():
         """
         # train_set = train_set.detach().numpy()
         self._init = self._gen_init(train_set, init_A)
-        init_tensor = torch.tensor(self._init, requires_grad=self.train_flag, dtype=settings.DTYPE)
+        init_tensor = torch.tensor(self._init, requires_grad=self.train_flag, dtype=s.DTYPE)
         b_tch = None
 
         if init_b is not None:
             b_tch_data = np.array(init_b)
         else:
             b_tch_data = np.mean(train_set, axis=0)
-        b_tch = torch.tensor(b_tch_data, requires_grad=self.train_flag, dtype=settings.DTYPE)
+        b_tch = torch.tensor(b_tch_data, requires_grad=self.train_flag, dtype=s.DTYPE)
         a_tch = init_tensor
 
         alpha = torch.tensor(init_alpha, requires_grad=self.train_flag)
-        slack = torch.zeros(self.num_g_total, requires_grad=self.train_flag, dtype=settings.DTYPE)
+        slack = torch.zeros(self.num_g_total, requires_grad=self.train_flag, dtype=s.DTYPE)
         return a_tch, b_tch, alpha, slack
 
-    def _update_iters(self, save_history, a_history, b_history,
-                      rho_history,a_tch, b_tch, rho_tch):
+    def _update_iters(self, save_history, a_history, b_history, rho_history, a_tch, b_tch, rho_tch):
         """
         This function updates a_history and b_history
 
@@ -623,8 +692,9 @@ class Trainer():
         a_history.append(a_tch.detach().numpy().copy())
         b_history.append(b_tch.detach().numpy().copy())
 
-    def _set_train_variables(self, fixb, alpha, slack, a_tch, b_tch,
-                              rho_tch, train_size,contextual, model):
+    def _set_train_variables(
+        self, fixb, alpha, slack, a_tch, b_tch, rho_tch, train_size, contextual, model
+    ):
         """
         This function sets the variables to be trained in the outer level problem.
 
@@ -656,18 +726,28 @@ class Trainer():
         elif fixb:
             variables = [rho_tch, a_tch, alpha, slack]
         elif self._covpred:
-            variables = [rho_tch, alpha,slack, self._Apred, self._bpred,
-                         self._Cpred, self._dpred, self._Areg, self._breg]
+            variables = [
+                rho_tch,
+                alpha,
+                slack,
+                self._Apred,
+                self._bpred,
+                self._Cpred,
+                self._dpred,
+                self._Areg,
+                self._breg,
+            ]
         elif contextual:
-            variables = [rho_tch, alpha,slack]
+            variables = [rho_tch, alpha, slack]
             variables.extend(list(model.parameters()))
         else:
             variables = [rho_tch, a_tch, b_tch, alpha, slack]
 
         return variables
 
-    def _calc_coverage(self, dset, a_tch, b_tch, rho=1,p=2,
-                       contextual=False,y_set = None, linear = None):
+    def _calc_coverage(
+        self, dset, a_tch, b_tch, rho=1, p=2, contextual=False, y_set=None, linear=None
+    ):
         """
         This function calculates coverage.
 
@@ -692,12 +772,16 @@ class Trainer():
             return 0
         coverage = 0
         if contextual:
-            a_tch, b_tch = self.create_tensors_linear([torch.tensor(
-                y) for y in y_set[-1]], linear,self._covpred)
+            a_tch, b_tch = self.create_tensors_linear(
+                [torch.tensor(y) for y in y_set[-1]], linear, self._covpred
+            )
             for i in range(dset.shape[0]):
                 coverage += torch.where(
-                    torch.norm((a_tch[i].T@torch.linalg.inv(a_tch[i]@a_tch[i].T)) @ (dset[i]-
-                            b_tch[i]),p)
+                    torch.norm(
+                        (a_tch[i].T @ torch.linalg.inv(a_tch[i] @ a_tch[i].T))
+                        @ (dset[i] - b_tch[i]),
+                        p,
+                    )
                     <= rho,
                     1,
                     0,
@@ -705,13 +789,14 @@ class Trainer():
         else:
             for datind in range(dset.shape[0]):
                 coverage += torch.where(
-                    torch.norm((a_tch.T@torch.linalg.inv(a_tch@a_tch.T)) @ (dset[datind]-
-                            b_tch),p)
+                    torch.norm(
+                        (a_tch.T @ torch.linalg.inv(a_tch @ a_tch.T)) @ (dset[datind] - b_tch), p
+                    )
                     <= rho,
                     1,
                     0,
                 )
-        return (coverage/dset.shape[0]).detach().numpy().item()
+        return (coverage / dset.shape[0]).detach().numpy().item()
 
     def order_args(self, z_batch, x_batch, u_batch):
         """
@@ -732,10 +817,16 @@ class Trainer():
         Returns:
             The average among all evaluated J x N pairs
         """
-        return eval_input(batch_int,eval_func=self.f, eval_args=eval_args, init_val=0,
-                                eval_input_case=EVAL_INPUT_CASE.MEAN, quantiles=None)
+        return eval_input(
+            batch_int,
+            eval_func=self.f,
+            eval_args=eval_args,
+            init_val=0,
+            eval_input_case=EVAL_INPUT_CASE.MEAN,
+            quantiles=None,
+        )
 
-    def train_constraint(self, batch_int,eval_args, alpha, slack, eta, kappa):
+    def train_constraint(self, batch_int, eval_args, alpha, slack, eta, kappa):
         """
         This function evaluates the expectation of the CVaR
         constraint functions over the batched set.
@@ -753,15 +844,25 @@ class Trainer():
         Returns:
             The average among all evaluated J x N pairs
         """
-        H = torch.zeros(self.num_g_total, dtype=settings.DTYPE)
+        H = torch.zeros(self.num_g_total, dtype=s.DTYPE)
         for k, h_k in enumerate(self.h):
-            init_val = eval_input(batch_int,h_k, eval_args, 0,
-                                        EVAL_INPUT_CASE.MEAN, quantiles=None,
-                                        alpha=alpha, eta=eta)
-            h_k_expectation = init_val + alpha - kappa + \
-                slack[sum(self.g_shapes[:k]):sum(self.g_shapes[:(k+1)])]
-            H[sum(self.g_shapes[:k]):sum(self.g_shapes[:(k+1)])] \
-                = h_k_expectation
+            init_val = eval_input(
+                batch_int,
+                h_k,
+                eval_args,
+                0,
+                EVAL_INPUT_CASE.MEAN,
+                quantiles=None,
+                alpha=alpha,
+                eta=eta,
+            )
+            h_k_expectation = (
+                init_val
+                + alpha
+                - kappa
+                + slack[sum(self.g_shapes[:k]) : sum(self.g_shapes[: (k + 1)])]
+            )
+            H[sum(self.g_shapes[:k]) : sum(self.g_shapes[: (k + 1)])] = h_k_expectation
         return H
 
     def evaluation_metric(self, batch_int, eval_args, quantiles):
@@ -777,12 +878,18 @@ class Trainer():
         Returns:
             The average among all evaluated J x N pairs
         """
-        if (self.eval is None):
+        if self.eval is None:
             return 0
 
-        return eval_input(batch_int,eval_func=self.eval, eval_args=eval_args,init_val=0,
-                                eval_input_case=EVAL_INPUT_CASE.EVALMEAN,
-                                quantiles=quantiles, serial_flag=True)
+        return eval_input(
+            batch_int,
+            eval_func=self.eval,
+            eval_args=eval_args,
+            init_val=0,
+            eval_input_case=EVAL_INPUT_CASE.EVALMEAN,
+            quantiles=quantiles,
+            serial_flag=True,
+        )
 
     def prob_constr_violation(self, batch_int, eval_args):
         """
@@ -796,11 +903,21 @@ class Trainer():
         Returns:
             The average among all evaluated J x N pairs
         """
-        return eval_prob_constr_violation(g=self.g, g_shapes=self.g_shapes, batch_int=batch_int,
-                                          eval_args=eval_args)
+        return eval_prob_constr_violation(
+            g=self.g, g_shapes=self.g_shapes, batch_int=batch_int, eval_args=eval_args
+        )
 
-    def lagrangian(self, batch_int,eval_args, alpha, slack, lam, mu,
-                   eta=settings.ETA_LAGRANGIAN_DEFAULT, kappa=settings.KAPPA_LAGRANGIAN_DEFAULT):
+    def lagrangian(
+        self,
+        batch_int,
+        eval_args,
+        alpha,
+        slack,
+        lam,
+        mu,
+        eta=DS.eta,
+        kappa=DS.kappa,
+    ):
         """
         The function evaluates generates the augmented lagrangian of
         the problem, over the batched set.
@@ -823,10 +940,11 @@ class Trainer():
         Returns:
             The average among all evaluated J x N pairs
         """
-        F = self.train_objective(batch_int,eval_args=eval_args)
-        H = self.train_constraint(batch_int,eval_args=eval_args,
-                                  alpha=alpha, slack=slack, eta=eta, kappa=kappa)
-        return F + lam @ H + (mu/2)*(torch.linalg.norm(H)**2), H.detach()
+        F = self.train_objective(batch_int, eval_args=eval_args)
+        H = self.train_constraint(
+            batch_int, eval_args=eval_args, alpha=alpha, slack=slack, eta=eta, kappa=kappa
+        )
+        return F + lam @ H + (mu / 2) * (torch.linalg.norm(H) ** 2), H.detach()
 
     def _reduce_variables(self, z_batch: list[torch.Tensor]) -> list[torch.Tensor]:
         """
@@ -835,103 +953,120 @@ class Trainer():
         It returns the reduced list of tensors, where only the tensors that correspond to variables
         of self.problem_canon.variables() are preserved.
         """
-        res = [None]*len(self._reduced_variables)
+        res = [None] * len(self._reduced_variables)
         for problem_no_unc_ind, problem_no_unc_var in enumerate(self.problem_no_unc.variables()):
             for problem_canon_ind, problem_canon_var in enumerate(self._reduced_variables):
-                if problem_no_unc_var.id==problem_canon_var.id:
+                if problem_no_unc_var.id == problem_canon_var.id:
                     res[problem_canon_ind] = z_batch[problem_no_unc_ind]
                     break
         return res
 
-    def _train_loop(self, init_num, **kwargs):
-        if kwargs['random_init'] and kwargs['train_shape']:
+    def _train_loop(self, init_num):
+        if self.settings.random_init and self.settings.train_shape:
             if init_num >= 1:
-                np.random.seed(kwargs['seed']+init_num)
+                np.random.seed(self.settings.seed + init_num)
                 shape = self.unc_set._a.shape
-                kwargs['init_A'] = np.random.rand(shape[0],shape[1])
-                    #  + 0.01*np.eye(kwargs['u_size'])
-                kwargs['init_b'] = np.mean(self.u_train_set, axis=0)
+                self.settings.init_A = np.random.rand(shape[0], shape[1])
+                self.settings.init_b = np.mean(self.u_train_set, axis=0)
         a_history = []
         b_history = []
         rho_history = []
         df = pd.DataFrame(columns=["step"])
         df_test = pd.DataFrame(columns=["step"])
 
-        rho_tch = self._gen_rho_tch(kwargs['init_rho'])
-        a_tch, b_tch, alpha, slack = self._init_torches(kwargs['init_A'],
-                                        kwargs['init_b'],
-                                        kwargs['init_alpha'], self.u_train_set)
+        rho_tch = self._gen_rho_tch(self.settings.init_rho)
+        a_tch, b_tch, alpha, slack = self._init_torches(
+            self.settings.init_A, self.settings.init_b, self.settings.init_alpha, self.u_train_set
+        )
 
-        self._update_iters(kwargs['save_history'], a_history,
-                           b_history, rho_history,a_tch, b_tch, rho_tch)
+        self._update_iters(
+            self.settings.save_history, a_history, b_history, rho_history, a_tch, b_tch, rho_tch
+        )
 
-        if kwargs["contextual"]:
-            if kwargs["linear"] is None:
-                kwargs['linear'] = self.init_linear_model(a_tch, b_tch,
-                                    kwargs['random_init'],init_num,
-                                    kwargs['seed'],kwargs['init_weight'],
-                                    kwargs['init_bias'], self._covpred)
-            kwargs['model'] = torch.nn.Sequential(kwargs['linear'])
+        if self.settings.contextual:
+            if self.settings.linear is None:
+                self.settings.linear = self.init_linear_model(
+                    a_tch,
+                    b_tch,
+                    self.settings.random_init,
+                    init_num,
+                    self.settings.seed,
+                    self.settings.init_weight,
+                    self.settings.init_bias,
+                    self._covpred,
+                )
+            self.settings.model = torch.nn.Sequential(self.settings.linear)
         else:
-            kwargs['model'] = None
-            kwargs['linear'] = None
+            self.settings.model = None
+            self.settings.linear = None
 
-        variables = self._set_train_variables(kwargs['fixb'], alpha,
-                                              slack, a_tch, b_tch,rho_tch,kwargs["trained_shape"],
-                                            kwargs["contextual"], kwargs['linear'] )
-        if kwargs['optimizer'] == "SGD":
-            opt = settings.OPTIMIZERS[kwargs['optimizer']](
-                variables, lr=kwargs['lr'], momentum=kwargs['momentum'])
+        variables = self._set_train_variables(
+            self.settings.fixb,
+            alpha,
+            slack,
+            a_tch,
+            b_tch,
+            rho_tch,
+            self.settings.trained_shape,
+            self.settings.contextual,
+            self.settings.linear,
+        )
+        if self.settings.optimizer == "SGD":
+            opt = s.OPTIMIZERS[self.settings.optimizer](
+                variables, lr=self.settings.lr, momentum=self.settings.momentum
+            )
         else:
-            opt = settings.OPTIMIZERS[kwargs['optimizer']](
-                variables, lr=kwargs['lr'])
+            opt = s.OPTIMIZERS[self.settings.optimizer](variables, lr=self.settings.lr)
 
-        if kwargs['scheduler']:
-            scheduler_ = torch.optim.lr_scheduler.StepLR(opt, step_size=kwargs['lr_step_size'],
-                                                        gamma=kwargs['lr_gamma'])
+        if self.settings.scheduler:
+            scheduler_ = torch.optim.lr_scheduler.StepLR(
+                opt, step_size=self.settings.lr_step_size, gamma=self.settings.lr_gamma
+            )
         else:
             scheduler_ = None
-        # if kwargs['scheduler']:
-        #     scheduler_ = torch.optim.lr_scheduler.StepLR(
-        #         opt, step_size=kwargs['lr_step_size'], gamma=kwargs['lr_gamma'])
         # y's and cvxpylayer begin
-        lam = kwargs['init_lam'] * torch.ones(self.num_g_total, dtype=settings.DTYPE)
-        mu = kwargs['init_mu']
+        lam = self.settings.init_lam * torch.ones(self.num_g_total, dtype=s.DTYPE)
+        mu = self.settings.init_mu
         curr_cvar = np.inf
         if self._default_simulator:
-            kwargs['kwargs_simulator'] = {'trainer':self, 'slack':slack,
-                            'eta':kwargs['eta'],'kappa':kwargs['kappa'],
-                            'quantiles': kwargs['quantiles'],
-                              'max_batch_size':kwargs['max_batch_size'],
-                                'batch_percentage': kwargs['batch_percentage']}
-        for step_num in range(kwargs['num_iter']):
-            if step_num>0:
+            self.settings.kwargs_simulator = {
+                "trainer": self,
+                "slack": slack,
+            }
+        for step_num in range(self.settings.num_iter):
+            if step_num > 0:
                 take_step(opt=opt, slack=slack, rho_tch=rho_tch, scheduler=scheduler_)
             train_stats = TrainLoopStats(
-                step_num=step_num, train_flag=self.train_flag, num_g_total=self.num_g_total)
+                step_num=step_num, train_flag=self.train_flag, num_g_total=self.num_g_total
+            )
 
-            torch.manual_seed(kwargs['seed'] + step_num)
-            #In the first epoch we try only once
-            current_iter_line_search = 1 if step_num==0 else self._max_iter_line_search+1
+            torch.manual_seed(self.settings.seed + step_num)
+            # In the first epoch we try only once
+            current_iter_line_search = 1 if step_num == 0 else self._max_iter_line_search + 1
             for violation_counter in range(current_iter_line_search):
                 self._eval_flag = False
-                cost, constr_cost, _, _, constraint_status,eval_cost,\
-                    prob_violation_train, _ = self.loss_and_constraints(
-                    time_horizon=kwargs['time_horizon'],
-                      a_tch=a_tch, b_tch=b_tch, batch_size=kwargs['batch_size'],
-                    seed=kwargs['seed']+step_num+1,rho_tch=rho_tch,
-                    alpha = alpha,
-                    solver_args=kwargs['solver_args'],
-                    contextual = kwargs['contextual'],
-                    kwargs_simulator = kwargs["kwargs_simulator"],
-                      model = kwargs['model'])
+                cost, constr_cost, _, _, constraint_status, eval_cost, prob_violation_train, _ = (
+                    self.loss_and_constraints(
+                        time_horizon=self.settings.time_horizon,
+                        a_tch=a_tch,
+                        b_tch=b_tch,
+                        batch_size=self.settings.batch_size,
+                        seed=self.settings.seed + step_num + 1,
+                        rho_tch=rho_tch,
+                        alpha=alpha,
+                        solver_args=self.settings.solver_args,
+                        contextual=self.settings.contextual,
+                        kwargs_simulator=self.settings.kwargs_simulator,
+                        model=self.settings.model,
+                    )
+                )
 
                 if self.num_g_total > 1:
-                    fin_cost = cost + lam @ constr_cost +\
-                            (mu/2)*(torch.linalg.norm(constr_cost)**2)
+                    fin_cost = (
+                        cost + lam @ constr_cost + (mu / 2) * (torch.linalg.norm(constr_cost) ** 2)
+                    )
                 else:
-                    fin_cost = cost+ lam*constr_cost +\
-                    (mu/2)*(constr_cost**2)
+                    fin_cost = cost + lam * constr_cost + (mu / 2) * (constr_cost**2)
                 fin_cost.backward()
                 if constraint_status is CONSTRAINT_STATUS.FEASIBLE:
                     restore_step_size(opt, num_steps=violation_counter)
@@ -941,87 +1076,138 @@ class Trainer():
                     halve_step_size(opt=opt)
 
             if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
-                if step_num==0:
+                if step_num == 0:
                     exception_message = "Infeasible uncertainty set initialization"
                 else:
                     exception_message = "Violation constraint check timed "
-                    + "out after " + f"{DEFAULT_MAX_ITER_LINE_SEARCH} attempts."
+                    +"out after " + f"{self.settings.max_iter_line_search} attempts."
                 raise InfeasibleConstraintException(exception_message)
             if not self._default_simulator:
                 eval_cost = eval_cost.repeat(3)
             train_stats.update_train_stats(
                 fin_cost.detach().numpy().copy(),
-                eval_cost,prob_violation_train, constr_cost.detach())
+                eval_cost,
+                prob_violation_train,
+                constr_cost.detach(),
+            )
 
-            if step_num % kwargs['aug_lag_update_interval'] == 0:
-                if torch.norm(constr_cost.detach()) <= \
-                    kwargs['lambda_update_threshold']*curr_cvar:
-                    curr_cvar= torch.norm(constr_cost.detach())
-                    lam += torch.minimum(mu*constr_cost.detach(), kwargs['lambda_update_max']*\
-                                            torch.ones(self.num_g_total,dtype=settings.DTYPE))
+            if step_num % self.settings.aug_lag_update_interval == 0:
+                if (
+                    torch.norm(constr_cost.detach())
+                    <= self.settings.lambda_update_threshold * curr_cvar
+                ):
+                    curr_cvar = torch.norm(constr_cost.detach())
+                    lam += torch.minimum(
+                        mu * constr_cost.detach(),
+                        self.settings.lambda_update_max
+                        * torch.ones(self.num_g_total, dtype=s.DTYPE),
+                    )
                 else:
-                    mu = kwargs['mu_multiplier']*mu
+                    mu = self.settings.mu_multiplier * mu
 
-            new_row = train_stats.generate_train_row(self._a_tch, rho_tch, lam,
-                                        mu, alpha, slack,
-                                        kwargs["contextual"], kwargs['linear'], self)
+            new_row = train_stats.generate_train_row(
+                self._a_tch,
+                rho_tch,
+                lam,
+                mu,
+                alpha,
+                slack,
+                self.settings.contextual,
+                self.settings.linear,
+                self,
+            )
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
-            self._update_iters(kwargs['save_history'], a_history,
-                               b_history, rho_history, self._a_tch, self._b_tch, rho_tch)
+            self._update_iters(
+                self.settings.save_history,
+                a_history,
+                b_history,
+                rho_history,
+                self._a_tch,
+                self._b_tch,
+                rho_tch,
+            )
 
-            if step_num % kwargs['test_frequency'] == 0:
+            if step_num % self.settings.test_frequency == 0:
                 self._eval_flag = True
-                val_cost, val_cost_constr, x_batch, z_batch, eval_cost,\
-                      prob_constr_violation, u_batch = self.monte_carlo(
-                        time_horizon=kwargs['time_horizon'],
-                        a_tch=a_tch, b_tch=b_tch,
-                        batch_size = kwargs['test_batch_size'],
-                        seed=kwargs['seed'], rho_tch = rho_tch, alpha = alpha,
-                        solver_args = kwargs['solver_args'],
-                        contextual = kwargs['contextual'],
-                        kwargs_simulator = kwargs['kwargs_simulator'],
-                          model = kwargs['model'] )
+                (
+                    val_cost,
+                    val_cost_constr,
+                    x_batch,
+                    z_batch,
+                    eval_cost,
+                    prob_constr_violation,
+                    u_batch,
+                ) = self.monte_carlo(
+                    time_horizon=self.settings.time_horizon,
+                    a_tch=a_tch,
+                    b_tch=b_tch,
+                    batch_size=self.settings.test_batch_size,
+                    seed=self.settings.seed,
+                    rho_tch=rho_tch,
+                    alpha=alpha,
+                    solver_args=self.settings.solver_args,
+                    contextual=self.settings.contextual,
+                    kwargs_simulator=self.settings.kwargs_simulator,
+                    model=self.settings.model,
+                )
                 record_eval_cost = eval_cost
                 if not self._default_simulator:
                     record_eval_cost = eval_cost.repeat(3)
-                print("iteration %d, valid %.4e, vio %.4e" % (step_num,
-                                                record_eval_cost[1].item(),
-                                                val_cost_constr.mean().item()) )
+                print(
+                    "iteration %d, valid %.4e, vio %.4e"
+                    % (step_num, record_eval_cost[1].item(), val_cost_constr.mean().item())
+                )
 
                 train_stats.update_test_stats(
-                    record_eval_cost, prob_constr_violation, constr_cost.detach())
+                    record_eval_cost, prob_constr_violation, constr_cost.detach()
+                )
                 new_row = train_stats.generate_test_row(
-                    self._calc_coverage, self._a_tch, self._b_tch, alpha,
-                    u_batch, rho_tch, self.unc_set, z_batch,
-                    kwargs['contextual'], kwargs['linear'], x_batch)
-                df_test = pd.concat([df_test,
-                                     new_row.to_frame().T], ignore_index=True)
+                    self._calc_coverage,
+                    self._a_tch,
+                    self._b_tch,
+                    alpha,
+                    u_batch,
+                    rho_tch,
+                    self.unc_set,
+                    z_batch,
+                    self.settings.contextual,
+                    self.settings.linear,
+                    x_batch,
+                )
+                df_test = pd.concat([df_test, new_row.to_frame().T], ignore_index=True)
 
-        if constr_cost.detach().numpy().sum()/self.num_g_total \
-            <= kwargs["kappa"]:
+        if constr_cost.detach().numpy().sum() / self.num_g_total <= self.settings.kappa:
             fin_val = record_eval_cost[1].item()
         else:
-            fin_val = record_eval_cost[1].item() + 10*abs(constr_cost.detach().numpy().sum())
+            fin_val = record_eval_cost[1].item() + 10 * abs(constr_cost.detach().numpy().sum())
         a_val = self._a_tch.detach().numpy().copy()
         b_val = self._b_tch.detach().numpy().copy()
         rho_val = rho_tch.detach().numpy().copy()
-        # if kwargs['trained_shape'] else 1
         param_vals = (a_val, b_val, rho_val, record_eval_cost[1].item())
-        # tqdm.write("Testing objective: {}".format(obj_test[1].item()))
-        # tqdm.write("Probability of constraint violation: {}".format(
-        #            prob_violation_test))
         ret_context = (self._cur_x, self._cur_u)
         if self._covpred:
             predvals = (self._Apred, self._bpred, self._Cpred, self._dpred, self._Areg, self._breg)
         else:
             predvals = None
-        return df, df_test, a_history, b_history, rho_history, \
-            param_vals, fin_val, z_batch, mu, kwargs["linear"], predvals, ret_context
+        return (
+            df,
+            df_test,
+            a_history,
+            b_history,
+            rho_history,
+            param_vals,
+            fin_val,
+            z_batch,
+            mu,
+            self.settings.linear,
+            predvals,
+            ret_context,
+        )
 
     def train(
         self,
-        trainer_settings: TrainerSettings | None = None,
+        settings: s.TrainerSettings | None = s.TrainerSettings(),
     ):
         r"""
         Trains the uncertainty set parameters to find optimal set
@@ -1047,103 +1233,76 @@ class Trainer():
             var_values: list
                 A list of returned variable values from the last solve
         """
-        if trainer_settings is None:
-            trainer_settings = TrainerSettings()
+        self.settings = settings
         self.train_flag = True
-        if trainer_settings.contextual and not trainer_settings.train_shape:
-            if trainer_settings.linear is None:
+        if self.settings.contextual and not self.settings.train_shape:
+            if self.settings.linear is None:
                 raise ValueError("You must give a model if you do not train a model")
-        self._multistage = trainer_settings.multistage
-        self._covpred = trainer_settings.covpred
+        self._multistage = self.settings.multistage
+        self._covpred = self.settings.covpred
         if self._covpred:
-            trainer_settings.contextual = True
-            trainer_settings.linear = None
+            self.settings.contextual = True
+            self.settings.linear = None
             self._Apred = None
-        self._init_uncertain_parameter = trainer_settings.init_uncertain_param
-        self._init_context = trainer_settings.init_context
-        _,_,_,_,_,_,_ = self._split_dataset(trainer_settings.test_percentage, trainer_settings.seed)
+        self._init_uncertain_parameter = self.settings.init_uncertain_param
+        self._init_context = self.settings.init_context
+        _, _, _, _, _, _, _ = self._split_dataset(self.settings.test_percentage, self.settings.seed)
 
         if self._multistage:
             self.num_g_total = 1
         else:
-            assert (trainer_settings.time_horizon == 1)
-        if not trainer_settings.policy:
+            assert self.settings.time_horizon == 1
+        if not self.settings.policy:
             self.cvxpylayer = self.create_cvxpylayer()
         else:
-            self.cvxpylayer = trainer_settings.policy
-        if trainer_settings.simulator:
-            self.simulator = trainer_settings.simulator
+            self.cvxpylayer = self.settings.policy
+        if self.settings.simulator:
+            self.simulator = self.settings.simulator
             self._default_simulator = False
         else:
-            self.simulator = Default_Simulator(self)
+            self.simulator = DefaultSimulator(self)
             self._default_simulator = True
         self.violation_checker = ViolationChecker(self.cvxpylayer, self.problem_no_unc.constraints)
-        self._max_iter_line_search = trainer_settings.max_iter_line_search
-        self.x_endind = trainer_settings.x_endind
+        self._max_iter_line_search = self.settings.max_iter_line_search
+        self.x_endind = self.settings.x_endind
 
-        if trainer_settings.random_init:
-            trainer_settings.num_random_init = trainer_settings.num_random_init
+        if self.settings.random_init:
+            self.settings.num_random_init = self.settings.num_random_init
         else:
-            trainer_settings.num_random_init = 1
-        if trainer_settings.train_shape:
-            trainer_settings.num_random_init = trainer_settings.num_random_init
+            self.settings.num_random_init = 1
+        if self.settings.train_shape:
+            self.settings.num_random_init = self.settings.num_random_init
         else:
-            trainer_settings.num_random_init = 1
-        kwargs = {  "train_size": trainer_settings.train_size,
-                    "trained_shape": not trainer_settings.train_shape,
-                    "train_shape": trainer_settings.train_shape,
-                    "init_A": trainer_settings.init_A, "init_b": trainer_settings.init_b,
-                    "init_rho": trainer_settings.init_rho,
-                    "random_init": trainer_settings.random_init,
-                    "seed": trainer_settings.seed,
-                    "init_alpha": trainer_settings.init_alpha,
-                    "save_history": trainer_settings.save_history,
-                    "fixb": trainer_settings.fixb, "optimizer": trainer_settings.optimizer,
-                    "lr": trainer_settings.lr, "momentum": trainer_settings.momentum,
-                    "scheduler": trainer_settings.scheduler, "init_lam":
-                    trainer_settings.init_lam, "init_mu": trainer_settings.init_mu,
-                    "num_iter": trainer_settings.num_iter,
-                    "batch_percentage": trainer_settings.batch_percentage,
-                    "solver_args": trainer_settings.solver_args,
-                    "kappa": trainer_settings.kappa,
-                    "test_frequency": trainer_settings.test_frequency,
-                    "mu_multiplier": trainer_settings.mu_multiplier,
-                    "quantiles": trainer_settings.quantiles,
-                    "lr_step_size": trainer_settings.lr_step_size,
-                    "lr_gamma": trainer_settings.lr_gamma, "eta": trainer_settings.eta,
-                    "position": trainer_settings.position,
-                    "test_percentage": trainer_settings.test_percentage,
-                    "aug_lag_update_interval": trainer_settings.aug_lag_update_interval,
-                    "lambda_update_threshold":trainer_settings.lambda_update_threshold,
-                    "lambda_update_max":trainer_settings.lambda_update_max,
-                    "max_batch_size":trainer_settings.max_batch_size,
-                    "contextual":trainer_settings.contextual,
-                    "linear": trainer_settings.linear,'init_weight':trainer_settings.init_weight,
-                    'init_bias':trainer_settings.init_bias,
-                    'batch_size': trainer_settings.batch_size,
-                    'test_batch_size':trainer_settings.test_batch_size,
-                    'time_horizon': trainer_settings.time_horizon,
-                    'kwargs_simulator': trainer_settings.kwargs_simulator}
+            self.settings.num_random_init = 1
 
         # Debugging code - one iteration
-        # res = self._train_loop(0, **kwargs)
+        # res = self._train_loop(0)
         # Debugging code - serial
-        if not trainer_settings.parallel:
+        if not self.settings.parallel:
             res = []
-            for init_num in range(trainer_settings.num_random_init):
-                res.append(self._train_loop(init_num, **kwargs))
-        # n_jobs = get_n_processes() if parallel else 1
-        # pool_obj = Pool(processes=n_jobs)
-        # loop_fn = partial(self._train_loop, **kwargs)
-        # res = pool_obj.map(loop_fn, range(num_random_init))
+            for init_num in range(self.settings.num_random_init):
+                res.append(self._train_loop(init_num))
         # Joblib version
         else:
-            trainer_settings.n_jobs = get_n_processes() if trainer_settings.parallel else 1
-            res = Parallel(n_jobs=trainer_settings.n_jobs)(delayed(self._train_loop)(
-                init_num, **kwargs) for init_num in range(trainer_settings.num_random_init))
-        df, df_test, a_history, b_history, rho_history, param_vals, \
-            fin_val, var_values, mu_val, linear_models, predvals, ret_context\
-                  = zip(*res)
+            self.settings.n_jobs = get_n_processes() if self.settings.parallel else 1
+            res = Parallel(n_jobs=self.settings.n_jobs)(
+                delayed(self._train_loop)(init_num)
+                for init_num in range(self.settings.num_random_init)
+            )
+        (
+            df,
+            df_test,
+            a_history,
+            b_history,
+            rho_history,
+            param_vals,
+            fin_val,
+            var_values,
+            mu_val,
+            linear_models,
+            predvals,
+            ret_context,
+        ) = zip(*res)
         index_chosen = np.argmin(np.array(fin_val))
         self.orig_problem_trained = True
         self.unc_set._trained = True
@@ -1158,99 +1317,131 @@ class Trainer():
             self._dpred = predvals[index_chosen][3]
             self._Areg = predvals[index_chosen][4]
             self._breg = predvals[index_chosen][5]
-        if trainer_settings.contextual:
+        if self.settings.contextual:
             self.unc_set.a.value = param_vals[index_chosen][0][0]
             self.unc_set.b.value = param_vals[index_chosen][1][0]
         else:
             self.unc_set.a.value = param_vals[index_chosen][0]
             self.unc_set.b.value = param_vals[index_chosen][1]
 
-        if trainer_settings.train_shape and trainer_settings.train_size:
-            kwargs["init_rho"] = return_rho
-            kwargs["trained_shape"] = True
-            kwargs["train_shape"] = False
-            kwargs["init_A"] = self.unc_set.a.value
-            kwargs["init_b"] = self.unc_set.b.value
-            # kwargs["init_rho"] = 1
-            kwargs["random_init"] = False
-            if trainer_settings.lr_size:
-                kwargs["lr"] = trainer_settings.lr_size
+        if self.settings.train_shape and self.settings.train_size:
+            self.settings.init_rho = return_rho
+            self.settings.trained_shape = True
+            self.settings.train_shape = False
+            self.settings.init_A = self.unc_set.a.value
+            self.settings.init_b = self.unc_set.b.value
+            self.settings.random_init = False
+            if self.settings.lr_size:
+                self.settings.lr = self.settings.lr_size
             else:
-                kwargs["lr"] = trainer_settings.lr
-            if trainer_settings.num_iter_size:
-                kwargs["num_iter"] = trainer_settings.num_iter_size
+                self.settings.lr = self.settings.lr
+            if self.settings.num_iter_size:
+                self.settings.num_iter = self.settings.num_iter_size
             else:
-                kwargs["num_iter"] = trainer_settings.num_iter
-            kwargs["init_mu"] = mu_val[index_chosen]
-            if not trainer_settings.parallel:
+                self.settings.num_iter = self.settings.num_iter
+            self.settings.init_mu = mu_val[index_chosen]
+            if not self.settings.parallel:
                 res = []
                 for init_num in range(1):
-                    res.append(self._train_loop(init_num, **kwargs))
+                    res.append(self._train_loop(init_num))
             else:
-                res = Parallel(n_jobs=trainer_settings.n_jobs)(delayed(self._train_loop)(
-                init_num, **kwargs) for init_num in range(1))
-            df_s, df_test_s, a_history_s, b_history_s,rho_history_s,\
-            param_vals_s, fin_val_s, var_values_s, mu_s, \
-                linear_models_s , pred_vals_s, ret_context_s = zip(*res)
+                res = Parallel(n_jobs=self.settings.n_jobs)(
+                    delayed(self._train_loop)(init_num) for init_num in range(1)
+                )
+            (
+                df_s,
+                df_test_s,
+                a_history_s,
+                b_history_s,
+                rho_history_s,
+                param_vals_s,
+                fin_val_s,
+                var_values_s,
+                mu_s,
+                linear_models_s,
+                pred_vals_s,
+                ret_context_s,
+            ) = zip(*res)
             return_rho = param_vals_s[0][2]
             self._rho_mult_parameter[0].value = return_rho
             self._cur_x = ret_context[0][0]
             self._cur_u = ret_context[0][1]
-            return_df = pd.concat([df[index_chosen],df_s[0]])
+            return_df = pd.concat([df[index_chosen], df_s[0]])
             return_df_test = pd.concat([df_test[index_chosen], df_test_s[0]])
             return_a_history = a_history[index_chosen] + a_history_s[0]
             return_b_history = b_history[index_chosen] + b_history_s[0]
             return_rho_history = rho_history[index_chosen] + rho_history_s[0]
-            return Result(self, self.problem_canon, return_df,
-                      return_df_test, self.unc_set.a.value,
-                      self.unc_set.b.value,
-                      return_rho, param_vals[0][3],
-                      var_values[index_chosen] + var_values_s[0],
-                      a_history=return_a_history,
-                      b_history=return_b_history,
-                      rho_history = return_rho_history,
-                      linear = linear_models_s[0])
-        return Result(self, self.problem_canon, df[index_chosen],
-                      df_test[index_chosen], self.unc_set.a.value,
-                      self.unc_set.b.value,
-                      return_rho, param_vals[index_chosen][3],
-                      var_values[index_chosen],
-                      a_history=a_history[index_chosen],
-                      b_history=b_history[index_chosen],
-                      rho_history = rho_history[index_chosen],
-                      linear = linear_models[index_chosen])
+            return Result(
+                self,
+                self.problem_canon,
+                return_df,
+                return_df_test,
+                self.unc_set.a.value,
+                self.unc_set.b.value,
+                return_rho,
+                param_vals[0][3],
+                var_values[index_chosen] + var_values_s[0],
+                a_history=return_a_history,
+                b_history=return_b_history,
+                rho_history=return_rho_history,
+                linear=linear_models_s[0],
+            )
+        return Result(
+            self,
+            self.problem_canon,
+            df[index_chosen],
+            df_test[index_chosen],
+            self.unc_set.a.value,
+            self.unc_set.b.value,
+            return_rho,
+            param_vals[index_chosen][3],
+            var_values[index_chosen],
+            a_history=a_history[index_chosen],
+            b_history=b_history[index_chosen],
+            rho_history=rho_history[index_chosen],
+            linear=linear_models[index_chosen],
+        )
 
-    def gen_unique_x(self,x_batch):
-        """ get unique x's from a list of x parameters. """
+    def gen_unique_x(self, x_batch):
+        """get unique x's from a list of x parameters."""
         x_batch_array = [np.array(ele) for ele in x_batch]
-        all_indices = [np.unique(ele,axis=0, return_index=True)[1] for ele in x_batch_array]
+        all_indices = [np.unique(ele, axis=0, return_index=True)[1] for ele in x_batch_array]
         unique_indices = np.unique(np.concatenate(all_indices))
         num_unique_indices = len(unique_indices)
-        x_unique = [torch.tensor(ele, dtype=settings.DTYPE)[unique_indices] \
-                    for ele in x_batch_array]
+        x_unique = [torch.tensor(ele, dtype=s.DTYPE)[unique_indices] for ele in x_batch_array]
         _unique_array = [ele[unique_indices] for ele in x_batch_array]
         return x_batch_array, num_unique_indices, x_unique, _unique_array
 
-    def gen_new_z(self, num_unique_indices,
-                x_unique_array, var_values, batch_int,
-            x_batch_array, contextual=False, a_tch=None, b_tch=None):
-        """get var_values for all x's, repeated for the repeated x's """
+    def gen_new_z(
+        self,
+        num_unique_indices,
+        x_unique_array,
+        var_values,
+        batch_int,
+        x_batch_array,
+        contextual=False,
+        a_tch=None,
+        b_tch=None,
+    ):
+        """get var_values for all x's, repeated for the repeated x's"""
         # create dictionary from unique y's to var_values
         if not contextual:
             x_to_var_values_dict = {}
             for i in range(num_unique_indices):
-                x_to_var_values_dict[tuple(tuple(v[i].flatten())\
-                        for v in x_unique_array)] = [v[i] for v in var_values]
+                x_to_var_values_dict[tuple(tuple(v[i].flatten()) for v in x_unique_array)] = [
+                    v[i] for v in var_values
+                ]
             # initialize new var_values
             shapes = [torch.tensor(v.shape) for v in var_values]
             for i in range(len(shapes)):
                 shapes[i][0] = batch_int
-            new_var_values = [torch.zeros(*shape, dtype=settings.DTYPE) for shape in shapes]
+            new_var_values = [torch.zeros(*shape, dtype=s.DTYPE) for shape in shapes]
 
             # populate new_var_values using the dictionary
             for i in range(batch_int):
-                values_list = x_to_var_values_dict[tuple(tuple(v[i].flatten())\
-                        for v in x_batch_array)]
+                values_list = x_to_var_values_dict[
+                    tuple(tuple(v[i].flatten()) for v in x_batch_array)
+                ]
                 for j in range(len(var_values)):
                     new_var_values[j][i] = values_list[j]
             return new_var_values, a_tch, b_tch
@@ -1258,22 +1449,26 @@ class Trainer():
             # create dictionary from unique y's to var_values
             x_to_var_values_dict = {}
             for i in range(num_unique_indices):
-                x_to_var_values_dict[tuple(tuple(v[i].flatten())\
-                        for v in x_unique_array)] = ([v[i] for v in var_values], a_tch[i], b_tch[i])
+                x_to_var_values_dict[tuple(tuple(v[i].flatten()) for v in x_unique_array)] = (
+                    [v[i] for v in var_values],
+                    a_tch[i],
+                    b_tch[i],
+                )
             # initialize new var_values
             shapes = [torch.tensor(v.shape) for v in var_values]
             for i in range(len(shapes)):
                 shapes[i][0] = batch_int
-            new_var_values = [torch.zeros(*shape, dtype=settings.DTYPE) for shape in shapes]
-            ab_shapes = [torch.tensor(a_tch.shape),torch.tensor(b_tch.shape)]
+            new_var_values = [torch.zeros(*shape, dtype=s.DTYPE) for shape in shapes]
+            ab_shapes = [torch.tensor(a_tch.shape), torch.tensor(b_tch.shape)]
             ab_shapes[0][0] = batch_int
             ab_shapes[1][0] = batch_int
-            new_a_tch = torch.zeros(*ab_shapes[0], dtype=settings.DTYPE)
-            new_b_tch = torch.zeros(*ab_shapes[1], dtype=settings.DTYPE)
+            new_a_tch = torch.zeros(*ab_shapes[0], dtype=s.DTYPE)
+            new_b_tch = torch.zeros(*ab_shapes[1], dtype=s.DTYPE)
             # populate new_var_values using the dictionary
             for i in range(batch_int):
-                values_list = x_to_var_values_dict[tuple(tuple(v[i].flatten())\
-                        for v in x_batch_array)]
+                values_list = x_to_var_values_dict[
+                    tuple(tuple(v[i].flatten()) for v in x_batch_array)
+                ]
                 for j in range(len(var_values)):
                     new_var_values[j][i] = values_list[0][j]
                 new_a_tch[i] = values_list[1]
@@ -1282,20 +1477,20 @@ class Trainer():
 
     def grid(
         self,
-        rholst=settings.RHO_LST_DEFAULT,
-        seed=settings.SEED_DEFAULT,
-        init_A=settings.INIT_A_DEFAULT,
-        init_b=settings.INIT_B_DEFAULT,
-        init_rho = settings.INIT_RHO_DEFAULT_GRID,
-        init_alpha=settings.INIT_ALPHA_DEFAULT,
-        test_percentage=settings.TEST_PERCENTAGE_DEFAULT,
-        solver_args=settings.LAYER_SOLVER,
-        quantiles=settings.QUANTILES,
-        newdata = settings.NEWDATA_DEFAULT,
-        eta = settings.ETA_LAGRANGIAN_DEFAULT,
-        contextual = settings.CONTEXTUAL_DEFAULT,
-        linear = settings.CONTEXTUAL_LINEAR_DEFAULT,
-        covpred = False
+        rholst=s.RHO_LST_DEFAULT,
+        seed=DS.seed,
+        init_A=DS.init_A,
+        init_b=DS.init_b,
+        init_rho=DS.init_rho,
+        init_alpha=DS.init_alpha,
+        test_percentage=DS.test_percentage,
+        solver_args=DS.solver_args,
+        quantiles=DS.quantiles,
+        newdata=None,
+        eta=DS.eta,
+        contextual=DS.contextual,
+        linear=DS.linear,
+        covpred=False,
     ):
         r"""
         Perform gridsearch to find optimal :math:`\rho`-ball around data.
@@ -1348,109 +1543,139 @@ class Trainer():
                 raise ValueError("Missing NN-Model")
 
         self.train_flag = False
-        df = pd.DataFrame(
-            columns=["Rho"])
-        _,_,_,_,_,_,_ = self._split_dataset(test_percentage, seed)
+        df = pd.DataFrame(columns=["Rho"])
+        _, _, _, _, _, _, _ = self._split_dataset(test_percentage, seed)
         if newdata is not None:
             newtest_set, x_set = newdata
             self.test_size = newtest_set.shape[0]
-            self.u_test_tch = torch.tensor(newtest_set, requires_grad=
-                                         self.train_flag, dtype=settings.DTYPE)
+            self.u_test_tch = torch.tensor(
+                newtest_set, requires_grad=self.train_flag, dtype=s.DTYPE
+            )
             self.u_test_set = newdata
             if not isinstance(x_set, list):
-                self.x_test_tch = [torch.tensor(x_set,
-                        requires_grad=self.train_flag, dtype=settings.DTYPE)]
+                self.x_test_tch = [
+                    torch.tensor(x_set, requires_grad=self.train_flag, dtype=s.DTYPE)
+                ]
             else:
-                self.x_test_tch = [torch.tensor(x, requires_grad=self.train_flag,
-                                        dtype=settings.DTYPE) for x in x_set]
+                self.x_test_tch = [
+                    torch.tensor(x, requires_grad=self.train_flag, dtype=s.DTYPE) for x in x_set
+                ]
 
         self.cvxpylayer = self.create_cvxpylayer()
 
         grid_stats = GridStats()
 
-        lam = 1000 * torch.ones(self.num_g_total, dtype=settings.DTYPE)
+        lam = 1000 * torch.ones(self.num_g_total, dtype=s.DTYPE)
         # initialize torches
         rho_tch = self._gen_rho_tch(1)
         a_tch_init, b_tch_init, alpha, slack = self._init_torches(
-            init_A, init_b,init_alpha, self.u_train_set)
+            init_A, init_b, init_alpha, self.u_train_set
+        )
 
-        x_batch_array, num_unique_indices, x_unique, \
-            x_unique_array = self.gen_unique_x(self.x_test_tch)
+        x_batch_array, num_unique_indices, x_unique, x_unique_array = self.gen_unique_x(
+            self.x_test_tch
+        )
 
-        x_batch_array_t, num_unique_indices_t, x_unique_t, \
-            x_unique_array_t = self.gen_unique_x(self.x_train_tch)
+        x_batch_array_t, num_unique_indices_t, x_unique_t, x_unique_array_t = self.gen_unique_x(
+            self.x_train_tch
+        )
 
         for rho in rholst:
-            rho_tch = torch.tensor(
-                rho*init_rho, requires_grad=self.train_flag, dtype=settings.DTYPE)
+            rho_tch = torch.tensor(rho * init_rho, requires_grad=self.train_flag, dtype=s.DTYPE)
             if contextual:
-                a_tch_init, b_tch_init = self.create_tensors_linear(
-                                    x_unique, linear,self._covpred)
-            z_unique = self.cvxpylayer(rho_tch, *self.cp_param_tch,
-                                    *x_unique, a_tch_init,b_tch_init,
-                                    solver_args=solver_args)
+                a_tch_init, b_tch_init = self.create_tensors_linear(x_unique, linear, self._covpred)
+            z_unique = self.cvxpylayer(
+                rho_tch,
+                *self.cp_param_tch,
+                *x_unique,
+                a_tch_init,
+                b_tch_init,
+                solver_args=solver_args,
+            )
             new_z_batch, a_tch_init, b_tch_init = self.gen_new_z(
-                num_unique_indices,x_unique_array, z_unique,
-                self.test_size, x_batch_array, contextual,a_tch_init, b_tch_init )
+                num_unique_indices,
+                x_unique_array,
+                z_unique,
+                self.test_size,
+                x_batch_array,
+                contextual,
+                a_tch_init,
+                b_tch_init,
+            )
 
             if contextual:
                 a_tch_init, b_tch_init = self.create_tensors_linear(
-                                    x_unique_t, linear,self._covpred)
-            z_unique_t = self.cvxpylayer(rho_tch, *self.cp_param_tch,
-                                    *x_unique_t, a_tch_init,b_tch_init,
-                                    solver_args=solver_args)
+                    x_unique_t, linear, self._covpred
+                )
+            z_unique_t = self.cvxpylayer(
+                rho_tch,
+                *self.cp_param_tch,
+                *x_unique_t,
+                a_tch_init,
+                b_tch_init,
+                solver_args=solver_args,
+            )
 
-            new_z_batch_t,_,_ = self.gen_new_z(num_unique_indices_t,
-                     x_unique_array_t, z_unique_t, self.train_size,
-                       x_batch_array_t,contextual,a_tch_init, b_tch_init)
+            new_z_batch_t, _, _ = self.gen_new_z(
+                num_unique_indices_t,
+                x_unique_array_t,
+                z_unique_t,
+                self.train_size,
+                x_batch_array_t,
+                contextual,
+                a_tch_init,
+                b_tch_init,
+            )
 
             train_stats = TrainLoopStats(
-                step_num=np.NAN, train_flag=self.train_flag, num_g_total=self.num_g_total)
+                step_num=np.NAN, train_flag=self.train_flag, num_g_total=self.num_g_total
+            )
             with torch.no_grad():
-                test_args = self.order_args(z_batch=new_z_batch,
-                                             x_batch=self.x_test_tch,
-                                             u_batch=self.u_test_tch)
+                test_args = self.order_args(
+                    z_batch=new_z_batch, x_batch=self.x_test_tch, u_batch=self.u_test_tch
+                )
                 obj_test = self.evaluation_metric(self.test_size, test_args, quantiles)
                 prob_violation_test = self.prob_constr_violation(self.test_size, test_args)
-                _, var_vio = self.lagrangian(self.test_size, \
-                                                      test_args, alpha, \
-                                                        slack, lam, 1, eta
-                )
+                _, var_vio = self.lagrangian(self.test_size, test_args, alpha, slack, lam, 1, eta)
 
-                test_args_t = self.order_args(z_batch=new_z_batch_t,
-                                               x_batch=self.x_train_tch,
-                                                u_batch=self.u_train_tch)
-                obj_train = self.evaluation_metric(self.train_size,
-                                                test_args_t, quantiles)
-                prob_violation_train = self.prob_constr_violation(self.train_size,test_args_t)
-                _, var_vio_train = self.lagrangian(self.train_size,
-                                        test_args_t, alpha,slack, lam, 1, eta
+                test_args_t = self.order_args(
+                    z_batch=new_z_batch_t, x_batch=self.x_train_tch, u_batch=self.u_train_tch
+                )
+                obj_train = self.evaluation_metric(self.train_size, test_args_t, quantiles)
+                prob_violation_train = self.prob_constr_violation(self.train_size, test_args_t)
+                _, var_vio_train = self.lagrangian(
+                    self.train_size, test_args_t, alpha, slack, lam, 1, eta
                 )
 
             train_stats.update_test_stats(obj_test, prob_violation_test, var_vio)
-            train_stats.update_train_stats(None, obj_train, prob_violation_train,var_vio_train)
+            train_stats.update_train_stats(None, obj_train, prob_violation_train, var_vio_train)
             grid_stats.update(train_stats, obj_test, rho_tch, a_tch_init, z_unique)
 
             new_row = train_stats.generate_test_row(
-                self._calc_coverage, a_tch_init,b_tch_init,
-                alpha, self.u_test_tch,rho_tch, self.unc_set, z_unique,
-                contextual,linear, [self.x_test_tch])
+                self._calc_coverage,
+                a_tch_init,
+                b_tch_init,
+                alpha,
+                self.u_test_tch,
+                rho_tch,
+                self.unc_set,
+                z_unique,
+                contextual,
+                linear,
+                [self.x_test_tch],
+            )
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
         self.orig_problem._trained = True
         self.unc_set._trained = True
 
         if contextual:
-            self.unc_set.a.value = (
-                grid_stats.minrho * a_tch_init[0]).detach().numpy().copy()
-            self.unc_set.b.value = (
-                b_tch_init[0]).detach().numpy().copy()
+            self.unc_set.a.value = (grid_stats.minrho * a_tch_init[0]).detach().numpy().copy()
+            self.unc_set.b.value = (b_tch_init[0]).detach().numpy().copy()
             b_value = self.unc_set.b.value[0]
         else:
-            self.unc_set.a.value = (
-                grid_stats.minrho * a_tch_init).detach().numpy().copy()
-            self.unc_set.b.value = (
-                b_tch_init).detach().numpy().copy()
+            self.unc_set.a.value = (grid_stats.minrho * a_tch_init).detach().numpy().copy()
+            self.unc_set.b.value = (b_tch_init).detach().numpy().copy()
             b_value = self.unc_set.b.value
         return Result(
             self,
@@ -1465,7 +1690,7 @@ class Trainer():
         )
 
 
-class TrainLoopStats():
+class TrainLoopStats:
     """
     A class that contains useful statistics for each training iteration
 
@@ -1491,7 +1716,8 @@ class TrainLoopStats():
             """
             This is an internal function that either initiates a tensor or a list
             """
-            return torch.tensor(0., dtype=settings.DTYPE)
+            return torch.tensor(0.0, dtype=s.DTYPE)
+
         self.step_num = step_num
         self.train_flag = train_flag
         self.tot_lagrangian = __value_init__(self)
@@ -1512,7 +1738,7 @@ class TrainLoopStats():
         self.tot_lagrangian = temp_lagrangian
         self.trainval = obj[1].item()
         self.prob_violation_train = prob_violation_train.detach().numpy()
-        self.violation_train = train_constraint.numpy().sum()/self.num_g_total
+        self.violation_train = train_constraint.numpy().sum() / self.num_g_total
 
     def update_test_stats(self, obj_test, prob_violation_test, var_vio):
         """
@@ -1522,34 +1748,35 @@ class TrainLoopStats():
         self.testval = obj_test[1].item()
         self.upper_testval = obj_test[2].item()
         self.prob_violation_test = prob_violation_test.detach().numpy()
-        self.violation_test = var_vio.numpy().sum()/self.num_g_total
+        self.violation_test = var_vio.numpy().sum() / self.num_g_total
 
-    def generate_train_row(self, a_tch, rho_tch, lam, mu, alpha,
-                            slack,contextual=False, linear = None, trainer=None):
+    def generate_train_row(
+        self, a_tch, rho_tch, lam, mu, alpha, slack, contextual=False, linear=None, trainer=None
+    ):
         """
         This function generates a new row with the statistics
         """
         row_dict = {
-            "Lagrangian_val":   self.tot_lagrangian.item(),
-            "Train_val":         self.trainval,
+            "Lagrangian_val": self.tot_lagrangian.item(),
+            "Train_val": self.trainval,
             "Probability_violations_train": self.prob_violation_train,
-            "Violations_train":  self.violation_train,
-            "Avg_prob_train": np.mean(self.prob_violation_train)
+            "Violations_train": self.violation_train,
+            "Avg_prob_train": np.mean(self.prob_violation_train),
         }
         row_dict["step"] = self.step_num
-        row_dict["A_norm"] = np.linalg.norm(
-            a_tch.detach().numpy().copy())
+        row_dict["A_norm"] = np.linalg.norm(a_tch.detach().numpy().copy())
         row_dict["lam_list"] = lam.detach().numpy().copy()
         row_dict["mu"] = mu
         row_dict["alpha"] = alpha.item()
         row_dict["slack"] = slack.detach().numpy().copy()
         row_dict["alphagrad"] = alpha.grad
         if contextual and linear:
-            row_dict["dfnorm"] = np.linalg.norm(linear.weight.grad) \
-                        + np.linalg.norm(linear.bias.grad)
-            row_dict["gradnorm"] = torch.hstack([linear.weight.grad,
-                                                 linear.bias.grad.view(
-                                            linear.bias.grad.shape[0],1)])
+            row_dict["dfnorm"] = np.linalg.norm(linear.weight.grad) + np.linalg.norm(
+                linear.bias.grad
+            )
+            row_dict["gradnorm"] = torch.hstack(
+                [linear.weight.grad, linear.bias.grad.view(linear.bias.grad.shape[0], 1)]
+            )
         elif contextual:
             row_dict["dfnorm"] = np.linalg.norm(trainer._Apred.detach().numpy())
             row_dict["gradnorm"] = trainer._Apred.detach().numpy()
@@ -1560,27 +1787,39 @@ class TrainLoopStats():
         new_row = pd.Series(row_dict)
         return new_row
 
-    def generate_test_row(self, calc_coverage, a_tch, b_tch,
-                        alpha, test_tch, rho_tch, uncset, z_batch= None,
-                        contextual = False,linear = None,x_test_tch = None):
+    def generate_test_row(
+        self,
+        calc_coverage,
+        a_tch,
+        b_tch,
+        alpha,
+        test_tch,
+        rho_tch,
+        uncset,
+        z_batch=None,
+        contextual=False,
+        linear=None,
+        x_test_tch=None,
+    ):
         """
         This function generates a new row with the statistics
         """
         coverage_test = calc_coverage(
-            test_tch, a_tch, b_tch, uncset._rho*rho_tch,uncset.p,contextual,x_test_tch, linear)
+            test_tch, a_tch, b_tch, uncset._rho * rho_tch, uncset.p, contextual, x_test_tch, linear
+        )
         row_dict = {
-            "Test_val":         self.testval,
+            "Test_val": self.testval,
             "Lower_test": self.lower_testval,
             "Upper_test": self.upper_testval,
-            "Probability_violations_test":       self.prob_violation_test,
-            "Violations_test":   self.violation_test,
-            "Coverage_test":    coverage_test,
+            "Probability_violations_test": self.prob_violation_test,
+            "Violations_test": self.violation_test,
+            "Coverage_test": coverage_test,
             "Avg_prob_test": np.mean(self.prob_violation_test),
             "z_vals": z_batch,
             "x_vals": x_test_tch,
-            "Rho": rho_tch.detach().numpy().copy()
+            "Rho": rho_tch.detach().numpy().copy(),
         }
-        row_dict["step"] = self.step_num,
+        row_dict["step"] = (self.step_num,)
         if not self.train_flag:
             row_dict["Train_val"] = self.trainval
             row_dict["Probability_violations_train"] = self.prob_violation_train
@@ -1590,7 +1829,7 @@ class TrainLoopStats():
         return new_row
 
 
-class GridStats():
+class GridStats:
     """
     This class contains useful information for grid search
     """
@@ -1623,11 +1862,24 @@ class GridStats():
 
 
 class Result(ABC):
-    """ A class to store the results of training """
+    """A class to store the results of training"""
 
-    def __init__(self, prob, probnew, df, df_test, A, b, rho, \
-                 obj, z, a_history=None,
-                 b_history=None, rho_history = None, linear=None):
+    def __init__(
+        self,
+        prob,
+        probnew,
+        df,
+        df_test,
+        A,
+        b,
+        rho,
+        obj,
+        z,
+        a_history=None,
+        b_history=None,
+        rho_history=None,
+        linear=None,
+    ):
         self._final_prob = probnew
         self._problem = prob
         self._df = df
@@ -1681,6 +1933,7 @@ class Result(ABC):
     @property
     def uncset_iters(self):
         return self._a_history, self._b_history
+
     @property
     def linear(self):
         return self._linear

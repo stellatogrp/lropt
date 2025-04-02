@@ -32,7 +32,7 @@ class Simulator(ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def constraint_cost(self,x,u,alpha,**kwargs):
+    def constraint_cost(self,x,u,**kwargs):
         """ Create the current constraint penalty cost
         """
         raise NotImplementedError()
@@ -51,7 +51,7 @@ class Simulator(ABC):
 
 
 
-class Default_Simulator(ABC):
+class DefaultSimulator(ABC):
     def __init__(self,trainer):
         self.trainer = trainer
 
@@ -65,46 +65,46 @@ class Default_Simulator(ABC):
         """ Create the current stage cost using the current state x
         and decision u
         """
-        return kwargs['trainer'].train_objective(kwargs['batch_int'], kwargs['eval_args'])
+        return self.trainer.train_objective(kwargs['batch_int'], kwargs['eval_args'])
 
 
     def stage_cost_eval(self,x,u,**kwargs):
         """ Create the current stage evaluation cost using the current state x
         and decision u
         """
-        return torch.tensor(kwargs['trainer'].evaluation_metric(
+        return torch.tensor(self.trainer.evaluation_metric(
             kwargs['batch_int'], kwargs['eval_args'],
-            kwargs['quantiles']),dtype=settings.DTYPE)
+            self.trainer.settings.quantiles),dtype=settings.DTYPE)
 
 
-    def constraint_cost(self,x,u,alpha, **kwargs):
+    def constraint_cost(self,x,u,**kwargs):
         """ Create the current constraint penalty cost
         """
-        return kwargs['trainer'].train_constraint(kwargs['batch_int'],
+        return self.trainer.train_constraint(kwargs['batch_int'],
                                                   kwargs['eval_args'],
-                                                    alpha,
+                                                    kwargs['alpha'],
                                                     kwargs['slack'],
-                                                    kwargs['eta'],
-                                                    kwargs['kappa'])
+                                                    self.trainer.settings.eta,
+                                                    self.trainer.settings.kappa)
 
     def init_state(self,batch_size, seed,**kwargs):
         """ initialize the parameter value
         """
-        if kwargs['trainer']._eval_flag:
-            return kwargs['trainer']._gen_batch(kwargs['trainer'].test_size,
-                                                kwargs['trainer'].x_test_tch,
-                                                kwargs['trainer'].u_test_set,
-                                                1, kwargs["max_batch_size"])
+        if self.trainer._eval_flag:
+            return self.trainer._gen_batch(self.trainer.test_size,
+                                                self.trainer.x_test_tch,
+                                                self.trainer.u_test_set,
+                                                1, self.trainer.settings.max_batch_size)
 
         else:
-            return kwargs['trainer']._gen_batch(kwargs['trainer'].train_size,
-                                                kwargs['trainer'].x_train_tch,
-                                                kwargs['trainer'].u_train_set,
-                                                kwargs['batch_percentage'],
-                                                kwargs["max_batch_size"])
+            return self.trainer._gen_batch(self.trainer.train_size,
+                                                self.trainer.x_train_tch,
+                                                self.trainer.u_train_set,
+                                                self.trainer.settings.batch_percentage,
+                                                self.trainer.settings.max_batch_size)
 
     def prob_constr_violation(self,x,u,**kwargs):
         """ calculate current probability of constraint violation
         """
-        return kwargs['trainer'].prob_constr_violation(kwargs['batch_int'],
+        return self.trainer.prob_constr_violation(kwargs['batch_int'],
                                                 kwargs['eval_args'])
