@@ -74,37 +74,24 @@ class Trainer:
         self,
         rho_tch,
         alpha,
-        solver_args,
-        time_horizon,
         a_tch,
         b_tch,
-        batch_size=1,
-        seed=None,
-        contextual=False,
-        kwargs_simulator=None,
-        model=None,
     ):
         """This function calls the loss and constraint function, and returns
         an error if an infeasibility is encountered. This is infeasibility
         dependent on the testing data-set.
         """
-        if seed is not None:
-            torch.manual_seed(seed)
+        if self.settings.seed is not None:
+            torch.manual_seed(self.settings.seed)
 
         # remove for loop, set batch size to trials
         cost, constraint_cost, x_hist, z_hist, constraint_status, eval_cost, prob_vio, u_hist = (
             self.loss_and_constraints(
-                time_horizon=time_horizon,
                 a_tch=a_tch,
                 b_tch=b_tch,
-                batch_size=batch_size,
-                seed=seed,
+                seed=self.settings.seed,
                 rho_tch=rho_tch,
                 alpha=alpha,
-                solver_args=solver_args,
-                contextual=contextual,
-                kwargs_simulator=kwargs_simulator,
-                model=model,
             )
         )
         if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
@@ -119,15 +106,9 @@ class Trainer:
         self,
         rho_tch,
         alpha,
-        solver_args,
-        time_horizon,
         a_tch,
         b_tch,
-        batch_size=1,
-        seed=None,
-        contextual=False,
-        kwargs_simulator=None,
-        model=None,
+        seed,
     ):
         """
         This function propagates the system state, calculates the costs,
@@ -137,22 +118,10 @@ class Trainer:
                 size of the uncertainty set. A torch tensor.
             alpha
                 cvar variable for the constraint cost.
-            solver_args
-                parameters for the solver: eg, tolerance, solver name
-            time_horizon
-                total time horizon for the multistage problem
             a_tch, b_tch
                 the initialized size and shape parameters
-            batch_size
-                batch size for each time step
             seed
-                seed to generate uncertain data
-            contextual
-                whether or not the learned set is contextual
-            kwargs_simulator
-                extra arguments for the simulator class functions
-            model
-                the model for the contextual uncertainty set
+                RNG seed.
         Returns:
             cost
                 objective function cost, averaged across time steps
@@ -171,21 +140,22 @@ class Trainer:
             u_0
                 uncertainty data for the single-stage case
         """
-        if seed is not None:
-            torch.manual_seed(seed)
+        torch.manual_seed(seed)
 
         if self._multistage:
             u_0 = 0
-            x_0 = self.simulator.init_state(batch_size, seed, **kwargs_simulator)
+            x_0 = self.simulator.init_state(self.settings.batch_size, seed,
+                                            **self.settings.kwargs_simulator)
         else:
-            batch_int, x_0, u_0 = self.simulator.init_state(batch_size, seed, **kwargs_simulator)
-            kwargs_simulator["batch_int"] = batch_int
+            batch_int, x_0, u_0 = self.simulator.init_state(self.settings.batch_size, seed,
+                                                            **self.settings.kwargs_simulator)
+            self.settings.kwargs_simulator["batch_int"] = batch_int
 
         if not isinstance(x_0, list):
             x_0 = [x_0]
         x_0 = [x.clone().detach() for x in x_0]
-        if contextual:
-            a_tch, b_tch = self.create_tensors_linear(x_0, model, self._covpred)
+        if self.settings.contextual:
+            a_tch, b_tch = self.create_tensors_linear(x_0, self.settings.model, self._covpred)
 
         cost = 0.0
         constraint_cost = 0.0
@@ -197,10 +167,9 @@ class Trainer:
         x_t = x_0
         x_hist = [[xval.detach().numpy().copy() for xval in x_t.copy()]]
         z_hist = []
-        for t in range(time_horizon):
-            z_t = self.cvxpylayer(
-                rho_tch, *self.cp_param_tch, *x_t, a_tch, b_tch, solver_args=solver_args
-            )
+        for t in range(self.settings.time_horizon):
+            z_t = self.cvxpylayer(rho_tch, *self.cp_param_tch, *x_t, a_tch, b_tch,
+                                  solver_args=self.settings.solver_args)
             constraints_status = self.violation_checker.check_constraints(
                 z_batch=z_t,
                 rho_mult_parameter=self._rho_mult_parameter,
@@ -215,21 +184,25 @@ class Trainer:
             z_t = self._reduce_variables(z_t)
             if not self._multistage:
                 eval_args = self.order_args(z_t, x_t, u_0)
-                kwargs_simulator["eval_args"] = eval_args
-            x_t = self.simulator.simulate(x_t, z_t, **kwargs_simulator)
-            cost += self.simulator.stage_cost(x_t, z_t, **kwargs_simulator)
-            eval_cost += self.simulator.stage_cost_eval(x_t, z_t, **kwargs_simulator)
-            constraint_kwargs = kwargs_simulator.copy() if kwargs_simulator is not None else {}
+                self.settings.kwargs_simulator["eval_args"] = eval_args
+            x_t = self.simulator.simulate(x_t, z_t, **self.settings.kwargs_simulator)
+            cost += self.simulator.stage_cost(x_t, z_t, **self.settings.kwargs_simulator)
+            eval_cost += self.simulator.stage_cost_eval(x_t, z_t, **self.settings.kwargs_simulator)
+            if self.settings.kwargs_simulator is not None:
+                constraint_kwargs = self.settings.kwargs_simulator.copy() 
+            else:
+                constraint_kwargs = {}
 
             # TODO (bart): this is not ideal since we are copying the kwargs
             constraint_kwargs["alpha"] = alpha
             constraint_cost += self.simulator.constraint_cost(x_t, z_t, **constraint_kwargs)
 
-            prob_vio += self.simulator.prob_constr_violation(x_t, z_t, **kwargs_simulator)
+            prob_vio += self.simulator.prob_constr_violation(x_t, z_t,
+                                                             **self.settings.kwargs_simulator)
             x_hist.append([xval.detach().numpy().copy() for xval in x_t])
             z_hist.append(z_t)
-            if contextual:
-                a_tch, b_tch = self.create_tensors_linear(x_t, model, self._covpred)
+            if self.settings.contextual:
+                a_tch, b_tch = self.create_tensors_linear(x_t, self.settings.model, self._covpred)
             self._a_tch = a_tch
             self._b_tch = b_tch
             self._cur_x = x_t
@@ -1048,17 +1021,11 @@ class Trainer:
                 self._eval_flag = False
                 cost, constr_cost, _, _, constraint_status, eval_cost, prob_violation_train, _ = (
                     self.loss_and_constraints(
-                        time_horizon=self.settings.time_horizon,
                         a_tch=a_tch,
                         b_tch=b_tch,
-                        batch_size=self.settings.batch_size,
                         seed=self.settings.seed + step_num + 1,
                         rho_tch=rho_tch,
                         alpha=alpha,
-                        solver_args=self.settings.solver_args,
-                        contextual=self.settings.contextual,
-                        kwargs_simulator=self.settings.kwargs_simulator,
-                        model=self.settings.model,
                     )
                 )
 
@@ -1140,17 +1107,10 @@ class Trainer:
                     prob_constr_violation,
                     u_batch,
                 ) = self.monte_carlo(
-                    time_horizon=self.settings.time_horizon,
                     a_tch=a_tch,
                     b_tch=b_tch,
-                    batch_size=self.settings.test_batch_size,
-                    seed=self.settings.seed,
                     rho_tch=rho_tch,
                     alpha=alpha,
-                    solver_args=self.settings.solver_args,
-                    contextual=self.settings.contextual,
-                    kwargs_simulator=self.settings.kwargs_simulator,
-                    model=self.settings.model,
                 )
                 record_eval_cost = eval_cost
                 if not self._default_simulator:
