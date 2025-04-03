@@ -219,9 +219,9 @@ class Trainer:
             x_t = self.simulator.simulate(x_t, z_t, **kwargs_simulator)
             cost += self.simulator.stage_cost(x_t, z_t, **kwargs_simulator)
             eval_cost += self.simulator.stage_cost_eval(x_t, z_t, **kwargs_simulator)
-            constraint_kwargs = kwargs_simulator.copy() if kwargs_simulator is not None else {}
 
             # TODO (bart): this is not ideal since we are copying the kwargs
+            constraint_kwargs = kwargs_simulator.copy() if kwargs_simulator is not None else {}
             constraint_kwargs["alpha"] = alpha
             constraint_cost += self.simulator.constraint_cost(x_t, z_t, **constraint_kwargs)
 
@@ -641,26 +641,30 @@ class Trainer:
         matrix = np.array(init_A) if (init_A is not None) else np.eye(mat_shape)
         return matrix
 
-    def _init_torches(self, init_A, init_b, init_alpha, train_set):
+    def _init_torches(self):
         """
-        This function Initializes and returns a_tch, b_tch, and alpha as tensors.
-        It also initializes alpha and the slack variables as 0
+        This function Initializes and returns rho_tch, a_tch, b_tch, alpha, and slack as tensors.
+        It also initializes alpha and the slack variables as 0.
         """
-        # train_set = train_set.detach().numpy()
-        self._init = self._gen_init(train_set, init_A)
-        init_tensor = torch.tensor(self._init, requires_grad=self.train_flag, dtype=s.DTYPE)
-        b_tch = None
+        # Generate rho_tch
+        rho_tch = self._gen_rho_tch(self.settings.init_rho)
 
-        if init_b is not None:
-            b_tch_data = np.array(init_b)
-        else:
-            b_tch_data = np.mean(train_set, axis=0)
-        b_tch = torch.tensor(b_tch_data, requires_grad=self.train_flag, dtype=s.DTYPE)
+        # Initialize a_tch and b_tch
+        self._init = self._gen_init(self.u_train_set, self.settings.init_A)
+        init_tensor = torch.tensor(self._init, requires_grad=self.train_flag, dtype=s.DTYPE)
         a_tch = init_tensor
 
-        alpha = torch.tensor(init_alpha, requires_grad=self.train_flag)
+        if self.settings.init_b is not None:
+            b_tch_data = np.array(self.settings.init_b)
+        else:
+            b_tch_data = np.mean(self.u_train_set, axis=0)
+        b_tch = torch.tensor(b_tch_data, requires_grad=self.train_flag, dtype=s.DTYPE)
+
+        # Initialize alpha and slack
+        alpha = torch.tensor(self.settings.init_alpha, requires_grad=self.train_flag)
         slack = torch.zeros(self.num_g_total, requires_grad=self.train_flag, dtype=s.DTYPE)
-        return a_tch, b_tch, alpha, slack
+
+        return rho_tch, a_tch, b_tch, alpha, slack
 
     def _update_iters(self, save_history, a_history, b_history, rho_history, a_tch, b_tch, rho_tch):
         """
@@ -975,10 +979,7 @@ class Trainer:
         df = pd.DataFrame(columns=["step"])
         df_test = pd.DataFrame(columns=["step"])
 
-        rho_tch = self._gen_rho_tch(self.settings.init_rho)
-        a_tch, b_tch, alpha, slack = self._init_torches(
-            self.settings.init_A, self.settings.init_b, self.settings.init_alpha, self.u_train_set
-        )
+        rho_tch, a_tch, b_tch, alpha, slack = self._init_torches()
 
         self._update_iters(
             self.settings.save_history, a_history, b_history, rho_history, a_tch, b_tch, rho_tch
@@ -1310,6 +1311,7 @@ class Trainer:
         # Debugging code - one iteration
         # res = self._train_loop(0)
         # Debugging code - serial
+        # TODO(bart): create progress bar also for this repetition loop
         if not self.settings.parallel:
             res = []
             for init_num in range(self.settings.num_random_init):
@@ -1507,6 +1509,7 @@ class Trainer:
                 new_b_tch[i] = values_list[2]
         return new_var_values, new_a_tch, new_b_tch
 
+    # TODO(bart): we may have to kill this if we find a better way to compare predictors
     def grid(
         self,
         rholst=s.RHO_LST_DEFAULT,
@@ -1598,11 +1601,41 @@ class Trainer:
         grid_stats = GridStats()
 
         lam = 1000 * torch.ones(self.num_g_total, dtype=s.DTYPE)
+
+        # TODO(bart) Fix create init_A, init_b, etc
+
         # initialize torches
-        rho_tch = self._gen_rho_tch(1)
-        a_tch_init, b_tch_init, alpha, slack = self._init_torches(
-            init_A, init_b, init_alpha, self.u_train_set
-        )
+        # Note: We call _init_torches here, but rho_tch will be overwritten in the loop.
+        _, a_tch_init, b_tch_init, alpha, slack = self._init_torches()
+
+        # a_tch_init, b_tch_init, alpha, slack = self._init_torches(
+        #     init_A, init_b, init_alpha, self.u_train_set
+        # )
+
+        # # initialize torches
+        # # Note: We call _init_torches here, but rho_tch will be overwritten in the loop.
+        # # We still need a_tch_init, b_tch_init, alpha, slack.
+        # # We pass dummy settings values for init_A, init_b, init_alpha
+        # # as they are used inside grid.
+        # # Store original settings
+        # orig_init_A = self.settings.init_A
+        # orig_init_b = self.settings.init_b
+        # orig_init_alpha = self.settings.init_alpha
+        # orig_init_rho = self.settings.init_rho
+        #
+        # # Set settings for grid initialization
+        # self.settings.init_A = init_A
+        # self.settings.init_b = init_b
+        # self.settings.init_alpha = init_alpha
+        # self.settings.init_rho = init_rho # Use init_rho passed to grid
+        #
+        # _, a_tch_init, b_tch_init, alpha, slack = self._init_torches()
+        #
+        # # Restore original settings
+        # self.settings.init_A = orig_init_A
+        # self.settings.init_b = orig_init_b
+        # self.settings.init_alpha = orig_init_alpha
+        # self.settings.init_rho = orig_init_rho
 
         x_batch_array, num_unique_indices, x_unique, x_unique_array = self.gen_unique_x(
             self.x_test_tch
