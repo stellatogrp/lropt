@@ -608,6 +608,7 @@ class Trainer:
 
         return rho_tch
 
+    # TODO(bart): why calling this name? Do we ever use it not for init_A?
     def _gen_init(self, train_set, init_A):
         """
         This is an internal function that calculates init.
@@ -1154,10 +1155,36 @@ class Trainer:
                 record_eval_cost = eval_cost
                 if not self._default_simulator:
                     record_eval_cost = eval_cost.repeat(3)
-                print(
-                    "iteration %d, valid %.4e, vio %.4e"
-                    % (step_num, record_eval_cost[1].item(), val_cost_constr.mean().item())
-                )
+
+                # Update progress bar with current metrics
+                if not hasattr(self, "_pbar"):
+                    # Import tqdm here to avoid dependency issues if not available
+                    try:
+                        from tqdm.auto import tqdm as auto_tqdm
+
+                        # Create progress bar on first evaluation
+                        self._pbar = auto_tqdm(
+                            total=self.settings.num_iter, desc="Training", leave=True
+                        )
+                        # Initialize with current step
+                        self._pbar.update(step_num)
+                    except ImportError:
+                        # Fallback to regular print if tqdm not available
+                        print(
+                            "it %d, loss %1.2e, viol %1.2e"
+                            % (step_num, record_eval_cost[1].item(), val_cost_constr.mean().item())
+                        )
+                else:
+                    # Update progress bar position
+                    self._pbar.update(self.settings.test_frequency)
+
+                    # Set description with metrics
+                    self._pbar.set_postfix(
+                        {
+                            "loss": f"{record_eval_cost[1].item():1.2e}",
+                            "viol": f"{val_cost_constr.mean().item():1.2e}",
+                        }
+                    )
 
                 train_stats.update_test_stats(
                     record_eval_cost, prob_constr_violation, constr_cost.detach()
@@ -1190,6 +1217,11 @@ class Trainer:
             predvals = (self._Apred, self._bpred, self._Cpred, self._dpred, self._Areg, self._breg)
         else:
             predvals = None
+        # Close progress bar if it exists
+        if hasattr(self, "_pbar"):
+            self._pbar.close()
+            delattr(self, "_pbar")
+
         return (
             df,
             df_test,
