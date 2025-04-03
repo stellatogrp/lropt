@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+from enum import Enum
 from functools import partial
 
 import numpy as np
@@ -8,9 +9,12 @@ from cvxpy.atoms.atom import Atom
 from cvxpy.expressions.expression import Expression
 from torch import Tensor
 
+import lropt.train.settings as settings
+
+EVAL_INPUT_CASE = Enum("_EVAL_INPUT_CASE", "MEAN EVALMEAN MAX")
+
 
 def get_n_processes(max_n=np.inf):
-
     try:
         # NOTE: only available on some Unix platforms
         n_cpus = len(os.sched_getaffinity(0))  # type: ignore[attr-defined]
@@ -21,16 +25,143 @@ def get_n_processes(max_n=np.inf):
 
     return n_proc
 
+
+def eval_prob_constr_violation(
+    g: list[partial], g_shapes: list[int], batch_int: int, eval_args: list[torch.Tensor]
+) -> torch.Tensor:
+    """
+    This function evaluates the probability of constraint violation of all uncertain constraints
+    over the batched set.
+    Args:
+        g (list[partial]):
+            Constraints to evaluate.
+        g_shapes (list[int]):
+            Shapes of the constraints of g.
+        batch_int (int):
+            The number of samples in the batch, to take the mean over
+        eval_args (list[torch.Tensor]):
+            The arguments of the constraints
+    Returns:
+        The average among all evaluated J x N pairs
+    """
+    num_g_total = len(g)
+    G = torch.zeros((num_g_total, batch_int), dtype=settings.DTYPE)
+    for k, g_k in enumerate(g):
+        G[sum(g_shapes[:k]) : sum(g_shapes[: (k + 1)])] = eval_input(
+            batch_int,
+            eval_func=g_k,
+            eval_args=eval_args,
+            init_val=G[sum(g_shapes[:k]) : sum(g_shapes[: (k + 1)])],
+            eval_input_case=EVAL_INPUT_CASE.MAX,
+            quantiles=None,
+        )
+    return G.mean(axis=1)
+
+
+def eval_input(
+    batch_int,
+    eval_func,
+    eval_args,
+    init_val,
+    eval_input_case,
+    quantiles,
+    serial_flag=False,
+    **kwargs,
+):
+    """
+    This function takes decision variables, y's, and u's,
+        evaluates them and averages them on a given function.
+
+    Args:
+        batch_int:
+            The number of samples in the batch, to take the mean over
+        eval_func:
+            The function used for evaluation.
+        eval_args:
+            The arguments for eval_func
+        init_val:
+            The placeholder for the returned values
+        eval_input_case:
+            The type of evaluation performed. Can be MEAN, EVALMEAN, or MAX
+        quantiles:
+            The quantiles for mean values. can be None.
+        serial_flag:
+            Whether or not to evalute the function in serial
+        kwargs:
+            Additional arguments for the eval_func
+
+    Returns:
+        The average among all evaluated J x N pairs
+    """
+
+    def _serial_eval(batch_int, eval_args, init_val=None, **kwargs):
+        """
+        This is a helper function that calls eval_func in a serial way.
+        """
+
+        def _sample_args(eval_args, sample_ind):
+            """
+            This is a helper function that samples arguments to be passed to eval_func.
+            """
+            res = []
+            for eval_arg in eval_args:
+                curr_arg = eval_arg[sample_ind]
+                res.append(curr_arg)
+            return res
+
+        curr_result = {}
+        for j in range(batch_int):
+            curr_eval_args = _sample_args(eval_args, j)
+            if init_val:
+                init_val[:, j] = eval_func(*curr_eval_args, **kwargs)
+            else:
+                curr_result[j] = eval_func(*curr_eval_args, **kwargs)
+        return curr_result
+
+    if eval_input_case != EVAL_INPUT_CASE.MAX:
+        if serial_flag:
+            curr_result = _serial_eval(batch_int, eval_args, **kwargs)
+        else:
+            curr_result = eval_func(*eval_args, **kwargs)
+    if eval_input_case == EVAL_INPUT_CASE.MEAN:
+        if serial_flag:
+            init_val = torch.vstack([curr_result[v] for v in curr_result])
+        else:
+            init_val = curr_result
+        init_val = torch.mean(init_val, axis=0)
+    elif eval_input_case == EVAL_INPUT_CASE.EVALMEAN:
+        if serial_flag:
+            init_val = torch.vstack([curr_result[v] for v in curr_result])
+        else:
+            init_val = curr_result
+        bot_q, top_q = quantiles
+        init_val_lower = torch.quantile(init_val, bot_q, axis=0)
+        init_val_mean = torch.mean(init_val, axis=0)
+        init_val_upper = torch.quantile(init_val, top_q, axis=0)
+        return (init_val_lower, init_val_mean, init_val_upper)
+    elif eval_input_case == EVAL_INPUT_CASE.MAX:
+        # We want to see if there's a violation: either 1 from previous iterations,
+        # or new positive value from now
+        if serial_flag:
+            _ = _serial_eval(batch_int, eval_args, init_val, **kwargs)
+        else:
+            init_val = eval_func(*eval_args, **kwargs)
+            if len(init_val.shape) > 1:
+                init_val = init_val.T
+        init_val = (init_val > settings.TOL).float()
+    return init_val
+
+
 ##########################
-#Batch utilitiy functions
+# Batch utilitiy functions
 ##########################
 
-def recursive_apply(expr: Expression, support_types: dict[Atom: Atom]) \
-                                                                            -> Expression:
+
+def recursive_apply(expr: Expression, support_types: dict[Atom:Atom]) -> Expression:
     """
     This is a helper function that recursively applies inner_trans on every atom of expr, if the
     atom is a key in support types.
-    
+
     Parameters:
         expr (Expression)
             A CVXPY Expression whose atoms are recursively transformed using trans if they are
@@ -41,17 +172,18 @@ def recursive_apply(expr: Expression, support_types: dict[Atom: Atom]) \
             A dictionary from CVXPY atoms to replace to the new atoms.
     """
 
-    #Recursively change all the args of this expression
+    # Recursively change all the args of this expression
     args = [recursive_apply(arg, support_types) for arg in expr.args]
     expr.args = args
 
-    #Change this expression if necessary
+    # Change this expression if necessary
     new_type = support_types[type(expr)] if type(expr) in support_types else None
 
     if not new_type:
         return expr
-    
+
     return new_type.transform(expr)
+
 
 def inner_transform(expr: Expression, batch_type: type) -> Expression:
     """
@@ -86,17 +218,19 @@ def inner_transform(expr: Expression, batch_type: type) -> Expression:
         """
         parent_type = batch_type.__bases__
         if len(parent_type) != 1:
-            raise ValueError(f"Expected {type(batch_type)} to have 1 parent, but {len(parent_type)}"
-                            f" were found.")
+            raise ValueError(
+                f"Expected {type(batch_type)} to have 1 parent, but {len(parent_type)} were found."
+            )
         return parent_type[0]
 
     parent_type = _get_parent_type(batch_type)
-    #Change this expression if necessary
+    # Change this expression if necessary
     if not _should_transform(expr, parent_type):
         return expr
     return batch_type(*batch_type.get_args(expr))
 
-def is_batch(atom: Atom, values: list[Tensor], orig_shape_flag: bool=True) -> bool:
+
+def is_batch(atom: Atom, values: list[Tensor], orig_shape_flag: bool = True) -> bool:
     """
     This is a helper function that returns True if this is batch mode.
     IMPORTANT: Should be used ONLY if:
@@ -110,6 +244,7 @@ def is_batch(atom: Atom, values: list[Tensor], orig_shape_flag: bool=True) -> bo
         atom_shape = atom.shape
     return ((curr_shape - len(atom_shape)) >= 1) or np.prod(values[0].shape) > np.prod(atom_shape)
 
+
 def expand_tensor(arg: Tensor, batch_size: int) -> Tensor:
     """
     This function expands a tensor on the 0-th dimension batch_size times.
@@ -122,11 +257,12 @@ def expand_tensor(arg: Tensor, batch_size: int) -> Tensor:
             A sparse or desnse tensor.
         batch_sizse (int):
             The number of times to expand the tensor.
-    
+
     Returns:
         Expanded tensor (sparse/dense if the input is sparse/dense).
     """
     return torch.stack([arg for _ in range(batch_size)], dim=0)
+
 
 def stack_tensor(arg: Tensor, x: int) -> Tensor:
     """
@@ -137,7 +273,7 @@ def stack_tensor(arg: Tensor, x: int) -> Tensor:
             Input tensor to stack.
         x (int):
             How many times to stack the tensor.
-    
+
     Returns:
         A tensor stacked x times.
     """
@@ -146,6 +282,7 @@ def stack_tensor(arg: Tensor, x: int) -> Tensor:
         raise RuntimeError(f"stack_tensor failed to increase the ndim of {arg}.")
     return res
 
+
 def already_padded(arg: Expression, value: Tensor) -> bool:
     """
     This is a helper function that returns True if the value has already been padded.
@@ -153,17 +290,19 @@ def already_padded(arg: Expression, value: Tensor) -> bool:
     """
     return len(arg.shape) < len(value.shape)
 
+
 def get_batch_size(arg: Expression, value: Tensor) -> int:
     """
     This function returns the batch size of the input tensor, or 1 if it is not batched.
     """
-    #No batch is equivalent to batch of size 1.
+    # No batch is equivalent to batch of size 1.
     if not is_batch(arg, [value]):
         return 1
 
-    #The 0-th dimension is always assumed to have the batched data.
+    # The 0-th dimension is always assumed to have the batched data.
     return value.shape[0]
-    
+
+
 def replace_partial_args(part: partial, new_args: tuple) -> partial:
     """
     This function raplces the args of a partial input with new_args.
@@ -172,3 +311,82 @@ def replace_partial_args(part: partial, new_args: tuple) -> partial:
     f, _, k, n = f
     part.__setstate__((f, new_args, k, n))
     return part
+
+
+##########################
+# Optimizer utility functions
+##########################
+
+
+def take_step(
+    opt: torch.optim.Optimizer,
+    slack: torch.Tensor,
+    rho_tch: torch.Tensor,
+    scheduler: torch.optim.lr_scheduler.StepLR | None,
+) -> None:
+    """
+    This function performs an optimization step.
+
+    Args:
+        opt (torch.optim.Optimizer):
+            The optimizer to unroll.
+        Slack (torch.Tensor):
+            Slack tensor.
+        rho_tch (torch.Tensor):
+            rho_tch tensor.
+        scheduler (torch.optim_lr_scheduler.StepLR | None):
+            If passed, a StepLR scheduler.
+    """
+    opt.step()
+    opt.zero_grad()
+    with torch.no_grad():
+        newval = torch.clamp(slack, min=0.0, max=torch.inf)
+        slack.copy_(newval)
+        newrho_tch = torch.clamp(rho_tch, min=0.001)
+        rho_tch.copy_(newrho_tch)
+    if scheduler:
+        scheduler.step()
+
+
+def undo_step(opt: torch.optim.Optimizer) -> None:
+    """
+    This function undoes the last optimizer step.
+
+    Args:
+        opt (torchoptim.Optimizer):
+            The optimizer whose step to undo.
+    """
+    for group in opt.param_groups:
+        for param in group["params"]:
+            if param.grad is not None:
+                param.data.add_(param.grad, alpha=-group["lr"])
+
+
+def halve_step_size(opt: torch.optim.Optimizer) -> None:
+    """
+    This function halves the step size of an optimizer.
+
+    Args:
+        opt (torchoptim.Optimizer):
+            The optimizer whose step to halve.
+    """
+    for group in opt.param_groups:
+        group["lr"] /= 2
+
+
+def restore_step_size(opt: torch.optim.Optimizer, num_steps: int) -> None:
+    """
+    This function restores the optimizer's step size to its original value,
+    i.e. multiplies it by 2^num_steps (where num_steps is 0-indexed).
+
+    Args:
+        opt (torch.optim.Optimizer):
+            The optimizer whose step size to restore.
+
+        num_steps (int):
+            The number of times the step size was halved.
+    """
+    for group in opt.param_groups:
+        # More stable than 2**num_steps
+        for _ in range(num_steps):
+            group["lr"] *= 2

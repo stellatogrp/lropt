@@ -1,7 +1,7 @@
 import numpy as np
 from cvxpy import Variable, norm
 
-from lropt.train.parameter import EpsParameter, ShapeParameter
+from lropt.train.parameter import ShapeParameter, SizeParameter
 from lropt.uncertainty_sets.uncertainty_set import UncertaintySet
 
 
@@ -26,12 +26,7 @@ class Norm(UncertaintySet):
         vector defining :math:`b` in uncertainty set definition. By default :math:`b = 0`
     data: np.array, optional
         An array of uncertainty realizations, where each row is one realization.
-        Required if the uncertainty should be trained, or if `loss` function passed.
-    loss: function, optional
-        The loss function used to train the uncertainty set.
-        Required if uncertainty set parameters should be trained or if `data` is passed.
-        Function must use torch tensors, and arguments to loss function must be given in the
-        same order as cvxpy variables defined in problem.
+        Required if the uncertainty should be trained.
     c: np.array, optional
         matrix defining the lhs of the polyhedral support: :math: `cu \le d`. By default None.
     d: np.array, optional
@@ -52,7 +47,7 @@ class Norm(UncertaintySet):
     """
 
     def __init__(self, dimension = None, p=2, rho=1.,
-                 a=None, b=None, c=None, d=None, data=None, loss=None,
+                 a=None, b=None, c=None, d=None, data=None,
                  ub=None, lb=None, sum_eq=None):
         if rho <= 0:
             raise ValueError("Rho value must be positive.")
@@ -83,14 +78,13 @@ class Norm(UncertaintySet):
         self._a = a
         self._b = b
         self._trained = False
-        self._loss = loss
         self._c = c
         self._d = d
         self._define_support = False
         self._ub = ub
         self._lb = lb
         self._sum_eq = sum_eq
-        self._rho_mult = EpsParameter(value=1.)
+        self._rho_mult = SizeParameter(value=1.)
 
 
     @property
@@ -128,10 +122,6 @@ class Norm(UncertaintySet):
     @property
     def data(self):
         return self._data
-
-    @property
-    def loss(self):
-        return self._loss
 
     @property
     def ub(self):

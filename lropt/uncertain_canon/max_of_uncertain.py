@@ -4,6 +4,7 @@ from typing import Tuple
 
 import cvxpy.utilities as u
 import numpy as np
+import torch
 from cvxpy.atoms.affine.add_expr import AddExpression
 from cvxpy.atoms.atom import Atom
 
@@ -54,7 +55,6 @@ class sum_of_max_of_uncertain(Atom):
         return reduce(np.maximum, values)
 
     def torch_numeric(self, values):
-        import torch
         # values = [arg.torch_numeric() for arg in self.args]
         return reduce(torch.maximum, values)
 
@@ -109,6 +109,9 @@ class sum_of_max_of_uncertain(Atom):
 
     def _grad(self, values) -> None:
         return None
+
+    # def torch_numeric(self, expr: Expression, values: list[Tensor]) -> Tensor:
+    #     return torch.max(*values)
 
     # def is_dcp(self, dpp: bool = False) -> bool:
     #     """An max constraint is DCP if its argument is affine."""

@@ -64,7 +64,6 @@ class TestRobustPortfolio(unittest.TestCase):
 
         self.assertAlmostEqual(res1, res2, delta=self.TOL)
 
-        pass
 
     def test_objective_uncertainty_flip(self):
         cp.Variable(1)
@@ -84,4 +83,3 @@ class TestRobustPortfolio(unittest.TestCase):
 
         self.assertAlmostEqual(res1, res2, delta=self.TOL)
 
-        pass

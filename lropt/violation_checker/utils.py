@@ -9,6 +9,14 @@ from lropt.violation_checker.settings import NO_BATCH, VIOLATION_TOL
 
 CONSTRAINT_STATUS = Enum("CONSTRAINT_STATUS", ["FEASIBLE", "INFEASIBLE"])
 
+class InfeasibleConstraintException(Exception):
+    """
+    This exception is thrown when an infeasible constraint is found.
+    """
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
 def check_constraint(constraint: Constraint) -> CONSTRAINT_STATUS:
     """
     This is a helper function that converts CVXPY's violation status (integer coded) to
@@ -40,33 +48,33 @@ def check_empty_tensor(func: callable) -> callable:
 
 #NEVER BATCHED
 @check_empty_tensor
-def set_rho_mult_parameter(rho_mult_parameter: list[Parameter], eps_tch: Tensor) -> None:
+def set_rho_mult_parameter(rho_mult_parameter: list[Parameter], rho_tch: Tensor) -> None:
     """
-    This helper function assigns eps_tch to rho_mult_parameter.
-    This function assumes eps_tch is a scalar.
+    This helper function assigns rho_tch to rho_mult_parameter.
+    This function assumes rho_tch is a scalar.
     """
-    rho_mult_parameter[0].value = eps_tch.item()
+    rho_mult_parameter[0].value = rho_tch.item()
 
 #SOMETIMES BTACHED
 @check_empty_tensor
-def set_orig_parameters(orig_parameters: list[Parameter], y_orig_tch: list[Tensor],
+def set_cp_parameters(cp_parameters: list[Parameter], cp_param_tch: list[Tensor],
                                             batch_number: int) -> None:
     """
-    This is a helper function that assigns y_orig_tch to orig_parameters.
+    This is a helper function that assigns cp_param_tch to cp_parameters.
     """
-    for orig_param, orig_tch in zip(orig_parameters, y_orig_tch):
-        orig_param_curr, orig_tch_curr = select_batch_object(in_cp=orig_param, in_tch=orig_tch,
+    for cp_param, cp_tch in zip(cp_parameters, cp_param_tch):
+        cp_param_curr, cp_tch_curr = select_batch_object(in_cp=cp_param, in_tch=cp_tch,
                                             batch_number=batch_number)
-        orig_param_curr.value = orig_tch_curr.detech().numpy()
+        cp_param_curr.value = cp_tch_curr.detach().numpy()
 
 #ALWAYS BATCHED
 @check_empty_tensor
-def set_y_parameter(y_parameter: list[Parameter], y_batch: list[Tensor], batch_number: int) -> None:
+def set_x_parameter(x_parameter: list[Parameter], x_batch: list[Tensor], batch_number: int) -> None:
     """
-    This is a helper function that assigns y_batch[i] to y_parameter[i].
+    This is a helper function that assigns x_batch[i] to x_parameters[i].
     """
-    for curr_y_parameter, curr_y_batch in zip(y_parameter, y_batch):
-        curr_y_parameter.value = curr_y_batch.detach().numpy()[batch_number]
+    for curr_x_parameter, curr_x_batch in zip(x_parameter, x_batch):
+        curr_x_parameter.value = curr_x_batch.detach().numpy()[batch_number]
 
 #SOMETIMES BATCHED
 @check_empty_tensor
@@ -123,4 +131,4 @@ def select_batch_object(in_cp: list[Parameter], in_tch: list[Tensor], batch_numb
     """
     if get_batch_size(in_cp=in_cp, in_tch=in_tch) is NO_BATCH: #Need "is" instead of "=="
         return in_cp[0], in_tch[0]
-    return in_cp[0][batch_number], in_tch[0][batch_number]
+    return in_cp[0], in_tch[0][batch_number]

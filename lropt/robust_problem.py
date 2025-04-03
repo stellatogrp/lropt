@@ -1,28 +1,33 @@
 import warnings
-from dataclasses import dataclass
 from enum import Enum
-from functools import partial
-from typing import Optional
 
 import cvxpy as cp
 import torch
+from cvxpy import Parameter as OrigParameter
 from cvxpy import error
 from cvxpy import settings as s
 from cvxpy.expressions.expression import Expression
-from cvxpy.expressions.leaf import Leaf
+from cvxpy.expressions.variable import Variable
 from cvxpy.problems.objective import Maximize
 from cvxpy.problems.problem import Problem
 from cvxpy.reductions.solution import INF_OR_UNB_MESSAGE
 from cvxtorch import TorchExpression
 
 # from pathos.multiprocessing import ProcessPool as Pool
-import lropt.train.settings as settings
-from lropt.train.batch import batchify
-from lropt.train.parameter import Parameter
+from lropt.solver_stats import SolverStats
+from lropt.torch_expression_generator import (
+    generate_torch_expressions,
+    get_eval_batch_size,
+    get_eval_data,
+)
+from lropt.train.parameter import ContextParameter
+from lropt.train.settings import TrainerSettings
+from lropt.train.utils import EVAL_INPUT_CASE, eval_input
 from lropt.uncertain_canon.remove_uncertainty import RemoveUncertainty
 from lropt.uncertain_canon.utils import CERTAIN_ID, UNCERTAIN_NO_MAX_ID
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.mro import MRO
+from lropt.uncertainty_sets.scenario import Scenario
 from lropt.utils import gen_and_apply_chain
 
 torch.manual_seed(0) #TODO: Remove all seed setters
@@ -35,7 +40,7 @@ class RobustProblem(Problem):
 
     def __init__(
         self, objective, constraints,
-        eval_exp=None, train_flag=True, cons_data = None, verify_y_parameters: bool = True
+        eval_exp=None, train_flag=True, cons_data = None, verify_x_parameters: bool = True
     ):
         self._trained = False
         self._values = None
@@ -53,9 +58,13 @@ class RobustProblem(Problem):
         self._status = None
         self._cons_data = cons_data
 
-        self.num_ys = self.verify_y_parameters() if verify_y_parameters else None
+        # Constants for constraint types
+        self.CERTAIN_ID = CERTAIN_ID
+        self.UNCERTAIN_NO_MAX_ID = UNCERTAIN_NO_MAX_ID
+
+        self.num_xs = self.verify_x_parameters() if verify_x_parameters else None
         self._store_variables_parameters()
-        self.eval_exp = eval_exp
+        self.eval_exp = eval_exp if eval_exp else self.objective.expr
 
     @property
     def trained(self):
@@ -66,28 +75,28 @@ class RobustProblem(Problem):
         return self._values
 
     def uncertain_parameters(self):
-        """Find uncertain parameters"""
+        """Find uncertain (u) parameters"""
         return [v for v in self.parameters() if isinstance(v, UncertainParameter)]
 
-    def y_parameters(self):
-        """Find y parameters"""
-        return [v for v in self.parameters() if isinstance(v, Parameter)]
+    def x_parameters(self):
+        """Find context (x) parameters"""
+        return [v for v in self.parameters() if isinstance(v, ContextParameter)]
 
-    def verify_y_parameters(self):
+    def verify_x_parameters(self):
         """
-        This function verifies that y and u are in the correct diemsnions.
+        This function verifies that x and u are in the correct diemsnions.
         """
 
-        y_parameters = self.y_parameters()
+        x_parameters = self.x_parameters()
         u_parameters = self.uncertain_parameters()
-        num_ys = 1
-        if len(y_parameters) > 0:
-            num_ys = y_parameters[0].data.shape[0]
+        num_xs = 1
+        if len(x_parameters) > 0:
+            num_xs = x_parameters[0].data.shape[0]
         #Check that both y and u dimensions are okay
-        for params in [y_parameters, u_parameters]:
+        for params in [x_parameters, u_parameters]:
             for param in params:
                 #Fetch the current shape - different from Parameter and UncertainParameter
-                if params is y_parameters:
+                if params is x_parameters:
                     curr_shape = param.data.shape[0]
                 else:
                     #Skip the check if there is no data
@@ -98,27 +107,11 @@ class RobustProblem(Problem):
                     if not train_mro:
                         continue
                     curr_shape = param.uncertainty_set.data.shape[0]
-                if curr_shape != num_ys:
-                    raise ValueError(f"shape inconsistency: expected num_ys={num_ys}, "
+                if curr_shape != num_xs:
+                    raise ValueError(f"shape inconsistency: expected num_ys={num_xs}, "
                                      f"but got {curr_shape}.")
-        return num_ys
+        return num_xs
 
-    def fg_to_lh(self):
-        """
-        Returns l and h function pointers.
-        Each of them takes a single x,y,u triplet (i.e. one instance of each)
-        """
-        # TODO (Amit): Change this function name to a better name
-        h_funcs = []
-        for g in self.g:
-            def hg(*args, **kwargs):
-                return (torch.maximum(g(*args) - kwargs["alpha"], torch.tensor(0.0,
-                                dtype=settings.DTYPE, requires_grad=self.train_flag))/kwargs["eta"])
-
-            h_funcs.append(hg)
-
-        self.h = h_funcs
-        self.num_g = len(h_funcs)
 
     def unpack(self, solution) -> None:
         """Updates the problem state given a Solution.
@@ -248,157 +241,6 @@ class RobustProblem(Problem):
             update_vars_params(expr=constraint, vars_params=vars_params)
         self.vars_params = vars_params
 
-    def _gen_torch_exp(self, expr: Expression, batch_flag: bool=True):
-        """
-        This function generates a torch expression to be used by RobustProblem from an expression
-        and a vars_dict generated by any cvxpy expression. Also returns a variable indicating
-        if this toch_exp has uncertain parameters or not.
-        """
-
-        def gen_args_inds_to_pass(vars_params, vars_dict):
-            """
-            This is a helper function that generates a dictionary from a variable/parameter index
-            in vars_params (a dictionary that contains all the problem's variables/parameters)
-            to vars_dict (a dictionary that contains all the expression's variables/parameters)
-            """
-            args_inds_to_pass = dict()
-            for global_ind, var_param in vars_params.items():
-                if var_param not in vars_dict.vars_dict.keys():
-                    continue
-                args_inds_to_pass[global_ind] = vars_dict.vars_dict[var_param]
-            return args_inds_to_pass
-
-        def wrapped_function(torch_exp, args_inds_to_pass: dict[int, int], batch_flag: bool, *args):
-            """
-            This is the function that wraps the torch expression.
-
-            Args:
-                torch_exp:
-                    A function (partial)
-                args_inds_to_pass:
-                    A dictionary from index in *args to the args that will be passed.
-                    Note that len(args) > len(args_inds_to_pass) is possible.
-                batch_flag (bool):
-                    Batch mode on/off.
-                *args
-                    The arguments of torch_exp
-            """
-
-            def _safe_increase_axis(expr: Expression, arg_to_orig_axis: dict) -> None:
-                """
-                This is an internal function that increases expr.axis by 1 if it is not negative.
-                It is needed because we add a new dimension that is reserved for batching, and when
-                CVXPY atoms are created, they are unaware of that.
-                The increase happens only if batch mode is recognized.
-                """
-
-                #Recursively increase the axis of the expression
-                for arg in expr.args:
-                    if isinstance(arg, Leaf):
-                        arg_to_orig_axis[arg] = False
-                        continue
-                    _safe_increase_axis(arg, arg_to_orig_axis)
-
-                if not hasattr(expr, "axis"):
-                    arg_to_orig_axis[expr] = False
-                    return
-                original_axis = expr.axis
-                arg_to_orig_axis[expr] = original_axis
-
-                #If axis=None is equivalent to 0. This is needed to make sure numeric functions
-                #do not flatten the inputs.
-                if expr.axis is None:
-                    expr.axis = 0
-
-                if expr.axis>=0:
-                    expr.axis += 1
-
-            def _restore_original_axis(expr: Expression, arg_to_orig_axis: dict) -> None:
-                """
-                This is an internal function restores the original axis to the expression and all
-                of its sub expressions.
-                """
-                for arg in expr.args:
-                    #Recursively restore original axis of the subexpressions
-                    _restore_original_axis(arg, arg_to_orig_axis)
-                    #Restore the original axis of this expression
-                original_axis = arg_to_orig_axis[expr]
-                if original_axis is not False:
-                    expr.axis = original_axis
-
-            args_to_pass = [None]*len(args_inds_to_pass)
-            for key, value in args_inds_to_pass.items():
-                args_to_pass[value] = args[key]
-
-            #To make sure batched inputs are processed correctly, we need to update expr.axis
-            #(if applicable). It is important to revert it back to the original value when done,
-            #hence we save original_axis.
-            expr = torch_exp.args[1] #torch_exp.args[1] is the expression
-            if batch_flag:
-                arg_to_orig_axis = {} #Expression (arg) -> original axis dictionary
-                _safe_increase_axis(expr, arg_to_orig_axis)
-            res = torch_exp(*args_to_pass)
-            #Revert to the original axis if applicable. Note: None is a valid axis (unlike False).
-            if batch_flag:
-                _restore_original_axis(expr, arg_to_orig_axis)
-            return res
-
-        # vars_dict contains a dictionary from variable/param -> index in *args (for the expression)
-        # THIS BATCHIFY IS IMPORTANT, BOTH OF THEM ARE NEEDED!
-        if batch_flag:
-            expr = batchify(expr)
-        cvxtorch_exp = TorchExpression(expr)
-        torch_exp = cvxtorch_exp.torch_expression
-        vars_dict = cvxtorch_exp.variables_dictionary
-        # Need to rebatchify because cvxtorch may introduce new unbatched add atoms
-        if batch_flag:
-            torch_exp = batchify(torch_exp)
-
-        # Create a dictionary from index -> variable/param (for the problem)
-        args_inds_to_pass = gen_args_inds_to_pass(self.vars_params, vars_dict)
-
-        return partial(wrapped_function, torch_exp, args_inds_to_pass, batch_flag)
-
-    def _gen_all_torch_expressions(self, eval_exp: Expression | None = None):
-        """
-        This function generates torch expressions for the canonicalized objective and constraints.
-        """
-        self.f = self._gen_torch_exp(self.objective.expr)
-        self.g = []
-        self.g_shapes = []
-        self.num_g_total = 0
-        self.constraint_checkers = []
-        #For each max_id, select all the constraints with this max_id:
-        #   Each of these constraints is NonPos, so constraint.args[0] is an expression.
-        #   Create an object (list) that has all constraint.args[0] from all these constraints.
-        #   new_constraint = cp.NonPos(cp.Maximum(all of these expressions))
-        #   new_constraint is fed to _gen_torch_exp, but I shouldn't modify self.constraints
-        for max_id in self.constraints_by_type.keys():
-            if max_id==CERTAIN_ID: #Nothing to do with certain constraints
-                continue
-            elif max_id==UNCERTAIN_NO_MAX_ID:
-                constraints = self.constraints_by_type[max_id]
-            else:
-                #Create a constraint from all the constraints of this max_id
-                args = [constraint.args[0] for constraint in self.constraints_by_type[max_id]]
-                constraints = [cp.NonPos(cp.maximum(*args))]
-            for constraint in constraints: #NOT self.constraints: these are the new constraints
-                g = self._gen_torch_exp(constraint)
-                self.g.append(g) #Always has uncertainty, no need to check
-                if len(constraint.shape) >= 1:
-                    self.g_shapes.append(constraint.shape[0])
-                    self.num_g_total += constraint.shape[0]
-                else:
-                    self.g_shapes.append(1)
-                    self.num_g_total += 1
-
-        if self.eval_exp is None:
-            self.eval_exp = self.objective.expr
-        # self.eval_exp = eval_exp #This is needed for when RobustProblem() is called in a reduction
-        self.eval = self._gen_torch_exp(self.eval_exp, batch_flag=False)
-        # self.eval = self.f #This function should be called on the canonicalized problem, so this
-                            #instance of self.eval should not be used.
-        self.fg_to_lh()
 
     def remove_uncertainty(self,override = False, solver = None):
         """
@@ -453,25 +295,13 @@ class RobustProblem(Problem):
                                         _uncertain_canonicalization(self)
 
             #Generating torch expressions and batchify
-            self.problem_canon._gen_all_torch_expressions()
+            generate_torch_expressions(self.problem_canon)
             self.num_g_total = self.problem_canon.num_g_total
 
             #Removing uncertainty and saving the new problem
             self.chain_no_unc, self.problem_no_unc, self.inverse_data_no_unc = \
                                         gen_and_apply_chain(self.problem_canon,
                                                             reductions=[RemoveUncertainty()])
-
-            #DEBUG ONLY
-            # unc_reductions = []
-            # if type(self.objective) == Maximize:
-            #     unc_reductions += [FlipObjective()]
-            # # unc_reductions += [RemoveUncertainty()]
-            # unc_reductions += [RemoveSumOfMaxOfUncertain(), \
-            #                    UncertainCanonicalization(),RemoveUncertainty()]
-            # newchain = Chain(self, reductions=unc_reductions)
-            # newchain.accepts(self)
-            # self.problem_no_unc, self.inverse_data = newchain.apply(self)
-            # self.uncertain_chain = newchain
 
     def solve(self,
                solver: str = None,
@@ -498,20 +328,26 @@ class RobustProblem(Problem):
                 # if no data is passed, no training is needed
                 if unc_param_lst[0].uncertainty_set.data is None:
                     self.remove_uncertainty(solver = solver)
+                elif isinstance(unc_param_lst[0].uncertainty_set, Scenario):
+                    self.remove_uncertainty(solver = solver)
                 else:
                     from lropt.train.trainer import Trainer
                     # if not MRO set and not trained
                     if not isinstance(unc_param_lst[0].uncertainty_set, MRO):
-                        self.trainer = Trainer(self, solver= solver)
-                        _ = self.trainer.train()
-                        for y in self.y_parameters():
-                            y.value = y.data[0]
+                        self.trainer = Trainer(self)
+                        trainer_settings = TrainerSettings()
+                        _ = self.trainer.train(trainer_settings=
+                                               trainer_settings)
+                        for x in self.x_parameters():
+                            x.value = x.data[0]
                     # if MRO set and training needed
                     elif unc_param_lst[0].uncertainty_set._train:
-                        self.trainer = Trainer(self, solver= solver)
-                        _ = self.trainer.train()
-                        for y in self.y_parameters():
-                            y.value = y.data[0]
+                        self.trainer = Trainer(self)
+                        trainer_settings = TrainerSettings()
+                        _ = self.trainer.train(trainer_settings=
+                                               trainer_settings)
+                        for x in self.x_parameters():
+                            x.value = x.data[0]
                     else:
                         # if MRO set and no training needed
                         self.remove_uncertainty(solver= solver)
@@ -539,9 +375,9 @@ class RobustProblem(Problem):
         Returns: the solution to the original problem
         """
         prob = self.problem_no_unc
-        for y in prob.parameters():
-            if y.value is None:
-                y.value = y.data[0]
+        for x in prob.parameters():
+            if x.value is None:
+                x.value = x.data[0]
         inverse_data = self.inverse_data_canon
         uncertain_chain = self.chain_canon
         prob.solve(solver,warm_start,verbose,gp,qcp,requires_grad,enforce_dpp,ignore_dpp,canon_backend,**kwargs)
@@ -551,54 +387,65 @@ class RobustProblem(Problem):
         return self.value
 
 
-@dataclass
-class SolverStats:
-    """Reports some of the miscellaneous information that is returned
-    by the solver after solving but that is not captured directly by
-    the Problem instance.
-
-    Attributes
-    ----------
-    solver_name : str
-        The name of the solver.
-    solve_time : double
-        The time (in seconds) it took for the solver to solve the problem.
-    setup_time : double
-        The time (in seconds) it took for the solver to setup the problem.
-    num_iters : int
-        The number of iterations the solver had to go through to find a solution.
-    extra_stats : object
-        Extra statistics specific to the solver; these statistics are typically
-        returned directly from the solver, without modification by CVXPY.
-        This object may be a dict, or a custom Python object.
-    """
-
-    solver_name: str
-    solve_time: Optional[float] = None
-    setup_time: Optional[float] = None
-    num_iters: Optional[int] = None
-    extra_stats: Optional[dict] = None
-
-    @classmethod
-    def from_dict(cls, attr: dict, solver_name: str) -> "SolverStats":
-        """Construct a SolverStats object from a dictionary of attributes.
-
-        Parameters
-        ----------
-        attr : dict
-            A dictionary of attributes returned by the solver.
-        solver_name : str
-            The name of the solver.
-
-        Returns
-        -------
-        SolverStats
-            A SolverStats object.
+    def evaluate(self) -> float:
         """
-        return cls(
-            solver_name,
-            solve_time=attr.get(s.SOLVE_TIME),
-            setup_time=attr.get(s.SETUP_TIME),
-            num_iters=attr.get(s.NUM_ITERS),
-            extra_stats=attr.get(s.EXTRA_STATS),
-        )
+        Evaluates the out-of-sample value of the current solution and
+        cvxpy/context parameters, with respect to the input data-set
+        of uncertain parameters. The dataset is taken from u.eval_data_sol
+        for each uncertain parameter u.
+        """
+        batch_size = get_eval_batch_size(self)
+
+        #Get TorchExpression related data
+        #Not actually torch expression, but partial.
+        tch_exp = TorchExpression(self.eval_exp).torch_expression
+
+        res = [None]*batch_size
+        for batch_num in range(batch_size):
+            eval_args = get_eval_data(self, tch_exp=tch_exp, batch_num=batch_num)
+            eval_res = eval_input(batch_int=batch_size,
+                       eval_func=tch_exp,
+                       eval_args=eval_args,
+                       init_val=0,
+                       eval_input_case=EVAL_INPUT_CASE.MEAN,
+                       quantiles=None,
+                       serial_flag=False)
+            res[batch_num] = eval_res
+        return res
+
+    def order_args(self, z_batch: list[torch.Tensor], x_batch: list[torch.Tensor],
+                   u_batch: list[torch.Tensor] | torch.Tensor):
+        """
+        This function orders z_batch (decisions), x_batch (context), and
+        u_batch (uncertainty) according to the order in vars_params.
+        """
+        args = []
+        # self.vars_params is a dictionary, hence unsorted. Need to iterate over it in order
+        ind_dict = {
+            Variable: 0,
+            ContextParameter: 0,
+            UncertainParameter: 0,
+        }
+        args_dict = {
+            Variable: z_batch,
+            ContextParameter: x_batch,
+            UncertainParameter: u_batch,
+        }
+
+        for i in range(len(self.vars_params)):
+            curr_type = type(self.vars_params[i])
+            if curr_type == OrigParameter:
+                continue
+            # This checks for list/tuple or not, to support the fact that currently
+            # u_batch is not a list. Irina said in the future this might change.
+
+            # If list or tuple: append the next element
+            if isinstance(args_dict[curr_type], tuple) or isinstance(args_dict[curr_type], list):
+                append_item = args_dict[curr_type][ind_dict[curr_type]]
+                ind_dict[curr_type] += 1
+            # If not list-like (e.g. a tensor), append it
+            else:
+                append_item = args_dict[curr_type]
+            args.append(append_item)
+
+        return args
