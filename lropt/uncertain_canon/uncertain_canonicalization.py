@@ -227,12 +227,11 @@ class UncertainCanonicalization(Reduction):
                 """
 
                 cons_uncertain_data_dict['std_lst'] = [A@variables_stacked - b_certain]
-                cons_func = cp.Zero if (cons_case == "zero") else cp.NonNeg
-                cons_factor = 1 if (cons_case == "zero") else -1 #This converts NonPos to NonNeg
                 term_unc_b = scalarize(term_unc_b)
                 b_certain = scalarize(b_certain)
-                constraints += [cons_func(cons_factor*(A@variables_stacked \
-                                + term_unc + term_unc_b - b_certain))]
+                expr = A@variables_stacked + term_unc + term_unc_b - b_certain
+                constraint = (expr==0) if cons_case=="zero" else (expr<=0)
+                constraints += [constraint]
 
             def _gen_term_unc(cones_zero: int,
                         A_uncertain: np.ndarray,i: int,
