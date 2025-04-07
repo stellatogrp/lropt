@@ -11,6 +11,7 @@ from joblib import Parallel, delayed
 import lropt.train.settings as s
 from lropt import RobustProblem
 from lropt.train.cov_predict import fit, predict
+from lropt.train.models import TrainerModels
 from lropt.train.parameter import ContextParameter, ShapeParameter, SizeParameter
 from lropt.train.settings import DEFAULT_SETTINGS as DS
 
@@ -409,27 +410,27 @@ class Trainer:
             return None
         in_shape, out_shape, a_totsize = self.initialize_dimensions_linear()
         torch.manual_seed(seed + init_num)
-        lin_model = torch.nn.Linear(in_features=in_shape, out_features=out_shape).double()
-        lin_model.bias.data[a_totsize:] = b_tch
-        if not random_init:
-            with torch.no_grad():
-                torch_b = b_tch
-                torch_a = a_tch.flatten()
-                torch_concat = torch.hstack([torch_a, torch_b])
-            lin_model.weight.data.fill_(0.000)
-            lin_model.bias.data = torch_concat
-            if init_weight is not None:
-                lin_model.weight.data = torch.tensor(
-                    init_weight, dtype=torch.double, requires_grad=True
-                )
-            if init_bias is not None:
-                lin_model.bias.data = torch.tensor(
-                    init_bias, dtype=torch.double, requires_grad=True
-                )
-        return lin_model
-
-    def init_model(self, linear):
-        return torch.nn.Sequential(linear)
+        #lin_model = torch.nn.Linear(in_features=in_shape, out_features=out_shape).double()
+        model = self.settings.trainer_model.initialize(in_shape,out_shape)
+        lin_model = self.settings.trainer_model.linear
+        if lin_model.out_features == out_shape:
+            lin_model.bias.data[a_totsize:] = b_tch
+            if not random_init:
+                with torch.no_grad():
+                    torch_b = b_tch
+                    torch_a = a_tch.flatten()
+                    torch_concat = torch.hstack([torch_a, torch_b])
+                lin_model.weight.data.fill_(0.000)
+                lin_model.bias.data = torch_concat
+                if init_weight is not None:
+                    lin_model.weight.data = torch.tensor(
+                        init_weight, dtype=torch.double, requires_grad=True
+                    )
+                if init_bias is not None:
+                    lin_model.bias.data = torch.tensor(
+                        init_bias, dtype=torch.double, requires_grad=True
+                    )
+        return model
 
     def create_cp_param_tch(self, num):
         """
@@ -985,7 +986,7 @@ class Trainer:
 
         if self.settings.contextual:
             if self.settings.linear is None:
-                self.settings.linear = self.init_linear_model(
+                self.settings.model = self.init_linear_model(
                     a_tch,
                     b_tch,
                     self.settings.random_init,
@@ -995,7 +996,7 @@ class Trainer:
                     self.settings.init_bias,
                     self._covpred,
                 )
-            self.settings.model = torch.nn.Sequential(self.settings.linear)
+                self.settings.linear = self.settings.trainer_model.linear
         else:
             self.settings.model = None
             self.settings.linear = None
@@ -1009,7 +1010,7 @@ class Trainer:
             rho_tch,
             self.settings.trained_shape,
             self.settings.contextual,
-            self.settings.linear,
+            self.settings.model,
         )
         if self.settings.optimizer == "SGD":
             opt = s.OPTIMIZERS[self.settings.optimizer](
@@ -1172,7 +1173,7 @@ class Trainer:
                     self.unc_set,
                     z_batch,
                     self.settings.contextual,
-                    self.settings.linear,
+                    self.settings.model,
                     x_batch,
                 )
                 df_test = pd.concat([df_test, new_row.to_frame().T], ignore_index=True)
@@ -1200,7 +1201,7 @@ class Trainer:
             fin_val,
             z_batch,
             mu,
-            self.settings.linear,
+            self.settings.model,
             predvals,
             ret_context,
         )
@@ -1238,6 +1239,8 @@ class Trainer:
         if self.settings.contextual and not self.settings.train_shape:
             if self.settings.linear is None:
                 raise ValueError("You must give a model if you do not train a model")
+        if self.settings.trainer_model is None:
+            self.settings.trainer_model = TrainerModels([])
         self._multistage = self.settings.multistage
         self._covpred = self.settings.covpred
         if self._covpred:
@@ -1656,7 +1659,7 @@ class Trainer:
             new_row = train_stats.generate_test_row(
                 self._calc_coverage, a_tch_init,b_tch_init,
                 alpha, self.u_test_tch,rho_tch, self.unc_set, new_z_batch,
-                contextual,linear, [self.x_test_tch])
+                contextual,self.settings.model, [self.x_test_tch])
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
         self.orig_problem._trained = True
