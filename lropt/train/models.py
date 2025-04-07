@@ -31,3 +31,10 @@ class TrainerModels():
 
     def create_tensors(self,input):
         return self.model(input)
+
+    def forward(self,input):
+        return
+
+    # Linear with single layer
+    # feed forward with relu and arbitrary layers
+    # covariance predictor
