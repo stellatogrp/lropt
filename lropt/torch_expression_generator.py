@@ -160,7 +160,7 @@ def generate_torch_expressions(problem, eval_exp: Expression | None = None):
         else:
             # Create a constraint from all the constraints of this max_id
             args = [constraint.args[0] for constraint in problem.constraints_by_type[max_id]]
-            constraints = [cp.NonPos(cp.maximum(*args))]
+            constraints = [cp.NonNeg(-cp.maximum(*args))]
         for constraint in constraints:  # NOT problem.constraints: these are the new constraints
             g = gen_torch_exp(constraint, problem.vars_params)
             problem.g.append(g)  # Always has uncertainty, no need to check
