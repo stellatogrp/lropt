@@ -77,6 +77,7 @@ class Trainer:
         alpha,
         a_tch,
         b_tch,
+        slack
     ):
         """This function calls the loss and constraint function, and returns
         an error if an infeasibility is encountered. This is infeasibility
@@ -93,6 +94,7 @@ class Trainer:
                 seed=self.settings.seed,
                 rho_tch=rho_tch,
                 alpha=alpha,
+                slack = slack
             )
         )
         if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
@@ -107,6 +109,7 @@ class Trainer:
         self,
         rho_tch,
         alpha,
+        slack,
         a_tch,
         b_tch,
         seed,
@@ -196,6 +199,7 @@ class Trainer:
 
             # TODO (bart): this is not ideal since we are copying the kwargs
             constraint_kwargs["alpha"] = alpha
+            constraint_kwargs["slack"] = slack
             constraint_cost += self.simulator.constraint_cost(x_t, z_t, **constraint_kwargs)
 
             prob_vio += self.simulator.prob_constr_violation(x_t, z_t,
@@ -338,7 +342,7 @@ class Trainer:
         init_num=1
     ):
         """Initializes the linear model weights and bias"""
-        if type(self.settings.predictor) == CovPredictor:
+        if isinstance(self.settings.predictor,CovPredictor):
             input_tensors = self.create_input_tensors(self.x_train_tch)
             self.settings.predictor.initialize(input_tensors,self.u_train_tch)
         else:
@@ -456,7 +460,8 @@ class Trainer:
         self.train_size = num_train
         self.test_size = num_test
         self.cp_param_tch = cp_param_tchs
-        if self._multistage and (type(self.settings.predictor)==CovPredictor):
+        if self._multistage and isinstance(\
+            self.settings.predictor,CovPredictor):
             if (self._init_uncertain_parameter is None) or (self._init_context is None):
                 raise ValueError(
                     "You must provide init_uncertain_param and \
@@ -949,6 +954,7 @@ class Trainer:
                         seed=self.settings.seed + step_num + 1,
                         rho_tch=rho_tch,
                         alpha=alpha,
+                        slack =slack
                     )
                 )
 
@@ -1033,6 +1039,7 @@ class Trainer:
                     b_tch=b_tch,
                     rho_tch=rho_tch,
                     alpha=alpha,
+                    slack = slack
                 )
                 record_eval_cost = eval_cost
                 if not self._default_simulator:
@@ -1148,7 +1155,7 @@ class Trainer:
                 raise ValueError("You must give a model if you do not train a model")
         if self.settings.predictor is None:
             self.settings.predictor = LinearPredictor()
-        self.settings.linear = (type(self.settings.contextual) == LinearPredictor)
+        self.settings.linear = isinstance(self.settings.predictor,LinearPredictor)
         self._multistage = self.settings.multistage
         self._init_uncertain_parameter = self.settings.init_uncertain_param
         self._init_context = self.settings.init_context
@@ -1661,7 +1668,8 @@ class TrainLoopStats:
                 predictor.linear.bias.grad
             )
             row_dict["grad"] = torch.hstack(
-                [linear.weight.grad, linear.bias.grad.view(predictor.linear.bias.grad.shape[0], 1)]
+                [predictor.linear.weight.grad,
+                 predictor.linear.bias.grad.view(predictor.linear.bias.grad.shape[0], 1)]
             )
         elif contextual:
             row_dict["gradnorm"] = np.linalg.norm(
