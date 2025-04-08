@@ -597,5 +597,6 @@ class TestMultiStage(unittest.TestCase):
             init_lam=0.001,
             init_mu=0.001,
             mu_multiplier=1.01,
+            parallel = False
         )
         _ = trainer.train(settings=settings)

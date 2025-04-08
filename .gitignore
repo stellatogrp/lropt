@@ -153,3 +153,5 @@ lropt/_version.py
 .npy
 examples_test/
 .aider*
+
+experiments/

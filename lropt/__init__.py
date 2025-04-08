@@ -14,4 +14,6 @@ from lropt.uncertain_canon.max_of_uncertain import max_of_uncertain, sum_of_max_
 from lropt.train.trainer import Trainer
 from lropt.train.simulator import Simulator
 from lropt.train.settings import TrainerSettings
-from lropt.train.models import TrainerModels
+from lropt.train.predictors.linear import LinearPredictor
+from lropt.train.predictors.covpred import CovPredictor
+from lropt.train.predictors.nn import NNPredictor

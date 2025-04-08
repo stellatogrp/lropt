@@ -144,8 +144,6 @@ class TrainerSettings:
             The maximum data batch size allowed for each iteration. Default 30.
         contextual: bool, optional
             Whether or not the learned set is contextual. Default False.
-        linear: NN model, optional
-            The linear NN model to use, Default None.
         init_weight: np.array, optional
             The initial weight of the NN model. Default None.
         init_bias: np.array, optional
@@ -180,10 +178,8 @@ class TrainerSettings:
             arguments as inputs. Default {}.
         multistage
             Flag for whether or not the problem is multistage. Default False.
-        model
-            NN model, Default None
-        trainer_model
-            object to generate the NN model, Default None uses the default model.
+        predictor
+            NN model, Default Linear
     """
 
     def __init__(self):
@@ -239,10 +235,8 @@ class TrainerSettings:
         self.multistage = False
         self.init_context = None
         self.init_uncertain_param = None
-        self.covpred = False
         self.trained_shape = False
-        self.model = None
-        self.trainer_model = None
+        self.predictor = None
 
         self._generate_slots()
 
