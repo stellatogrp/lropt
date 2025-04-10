@@ -343,7 +343,8 @@ def take_step(
         prev_states = []
         for param in opt.param_groups[0]["params"]:
             if param.grad is not None:
-                new_param = np.array(param.clone().detach().data)
+                #new_param = np.array(param.clone().detach().data)
+                new_param = param.clone().detach()
                 prev_states.append(new_param)
     opt.step()
     # opt.zero_grad()
