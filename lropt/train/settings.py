@@ -237,6 +237,7 @@ class TrainerSettings:
         self.init_uncertain_param = None
         self.trained_shape = False
         self.predictor = None
+        self.obj_scale = 1
 
         self._generate_slots()
 

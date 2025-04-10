@@ -323,7 +323,9 @@ def take_step(
     slack: torch.Tensor,
     rho_tch: torch.Tensor,
     scheduler: torch.optim.lr_scheduler.StepLR | None,
-) -> None:
+    update_state = True,
+    prev_states = []
+) -> list:
     """
     This function performs an optimization step.
 
@@ -337,8 +339,14 @@ def take_step(
         scheduler (torch.optim_lr_scheduler.StepLR | None):
             If passed, a StepLR scheduler.
     """
+    if update_state:
+        prev_states = []
+        for param in opt.param_groups[0]["params"]:
+            if param.grad is not None:
+                new_param = np.array(param.clone().detach().data)
+                prev_states.append(new_param)
     opt.step()
-    opt.zero_grad()
+    # opt.zero_grad()
     with torch.no_grad():
         newval = torch.clamp(slack, min=0.0, max=torch.inf)
         slack.copy_(newval)
@@ -346,9 +354,9 @@ def take_step(
         rho_tch.copy_(newrho_tch)
     if scheduler:
         scheduler.step()
+    return prev_states
 
-
-def undo_step(opt: torch.optim.Optimizer) -> None:
+def undo_step(opt: torch.optim.Optimizer,state) -> None:
     """
     This function undoes the last optimizer step.
 
@@ -356,10 +364,11 @@ def undo_step(opt: torch.optim.Optimizer) -> None:
         opt (torchoptim.Optimizer):
             The optimizer whose step to undo.
     """
-    for group in opt.param_groups:
-        for param in group["params"]:
+    for idx, group in enumerate(opt.param_groups):
+        for ind, param in enumerate(group["params"]):
             if param.grad is not None:
-                param.data.add_(param.grad, alpha=-group["lr"])
+                opt.param_groups[idx]["params"][ind].data = torch.tensor(state[ind])
+                # param.data.add_(param.grad, alpha=-group["lr"])
 
 
 def halve_step_size(opt: torch.optim.Optimizer) -> None:

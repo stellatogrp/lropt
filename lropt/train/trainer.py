@@ -351,6 +351,9 @@ class Trainer:
             self.settings.predictor.initialize(in_shape,out_shape)
         if self.settings.linear:
             self.settings.predictor.customize(a_totsize,a_tch,b_tch,self.settings.init_bias,self.settings.init_weight,self.settings.random_init)
+            if self.settings.predictor.predict:
+                input_tensors = self.create_input_tensors(self.x_train_tch)
+                self.settings.predictor.gen_weights(input_tensors,self.u_train_tch,a_tch)
 
     def create_cp_param_tch(self, num):
         """
@@ -937,7 +940,7 @@ class Trainer:
             }
         for step_num in range(self.settings.num_iter):
             if step_num > 0:
-                take_step(opt=opt, slack=slack, rho_tch=rho_tch, scheduler=scheduler_)
+                prev_states = take_step(opt=opt, slack=slack, rho_tch=rho_tch, scheduler=scheduler_)
             train_stats = TrainLoopStats(
                 step_num=step_num, train_flag=self.train_flag, num_g_total=self.num_g_total
             )
@@ -958,29 +961,35 @@ class Trainer:
                     )
                 )
 
+                if not self._default_simulator:
+                    eval_cost = eval_cost.repeat(3)
+
                 if self.num_g_total > 1:
                     fin_cost = (
                         cost + lam @ constr_cost + (mu / 2) * (torch.linalg.norm(constr_cost) ** 2)
                     )
                 else:
                     fin_cost = cost + lam * constr_cost + (mu / 2) * (constr_cost**2)
-                fin_cost.backward()
                 if constraint_status is CONSTRAINT_STATUS.FEASIBLE:
                     restore_step_size(opt, num_steps=violation_counter)
+                    opt.zero_grad()
+                    fin_cost.backward()
                     break
                 elif constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
-                    undo_step(opt=opt)
+                    undo_step(opt=opt,state=prev_states)
                     halve_step_size(opt=opt)
+                    prev_states = take_step(opt=opt, slack=slack,
+                                            rho_tch=rho_tch, scheduler=None,
+                                            update_state = False,
+                                            prev_states = prev_states)
 
             if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
                 if step_num == 0:
                     exception_message = "Infeasible uncertainty set initialization"
                 else:
-                    exception_message = "Violation constraint check timed "
-                    +"out after " + f"{self.settings.max_iter_line_search} attempts."
+                    exception_message = "Violation constraint check timed " +\
+                     "out after " + f"{self.settings.max_iter_line_search} attempts."
                 raise InfeasibleConstraintException(exception_message)
-            if not self._default_simulator:
-                eval_cost = eval_cost.repeat(3)
             train_stats.update_train_stats(
                 fin_cost.detach().numpy().copy(),
                 eval_cost,
@@ -1076,7 +1085,7 @@ class Trainer:
                     )
 
                 train_stats.update_test_stats(
-                    record_eval_cost, prob_constr_violation, constr_cost.detach()
+                    record_eval_cost, prob_constr_violation, val_cost_constr.detach()
                 )
                 new_row = train_stats.generate_test_row(
                     self._calc_coverage,
@@ -1528,7 +1537,7 @@ class Trainer:
             )
 
             train_stats = TrainLoopStats(
-                step_num=np.NAN, train_flag=self.train_flag, num_g_total=self.num_g_total
+                step_num=0, train_flag=self.train_flag, num_g_total=self.num_g_total
             )
             with torch.no_grad():
                 new_z_batch = self._reduce_variables(new_z_batch)
