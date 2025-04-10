@@ -491,7 +491,7 @@ class TestMultiStage(unittest.TestCase):
                     + torch.sum(u_hat, axis=1)
                 ).mean() / T
 
-            def constraint_cost(self, x, u, alpha):
+            def constraint_cost(self, x, u, alpha,slack):
                 u = u[0]
                 eta = 0.05
                 x_hat, _, _, _, y_hat, _, _, _, _, t, _, _, _, _, _ = x
@@ -506,7 +506,7 @@ class TestMultiStage(unittest.TestCase):
                     torch.max(-p[t - 1] * x_hat, h[t - 1] * x_hat) - y_hat - alpha,
                     torch.zeros(batch_size),
                 ) + alpha
-                return (cvar_term + 0.01).mean() / T
+                return (cvar_term + 0.01+slack).mean() / T
 
             def init_state(self, batch_size, seed=None):
                 if seed is not None:
@@ -597,5 +597,6 @@ class TestMultiStage(unittest.TestCase):
             init_lam=0.001,
             init_mu=0.001,
             mu_multiplier=1.01,
+            parallel = False
         )
         _ = trainer.train(settings=settings)
