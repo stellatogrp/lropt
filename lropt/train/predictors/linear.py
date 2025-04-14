@@ -11,9 +11,15 @@ class LinearPredictor(torch.nn.Module):
         super(LinearPredictor, self).__init__()
         self.predict = predict_mean
 
-    def initialize(self,num_in,num_out):
+    def initialize(self,a_tch,b_tch,trainer):
         """Initialize the parameters"""
+        num_in,num_out, a_totsize = trainer.initialize_predictor_dims()
         self.linear = torch.nn.Linear(num_in,num_out)
+        self.customize(a_totsize,a_tch,b_tch,trainer.settings.init_bias,trainer.settings.init_weight,trainer.settings.random_init)
+        if self.predict:
+            input_tensors = trainer.create_input_tensors(trainer.x_train_tch)
+            self.gen_weights(input_tensors,trainer.u_train_tch,a_tch)
+
 
     def customize(self,a_totsize,a_tch,b_tch,init_bias,init_weight,random_init):
         """Set the weights of the predictor using mean-variance or given info

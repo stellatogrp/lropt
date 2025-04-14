@@ -334,27 +334,6 @@ class Trainer:
             input_tensors = torch.hstack(x_batch)
         return input_tensors
 
-
-    def init_predictor(
-        self,
-        a_tch,
-        b_tch,
-        init_num=1
-    ):
-        """Initializes the linear model weights and bias"""
-        if isinstance(self.settings.predictor,CovPredictor):
-            input_tensors = self.create_input_tensors(self.x_train_tch)
-            self.settings.predictor.initialize(input_tensors,self.u_train_tch)
-        else:
-            in_shape, out_shape, a_totsize = self.initialize_predictor_dims()
-            torch.manual_seed(self.settings.seed + init_num)
-            self.settings.predictor.initialize(in_shape,out_shape)
-        if self.settings.linear:
-            self.settings.predictor.customize(a_totsize,a_tch,b_tch,self.settings.init_bias,self.settings.init_weight,self.settings.random_init)
-            if self.settings.predictor.predict:
-                input_tensors = self.create_input_tensors(self.x_train_tch)
-                self.settings.predictor.gen_weights(input_tensors,self.u_train_tch,a_tch)
-
     def create_cp_param_tch(self, num):
         """
         This function creates tensors for the cvxpy parameters
@@ -486,7 +465,8 @@ class Trainer:
             cp_param_tchs,
         )
 
-    def _gen_batch(self, num_xs, x_data, u_data, batch_percentage, max_size=10000, min_size=1):
+    def _gen_batch(self, num_xs, x_data, u_data,
+                   batch_percentage, max_size=10000, min_size=1,seed=0):
         """
         This function generates a list of torches for each x and u
         for all context parameters x and uncertain parameter u
@@ -505,7 +485,7 @@ class Trainer:
         min_size
             minimum number of samples in a batch
         """
-
+        np.random.seed(seed)
         batch_int = max(min(int(num_xs * batch_percentage), max_size), min_size)
         random_int = np.random.choice(num_xs, batch_int, replace=False)
         x_tchs = []
@@ -899,11 +879,7 @@ class Trainer:
         )
 
         if self.settings.contextual:
-            self.init_predictor(
-                a_tch,
-                b_tch,
-                init_num
-            )
+            self.settings.predictor.initialize(a_tch,b_tch,self)
 
         variables = self._set_train_variables(
             self.settings.fixb,
@@ -932,6 +908,7 @@ class Trainer:
         # y's and cvxpylayer begin
         lam = self.settings.init_lam * torch.ones(self.num_g_total, dtype=s.DTYPE)
         mu = self.settings.init_mu
+        seed_num = 0
         curr_cvar = np.inf
         if self._default_simulator:
             self.settings.kwargs_simulator = {
@@ -954,7 +931,7 @@ class Trainer:
                     self.loss_and_constraints(
                         a_tch=a_tch,
                         b_tch=b_tch,
-                        seed=self.settings.seed + step_num + 1,
+                        seed=self.settings.seed + 1 + seed_num,
                         rho_tch=rho_tch,
                         alpha=alpha,
                         slack =slack
@@ -966,10 +943,17 @@ class Trainer:
 
                 if self.num_g_total > 1:
                     fin_cost = (
-                        cost + lam @ constr_cost + (mu / 2) * (torch.linalg.norm(constr_cost) ** 2)
+                        cost + lam @ torch.maximum(
+                            constr_cost,torch.zeros(self.num_g_total)) + (
+                                mu / 2) * (torch.linalg.norm(
+                                    torch.maximum(constr_cost,
+                                                  torch.zeros(self.num_g_total))) ** 2)
                     )
                 else:
-                    fin_cost = cost + lam * constr_cost + (mu / 2) * (constr_cost**2)
+                    fin_cost = cost + lam * torch.maximum(
+                        constr_cost,torch.zeros(1)) + (
+                            mu / 2) * (torch.maximum(
+                                constr_cost,torch.zeros(1))**2)
                 if constraint_status is CONSTRAINT_STATUS.FEASIBLE:
                     restore_step_size(opt, num_steps=violation_counter)
                     opt.zero_grad()
@@ -998,6 +982,7 @@ class Trainer:
             )
 
             if step_num % self.settings.aug_lag_update_interval == 0:
+                seed_num += 1
                 if (
                     torch.norm(constr_cost.detach())
                     <= self.settings.lambda_update_threshold * curr_cvar

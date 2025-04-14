@@ -11,8 +11,10 @@ class CovPredictor(torch.nn.Module):
     def __init__(self):
         super(CovPredictor, self).__init__()
 
-    def initialize(self,X, Y,epsilon=1e-3, lam_1=0.0, lam_2=0.0, lam_3=0.0):
+    def initialize(self,a_tch,b_tch,trainer,epsilon=1e-3, lam_1=0.0, lam_2=0.0, lam_3=0.0):
         """Initialize the parameters"""
+        X = trainer.create_input_tensors(trainer.x_train_tch)
+        Y = trainer.u_train_tch
         X = X.detach().numpy()
         Y = Y.detach().numpy()
         T, p = X.shape
