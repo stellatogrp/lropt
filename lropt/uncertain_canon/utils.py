@@ -1,13 +1,14 @@
 from itertools import product
 
-import cvxpy as cp
 import numpy as np
+from scipy.sparse import csc_matrix, lil_matrix
+from scipy.sparse._coo import coo_matrix
+
+import cvxpy as cp
 from cvxpy.constraints.constraint import Constraint
 from cvxpy.expressions.expression import Expression
 from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.solution import Solution
-from scipy.sparse import csc_matrix, lil_matrix
-from scipy.sparse._coo import coo_matrix
 
 UNCERTAIN_NO_MAX_ID = -1 #Use this ID for all uncertain constraints without max
 CERTAIN_ID = -2 #Use this ID for all certain constraints
@@ -88,7 +89,7 @@ def scalarize(arg: Expression) -> Expression:
     if not hasattr(arg, "size"):
         return arg
     if arg.size==1:
-        arg = cp.reshape(arg, ())
+        arg = cp.reshape(arg, (), order="F")
     return arg
 
 def gen_constraint_by_type() -> dict:
