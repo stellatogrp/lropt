@@ -334,7 +334,6 @@ class Trainer:
             input_tensors = torch.hstack(x_batch)
         return input_tensors
 
-
     def init_predictor(
         self,
         a_tch,
@@ -876,6 +875,87 @@ class Trainer:
                     break
         return res
 
+    def _line_search(self, step_num: int, a_tch: torch.Tensor, b_tch: torch.Tensor,
+                     rho_tch: torch.Tensor, alpha: torch.Tensor, slack: torch.Tensor,
+                     lam: torch.Tensor, mu: float, opt: torch.optim.Optimizer, prev_states: list) \
+                        -> tuple[CONSTRAINT_STATUS, torch.Tensor, torch.Tensor, torch.Tensor,
+                                 torch.Tensor]:
+        """
+        TODO: Irina, complete the docstring.
+
+        Args:
+            step_num (int):
+
+            a_tch (torch.Tensor):
+
+            b_tch (torch.Tensor):
+            
+            rho_tch (torch.Tensor):
+            
+            alpha (torch.Tensor):
+
+            slack (torch.Tensor):
+
+            lam (torch.Tensor):
+
+            mu (float):
+
+            opt (torch.optim.Optimizer):
+
+            prev_states (list):
+
+        Returns:
+
+            constraint_status (CONSTRAINT_STATUS):
+                Are all the constraints satisfied?
+            
+            fin_cost
+            
+            eval_cost (torch.Tensor):
+            
+            prob_violation_train (torch.Tensor):
+            
+            constr_cost (torch.Tensor):
+        """
+        # In the first epoch we try only once
+        current_iter_line_search = 1 if step_num == 0 else self._max_iter_line_search + 1
+        for violation_counter in range(current_iter_line_search):
+            self._eval_flag = False
+            cost, constr_cost, _, _, constraint_status, eval_cost, prob_violation_train, _ = (
+                self.loss_and_constraints(
+                    a_tch=a_tch,
+                    b_tch=b_tch,
+                    seed=self.settings.seed + step_num + 1,
+                    rho_tch=rho_tch,
+                    alpha=alpha,
+                    slack =slack
+                )
+            )
+
+            if not self._default_simulator:
+                eval_cost = eval_cost.repeat(3)
+
+            if self.num_g_total > 1:
+                fin_cost = (
+                    cost + lam @ constr_cost + (mu / 2) * (torch.linalg.norm(constr_cost) ** 2)
+                )
+            else:
+                fin_cost = cost + lam * constr_cost + (mu / 2) * (constr_cost**2)
+            if constraint_status is CONSTRAINT_STATUS.FEASIBLE:
+                restore_step_size(opt, num_steps=violation_counter)
+                opt.zero_grad()
+                fin_cost.backward()
+                break
+            elif constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
+                undo_step(opt=opt,state=prev_states)
+                halve_step_size(opt=opt)
+                prev_states = take_step(opt=opt, slack=slack,
+                                        rho_tch=rho_tch, scheduler=None,
+                                        update_state = False,
+                                        prev_states = prev_states)
+
+        return constraint_status, fin_cost, eval_cost, prob_violation_train, constr_cost
+
     def _train_loop(self, init_num):
         if self.settings.random_init and self.settings.train_shape:
             if init_num >= 1:
@@ -946,43 +1026,11 @@ class Trainer:
             )
 
             torch.manual_seed(self.settings.seed + step_num)
-            # In the first epoch we try only once
-            current_iter_line_search = 1 if step_num == 0 else self._max_iter_line_search + 1
-            for violation_counter in range(current_iter_line_search):
-                self._eval_flag = False
-                cost, constr_cost, _, _, constraint_status, eval_cost, prob_violation_train, _ = (
-                    self.loss_and_constraints(
-                        a_tch=a_tch,
-                        b_tch=b_tch,
-                        seed=self.settings.seed + step_num + 1,
-                        rho_tch=rho_tch,
-                        alpha=alpha,
-                        slack =slack
-                    )
-                )
-
-                if not self._default_simulator:
-                    eval_cost = eval_cost.repeat(3)
-
-                if self.num_g_total > 1:
-                    fin_cost = (
-                        cost + lam @ constr_cost + (mu / 2) * (torch.linalg.norm(constr_cost) ** 2)
-                    )
-                else:
-                    fin_cost = cost + lam * constr_cost + (mu / 2) * (constr_cost**2)
-                if constraint_status is CONSTRAINT_STATUS.FEASIBLE:
-                    restore_step_size(opt, num_steps=violation_counter)
-                    opt.zero_grad()
-                    fin_cost.backward()
-                    break
-                elif constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
-                    undo_step(opt=opt,state=prev_states)
-                    halve_step_size(opt=opt)
-                    prev_states = take_step(opt=opt, slack=slack,
-                                            rho_tch=rho_tch, scheduler=None,
-                                            update_state = False,
-                                            prev_states = prev_states)
-
+            prev_states = []
+            constraint_status, fin_cost, eval_cost, prob_violation_train, constr_cost = \
+                self._line_search(step_num=step_num, a_tch=a_tch, b_tch=b_tch, rho_tch=rho_tch,
+                                  alpha=alpha, slack=slack, lam=lam, mu=mu, opt=opt,
+                                  prev_states=prev_states)
             if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
                 if step_num == 0:
                     exception_message = "Infeasible uncertainty set initialization"
