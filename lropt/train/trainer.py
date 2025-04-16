@@ -8,6 +8,7 @@ from cvxpy import Parameter as OrigParameter
 from cvxpylayers.torch import CvxpyLayer
 from joblib import Parallel, delayed
 
+
 import lropt.train.settings as s
 from lropt import RobustProblem
 from lropt.train.parameter import ContextParameter, ShapeParameter, SizeParameter
@@ -1247,7 +1248,7 @@ class Trainer:
         # Joblib version
         else:
             self.settings.n_jobs = get_n_processes() if self.settings.parallel else 1
-            res = Parallel(n_jobs=self.settings.n_jobs)(
+            res = Parallel(n_jobs=self.settings.n_jobs, backend="multiprocessing")(
                 delayed(self._train_loop)(init_num)
                 for init_num in range(self.settings.num_random_init)
             )
