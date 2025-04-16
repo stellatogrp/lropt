@@ -70,7 +70,7 @@ def promote_expr(expr: Expression | int) -> Expression | int:
     if ndim > 1:
         return expr
 
-    return cp.reshape(expr, shape=(expr.size, 1))
+    return cp.reshape(expr, shape=(expr.size, 1), order="F")
 
 def scalarize(arg: Expression) -> Expression:
     """
