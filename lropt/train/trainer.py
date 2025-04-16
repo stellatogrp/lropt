@@ -1247,7 +1247,7 @@ class Trainer:
         # Joblib version
         else:
             self.settings.n_jobs = get_n_processes() if self.settings.parallel else 1
-            res = Parallel(n_jobs=self.settings.n_jobs)(
+            res = Parallel(n_jobs=self.settings.n_jobs, backend="loky")(
                 delayed(self._train_loop)(init_num)
                 for init_num in range(self.settings.num_random_init)
             )
