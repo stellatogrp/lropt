@@ -147,7 +147,7 @@ def eval_input(
         else:
             init_val = eval_func(*eval_args, **kwargs)
             if len(init_val.shape) > 1:
-                init_val = init_val.T
+                init_val = init_val.permute(*reversed(range(init_val.ndim)))
         init_val = (init_val > settings.TOL).float()
     return init_val
 
