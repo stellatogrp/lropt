@@ -95,14 +95,15 @@ class DefaultSimulator(ABC):
             return self.trainer._gen_batch(self.trainer.test_size,
                                                 self.trainer.x_test_tch,
                                                 self.trainer.u_test_set,
-                                                1, self.trainer.settings.max_batch_size)
+                                                1, self.trainer.settings.max_batch_size,
+                                                seed=seed)
 
         else:
             return self.trainer._gen_batch(self.trainer.train_size,
                                                 self.trainer.x_train_tch,
                                                 self.trainer.u_train_set,
                                                 self.trainer.settings.batch_percentage,
-                                                self.trainer.settings.max_batch_size)
+                                                self.trainer.settings.max_batch_size,seed=seed)
 
     def prob_constr_violation(self,x,u,**kwargs):
         """ calculate current probability of constraint violation

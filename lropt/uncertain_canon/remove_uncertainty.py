@@ -241,7 +241,7 @@ class RemoveUncertainty(Reduction):
             if len(uvar.shape)!=0 and uvar.shape[0]>1:
                 u_info['op'].append(operator.matmul)
             else:
-                u_info['op'].append(operator.matmul)
+                u_info['op'].append(operator.mul)
 
         if len(data_list)>=1:
             cross_list = cross_product(*data_list)

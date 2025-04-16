@@ -1,38 +1,27 @@
 import torch
 
 import lropt.train.settings as settings
+from lropt.train.predictors.linear import LinearPredictor
 
 torch.set_default_dtype(settings.DTYPE)
 
 
-class NNPredictor(torch.nn.Module):
+class NNPredictor(LinearPredictor):
 
-    def __init__(self):
-        super(NNPredictor, self).__init__()
+    def __init__(self,predict_mean = False):
+        super(NNPredictor, self).__init__(predict_mean)
+        self.predict = predict_mean
 
-    def initialize(self,num_in,num_out):
+    def initialize(self,a_tch,b_tch,trainer):
         """Initialize the parameters"""
+        num_in,num_out, a_totsize = trainer.initialize_predictor_dims()
         num_hidden = num_out
         self.linear = torch.nn.Linear(num_in,num_hidden)
         self.linear1 = torch.nn.Linear(num_hidden,num_hidden)
-
-    def customize(self,a_totsize,a_tch,b_tch,init_bias,init_weight,random_init):
-        # self.linaer.bias.data[a_totsize:] = b_tch
-        if not random_init:
-            with torch.no_grad():
-                torch_b = b_tch
-                torch_a = a_tch.flatten()
-                torch_concat = torch.hstack([torch_a, torch_b])
-            self.linear.weight.data.fill_(0.000)
-            self.linear.bias.data = torch_concat
-            if init_weight is not None:
-                self.linear.weight.data = torch.tensor(
-                    init_weight, dtype=torch.double, requires_grad=True
-                )
-            if init_bias is not None:
-                self.linear.bias.data = torch.tensor(
-                    init_bias, dtype=torch.double, requires_grad=True
-                )
+        self.customize(a_totsize,a_tch,b_tch,trainer.settings.init_bias,trainer.settings.init_weight,trainer.settings.random_init)
+        if self.predict:
+            input_tensors = trainer.create_input_tensors(trainer.x_train_tch)
+            self.gen_weights(input_tensors,trainer.u_train_tch,a_tch)
 
     def forward(self, x,a_shape,b_shape,train_flag):
         """create a_tch and b_tch using the predictor"""

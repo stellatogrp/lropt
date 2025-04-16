@@ -100,7 +100,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
     def test_portfolio_intro(self):
         timestart = time.time()
         n = 2
-        kappa = -0.01
+        kappa = -0.001
         seed = 15
         np.random.seed(seed)
         dist = (np.array([25, 10, 60, 50, 40, 30, 30, 20, 20, 15, 10, 10, 10, 10, 10, 10]) / 10)[:n]
@@ -153,7 +153,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         settings.n_jobs = 8
         settings.random_init = True
         settings.num_random_init = 5
-        settings.parallel = True
+        settings.parallel = False
         settings.position = False
         result = trainer.train(settings=settings)
 
