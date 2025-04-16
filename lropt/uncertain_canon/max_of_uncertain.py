@@ -16,7 +16,7 @@ if sys.version_info >= (3, 0):
 
 # SumOfMaxOfUncertainConstraint
 class sum_of_max_of_uncertain(Atom):
-    """Represents the sum of the maximums of uncertain atoms,
+    r"""Represents the sum of the maximums of uncertain atoms,
         where the terms in each maximum expression is in a list, and the
         input is a list of lists. An additional expression not in the sums can
         be passed as a second input.
