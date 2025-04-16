@@ -257,7 +257,7 @@ class UncertainCanonicalization(Reduction):
                 # running number of uncertain parameters in this constraint
                 cur_i = 0
                 for ind, u in enumerate(uncertain_params):
-                    if len(u.shape)!=0 and u.shape[0]>1:
+                    if len(u.shape)!=0:
                         op = operator.matmul
                     else:
                         op = operator.mul
