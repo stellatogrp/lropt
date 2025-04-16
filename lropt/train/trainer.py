@@ -881,17 +881,18 @@ class Trainer:
                         -> tuple[CONSTRAINT_STATUS, torch.Tensor, torch.Tensor, torch.Tensor,
                                  torch.Tensor]:
         """
-        TODO: Irina, complete the docstring.
-
+        If line_search is True (add new settings param), reduce the step size
+        by line_search_mult (add a new settings param) until the new lagrangian
+        value is at least as low as the previous lagrangian value
         Args:
             step_num (int):
 
             a_tch (torch.Tensor):
 
             b_tch (torch.Tensor):
-            
+
             rho_tch (torch.Tensor):
-            
+
             alpha (torch.Tensor):
 
             slack (torch.Tensor):
@@ -908,13 +909,13 @@ class Trainer:
 
             constraint_status (CONSTRAINT_STATUS):
                 Are all the constraints satisfied?
-            
+
             fin_cost
-            
+
             eval_cost (torch.Tensor):
-            
+
             prob_violation_train (torch.Tensor):
-            
+
             constr_cost (torch.Tensor):
         """
         # In the first epoch we try only once
