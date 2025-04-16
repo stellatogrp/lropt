@@ -88,7 +88,7 @@ def scalarize(arg: Expression) -> Expression:
     if not hasattr(arg, "size"):
         return arg
     if arg.size==1:
-        arg = cp.reshape(arg, ())
+        arg = cp.reshape(arg, (), order="F")
     return arg
 
 def gen_constraint_by_type() -> dict:
