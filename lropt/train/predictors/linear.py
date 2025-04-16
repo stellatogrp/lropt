@@ -42,9 +42,7 @@ class LinearPredictor(torch.nn.Module):
             self.linear.weight.data.fill_(0.000)
             self.linear.bias.data = torch_concat
             if init_weight is not None:
-                self.linear.weight.data = torch.tensor(
-                    init_weight, dtype=torch.double, requires_grad=True
-                )
+                self.linear.weight.data = init_weight.clone().detach().requires_grad_(True)
             if init_bias is not None:
                 self.linear.bias.data = torch.tensor(
                     init_bias, dtype=torch.double, requires_grad=True
