@@ -537,7 +537,7 @@ class Trainer:
             np.array (NOT TENSOR)
         """
 
-        cov_len_cond = len(np.shape(np.cov(train_set.T))) >= 1
+        cov_len_cond = train_set.size > 0 and len(np.shape(np.cov(train_set.T))) >= 1
         if init_A is None:
             if cov_len_cond:
                 return sc.linalg.sqrtm(np.cov(train_set.T))
