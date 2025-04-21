@@ -22,7 +22,7 @@ from lropt.train.utils import (
     eval_input,
     eval_prob_constr_violation,
     get_n_processes,
-    halve_step_size,
+    reduce_step_size,
     restore_step_size,
     take_step,
     undo_step,
@@ -76,9 +76,7 @@ class Trainer:
         rho_tch,
         alpha,
         a_tch,
-        b_tch,
-        slack
-    ):
+        b_tch    ):
         """This function calls the loss and constraint function, and returns
         an error if an infeasibility is encountered. This is infeasibility
         dependent on the testing data-set.
@@ -93,9 +91,7 @@ class Trainer:
                 b_tch=b_tch,
                 seed=self.settings.seed,
                 rho_tch=rho_tch,
-                alpha=alpha,
-                slack = slack
-            )
+                alpha=alpha            )
         )
         if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
             raise InfeasibleConstraintException(
@@ -109,7 +105,6 @@ class Trainer:
         self,
         rho_tch,
         alpha,
-        slack,
         a_tch,
         b_tch,
         seed,
@@ -199,7 +194,6 @@ class Trainer:
 
             # TODO (bart): this is not ideal since we are copying the kwargs
             constraint_kwargs["alpha"] = alpha
-            constraint_kwargs["slack"] = slack
             constraint_cost += self.simulator.constraint_cost(x_t, z_t, **constraint_kwargs)
 
             prob_vio += self.simulator.prob_constr_violation(x_t, z_t,
@@ -454,6 +448,20 @@ class Trainer:
                 self._init_uncertain_parameter, requires_grad=True, dtype=s.DTYPE
             )
             self.x_train_tch = self._init_context
+        elif self._multistage and isinstance(\
+            self.settings.predictor,LinearPredictor):
+            if self.settings.predictor.predict:
+                if (self._init_uncertain_parameter is None):
+                    raise ValueError(
+                    "You must provide init_uncertain_param when using the mean linear predictor"
+                )
+                self.u_train_tch = torch.tensor(
+                self._init_uncertain_parameter, requires_grad=True, dtype=s.DTYPE
+            )
+                self.x_train_tch = self.settings.simulator.init_state(
+                    self._init_uncertain_parameter.shape[0],
+                      self.settings.seed,
+                                            **self.settings.kwargs_simulator)
 
         return (
             unc_train_set,
@@ -550,7 +558,7 @@ class Trainer:
     def _init_torches(self, init_A, init_b, init_alpha, train_set):
         """
         This function Initializes and returns a_tch, b_tch, and alpha as tensors.
-        It also initializes alpha and the slack variables as 0
+        It also initializes alpha as 0
         """
         # train_set = train_set.detach().numpy()
         self._init = self._gen_init(train_set, init_A)
@@ -565,8 +573,7 @@ class Trainer:
         a_tch = init_tensor
 
         alpha = torch.tensor(init_alpha, requires_grad=self.train_flag)
-        slack = torch.zeros(self.num_g_total, requires_grad=self.train_flag, dtype=s.DTYPE)
-        return a_tch, b_tch, alpha, slack
+        return a_tch, b_tch, alpha
 
     def _update_iters(self, save_history, a_history, b_history, rho_history, a_tch, b_tch, rho_tch):
         """
@@ -600,7 +607,7 @@ class Trainer:
         b_history.append(b_tch.detach().numpy().copy())
 
     def _set_train_variables(
-        self, fixb, alpha, slack, a_tch, b_tch, rho_tch, train_size, contextual, model
+        self, fixb, alpha, a_tch, b_tch, rho_tch, train_size, contextual, model
     ):
         """
         This function sets the variables to be trained in the outer level problem.
@@ -611,8 +618,6 @@ class Trainer:
             Whether to hold b constant or not when training
         alpha
             Torch tensor of alpha for CVaR
-        slack
-            Torch tensor of the slack for CVaR
         a_tch
             Torch tensor of A
         b_tch
@@ -629,14 +634,14 @@ class Trainer:
         The list of variables to train using pytorch
         """
         if train_size:
-            variables = [rho_tch, alpha, slack]
+            variables = [rho_tch, alpha]
         elif fixb:
-            variables = [rho_tch, a_tch, alpha, slack]
+            variables = [rho_tch, a_tch, alpha]
         elif contextual:
-            variables = [rho_tch, alpha, slack]
+            variables = [rho_tch, alpha]
             variables.extend(list(model.parameters()))
         else:
-            variables = [rho_tch, a_tch, b_tch, alpha, slack]
+            variables = [rho_tch, a_tch, b_tch, alpha]
 
         return variables
 
@@ -721,7 +726,7 @@ class Trainer:
             quantiles=None,
         )
 
-    def train_constraint(self, batch_int, eval_args, alpha, slack, eta, kappa):
+    def train_constraint(self, batch_int, eval_args, alpha, eta, kappa):
         """
         This function evaluates the expectation of the CVaR
         constraint functions over the batched set.
@@ -732,8 +737,6 @@ class Trainer:
                 The arguments of the constraint functions
             alpha:
                 The alpha of the CVaR constraint
-            slack:
-                The slack of the CVaR constraint to become equality
             kappa:
                 The target CVaR threshold
         Returns:
@@ -754,9 +757,7 @@ class Trainer:
             h_k_expectation = (
                 init_val
                 + alpha
-                - kappa
-                + slack[sum(self.g_shapes[:k]) : sum(self.g_shapes[: (k + 1)])]
-            )
+                - kappa            )
             H[sum(self.g_shapes[:k]) : sum(self.g_shapes[: (k + 1)])] = h_k_expectation
         return H
 
@@ -807,7 +808,6 @@ class Trainer:
         batch_int,
         eval_args,
         alpha,
-        slack,
         lam,
         mu,
         eta=DS.eta,
@@ -837,7 +837,7 @@ class Trainer:
         """
         F = self.train_objective(batch_int, eval_args=eval_args)
         H = self.train_constraint(
-            batch_int, eval_args=eval_args, alpha=alpha, slack=slack, eta=eta, kappa=kappa
+            batch_int, eval_args=eval_args, alpha=alpha,eta=eta, kappa=kappa
         )
         return F + lam @ H + (mu / 2) * (torch.linalg.norm(H) ** 2), H.detach()
 
@@ -857,10 +857,10 @@ class Trainer:
         return res
 
     def _line_search(self, step_num: int, a_tch: torch.Tensor, b_tch: torch.Tensor,
-                     rho_tch: torch.Tensor, alpha: torch.Tensor, slack: torch.Tensor,
+                     rho_tch: torch.Tensor, alpha: torch.Tensor,
                      lam: torch.Tensor, mu: float,
                      opt: torch.optim.Optimizer, prev_states: list,
-                     seed_num: int) \
+                     seed_num: int,prev_fin_cost: torch.Tensor) \
                         -> tuple[CONSTRAINT_STATUS, torch.Tensor, torch.Tensor, torch.Tensor,
                                  torch.Tensor]:
         """
@@ -880,8 +880,6 @@ class Trainer:
             rho_tch (torch.Tensor):
 
             alpha (torch.Tensor):
-
-            slack (torch.Tensor):
 
             lam (torch.Tensor):
 
@@ -915,7 +913,6 @@ class Trainer:
                     seed=self.settings.seed + seed_num + 1,
                     rho_tch=rho_tch,
                     alpha=alpha,
-                    slack =slack
                 )
             )
 
@@ -935,19 +932,31 @@ class Trainer:
                     constr_cost,torch.zeros(1)) + (
                         mu / 2) * (torch.maximum(
                             constr_cost,torch.zeros(1))**2)
-            if constraint_status is CONSTRAINT_STATUS.FEASIBLE:
-                restore_step_size(opt, num_steps=violation_counter)
+            if self.settings.line_search:
+                search_condition = fin_cost <= self.settings.line_search_threshold*prev_fin_cost
+            else:
+                search_condition = True
+            if constraint_status is CONSTRAINT_STATUS.FEASIBLE and search_condition:
+                restore_step_size(opt, num_steps=violation_counter,
+                                  step_mult = self.settings.line_search_mult)
                 opt.zero_grad()
                 fin_cost.backward()
+                prev_fin_cost = fin_cost.clone().detach()
                 break
             elif constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
                 undo_step(opt=opt,state=prev_states)
-                halve_step_size(opt=opt)
-                prev_states = take_step(opt=opt, slack=slack,
+                reduce_step_size(opt=opt,step_mult = self.settings.line_search_mult)
+                prev_states = take_step(opt=opt,
                                         rho_tch=rho_tch, scheduler=None,
                                         update_state = False,
                                         prev_states = prev_states)
-
+            elif constraint_status is CONSTRAINT_STATUS.FEASIBLE \
+                and violation_counter == current_iter_line_search -1:
+                restore_step_size(opt, num_steps=violation_counter)
+                opt.zero_grad()
+                fin_cost.backward()
+                prev_fin_cost = fin_cost.clone().detach()
+                break
         return constraint_status, fin_cost, eval_cost, prob_violation_train, constr_cost
 
     def _train_loop(self, init_num):
@@ -964,7 +973,7 @@ class Trainer:
         df_test = pd.DataFrame(columns=["step"])
 
         rho_tch = self._gen_rho_tch(self.settings.init_rho)
-        a_tch, b_tch, alpha, slack = self._init_torches(
+        a_tch, b_tch, alpha = self._init_torches(
             self.settings.init_A, self.settings.init_b, self.settings.init_alpha, self.u_train_set
         )
 
@@ -978,7 +987,6 @@ class Trainer:
         variables = self._set_train_variables(
             self.settings.fixb,
             alpha,
-            slack,
             a_tch,
             b_tch,
             rho_tch,
@@ -1004,24 +1012,26 @@ class Trainer:
         mu = self.settings.init_mu
         seed_num = 0
         curr_cvar = np.inf
+        prev_fin_cost = np.inf
         if self._default_simulator:
             self.settings.kwargs_simulator = {
                 "trainer": self,
-                "slack": slack,
             }
+        prev_states = []
         for step_num in range(self.settings.num_iter):
             if step_num > 0:
-                prev_states = take_step(opt=opt, slack=slack, rho_tch=rho_tch, scheduler=scheduler_)
+                prev_states = take_step(opt=opt, rho_tch=rho_tch, scheduler=scheduler_)
             train_stats = TrainLoopStats(
                 step_num=step_num, train_flag=self.train_flag, num_g_total=self.num_g_total
             )
 
             torch.manual_seed(self.settings.seed + step_num)
-            prev_states = []
             constraint_status, fin_cost, eval_cost, prob_violation_train, constr_cost = \
                 self._line_search(step_num=step_num, a_tch=a_tch, b_tch=b_tch, rho_tch=rho_tch,
-                                  alpha=alpha, slack=slack, lam=lam, mu=mu, opt=opt,
-                                  prev_states=prev_states,seed_num = seed_num)
+                                  alpha=alpha, lam=lam, mu=mu, opt=opt,
+                                  prev_states=prev_states,
+                                  seed_num = seed_num,
+                                  prev_fin_cost = prev_fin_cost)
             if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
                 if step_num == 0:
                     exception_message = "Infeasible uncertainty set initialization"
@@ -1038,6 +1048,7 @@ class Trainer:
 
             if step_num % self.settings.aug_lag_update_interval == 0:
                 seed_num += 1
+                prev_fin_cost = np.inf
                 if (
                     torch.norm(constr_cost.detach())
                     <= self.settings.lambda_update_threshold * curr_cvar
@@ -1057,7 +1068,6 @@ class Trainer:
                 lam,
                 mu,
                 alpha,
-                slack,
                 self.settings.contextual,
                 self.settings.linear,
                 self.settings.predictor            )
@@ -1088,7 +1098,6 @@ class Trainer:
                     b_tch=b_tch,
                     rho_tch=rho_tch,
                     alpha=alpha,
-                    slack = slack
                 )
                 record_eval_cost = eval_cost
                 if not self._default_simulator:
@@ -1518,7 +1527,7 @@ class Trainer:
         lam = 1000 * torch.ones(self.num_g_total, dtype=s.DTYPE)
         # initialize torches
         rho_tch = self._gen_rho_tch(1)
-        a_tch_init, b_tch_init, alpha, slack = self._init_torches(
+        a_tch_init, b_tch_init, alpha = self._init_torches(
             init_A, init_b, init_alpha, self.u_train_set
         )
 
@@ -1587,7 +1596,7 @@ class Trainer:
                                              u_batch=self.u_test_tch)
                 obj_test = self.evaluation_metric(self.test_size, test_args, quantiles)
                 prob_violation_test = self.prob_constr_violation(self.test_size, test_args)
-                _, var_vio = self.lagrangian(self.test_size, test_args, alpha, slack, lam, 1, eta)
+                _, var_vio = self.lagrangian(self.test_size, test_args, alpha, lam, 1, eta)
 
                 test_args_t = self.order_args(
                     z_batch=new_z_batch_t, x_batch=self.x_train_tch, u_batch=self.u_train_tch
@@ -1595,7 +1604,7 @@ class Trainer:
                 obj_train = self.evaluation_metric(self.train_size, test_args_t, quantiles)
                 prob_violation_train = self.prob_constr_violation(self.train_size, test_args_t)
                 _, var_vio_train = self.lagrangian(
-                    self.train_size, test_args_t, alpha, slack, lam, 1, eta
+                    self.train_size, test_args_t, alpha, lam, 1, eta
                 )
 
             train_stats.update_test_stats(obj_test, prob_violation_test, var_vio)
@@ -1693,7 +1702,7 @@ class TrainLoopStats:
         self.violation_test = var_vio.numpy().sum() / self.num_g_total
 
     def generate_train_row(
-        self, a_tch, rho_tch, lam, mu, alpha, slack, contextual=False, linear=False, predictor=None
+        self, a_tch, rho_tch, lam, mu, alpha, contextual=False, linear=False, predictor=None
     ):
         """
         This function generates a new row with the statistics
@@ -1710,7 +1719,6 @@ class TrainLoopStats:
         row_dict["lam_list"] = lam.detach().numpy().copy()
         row_dict["mu"] = mu
         row_dict["alpha"] = alpha.item()
-        row_dict["slack"] = slack.detach().numpy().copy()
         row_dict["alphagrad"] = alpha.grad
         if contextual and linear:
             row_dict["gradnorm"] = np.linalg.norm(predictor.linear.weight.grad) + np.linalg.norm(

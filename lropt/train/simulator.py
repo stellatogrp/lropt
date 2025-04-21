@@ -84,7 +84,6 @@ class DefaultSimulator(ABC):
         return self.trainer.train_constraint(kwargs['batch_int'],
                                                   kwargs['eval_args'],
                                                     kwargs['alpha'],
-                                                    kwargs['slack'],
                                                     self.trainer.settings.eta,
                                                     self.trainer.settings.kappa)
 

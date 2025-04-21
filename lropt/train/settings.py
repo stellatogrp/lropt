@@ -180,6 +180,12 @@ class TrainerSettings:
             Flag for whether or not the problem is multistage. Default False.
         predictor
             NN model, Default Linear
+        line_search
+            Wheter or not to perform backtracking line search to choose step sizes
+        line_search_mult
+            The amount to reduce the step size by if the line search condition is not met
+        line_search_threshold
+            The threshold (between 0 and 1) for the line search condition
     """
 
     def __init__(self):
@@ -238,6 +244,9 @@ class TrainerSettings:
         self.trained_shape = False
         self.predictor = None
         self.obj_scale = 1
+        self.line_search_mult = 0.8
+        self.line_search_threshold = 1
+        self.line_search = True
 
         self._generate_slots()
 
