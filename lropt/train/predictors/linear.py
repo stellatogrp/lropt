@@ -7,9 +7,12 @@ torch.set_default_dtype(settings.DTYPE)
 
 class LinearPredictor(torch.nn.Module):
 
-    def __init__(self,predict_mean = False):
+    def __init__(self,predict_mean = False,sgd_init = False,sgd_init_epochs = 100,sgd_init_lr = 0):
         super(LinearPredictor, self).__init__()
         self.predict = predict_mean
+        self.sgd_init = sgd_init
+        self.sgd_init_epochs = sgd_init_epochs
+        self.sgd_init_lr = sgd_init_lr
 
     def initialize(self,a_tch,b_tch,trainer):
         """Initialize the parameters"""

@@ -983,6 +983,21 @@ class Trainer:
 
         if self.settings.contextual:
             self.settings.predictor.initialize(a_tch,b_tch,self)
+            self.settings.predictor.train()
+            if self.settings.predictor.sgd_init:
+                assert (len(self.x_train_tch) != 0) and (len(self.u_train_tch) != 0)
+                pred_optimizer = torch.optim.SGD(
+                    self.settings.predictor.parameters(),
+                    lr = self.settings.predictor.sgd_init_lr)
+                criterion = torch.nn.MSELoss()
+                epochs=self.settings.predictor.sgd_init_epochs
+                for epoch in range(epochs):
+                    _,yhat=self.create_predictor_tensors(self.x_train_tch)
+                    loss=criterion(yhat,self.u_train_tch)
+                    pred_optimizer.zero_grad()
+                    loss.backward()
+                    pred_optimizer.step()
+
 
         variables = self._set_train_variables(
             self.settings.fixb,
