@@ -247,6 +247,9 @@ class TrainerSettings:
         self.line_search_mult = 0.8
         self.line_search_threshold = 1
         self.line_search = True
+        self.initialize_predictor = True
+        self.validate_percentage = 0.2
+        self.validate_frequency = 10
 
         self._generate_slots()
 

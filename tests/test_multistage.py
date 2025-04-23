@@ -277,7 +277,7 @@ class TestMultiStage(unittest.TestCase):
         d = lropt.UncertainParameter(
             K,
             uncertainty_set=lropt.Ellipsoidal(
-                p=2, rho=1, c=lhs_new, d=rhs_new, data=np.zeros((1, K))
+                p=2, rho=1, c=lhs_new, d=rhs_new, data=np.zeros((2, K))
             ),
         )
         # d = lropt.UncertainParameter(K,uncertainty_set =

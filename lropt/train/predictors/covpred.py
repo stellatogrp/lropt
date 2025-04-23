@@ -8,11 +8,11 @@ torch.set_default_dtype(settings.DTYPE)
 
 class CovPredictor(torch.nn.Module):
 
-    def __init__(self,sgd_init = False,sgd_init_lr=0.1,sgd_init_epochs=100):
+    def __init__(self,pretrain = False,lr=0.1,epochs=100):
         super(CovPredictor, self).__init__()
-        self.sgd_init = sgd_init
-        self.sgd_init_epochs = sgd_init_epochs
-        self.sgd_init_lr = sgd_init_lr
+        self.pretrain = pretrain
+        self.epochs = epochs
+        self.lr = lr
 
     def initialize(self,a_tch,b_tch,trainer,epsilon=1e-3, lam_1=0.0, lam_2=0.0, lam_3=0.0):
         """Initialize the parameters"""

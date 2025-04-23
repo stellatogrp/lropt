@@ -76,20 +76,21 @@ class Trainer:
         rho_tch,
         alpha,
         a_tch,
-        b_tch    ):
+        b_tch,
+        seed    ):
         """This function calls the loss and constraint function, and returns
         an error if an infeasibility is encountered. This is infeasibility
         dependent on the testing data-set.
         """
-        if self.settings.seed is not None:
-            torch.manual_seed(self.settings.seed)
+        if seed is not None:
+            torch.manual_seed(seed)
 
         # remove for loop, set batch size to trials
         cost, constraint_cost, x_hist, z_hist, constraint_status, eval_cost, prob_vio, u_hist = (
             self.loss_and_constraints(
                 a_tch=a_tch,
                 b_tch=b_tch,
-                seed=self.settings.seed,
+                seed=seed,
                 rho_tch=rho_tch,
                 alpha=alpha            )
         )
@@ -360,7 +361,9 @@ class Trainer:
             cp_param_tchs.append(param_tch.repeat(shape))
         return cp_param_tchs
 
-    def _split_dataset(self, test_percentage=DS.test_percentage, seed=0):
+    def _split_dataset(self,
+                       test_percentage=DS.test_percentage,
+                       validate_percentage = DS.validate_percentage, seed=0):
         """
         This function splits the uncertainty set into train and test sets
             and also creates torch tensors
@@ -391,12 +394,20 @@ class Trainer:
 
         # Split the dataset into train_set and test, and create Tensors
         np.random.seed(seed)
+        assert (test_percentage + validate_percentage) < 1
         num_test = max(1, int(self.unc_set.data.shape[0] * test_percentage))
-        num_train = int(self.unc_set.data.shape[0] - num_test)
-        test_indices = np.random.choice(self.unc_set.data.shape[0], num_test, replace=False)
-        train_indices = [i for i in range(self.unc_set.data.shape[0]) if i not in test_indices]
+        num_validate = max(1, int(self.unc_set.data.shape[0] * validate_percentage))
+        num_train = int(self.unc_set.data.shape[0] - num_test-num_validate)
+        test_and_validate_indices = np.random.choice(
+            self.unc_set.data.shape[0], num_test+num_validate, replace=False)
+        test_indices = test_and_validate_indices[:num_test]
+        validate_indices = test_and_validate_indices[num_test:]
+        train_indices = [i for i in range(
+            self.unc_set.data.shape[0]) if i not in test_and_validate_indices]
 
         unc_train_set = np.array([self.unc_set.data[i] for i in train_indices])
+        unc_validate_set = np.array(
+            [self.unc_set.data[i] for i in validate_indices])
         unc_test_set = np.array([self.unc_set.data[i] for i in test_indices])
         unc_train_tch = torch.tensor(
             self.unc_set.data[train_indices], requires_grad=self.train_flag, dtype=s.DTYPE
@@ -404,10 +415,14 @@ class Trainer:
         unc_test_tch = torch.tensor(
             self.unc_set.data[test_indices], requires_grad=self.train_flag, dtype=s.DTYPE
         )
+        unc_validate_tch = torch.tensor(
+            self.unc_set.data[validate_indices], requires_grad=self.train_flag, dtype=s.DTYPE
+        )
 
         cp_param_tchs = []
         x_train_tchs = []
         x_test_tchs = []
+        x_validate_tchs = []
 
         if self._x_tchs_init:
             cp_param_tchs = self.create_cp_param_tch(0)
@@ -426,15 +441,26 @@ class Trainer:
                         dtype=s.DTYPE,
                     )
                 )
+                x_validate_tchs.append(
+                    torch.tensor(
+                        self._x_parameters[i].data[validate_indices],
+                        requires_grad=self.train_flag,
+                        dtype=s.DTYPE,
+                    )
+                )
 
         self.u_train_tch = unc_train_tch
         self.u_test_tch = unc_test_tch
+        self.u_validate_tch = unc_validate_tch
         self.u_train_set = unc_train_set
         self.u_test_set = unc_test_set
+        self.u_validate_set = unc_validate_set
         self.x_train_tch = x_train_tchs
         self.x_test_tch = x_test_tchs
+        self.x_validate_tch = x_validate_tchs
         self.train_size = num_train
         self.test_size = num_test
+        self.validate_size = num_validate
         self.cp_param_tch = cp_param_tchs
         if self._multistage and isinstance(\
             self.settings.predictor,CovPredictor):
@@ -463,15 +489,15 @@ class Trainer:
                       self.settings.seed,
                                             **self.settings.kwargs_simulator)
 
-        return (
-            unc_train_set,
-            unc_test_set,
-            unc_train_tch,
-            unc_test_tch,
-            x_train_tchs,
-            x_test_tchs,
-            cp_param_tchs,
-        )
+        # return (
+        #     unc_train_set,
+        #     unc_test_set,
+        #     unc_train_tch,
+        #     unc_test_tch,
+        #     x_train_tchs,
+        #     x_test_tchs,
+        #     cp_param_tchs,
+        # )
 
     def _gen_batch(self, num_xs, x_data, u_data,
                    batch_percentage, max_size=10000, min_size=1,seed=0):
@@ -905,7 +931,8 @@ class Trainer:
         # In the first epoch we try only once
         current_iter_line_search = 1 if step_num == 0 else self._max_iter_line_search + 1
         for violation_counter in range(current_iter_line_search):
-            self._eval_flag = False
+            self._validate_flag = False
+            self._test_flag = False
             cost, constr_cost, _, _, constraint_status, eval_cost, prob_violation_train, _ = (
                 self.loss_and_constraints(
                     a_tch=a_tch,
@@ -971,6 +998,7 @@ class Trainer:
         rho_history = []
         df = pd.DataFrame(columns=["step"])
         df_test = pd.DataFrame(columns=["step"])
+        df_validate = pd.DataFrame(columns=["step"])
 
         rho_tch = self._gen_rho_tch(self.settings.init_rho)
         a_tch, b_tch, alpha = self._init_torches(
@@ -982,21 +1010,24 @@ class Trainer:
         )
 
         if self.settings.contextual:
-            self.settings.predictor.initialize(a_tch,b_tch,self)
-            self.settings.predictor.train()
-            if self.settings.predictor.sgd_init:
-                assert (len(self.x_train_tch) != 0) and (len(self.u_train_tch) != 0)
-                pred_optimizer = torch.optim.SGD(
-                    self.settings.predictor.parameters(),
-                    lr = self.settings.predictor.sgd_init_lr)
-                criterion = torch.nn.MSELoss()
-                epochs=self.settings.predictor.sgd_init_epochs
-                for epoch in range(epochs):
-                    _,yhat=self.create_predictor_tensors(self.x_train_tch)
-                    loss=criterion(yhat,self.u_train_tch)
-                    pred_optimizer.zero_grad()
-                    loss.backward()
-                    pred_optimizer.step()
+            if self.settings.initialize_predictor:
+                self.settings.predictor.initialize(a_tch,b_tch,self)
+                self.settings.predictor.train()
+                # call it pre-training
+                if self.settings.predictor.pretrain:
+                    assert (len(self.x_train_tch) != 0) and (len(self.u_train_tch) != 0)
+                    pred_optimizer = torch.optim.SGD(
+                        self.settings.predictor.parameters(),
+                        lr = self.settings.predictor.lr)
+                    criterion = torch.nn.MSELoss()
+                    epochs=self.settings.predictor.epochs
+                    for epoch in range(epochs):
+                        _,yhat=self.create_predictor_tensors(self.x_train_tch)
+                        loss=criterion(yhat,self.u_train_tch)
+                        pred_optimizer.zero_grad()
+                        loss.backward()
+                        pred_optimizer.step()
+                        print(loss)
 
 
         variables = self._set_train_variables(
@@ -1098,8 +1129,9 @@ class Trainer:
                 rho_tch,
             )
 
-            if step_num % self.settings.test_frequency == 0:
-                self._eval_flag = True
+            if step_num % self.settings.validate_frequency == 0:
+                self._validate_flag = True
+                self._test_flag = False
                 (
                     val_cost,
                     val_cost_constr,
@@ -1113,6 +1145,7 @@ class Trainer:
                     b_tch=b_tch,
                     rho_tch=rho_tch,
                     alpha=alpha,
+                    seed = self.settings.seed + 10000
                 )
                 record_eval_cost = eval_cost
                 if not self._default_simulator:
@@ -1138,7 +1171,7 @@ class Trainer:
                         )
                 else:
                     # Update progress bar position
-                    self._pbar.update(self.settings.test_frequency)
+                    self._pbar.update(self.settings.validate_frequency)
 
                     # Set description with metrics
                     self._pbar.set_postfix(
@@ -1147,6 +1180,46 @@ class Trainer:
                             "viol": f"{val_cost_constr.mean().item():1.2e}",
                         }
                     )
+
+                train_stats.update_validate_stats(
+                    record_eval_cost, prob_constr_violation, val_cost_constr.detach()
+                )
+                new_row = train_stats.generate_validation_row(
+                    self._calc_coverage,
+                    self._a_tch,
+                    self._b_tch,
+                    alpha,
+                    u_batch,
+                    rho_tch,
+                    self.unc_set,
+                    z_batch,
+                    self.settings.contextual,
+                    x_batch
+                )
+                df_validate = pd.concat([df_validate, new_row.to_frame().T], ignore_index=True)
+
+
+            if step_num % self.settings.test_frequency == 0:
+                self._test_flag = True
+                self._validate_flag= False
+                (
+                    val_cost,
+                    val_cost_constr,
+                    x_batch,
+                    z_batch,
+                    eval_cost,
+                    prob_constr_violation,
+                    u_batch,
+                ) = self.monte_carlo(
+                    a_tch=a_tch,
+                    b_tch=b_tch,
+                    rho_tch=rho_tch,
+                    alpha=alpha,
+                    seed = self.settings.seed
+                )
+                record_eval_cost = eval_cost
+                if not self._default_simulator:
+                    record_eval_cost = eval_cost.repeat(3)
 
                 train_stats.update_test_stats(
                     record_eval_cost, prob_constr_violation, val_cost_constr.detach()
@@ -1182,6 +1255,7 @@ class Trainer:
         return (
             df,
             df_test,
+            df_validate,
             a_history,
             b_history,
             rho_history,
@@ -1232,7 +1306,8 @@ class Trainer:
         self._multistage = self.settings.multistage
         self._init_uncertain_parameter = self.settings.init_uncertain_param
         self._init_context = self.settings.init_context
-        _, _, _, _, _, _, _ = self._split_dataset(self.settings.test_percentage, self.settings.seed)
+        self._split_dataset(self.settings.test_percentage,
+                            self.settings.validate_percentage, self.settings.seed)
 
         if self._multistage:
             self.num_g_total = 1
@@ -1278,6 +1353,7 @@ class Trainer:
         (
             df,
             df_test,
+            df_validate,
             a_history,
             b_history,
             rho_history,
@@ -1329,6 +1405,7 @@ class Trainer:
             (
                 df_s,
                 df_test_s,
+                df_validate_s,
                 a_history_s,
                 b_history_s,
                 rho_history_s,
@@ -1345,6 +1422,8 @@ class Trainer:
             self._cur_u = ret_context[0][1]
             return_df = pd.concat([df[index_chosen], df_s[0]])
             return_df_test = pd.concat([df_test[index_chosen], df_test_s[0]])
+            return_df_validate = pd.concat(
+                [df_validate[index_chosen], df_validate_s[0]])
             return_a_history = a_history[index_chosen] + a_history_s[0]
             return_b_history = b_history[index_chosen] + b_history_s[0]
             return_rho_history = rho_history[index_chosen] + rho_history_s[0]
@@ -1353,6 +1432,7 @@ class Trainer:
                 self.problem_canon,
                 return_df,
                 return_df_test,
+                return_df_validate,
                 self.unc_set.a.value,
                 self.unc_set.b.value,
                 return_rho,
@@ -1368,6 +1448,7 @@ class Trainer:
             self.problem_canon,
             df[index_chosen],
             df_test[index_chosen],
+            df_validate[index_chosen],
             self.unc_set.a.value,
             self.unc_set.b.value,
             return_rho,
@@ -1378,6 +1459,27 @@ class Trainer:
             rho_history=rho_history[index_chosen],
             predictor=predictors[index_chosen],
         )
+
+    def compare_predictors(
+            self,
+            settings: s.TrainerSettings | None = s.TrainerSettings(),
+            predictors_list = [],rho_list = []):
+        """This function computes the validation and testing values for a
+        list of predictors"""
+        settings.num_iter = 1
+        test_dfs = []
+        validate_dfs = []
+        for ind, predictor in enumerate(predictors_list):
+            settings.predictor = predictor
+            settings.initialize_predictor = False
+            settings.init_rho = rho_list[ind]
+            result = self.train(settings=settings)
+            test_dfs.append(result.df_test)
+            validate_dfs.append(result.df_validate)
+        return pd.concat(validate_dfs), pd.concat(test_dfs)
+
+
+
 
     def gen_unique_x(self, x_batch):
         """get unique x's from a list of x parameters."""
@@ -1461,6 +1563,7 @@ class Trainer:
         init_rho=DS.init_rho,
         init_alpha=DS.init_alpha,
         test_percentage=DS.test_percentage,
+        validate_percentage = DS.validate_percentage,
         solver_args=DS.solver_args,
         quantiles=DS.quantiles,
         newdata=None,
@@ -1518,7 +1621,7 @@ class Trainer:
 
         self.train_flag = False
         df = pd.DataFrame(columns=["Rho"])
-        _, _, _, _, _, _, _ = self._split_dataset(test_percentage, seed)
+        self._split_dataset(test_percentage, validate_percentage, seed)
         if newdata is not None:
             newtest_set, x_set = newdata
             self.test_size = newtest_set.shape[0]
@@ -1551,7 +1654,7 @@ class Trainer:
         )
 
         x_batch_array_t, num_unique_indices_t, x_unique_t, x_unique_array_t = self.gen_unique_x(
-            self.x_train_tch
+            self.x_validate_tch
         )
 
         for rho in rholst:
@@ -1593,7 +1696,7 @@ class Trainer:
                 num_unique_indices_t,
                 x_unique_array_t,
                 z_unique_t,
-                self.train_size,
+                self.validate_size,
                 x_batch_array_t,
                 contextual,
                 a_tch_init,
@@ -1614,12 +1717,12 @@ class Trainer:
                 _, var_vio = self.lagrangian(self.test_size, test_args, alpha, lam, 1, eta)
 
                 test_args_t = self.order_args(
-                    z_batch=new_z_batch_t, x_batch=self.x_train_tch, u_batch=self.u_train_tch
+                    z_batch=new_z_batch_t, x_batch=self.x_validate_tch, u_batch=self.u_validate_tch
                 )
-                obj_train = self.evaluation_metric(self.train_size, test_args_t, quantiles)
-                prob_violation_train = self.prob_constr_violation(self.train_size, test_args_t)
+                obj_train = self.evaluation_metric(self.validate_size, test_args_t, quantiles)
+                prob_violation_train = self.prob_constr_violation(self.validate_size, test_args_t)
                 _, var_vio_train = self.lagrangian(
-                    self.train_size, test_args_t, alpha, lam, 1, eta
+                    self.validate_size, test_args_t, alpha, lam, 1, eta
                 )
 
             train_stats.update_test_stats(obj_test, prob_violation_test, var_vio)
@@ -1647,6 +1750,7 @@ class Trainer:
             self,
             self.problem_canon,
             df,
+            None,
             None,
             self.unc_set.a.value,
             b_value,
@@ -1715,6 +1819,16 @@ class TrainLoopStats:
         self.upper_testval = obj_test[2].item()
         self.prob_violation_test = prob_violation_test.detach().numpy()
         self.violation_test = var_vio.numpy().sum() / self.num_g_total
+
+    def update_validate_stats(self, obj_vali, prob_violation_vali, var_vio_vali):
+        """
+        This function updates the statistics after each training iteration
+        """
+        self.lower_valival = obj_vali[0].item()
+        self.valival = obj_vali[1].item()
+        self.upper_valival = obj_vali[2].item()
+        self.prob_violation_vali = prob_violation_vali.detach().numpy()
+        self.violation_vali = var_vio_vali.numpy().sum() / self.num_g_total
 
     def generate_train_row(
         self, a_tch, rho_tch, lam, mu, alpha, contextual=False, linear=False, predictor=None
@@ -1787,13 +1901,52 @@ class TrainLoopStats:
         }
         row_dict["step"] = (self.step_num,)
         if not self.train_flag:
+            row_dict["Validate_val"] = self.trainval
+            row_dict["Probability_violations_validate"] = self.prob_violation_train
+            row_dict["Violations_validate"] = self.violation_train
+            row_dict["Avg_prob_validate"] = np.mean(self.prob_violation_train)
+        new_row = pd.Series(row_dict)
+        return new_row
+
+    def generate_validation_row(
+        self,
+        calc_coverage,
+        a_tch,
+        b_tch,
+        alpha,
+        vali_tch,
+        rho_tch,
+        uncset,
+        z_batch=None,
+        contextual=False,
+        x_validate_tch=None,
+    ):
+        """
+        This function generates a new row with the statistics
+        """
+        coverage_vali = calc_coverage(
+            vali_tch, a_tch, b_tch, uncset._rho * rho_tch, uncset.p, contextual, x_validate_tch
+        )
+        row_dict = {
+            "Validate_val": self.valival,
+            "Lower_validate": self.lower_valival,
+            "Upper_validate": self.upper_valival,
+            "Probability_violations_validate": self.prob_violation_vali,
+            "Violations_validate": self.violation_vali,
+            "Coverage_validate": coverage_vali,
+            "Avg_prob_validate": np.mean(self.prob_violation_vali),
+            "z_vals": z_batch,
+            "x_vals": x_validate_tch,
+            "Rho": rho_tch.detach().numpy().copy(),
+        }
+        row_dict["step"] = (self.step_num,)
+        if not self.train_flag:
             row_dict["Train_val"] = self.trainval
             row_dict["Probability_violations_train"] = self.prob_violation_train
             row_dict["Violations_train"] = self.violation_train
             row_dict["Avg_prob_train"] = np.mean(self.prob_violation_train)
         new_row = pd.Series(row_dict)
         return new_row
-
 
 class GridStats:
     """
@@ -1836,6 +1989,7 @@ class Result(ABC):
         probnew,
         df,
         df_test,
+        df_validate,
         A,
         b,
         rho,
@@ -1850,6 +2004,7 @@ class Result(ABC):
         self._problem = prob
         self._df = df
         self._df_test = df_test
+        self._df_validate = df_validate
         self._A = A
         self._b = b
         self._obj = obj
@@ -1871,6 +2026,10 @@ class Result(ABC):
     @property
     def df_test(self):
         return self._df_test
+
+    @property
+    def df_validate(self):
+        return self._df_validate
 
     @property
     def final_problem(self):

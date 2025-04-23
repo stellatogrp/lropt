@@ -8,9 +8,9 @@ torch.set_default_dtype(settings.DTYPE)
 
 class NNPredictor(LinearPredictor):
 
-    def __init__(self,predict_mean = False,sgd_init = False,
-                 dropout_prob = 0.1,sgd_init_epochs = 100,sgd_init_lr = 0.1):
-        super(NNPredictor, self).__init__(predict_mean,sgd_init,sgd_init_epochs,sgd_init_lr)
+    def __init__(self,predict_mean = False,pretrain = False,
+                 dropout_prob = 0.1,epochs = 100,lr = 0.1):
+        super(NNPredictor, self).__init__(predict_mean,pretrain,epochs,lr)
         self.dropout_prob = dropout_prob
 
     def initialize(self,a_tch,b_tch,trainer):
@@ -32,6 +32,7 @@ class NNPredictor(LinearPredictor):
         out = self.linear(x)
         out = self.tanh(out)
         out = self.dropout(out)
+        # try batchnorm layer
         out = self.linear1(out)
         raw_a = out[:, : a_shape[0] * a_shape[1]]
         raw_b = out[:, a_shape[0] * a_shape[1] :]

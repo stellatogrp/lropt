@@ -149,6 +149,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         settings.mu_multiplier = 1.001
         settings.init_alpha = 0.0
         settings.test_percentage = test_p
+        settings.validate_percentage = 0.01
         settings.kappa = kappa
         settings.n_jobs = 8
         settings.random_init = True
@@ -260,6 +261,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         settings.num_random_init = 5
         settings.parallel = False
         settings.position = False
+        settings.validate_percentage = 0.01
         settings.eta = 0.05
         result = trainer.train(settings=settings)
         npt.assert_array_less(np.array(result.df["Violations_train"])[-1], 0.1)
@@ -396,6 +398,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
         settings.kappa = 0.0
         settings.init_alpha = 0.0
         settings.test_percentage = test_p
+        settings.validate_percentage = 0.01
         settings.save_history = True
         settings.quantiles = (0.4, 0.6)
         settings.lr_step_size = 50
