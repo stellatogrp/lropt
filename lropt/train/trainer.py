@@ -1027,7 +1027,6 @@ class Trainer:
                         pred_optimizer.zero_grad()
                         loss.backward()
                         pred_optimizer.step()
-                        print(loss)
 
 
         variables = self._set_train_variables(
@@ -1467,6 +1466,7 @@ class Trainer:
         """This function computes the validation and testing values for a
         list of predictors"""
         settings.num_iter = 1
+        settings.max_batch_size = np.inf
         test_dfs = []
         validate_dfs = []
         for ind, predictor in enumerate(predictors_list):
