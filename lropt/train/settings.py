@@ -144,8 +144,6 @@ class TrainerSettings:
             The maximum data batch size allowed for each iteration. Default 30.
         contextual: bool, optional
             Whether or not the learned set is contextual. Default False.
-        linear: NN model, optional
-            The linear NN model to use, Default None.
         init_weight: np.array, optional
             The initial weight of the NN model. Default None.
         init_bias: np.array, optional
@@ -180,7 +178,14 @@ class TrainerSettings:
             arguments as inputs. Default {}.
         multistage
             Flag for whether or not the problem is multistage. Default False.
-
+        predictor
+            NN model, Default Linear
+        line_search
+            Wheter or not to perform backtracking line search to choose step sizes
+        line_search_mult
+            The amount to reduce the step size by if the line search condition is not met
+        line_search_threshold
+            The threshold (between 0 and 1) for the line search condition
     """
 
     def __init__(self):
@@ -194,7 +199,7 @@ class TrainerSettings:
         self.scheduler = True
         self.momentum = 0.8
         self.optimizer = SGD
-        self.init_rho = None
+        self.init_rho = 1
         self.init_A = None
         self.init_b = None
         self.save_history = False
@@ -236,9 +241,15 @@ class TrainerSettings:
         self.multistage = False
         self.init_context = None
         self.init_uncertain_param = None
-        self.covpred = False
         self.trained_shape = False
-        self.model = None
+        self.predictor = None
+        self.obj_scale = 1
+        self.line_search_mult = 0.8
+        self.line_search_threshold = 1
+        self.line_search = True
+        self.initialize_predictor = True
+        self.validate_percentage = 0.2
+        self.validate_frequency = 10
 
         self._generate_slots()
 

@@ -1,6 +1,6 @@
 import cvxpy as cp
 from cvxpy import Variable
-from cvxpy.constraints.nonpos import Inequality, NonPos
+from cvxpy.constraints.nonpos import Inequality
 from cvxpy.reductions.inverse_data import InverseData
 from cvxpy.reductions.reduction import Reduction
 
@@ -22,8 +22,8 @@ class RemoveSumOfMaxOfUncertain(Reduction):
         for constraint in problem.constraints:
             has_uncertain = False
             if has_unc_param(constraint):
-                if not (isinstance(constraint, Inequality) or isinstance(constraint, NonPos)):
-                    raise ValueError("Uncertain constraint must be Inequality or NonPos")
+                if not (isinstance(constraint, Inequality)):
+                    raise ValueError("Uncertain constraint must be an Inequality")
                 if isinstance(constraint, Inequality):
                     cur_constraint = constraint.args[0] - constraint.args[1]
                 else:

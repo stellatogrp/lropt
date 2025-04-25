@@ -84,7 +84,7 @@ class UncertainCanonicalization(Reduction):
                     #A vector of uncertain parameters needs cvxpy hstack
                     if isinstance(vec[0], LROPT_PARAMETER_TYPES) or \
                         isinstance(vec[0], CERTAIN_PARAMETER_TYPES):
-                        return cp.hstack([cp.vec(param) for param in vec])
+                        return cp.hstack([cp.vec(param, order="F") for param in vec])
                     if not scsparse.issparse(vec[0]):
                         return csr_matrix(np.hstack(vec))
                     return scsparse.hstack(vec,format='csr')
@@ -227,11 +227,11 @@ class UncertainCanonicalization(Reduction):
                 """
 
                 cons_uncertain_data_dict['std_lst'] = [A@variables_stacked - b_certain]
-                cons_func = cp.Zero if (cons_case == "zero") else cp.NonPos
                 term_unc_b = scalarize(term_unc_b)
                 b_certain = scalarize(b_certain)
-                constraints += [cons_func(A@variables_stacked \
-                                + term_unc + term_unc_b - b_certain)]
+                expr = A@variables_stacked + term_unc + term_unc_b - b_certain
+                constraint = (expr==0) if cons_case=="zero" else (expr<=0)
+                constraints += [constraint]
 
             def _gen_term_unc(cones_zero: int,
                         A_uncertain: np.ndarray,i: int,
@@ -257,7 +257,7 @@ class UncertainCanonicalization(Reduction):
                 # running number of uncertain parameters in this constraint
                 cur_i = 0
                 for ind, u in enumerate(uncertain_params):
-                    if len(u.shape)!=0 and u.shape[0]>1:
+                    if len(u.shape)!=0:
                         op = operator.matmul
                     else:
                         op = operator.mul
@@ -285,7 +285,7 @@ class UncertainCanonicalization(Reduction):
 
                 return term_unc, term_unc_b
 
-            variables_stacked = cp.hstack([cp.vec(var) for var in variables])
+            variables_stacked = cp.hstack([cp.vec(var, order="F") for var in variables])
             constraints = []
             running_ind = 0
             total_constraint_num = cones.zero + cones.nonneg

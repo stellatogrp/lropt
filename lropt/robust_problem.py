@@ -107,7 +107,7 @@ class RobustProblem(Problem):
                     if not train_mro:
                         continue
                     curr_shape = param.uncertainty_set.data.shape[0]
-                if curr_shape != num_xs:
+                if (len(x_parameters) > 0) and (curr_shape != num_xs):
                     raise ValueError(f"shape inconsistency: expected num_ys={num_xs}, "
                                      f"but got {curr_shape}.")
         return num_xs

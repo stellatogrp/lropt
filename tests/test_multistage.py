@@ -277,7 +277,7 @@ class TestMultiStage(unittest.TestCase):
         d = lropt.UncertainParameter(
             K,
             uncertainty_set=lropt.Ellipsoidal(
-                p=2, rho=1, c=lhs_new, d=rhs_new, data=np.zeros((1, K))
+                p=2, rho=1, c=lhs_new, d=rhs_new, data=np.zeros((2, K))
             ),
         )
         # d = lropt.UncertainParameter(K,uncertainty_set =
@@ -428,21 +428,19 @@ class TestMultiStage(unittest.TestCase):
                 t = T - 2 if t == T - 1 else t
                 p_x = torch.vstack([p[t + i + 1] * x_hat[:, t + 1] for i in range(K)]).T
                 h_x = torch.vstack([h[t + i + 1] * x_hat[:, t + 1] for i in range(K)]).T
-                p_new = torch.vstack(
-                    [
-                        p[t + j + 1] * np.sum([e_new[i] for i in range(j + 1)], axis=0)
-                        for j in range(K)
-                    ]
-                ).repeat(batch_size, 1, 1)
-                h_new = torch.vstack(
-                    [
-                        h[t + j + 1] * np.sum([e_new[i] for i in range(j + 1)], axis=0)
-                        for j in range(K)
-                    ]
-                ).repeat(batch_size, 1, 1)
-                c_new = (c[t : t + K] * np.sum([e_new[i] for i in range(K)], axis=0)).repeat(
-                    (batch_size, 1)
-                )
+                p_new = torch.vstack([
+                    p[t + j + 1] * torch.stack(
+                        [torch.from_numpy(e) for e in e_new[:j + 1]]).sum(dim=0)
+                    for j in range(K)
+                ]).repeat(batch_size, 1, 1)
+                h_new = torch.vstack([
+                    h[t + j + 1] * torch.stack(
+                        [torch.from_numpy(e) for e in e_new[:j + 1]]).sum(dim=0)
+                    for j in range(K)
+                ]).repeat(batch_size, 1, 1)
+                c_new = (
+                    c[t : t + K] * torch.stack([torch.from_numpy(e) for e in e_new[:K]]).sum(dim=0)
+                ).repeat(batch_size, 1)
                 e_new = torch.tensor(e_new).repeat(batch_size, 1, 1)
                 Ymat_ref = torch.tensor(Y_matref[:, t : t + K]).repeat(batch_size, 1, 1)
                 x = [
@@ -525,15 +523,16 @@ class TestMultiStage(unittest.TestCase):
                 h_x = torch.vstack([h[t + i] * x_new[:, t] for i in range(K)]).T
                 t_new = torch.tensor(t, dtype=torch.double).repeat(batch_size, 1)
                 e_new = eye_concat[t : t + K, t : t + K]
-                p_new = torch.vstack(
-                    [p[t + j] * np.sum([e_new[i] for i in range(j + 1)], axis=0) for j in range(K)]
-                ).repeat(batch_size, 1, 1)
-                h_new = torch.vstack(
-                    [h[t + j] * np.sum([e_new[i] for i in range(j + 1)], axis=0) for j in range(K)]
-                ).repeat(batch_size, 1, 1)
-                c_new = (c[t : t + K] * np.sum([e_new[i] for i in range(K)], axis=0)).repeat(
-                    (batch_size, 1)
-                )
+                p_new = torch.vstack([
+                    p[t + j] * torch.from_numpy(np.stack(e_new[:j + 1])).sum(dim=0)
+                    for j in range(K)
+                ]).repeat(batch_size, 1, 1)
+                h_new = torch.vstack([
+                    h[t + j] * torch.stack([torch.from_numpy(e) for e in e_new[:j + 1]]).sum(dim=0)
+                    for j in range(K)
+                ]).repeat(batch_size, 1, 1)
+                c_new = (c[t : t + K] * torch.stack(
+                    [torch.from_numpy(e) for e in e_new[:K]]).sum(dim=0)).repeat(batch_size, 1)
                 e_new = torch.tensor(e_new).repeat(batch_size, 1, 1)
                 Ymat_ref_new = torch.tensor(Y_matref[:, t : t + K]).repeat(batch_size, 1, 1)
                 x = [
@@ -597,5 +596,6 @@ class TestMultiStage(unittest.TestCase):
             init_lam=0.001,
             init_mu=0.001,
             mu_multiplier=1.01,
+            parallel = False
         )
         _ = trainer.train(settings=settings)

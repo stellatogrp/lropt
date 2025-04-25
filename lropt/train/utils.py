@@ -147,7 +147,7 @@ def eval_input(
         else:
             init_val = eval_func(*eval_args, **kwargs)
             if len(init_val.shape) > 1:
-                init_val = init_val.T
+                init_val = init_val.permute(*reversed(range(init_val.ndim))) # replaces init_val.T
         init_val = (init_val > settings.TOL).float()
     return init_val
 
@@ -320,35 +320,39 @@ def replace_partial_args(part: partial, new_args: tuple) -> partial:
 
 def take_step(
     opt: torch.optim.Optimizer,
-    slack: torch.Tensor,
     rho_tch: torch.Tensor,
     scheduler: torch.optim.lr_scheduler.StepLR | None,
-) -> None:
+    update_state = True,
+    prev_states = []
+) -> list:
     """
     This function performs an optimization step.
 
     Args:
         opt (torch.optim.Optimizer):
             The optimizer to unroll.
-        Slack (torch.Tensor):
-            Slack tensor.
         rho_tch (torch.Tensor):
             rho_tch tensor.
         scheduler (torch.optim_lr_scheduler.StepLR | None):
             If passed, a StepLR scheduler.
     """
+    if update_state:
+        prev_states = []
+        for param in opt.param_groups[0]["params"]:
+            if param.grad is not None:
+                #new_param = np.array(param.clone().detach().data)
+                new_param = param.clone().detach()
+                prev_states.append(new_param)
     opt.step()
-    opt.zero_grad()
+    # opt.zero_grad()
     with torch.no_grad():
-        newval = torch.clamp(slack, min=0.0, max=torch.inf)
-        slack.copy_(newval)
         newrho_tch = torch.clamp(rho_tch, min=0.001)
         rho_tch.copy_(newrho_tch)
     if scheduler:
         scheduler.step()
+    return prev_states
 
-
-def undo_step(opt: torch.optim.Optimizer) -> None:
+def undo_step(opt: torch.optim.Optimizer,state) -> None:
     """
     This function undoes the last optimizer step.
 
@@ -357,27 +361,28 @@ def undo_step(opt: torch.optim.Optimizer) -> None:
             The optimizer whose step to undo.
     """
     for group in opt.param_groups:
-        for param in group["params"]:
+        for ind, param in enumerate(group["params"]):
             if param.grad is not None:
-                param.data.add_(param.grad, alpha=-group["lr"])
+                param.data = state[ind]
+                # param.data.add_(param.grad, alpha=-group["lr"])
 
 
-def halve_step_size(opt: torch.optim.Optimizer) -> None:
+def reduce_step_size(opt: torch.optim.Optimizer,step_mult) -> None:
     """
-    This function halves the step size of an optimizer.
+    This function reduces the step size of an optimizer.
 
     Args:
         opt (torchoptim.Optimizer):
             The optimizer whose step to halve.
     """
     for group in opt.param_groups:
-        group["lr"] /= 2
+        group["lr"] *= step_mult
 
 
-def restore_step_size(opt: torch.optim.Optimizer, num_steps: int) -> None:
+def restore_step_size(opt: torch.optim.Optimizer, num_steps: int,step_mult) -> None:
     """
     This function restores the optimizer's step size to its original value,
-    i.e. multiplies it by 2^num_steps (where num_steps is 0-indexed).
+    i.e. multiplies it by (1/step_mult)^num_steps (where num_steps is 0-indexed).
 
     Args:
         opt (torch.optim.Optimizer):
@@ -389,4 +394,4 @@ def restore_step_size(opt: torch.optim.Optimizer, num_steps: int) -> None:
     for group in opt.param_groups:
         # More stable than 2**num_steps
         for _ in range(num_steps):
-            group["lr"] *= 2
+            group["lr"] *= (1/step_mult)

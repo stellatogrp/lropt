@@ -432,9 +432,7 @@ class TestEllipsoidalUncertainty(unittest.TestCase):
             # newcons += [A_rec_certain[i]@x + \
             #         rho*cp.norm(A_rec_uncertain[i][0].T@x) <= b_rec[i] ]
             newcons += [
-                cp.NonPos(
-                    A_rec_certain[i] @ x + rho * cp.norm(A_rec_uncertain[i][0].T @ x) - b_rec[i]
-                )
+                A_rec_certain[i] @ x + rho * cp.norm(A_rec_uncertain[i][0].T @ x) - b_rec[i]<=0
             ]
 
         prob_recovered = cp.Problem(objective, newcons)

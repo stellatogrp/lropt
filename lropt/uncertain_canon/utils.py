@@ -70,7 +70,7 @@ def promote_expr(expr: Expression | int) -> Expression | int:
     if ndim > 1:
         return expr
 
-    return cp.reshape(expr, shape=(expr.size, 1))
+    return cp.reshape(expr, shape=(expr.size, 1), order="F")
 
 def scalarize(arg: Expression) -> Expression:
     """
@@ -88,7 +88,7 @@ def scalarize(arg: Expression) -> Expression:
     if not hasattr(arg, "size"):
         return arg
     if arg.size==1:
-        arg = cp.reshape(arg, ())
+        arg = cp.reshape(arg, (), order="F")
     return arg
 
 def gen_constraint_by_type() -> dict:

@@ -50,6 +50,8 @@ dev = [
     "ipdb",
     "marimo",
     "pyscipopt",
+    "hydra-core",
+    "hydra-optuna-sweeper"
 ]
 
 [tool.ruff]

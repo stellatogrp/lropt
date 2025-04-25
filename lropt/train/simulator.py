@@ -1,6 +1,7 @@
 import abc
 from abc import ABC
 
+import numpy as np
 import torch
 
 import lropt.train.settings as settings
@@ -65,7 +66,8 @@ class DefaultSimulator(ABC):
         """ Create the current stage cost using the current state x
         and decision u
         """
-        return self.trainer.train_objective(kwargs['batch_int'], kwargs['eval_args'])
+        return self.trainer.settings.obj_scale*\
+            self.trainer.train_objective(kwargs['batch_int'], kwargs['eval_args'])
 
 
     def stage_cost_eval(self,x,u,**kwargs):
@@ -83,25 +85,30 @@ class DefaultSimulator(ABC):
         return self.trainer.train_constraint(kwargs['batch_int'],
                                                   kwargs['eval_args'],
                                                     kwargs['alpha'],
-                                                    kwargs['slack'],
                                                     self.trainer.settings.eta,
                                                     self.trainer.settings.kappa)
 
     def init_state(self,batch_size, seed,**kwargs):
         """ initialize the parameter value
         """
-        if self.trainer._eval_flag:
+        if self.trainer._validate_flag:
+            return self.trainer._gen_batch(self.trainer.validate_size,
+                                                self.trainer.x_validate_tch,
+                                                self.trainer.u_validate_set,
+                                                1, self.trainer.settings.max_batch_size,
+                                                seed=seed)
+        elif self.trainer._test_flag:
             return self.trainer._gen_batch(self.trainer.test_size,
                                                 self.trainer.x_test_tch,
                                                 self.trainer.u_test_set,
-                                                1, self.trainer.settings.max_batch_size)
-
+                                                1, np.inf,
+                                                seed=seed)
         else:
             return self.trainer._gen_batch(self.trainer.train_size,
                                                 self.trainer.x_train_tch,
                                                 self.trainer.u_train_set,
                                                 self.trainer.settings.batch_percentage,
-                                                self.trainer.settings.max_batch_size)
+                                                self.trainer.settings.max_batch_size,seed=seed)
 
     def prob_constr_violation(self,x,u,**kwargs):
         """ calculate current probability of constraint violation

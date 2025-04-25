@@ -49,9 +49,9 @@ class TestMax(unittest.TestCase):
         constraints = []
         constraints += [max_of_uncertain([ - self.d@x_r,- self.d@(3*u+3)],\
                                          self.a@x_r-t) <=0]
-        constraints += [cp.NonPos(max_of_uncertain([ - self.d@x_r,\
+        constraints += [max_of_uncertain([ - self.d@x_r,\
                                                     - self.d@(3*u+3)],\
-                                                        self.a@x_r-t))]
+                                                        self.a@x_r-t)<=0]
         constraints += [sum_of_max_of_uncertain([[- self.d@x_r,\
                                                   - self.d@(3*u+3)],\
                                                     [self.a@x_r-t]])<=0]
