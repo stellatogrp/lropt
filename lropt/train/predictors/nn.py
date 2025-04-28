@@ -19,6 +19,7 @@ class NNPredictor(LinearPredictor):
         num_hidden = num_out
         self.linear = torch.nn.Linear(num_in,num_hidden)
         self.tanh = torch.nn.Tanh()
+        # self.bn = torch.nn.BatchNorm1d(num_out)
         self.relu = torch.nn.ReLU()
         self.dropout = torch.nn.Dropout(self.dropout_prob)
         self.linear1 = torch.nn.Linear(num_hidden,num_hidden)
@@ -30,8 +31,10 @@ class NNPredictor(LinearPredictor):
     def forward(self, x,a_shape,b_shape,train_flag):
         """create a_tch and b_tch using the predictor"""
         out = self.linear(x)
-        out = self.tanh(out)
-        out = self.dropout(out)
+        # out = self.tanh(out)
+        out = self.relu(out)
+        # out = self.bn(out)
+        # out = self.dropout(out)
         # try batchnorm layer
         out = self.linear1(out)
         raw_a = out[:, : a_shape[0] * a_shape[1]]

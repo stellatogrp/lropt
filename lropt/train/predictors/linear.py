@@ -92,6 +92,6 @@ class LinearPredictor(torch.nn.Module):
         a_tch = raw_a.view(out.shape[0], a_shape[0], a_shape[1])
         b_tch = raw_b.view(out.shape[0], b_shape[0])
         if not train_flag:
-            a_tch = torch.tensor(a_tch, requires_grad=False)
-            b_tch = torch.tensor(b_tch, requires_grad=False)
+            a_tch = a_tch.detach().clone()
+            b_tch = b_tch.detach().clone()
         return a_tch, b_tch

@@ -77,7 +77,7 @@ class Trainer:
         alpha,
         a_tch,
         b_tch,
-        seed    ):
+        seed ):
         """This function calls the loss and constraint function, and returns
         an error if an infeasibility is encountered. This is infeasibility
         dependent on the testing data-set.
@@ -92,7 +92,8 @@ class Trainer:
                 b_tch=b_tch,
                 seed=seed,
                 rho_tch=rho_tch,
-                alpha=alpha            )
+                alpha=alpha,
+                batch_size = self.settings.test_batch_size          )
         )
         if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
             raise InfeasibleConstraintException(
@@ -109,6 +110,7 @@ class Trainer:
         a_tch,
         b_tch,
         seed,
+        batch_size
     ):
         """
         This function propagates the system state, calculates the costs,
@@ -144,10 +146,10 @@ class Trainer:
 
         if self._multistage:
             u_0 = 0
-            x_0 = self.simulator.init_state(self.settings.batch_size, seed,
+            x_0 = self.simulator.init_state(batch_size, seed,
                                             **self.settings.kwargs_simulator)
         else:
-            batch_int, x_0, u_0 = self.simulator.init_state(self.settings.batch_size, seed,
+            batch_int, x_0, u_0 = self.simulator.init_state(batch_size, seed,
                                                             **self.settings.kwargs_simulator)
             self.settings.kwargs_simulator["batch_int"] = batch_int
 
@@ -664,7 +666,7 @@ class Trainer:
         elif fixb:
             variables = [rho_tch, a_tch, alpha]
         elif contextual:
-            variables = [rho_tch, alpha]
+            variables = [alpha]
             variables.extend(list(model.parameters()))
         else:
             variables = [rho_tch, a_tch, b_tch, alpha]
@@ -940,6 +942,7 @@ class Trainer:
                     seed=self.settings.seed + seed_num + 1,
                     rho_tch=rho_tch,
                     alpha=alpha,
+                    batch_size = self.settings.batch_size
                 )
             )
 
@@ -970,7 +973,7 @@ class Trainer:
                 fin_cost.backward()
                 prev_fin_cost = fin_cost.clone().detach()
                 break
-            elif constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
+            elif constraint_status is CONSTRAINT_STATUS.INFEASIBLE and (step_num != 0):
                 undo_step(opt=opt,state=prev_states)
                 reduce_step_size(opt=opt,step_mult = self.settings.line_search_mult)
                 prev_states = take_step(opt=opt,
