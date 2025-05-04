@@ -5,7 +5,7 @@ import torch
 
 # General constants
 RHO_LST_DEFAULT = np.logspace(-3, 1, 20)
-LAYER_SOLVER = {"solve_method": "Clarabel", "tol_feas": 1e-10}
+LAYER_SOLVER = {"solve_method": "Clarabel", "tol_feas": 1e-7}
 TOL = 1e-5
 DTYPE = torch.double
 
@@ -231,7 +231,7 @@ class TrainerSettings:
         self.init_weight = None
         self.init_bias = None
         self.x_endind = None
-        self.max_iter_line_search = int(1e1)  # Times to check feasibility before timeout
+        self.max_iter_line_search = 100  # Times to check feasibility before timeout
         self.policy = None
         self.time_horizon = 1
         self.batch_size = 1

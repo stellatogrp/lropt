@@ -116,6 +116,8 @@ def predict(X, A, b, C, d, Areg, breg):
                                     nu[i].view(init_shape,1),
                                     upper=True).view(
                                         init_shape,) for i in range(N)])
-    return yhat, torch.stack([torch.linalg.inv(L[i]) for i in range(N)])
+    return yhat, torch.stack([torch.linalg.cholesky(
+        torch.linalg.inv(L[i] @ L[i].T)) for i in range(N)])
+#torch.stack([torch.linalg.inv(L[i]) for i in range(N)])
 #
-#torch.stack([torch.linalg.cholesky(torch.linalg.inv(L[i] @ L[i].T)) for i in range(N)])
+#

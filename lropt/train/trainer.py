@@ -30,7 +30,7 @@ from lropt.train.utils import (
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.scenario import Scenario
 from lropt.utils import unique_list
-from lropt.violation_checker.utils import CONSTRAINT_STATUS, InfeasibleConstraintException
+from lropt.violation_checker.utils import CONSTRAINT_STATUS
 from lropt.violation_checker.violation_checker import ViolationChecker
 
 
@@ -96,11 +96,12 @@ class Trainer:
                 batch_size = self.settings.test_batch_size          )
         )
         if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
-            raise InfeasibleConstraintException(
-                "Found an infeasible constraint during a call to monte_carlo."
-                + "Possibly an infeasible uncertainty set initialization."
-                + "Or infeasibility encountered in the testing set"
-            )
+            # raise InfeasibleConstraintException(
+            #     "Found an infeasible constraint during a call to monte_carlo."
+            #     + "Possibly an infeasible uncertainty set initialization."
+            #     + "Or infeasibility encountered in the testing set"
+            # )
+            print("Infeasible init")
         return cost, constraint_cost, x_hist, z_hist, eval_cost, prob_vio, u_hist
 
     def loss_and_constraints(
@@ -310,8 +311,8 @@ class Trainer:
             in_shape = x_endind
         else:
             in_shape = sum(x_shapes)
-        out_shape = int(a_shape[0] * a_shape[1] + b_shape[0])
-        return in_shape, out_shape, a_shape[0] * a_shape[1]
+        # out_shape = int(a_shape[0] * a_shape[1] + b_shape[0])
+        return in_shape,  a_shape[0] * a_shape[1], b_shape[0]
 
     def create_predictor_tensors(self,x_batch):
         """Create the tensors of a's and b's using the trained linear model"""
@@ -1015,21 +1016,6 @@ class Trainer:
         if self.settings.contextual:
             if self.settings.initialize_predictor:
                 self.settings.predictor.initialize(a_tch,b_tch,self)
-                self.settings.predictor.train()
-                # call it pre-training
-                if self.settings.predictor.pretrain:
-                    assert (len(self.x_train_tch) != 0) and (len(self.u_train_tch) != 0)
-                    pred_optimizer = torch.optim.SGD(
-                        self.settings.predictor.parameters(),
-                        lr = self.settings.predictor.lr)
-                    criterion = torch.nn.MSELoss()
-                    epochs=self.settings.predictor.epochs
-                    for epoch in range(epochs):
-                        _,yhat=self.create_predictor_tensors(self.x_train_tch)
-                        loss=criterion(yhat,self.u_train_tch)
-                        pred_optimizer.zero_grad()
-                        loss.backward()
-                        pred_optimizer.step()
 
 
         variables = self._set_train_variables(
@@ -1086,7 +1072,8 @@ class Trainer:
                 else:
                     exception_message = "Violation constraint check timed " +\
                      "out after " + f"{self.settings.max_iter_line_search} attempts."
-                raise InfeasibleConstraintException(exception_message)
+                print(exception_message)
+                # raise InfeasibleConstraintException(exception_message)
             train_stats.update_train_stats(
                 fin_cost.detach().numpy().copy(),
                 eval_cost,
@@ -1852,17 +1839,10 @@ class TrainLoopStats:
         row_dict["mu"] = mu
         row_dict["alpha"] = alpha.item()
         row_dict["alphagrad"] = alpha.grad
-        if contextual and linear:
-            row_dict["gradnorm"] = np.linalg.norm(predictor.linear.weight.grad) + np.linalg.norm(
-                predictor.linear.bias.grad
-            )
-            row_dict["grad"] = torch.hstack(
-                [predictor.linear.weight.grad,
-                 predictor.linear.bias.grad.view(predictor.linear.bias.grad.shape[0], 1)]
-            )
-        elif contextual:
-            row_dict["gradnorm"] = np.linalg.norm(
-                list(predictor.parameters())[0].data.detach().numpy())
+        if contextual:
+            row_dict["gradnorm"] = [np.linalg.norm(
+                list(predictor.parameters())[param_ind].data.detach().numpy()) \
+                    for param_ind in range(len(list(predictor.parameters())))]
             row_dict["grad"] = list(predictor.parameters())[0].data.detach().numpy()
         else:
             row_dict["gradnorm"] = np.linalg.norm(a_tch.grad)

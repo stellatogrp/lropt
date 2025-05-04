@@ -15,18 +15,19 @@ class NNPredictor(LinearPredictor):
 
     def initialize(self,a_tch,b_tch,trainer):
         """Initialize the parameters"""
-        num_in,num_out, a_totsize = trainer.initialize_predictor_dims()
-        num_hidden = num_out
+        num_in,num_a, num_b = trainer.initialize_predictor_dims()
+        num_hidden = num_a + num_b
         self.linear = torch.nn.Linear(num_in,num_hidden)
         self.tanh = torch.nn.Tanh()
         # self.bn = torch.nn.BatchNorm1d(num_out)
         self.relu = torch.nn.ReLU()
         self.dropout = torch.nn.Dropout(self.dropout_prob)
         self.linear1 = torch.nn.Linear(num_hidden,num_hidden)
-        self.customize(a_totsize,a_tch,b_tch,trainer.settings.init_bias,trainer.settings.init_weight,trainer.settings.random_init)
-        if self.predict:
-            input_tensors = trainer.create_input_tensors(trainer.x_train_tch)
-            self.gen_weights(input_tensors,trainer.u_train_tch,a_tch)
+        # self.customize(a_totsize,a_tch,b_tch,trainer.settings.init_bias,
+        # trainer.settings.init_weight,trainer.settings.random_init)
+        # if self.predict:
+        #     input_tensors = trainer.create_input_tensors(trainer.x_train_tch)
+        #     self.gen_weights(input_tensors,trainer.u_train_tch,a_tch)
 
     def forward(self, x,a_shape,b_shape,train_flag):
         """create a_tch and b_tch using the predictor"""
