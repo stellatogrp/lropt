@@ -398,28 +398,28 @@ class Trainer:
         # Split the dataset into train_set and test, and create Tensors
         np.random.seed(seed)
         assert (test_percentage + validate_percentage) < 1
-        num_test = max(1, int(self.unc_set.data.shape[0] * test_percentage))
-        num_validate = max(1, int(self.unc_set.data.shape[0] * validate_percentage))
-        num_train = int(self.unc_set.data.shape[0] - num_test-num_validate)
+        num_test = max(1, int(self.settings.data.shape[0] * test_percentage))
+        num_validate = max(1, int(self.settings.data.shape[0] * validate_percentage))
+        num_train = int(self.settings.data.shape[0] - num_test-num_validate)
         test_and_validate_indices = np.random.choice(
-            self.unc_set.data.shape[0], num_test+num_validate, replace=False)
+            self.settings.data.shape[0], num_test+num_validate, replace=False)
         test_indices = test_and_validate_indices[:num_test]
         validate_indices = test_and_validate_indices[num_test:]
         train_indices = [i for i in range(
-            self.unc_set.data.shape[0]) if i not in test_and_validate_indices]
+            self.settings.data.shape[0]) if i not in test_and_validate_indices]
 
-        unc_train_set = np.array([self.unc_set.data[i] for i in train_indices])
+        unc_train_set = np.array([self.settings.data[i] for i in train_indices])
         unc_validate_set = np.array(
-            [self.unc_set.data[i] for i in validate_indices])
-        unc_test_set = np.array([self.unc_set.data[i] for i in test_indices])
+            [self.settings.data[i] for i in validate_indices])
+        unc_test_set = np.array([self.settings.data[i] for i in test_indices])
         unc_train_tch = torch.tensor(
-            self.unc_set.data[train_indices], requires_grad=self.train_flag, dtype=s.DTYPE
+            self.settings.data[train_indices], requires_grad=self.train_flag, dtype=s.DTYPE
         )
         unc_test_tch = torch.tensor(
-            self.unc_set.data[test_indices], requires_grad=self.train_flag, dtype=s.DTYPE
+            self.settings.data[test_indices], requires_grad=self.train_flag, dtype=s.DTYPE
         )
         unc_validate_tch = torch.tensor(
-            self.unc_set.data[validate_indices], requires_grad=self.train_flag, dtype=s.DTYPE
+            self.settings.data[validate_indices], requires_grad=self.train_flag, dtype=s.DTYPE
         )
 
         cp_param_tchs = []
@@ -1295,6 +1295,8 @@ class Trainer:
         self._multistage = self.settings.multistage
         self._init_uncertain_parameter = self.settings.init_uncertain_param
         self._init_context = self.settings.init_context
+        if self.settings.data is None:
+            self.settings.data = self.unc_set.data
         self._split_dataset(self.settings.test_percentage,
                             self.settings.validate_percentage, self.settings.seed)
 
@@ -1560,6 +1562,7 @@ class Trainer:
         eta=DS.eta,
         contextual=DS.contextual,
         predictor=DS.predictor,
+        settings = DS
     ):
         r"""
         Perform gridsearch to find optimal :math:`\rho`-ball around data.
@@ -1604,7 +1607,10 @@ class Trainer:
                 The rho value
         """
         self._multistage = False
+        self.settings = settings
         self.settings.predictor = predictor
+        if self.settings.data is None:
+            self.settings.data = self.unc_set.data
         if contextual:
             if predictor is None:
                 raise ValueError("Missing NN-Model")

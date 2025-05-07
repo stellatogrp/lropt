@@ -94,22 +94,23 @@ class RemoveUncertainty(Reduction):
         """add constraints for the conjugate of the uncertainty set
         for each uncertain param"""
         for k_ind in range(k_num):
+            new_aux_expr = aux_expr
             for u_ind, uvar in enumerate(u_info['list']):
                 terms = (z_unc[u_ind][k_ind],supp_cons[u_ind][k_ind],uvar.uncertainty_set.b)
                 new_expr, new_constraint, lmbda, sval = uvar.conjugate(terms[0],terms[1], k_ind)
-                aux_expr = aux_expr + new_expr
+                new_aux_expr = new_aux_expr + new_expr
                 aux_constraint = aux_constraint + new_constraint
                 if terms[2] is not None:
-                    aux_expr = aux_expr - uvar.uncertainty_set.b@(
+                    new_aux_expr = new_aux_expr - uvar.uncertainty_set.b@(
                         z_cons[u_ind])- \
                             supp_cons[u_ind][k_ind]@uvar.uncertainty_set.b
             # add certain terms
             for expr in cur_cons_data['std_lst']:
-                aux_expr = aux_expr + expr
-            fin_expr = aux_expr
+                new_aux_expr = new_aux_expr + expr
+            fin_expr = new_aux_expr
             if is_mro:
                 uvar = u_info['list'][0]
-                aux_constraint += [aux_expr <= 0]
+                aux_constraint += [new_aux_expr <= 0]
                 fin_expr = uvar.uncertainty_set.rho_mult*\
                     uvar.uncertainty_set.rho*lmbda + uvar.uncertainty_set._w@sval
         return fin_expr, aux_constraint, lmbda, sval

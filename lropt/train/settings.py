@@ -250,6 +250,7 @@ class TrainerSettings:
         self.initialize_predictor = True
         self.validate_percentage = 0.2
         self.validate_frequency = 10
+        self.data = None
 
         self._generate_slots()
 
