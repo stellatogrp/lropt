@@ -568,8 +568,8 @@ class TestMultiStage(unittest.TestCase):
         init_a = cov[:K, :K]
         init_b = np.zeros(K)
         # init_b = d_star[:K]
-        init_weights = torch.zeros((K * K + K, x_endind))
-        init_weights[K * K :, T + 1 :] = torch.eye(K)
+        init_weights = torch.zeros((K, x_endind))
+        init_weights[:, T + 1 :] = torch.eye(K)
         settings = TrainerSettings()
         settings.set(
             simulator=simulator,

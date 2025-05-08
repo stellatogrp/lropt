@@ -30,7 +30,7 @@ from lropt.train.utils import (
 from lropt.uncertain_parameter import UncertainParameter
 from lropt.uncertainty_sets.scenario import Scenario
 from lropt.utils import unique_list
-from lropt.violation_checker.utils import CONSTRAINT_STATUS, InfeasibleConstraintException
+from lropt.violation_checker.utils import CONSTRAINT_STATUS
 from lropt.violation_checker.violation_checker import ViolationChecker
 
 
@@ -77,7 +77,7 @@ class Trainer:
         alpha,
         a_tch,
         b_tch,
-        seed    ):
+        seed ):
         """This function calls the loss and constraint function, and returns
         an error if an infeasibility is encountered. This is infeasibility
         dependent on the testing data-set.
@@ -92,14 +92,16 @@ class Trainer:
                 b_tch=b_tch,
                 seed=seed,
                 rho_tch=rho_tch,
-                alpha=alpha            )
+                alpha=alpha,
+                batch_size = self.settings.test_batch_size          )
         )
         if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
-            raise InfeasibleConstraintException(
-                "Found an infeasible constraint during a call to monte_carlo."
-                + "Possibly an infeasible uncertainty set initialization."
-                + "Or infeasibility encountered in the testing set"
-            )
+            # raise InfeasibleConstraintException(
+            #     "Found an infeasible constraint during a call to monte_carlo."
+            #     + "Possibly an infeasible uncertainty set initialization."
+            #     + "Or infeasibility encountered in the testing set"
+            # )
+            print("Infeasible init")
         return cost, constraint_cost, x_hist, z_hist, eval_cost, prob_vio, u_hist
 
     def loss_and_constraints(
@@ -109,6 +111,7 @@ class Trainer:
         a_tch,
         b_tch,
         seed,
+        batch_size
     ):
         """
         This function propagates the system state, calculates the costs,
@@ -144,10 +147,10 @@ class Trainer:
 
         if self._multistage:
             u_0 = 0
-            x_0 = self.simulator.init_state(self.settings.batch_size, seed,
+            x_0 = self.simulator.init_state(batch_size, seed,
                                             **self.settings.kwargs_simulator)
         else:
-            batch_int, x_0, u_0 = self.simulator.init_state(self.settings.batch_size, seed,
+            batch_int, x_0, u_0 = self.simulator.init_state(batch_size, seed,
                                                             **self.settings.kwargs_simulator)
             self.settings.kwargs_simulator["batch_int"] = batch_int
 
@@ -308,8 +311,8 @@ class Trainer:
             in_shape = x_endind
         else:
             in_shape = sum(x_shapes)
-        out_shape = int(a_shape[0] * a_shape[1] + b_shape[0])
-        return in_shape, out_shape, a_shape[0] * a_shape[1]
+        # out_shape = int(a_shape[0] * a_shape[1] + b_shape[0])
+        return in_shape,  a_shape[0] * a_shape[1], b_shape[0]
 
     def create_predictor_tensors(self,x_batch):
         """Create the tensors of a's and b's using the trained linear model"""
@@ -395,28 +398,28 @@ class Trainer:
         # Split the dataset into train_set and test, and create Tensors
         np.random.seed(seed)
         assert (test_percentage + validate_percentage) < 1
-        num_test = max(1, int(self.unc_set.data.shape[0] * test_percentage))
-        num_validate = max(1, int(self.unc_set.data.shape[0] * validate_percentage))
-        num_train = int(self.unc_set.data.shape[0] - num_test-num_validate)
+        num_test = max(1, int(self.settings.data.shape[0] * test_percentage))
+        num_validate = max(1, int(self.settings.data.shape[0] * validate_percentage))
+        num_train = int(self.settings.data.shape[0] - num_test-num_validate)
         test_and_validate_indices = np.random.choice(
-            self.unc_set.data.shape[0], num_test+num_validate, replace=False)
+            self.settings.data.shape[0], num_test+num_validate, replace=False)
         test_indices = test_and_validate_indices[:num_test]
         validate_indices = test_and_validate_indices[num_test:]
         train_indices = [i for i in range(
-            self.unc_set.data.shape[0]) if i not in test_and_validate_indices]
+            self.settings.data.shape[0]) if i not in test_and_validate_indices]
 
-        unc_train_set = np.array([self.unc_set.data[i] for i in train_indices])
+        unc_train_set = np.array([self.settings.data[i] for i in train_indices])
         unc_validate_set = np.array(
-            [self.unc_set.data[i] for i in validate_indices])
-        unc_test_set = np.array([self.unc_set.data[i] for i in test_indices])
+            [self.settings.data[i] for i in validate_indices])
+        unc_test_set = np.array([self.settings.data[i] for i in test_indices])
         unc_train_tch = torch.tensor(
-            self.unc_set.data[train_indices], requires_grad=self.train_flag, dtype=s.DTYPE
+            self.settings.data[train_indices], requires_grad=self.train_flag, dtype=s.DTYPE
         )
         unc_test_tch = torch.tensor(
-            self.unc_set.data[test_indices], requires_grad=self.train_flag, dtype=s.DTYPE
+            self.settings.data[test_indices], requires_grad=self.train_flag, dtype=s.DTYPE
         )
         unc_validate_tch = torch.tensor(
-            self.unc_set.data[validate_indices], requires_grad=self.train_flag, dtype=s.DTYPE
+            self.settings.data[validate_indices], requires_grad=self.train_flag, dtype=s.DTYPE
         )
 
         cp_param_tchs = []
@@ -664,7 +667,7 @@ class Trainer:
         elif fixb:
             variables = [rho_tch, a_tch, alpha]
         elif contextual:
-            variables = [rho_tch, alpha]
+            variables = [alpha]
             variables.extend(list(model.parameters()))
         else:
             variables = [rho_tch, a_tch, b_tch, alpha]
@@ -940,6 +943,7 @@ class Trainer:
                     seed=self.settings.seed + seed_num + 1,
                     rho_tch=rho_tch,
                     alpha=alpha,
+                    batch_size = self.settings.batch_size
                 )
             )
 
@@ -970,7 +974,7 @@ class Trainer:
                 fin_cost.backward()
                 prev_fin_cost = fin_cost.clone().detach()
                 break
-            elif constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
+            elif constraint_status is CONSTRAINT_STATUS.INFEASIBLE and (step_num != 0):
                 undo_step(opt=opt,state=prev_states)
                 reduce_step_size(opt=opt,step_mult = self.settings.line_search_mult)
                 prev_states = take_step(opt=opt,
@@ -1012,21 +1016,6 @@ class Trainer:
         if self.settings.contextual:
             if self.settings.initialize_predictor:
                 self.settings.predictor.initialize(a_tch,b_tch,self)
-                self.settings.predictor.train()
-                # call it pre-training
-                if self.settings.predictor.pretrain:
-                    assert (len(self.x_train_tch) != 0) and (len(self.u_train_tch) != 0)
-                    pred_optimizer = torch.optim.SGD(
-                        self.settings.predictor.parameters(),
-                        lr = self.settings.predictor.lr)
-                    criterion = torch.nn.MSELoss()
-                    epochs=self.settings.predictor.epochs
-                    for epoch in range(epochs):
-                        _,yhat=self.create_predictor_tensors(self.x_train_tch)
-                        loss=criterion(yhat,self.u_train_tch)
-                        pred_optimizer.zero_grad()
-                        loss.backward()
-                        pred_optimizer.step()
 
 
         variables = self._set_train_variables(
@@ -1083,7 +1072,8 @@ class Trainer:
                 else:
                     exception_message = "Violation constraint check timed " +\
                      "out after " + f"{self.settings.max_iter_line_search} attempts."
-                raise InfeasibleConstraintException(exception_message)
+                print(exception_message)
+                # raise InfeasibleConstraintException(exception_message)
             train_stats.update_train_stats(
                 fin_cost.detach().numpy().copy(),
                 eval_cost,
@@ -1305,6 +1295,8 @@ class Trainer:
         self._multistage = self.settings.multistage
         self._init_uncertain_parameter = self.settings.init_uncertain_param
         self._init_context = self.settings.init_context
+        if self.settings.data is None:
+            self.settings.data = self.unc_set.data
         self._split_dataset(self.settings.test_percentage,
                             self.settings.validate_percentage, self.settings.seed)
 
@@ -1570,6 +1562,7 @@ class Trainer:
         eta=DS.eta,
         contextual=DS.contextual,
         predictor=DS.predictor,
+        settings = DS
     ):
         r"""
         Perform gridsearch to find optimal :math:`\rho`-ball around data.
@@ -1614,7 +1607,10 @@ class Trainer:
                 The rho value
         """
         self._multistage = False
+        self.settings = settings
         self.settings.predictor = predictor
+        if self.settings.data is None:
+            self.settings.data = self.unc_set.data
         if contextual:
             if predictor is None:
                 raise ValueError("Missing NN-Model")
@@ -1849,17 +1845,10 @@ class TrainLoopStats:
         row_dict["mu"] = mu
         row_dict["alpha"] = alpha.item()
         row_dict["alphagrad"] = alpha.grad
-        if contextual and linear:
-            row_dict["gradnorm"] = np.linalg.norm(predictor.linear.weight.grad) + np.linalg.norm(
-                predictor.linear.bias.grad
-            )
-            row_dict["grad"] = torch.hstack(
-                [predictor.linear.weight.grad,
-                 predictor.linear.bias.grad.view(predictor.linear.bias.grad.shape[0], 1)]
-            )
-        elif contextual:
-            row_dict["gradnorm"] = np.linalg.norm(
-                list(predictor.parameters())[0].data.detach().numpy())
+        if contextual:
+            row_dict["gradnorm"] = [np.linalg.norm(
+                list(predictor.parameters())[param_ind].data.detach().numpy()) \
+                    for param_ind in range(len(list(predictor.parameters())))]
             row_dict["grad"] = list(predictor.parameters())[0].data.detach().numpy()
         else:
             row_dict["gradnorm"] = np.linalg.norm(a_tch.grad)

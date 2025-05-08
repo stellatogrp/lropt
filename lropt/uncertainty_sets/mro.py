@@ -14,13 +14,14 @@ class MRO(UncertaintySet):
         \{ \sum( w_k||u_k - d_k ||^\text{power}_p)\leq \rho\\}
     """
 
-    def __init__(self, K=1, rho=1, data=None, power=1, p=2,
+    def __init__(self, K=1, rho=1, data=None, train_data = None, power=1, p=2,
                  a=None, b=None, train=False, c=None, d=None,
                     ub=None, lb=None, sum_eq=None):
 
         if data is None:
             raise ValueError("You must provide data")
-
+        if train_data is None:
+            train_data = data
         self._dimension = data.shape[1]
         if train:
             a = ShapeParameter((self._dimension, self._dimension))
@@ -36,16 +37,16 @@ class MRO(UncertaintySet):
         if power < 0:
             raise ValueError("Power must be a nonnegative integer.")
 
-        kmeans = KMeans(n_clusters=K, n_init='auto').fit(data)
+        kmeans = KMeans(n_clusters=K, n_init='auto').fit(train_data)
         self.affine_transform_temp = None
         self.affine_transform = None
         self._data = data
-        self._N = data.shape[0]
+        self._N = train_data.shape[0]
         self._K = K
         self._power = power
         self._p = p
         self._Dbar = kmeans.cluster_centers_
-        self._w = np.bincount(kmeans.labels_) / data.shape[0]
+        self._w = np.bincount(kmeans.labels_) / train_data.shape[0]
         self._rho = rho
         self._s = None
         self._train = train

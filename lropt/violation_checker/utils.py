@@ -27,6 +27,7 @@ def check_constraint(constraint: Constraint) -> CONSTRAINT_STATUS:
     violations = constraint.violation()
     for violation in np.nditer(violations):
         if violation > VIOLATION_TOL:
+            # print(violation, VIOLATION_TOL)
             return CONSTRAINT_STATUS.INFEASIBLE
         elif violation<0:
             raise ValueError(f"Unknown violation for constraint {constraint}: Expected non-negative"
