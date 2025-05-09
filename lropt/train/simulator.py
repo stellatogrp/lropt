@@ -66,9 +66,18 @@ class DefaultSimulator(ABC):
         """ Create the current stage cost using the current state x
         and decision u
         """
-        return self.trainer.settings.obj_scale*\
-            self.trainer.train_objective(kwargs['batch_int'], kwargs['eval_args'])
+        weights = u[1]
+        prod = weights.mul(kwargs["u_train"])
+        port_values = torch.sum(prod, dim=1)
+        quant = int((1-kwargs["eta"])*len(port_values)) + 1
+        port_sorted = torch.sort(port_values, descending=True)[0]
+        quant = port_sorted[quant]
 
+        port_le_quant = port_values.le(quant).float()
+        port_le_quant.requires_grad = True
+        cvar_loss =  port_values.mul(port_le_quant).sum() / port_le_quant.sum()
+        loss = -cvar_loss
+        return self.trainer.settings.obj_scale*loss
 
     def stage_cost_eval(self,x,u,**kwargs):
         """ Create the current stage evaluation cost using the current state x

@@ -251,6 +251,7 @@ class TrainerSettings:
         self.validate_percentage = 0.2
         self.validate_frequency = 10
         self.data = None
+        self.cov_gam = 0.5
 
         self._generate_slots()
 

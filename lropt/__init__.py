@@ -17,3 +17,4 @@ from lropt.train.settings import TrainerSettings
 from lropt.train.predictors.linear import LinearPredictor
 from lropt.train.predictors.covpred import CovPredictor
 from lropt.train.predictors.nn import NNPredictor
+from lropt.train.predictors.deep import DeepNormalModel

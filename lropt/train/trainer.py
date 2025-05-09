@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import scipy as sc
 import torch
+import torch.nn as nn
 from cvxpy import Parameter as OrigParameter
 from cvxpylayers.torch import CvxpyLayer
 from joblib import Parallel, delayed
@@ -33,6 +34,15 @@ from lropt.utils import unique_list
 from lropt.violation_checker.utils import CONSTRAINT_STATUS
 from lropt.violation_checker.violation_checker import ViolationChecker
 
+
+# Logistic regression model defined externally for reuse and gradient flow
+class LogisticRegression(nn.Module):
+    def __init__(self, n_inputs, n_outputs=1):
+        super(LogisticRegression, self).__init__()
+        self.linear = nn.Linear(n_inputs, n_outputs)
+
+    def forward(self, x):
+        return torch.sigmoid(self.linear(x))
 
 class Trainer:
     """Create a class to handle training"""
@@ -158,7 +168,7 @@ class Trainer:
             x_0 = [x_0]
         x_0 = [x.clone().detach() for x in x_0]
         if self.settings.contextual:
-            a_tch, b_tch = self.create_predictor_tensors(x_0)
+            a_tch, b_tch, radius = self.create_predictor_tensors(x_0)
 
         cost = 0.0
         constraint_cost = 0.0
@@ -188,6 +198,8 @@ class Trainer:
             if not self._multistage:
                 eval_args = self.order_args(z_t, x_t, u_0)
                 self.settings.kwargs_simulator["eval_args"] = eval_args
+                self.settings.kwargs_simulator["u_train"] = u_0
+                self.settings.kwargs_simulator["eta"] = self.settings.eta
             x_t = self.simulator.simulate(x_t, z_t, **self.settings.kwargs_simulator)
             cost += self.simulator.stage_cost(x_t, z_t, **self.settings.kwargs_simulator)
             eval_cost += self.simulator.stage_cost_eval(x_t, z_t, **self.settings.kwargs_simulator)
@@ -198,14 +210,17 @@ class Trainer:
 
             # TODO (bart): this is not ideal since we are copying the kwargs
             constraint_kwargs["alpha"] = alpha
-            constraint_cost += self.simulator.constraint_cost(x_t, z_t, **constraint_kwargs)
+            input_tensors = self.create_input_tensors(x_t)
+            coverage_loss, _ = self.dist_loss(a_tch,b_tch,radius,input_tensors,u_0)
+            constraint_cost += coverage_loss
+            # self.simulator.constraint_cost(x_t, z_t, **constraint_kwargs)
 
             prob_vio += self.simulator.prob_constr_violation(x_t, z_t,
                                                              **self.settings.kwargs_simulator)
             x_hist.append([xval.detach().numpy().copy() for xval in x_t])
             z_hist.append(z_t)
             if self.settings.contextual:
-                a_tch, b_tch = self.create_predictor_tensors(x_t)
+                a_tch, b_tch,radius = self.create_predictor_tensors(x_t)
             self._a_tch = a_tch
             self._b_tch = b_tch
             self._cur_x = x_t
@@ -319,9 +334,9 @@ class Trainer:
         a_shape = self.unc_set._a.shape
         b_shape = self.unc_set._b.shape
         input_tensors = self.create_input_tensors(x_batch)
-        a_tch, b_tch = self.settings.predictor.forward(
+        a_tch, b_tch, radius = self.settings.predictor.forward(
             input_tensors,a_shape,b_shape,self.train_flag)
-        return a_tch, b_tch
+        return a_tch, b_tch, radius
 
     def create_input_tensors(self,x_batch):
         x_endind = self.x_endind
@@ -701,7 +716,7 @@ class Trainer:
             return 0
         coverage = 0
         if contextual:
-            a_tch, b_tch = self.create_predictor_tensors(
+            a_tch, b_tch, radius = self.create_predictor_tensors(
                 [torch.tensor(y) for y in y_set[-1]]
             )
             for i in range(dset.shape[0]):
@@ -815,6 +830,62 @@ class Trainer:
             quantiles=quantiles,
             serial_flag=True,
         )
+
+
+    def dist_loss(self,cho,mean,radius, x, y):
+        convergence_threshold=1e-4
+        max_epochs=500
+        lr=1e-2
+        cov_inv = torch.matmul(torch.linalg.inv(torch.transpose(cho, 1, 2)), torch.linalg.inv(cho))
+
+
+        def compute_distance(y_train, mean, cov_inv):
+            def dist(u, v, c):
+                diff = u - v
+                m = torch.matmul(torch.matmul(diff.T, c), diff)
+                return torch.sqrt(m)
+            dist_list = torch.empty(len(y_train))
+            for i in range(len(y_train)):
+                x = y_train[i]
+                m = mean[i]
+                c = cov_inv[i]  #*(radius**2)
+                dis = dist(x,m,c)
+                # dis_div_ratio = dis/ r
+
+                # temp = (1/(radius*radius))*torch.matmul(c[i].T, x - m)
+                # dis = torch.linalg.norm(temp,  ord=2)
+                dist_list[i] = dis   #dis_div_ratio
+
+            return dist_list
+
+        mahalanobis_dist = compute_distance(y, mean, cov_inv)
+        assign_list = (mahalanobis_dist <= radius).float().unsqueeze(-1)
+
+        log_regr = LogisticRegression(x.shape[1])
+        criterion = nn.BCELoss()
+        optimizer_conf = torch.optim.Adam(log_regr.parameters(), lr=lr)
+
+        prev_loss = float('inf')
+        for epoch in range(int(max_epochs)):
+            optimizer_conf.zero_grad()
+            predictions = log_regr(x)
+            loss_conf = criterion(predictions.float(), assign_list.float())
+            loss_conf.backward(create_graph=True)
+            optimizer_conf.step()
+
+            if abs(prev_loss - loss_conf.item()) < convergence_threshold:
+                break
+            prev_loss = loss_conf.item()
+
+        predicted_prob = log_regr(x)
+
+
+        conditional_loss = torch.mean((predicted_prob - (1 - 0.9)) ** 2)
+
+        penalty = nn.LeakyReLU()(0.9 - assign_list.mean())
+        loss_final = conditional_loss + 10 * penalty
+
+        return loss_final, assign_list.mean().item()
 
     def prob_constr_violation(self, batch_int, eval_args):
         """
@@ -950,19 +1021,8 @@ class Trainer:
             if not self._default_simulator:
                 eval_cost = eval_cost.repeat(3)
 
-            if self.num_g_total > 1:
-                fin_cost = (
-                    cost + lam @ torch.maximum(
-                        constr_cost,torch.zeros(self.num_g_total)) + (
-                            mu / 2) * (torch.linalg.norm(
-                                torch.maximum(constr_cost,
-                                                torch.zeros(self.num_g_total))) ** 2)
-                    )
-            else:
-                fin_cost = cost + lam * torch.maximum(
-                    constr_cost,torch.zeros(1)) + (
-                        mu / 2) * (torch.maximum(
-                            constr_cost,torch.zeros(1))**2)
+            fin_cost = (1-self.settings.cov_gam)*cost + self.settings.cov_gam*constr_cost
+
             if self.settings.line_search:
                 search_condition = fin_cost <= self.settings.line_search_threshold*prev_fin_cost
             else:
@@ -1033,7 +1093,9 @@ class Trainer:
                 variables, lr=self.settings.lr, momentum=self.settings.momentum
             )
         else:
-            opt = s.OPTIMIZERS[self.settings.optimizer](variables, lr=self.settings.lr)
+            opt = s.OPTIMIZERS[self.settings.optimizer](variables,
+                                                         lr=self.settings.lr,
+                                                         weight_decay = 1e-1)
 
         if self.settings.scheduler:
             scheduler_ = torch.optim.lr_scheduler.StepLR(
@@ -1656,7 +1718,7 @@ class Trainer:
         for rho in rholst:
             rho_tch = torch.tensor(rho * init_rho, requires_grad=self.train_flag, dtype=s.DTYPE)
             if contextual:
-                a_tch_init, b_tch_init = self.create_predictor_tensors(x_unique)
+                a_tch_init, b_tch_init,radius = self.create_predictor_tensors(x_unique)
             z_unique = self.cvxpylayer(
                 rho_tch,
                 *self.cp_param_tch,
@@ -1677,7 +1739,7 @@ class Trainer:
             )
 
             if contextual:
-                a_tch_init, b_tch_init = self.create_predictor_tensors(
+                a_tch_init, b_tch_init,radius = self.create_predictor_tensors(
                     x_unique_t)
             z_unique_t = self.cvxpylayer(
                 rho_tch,
