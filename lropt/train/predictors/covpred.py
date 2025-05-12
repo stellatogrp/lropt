@@ -120,4 +120,4 @@ class CovPredictor(torch.nn.Module):
                                         nu[i].view(init_shape,1),
                                         upper=True).view(
                                             init_shape,) for i in range(N)])
-        return torch.stack([torch.linalg.inv(L[i]) for i in range(N)]), yhat
+        return torch.stack([torch.linalg.inv(L[i]) for i in range(N)]), yhat, 1

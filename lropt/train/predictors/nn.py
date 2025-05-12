@@ -45,4 +45,4 @@ class NNPredictor(LinearPredictor):
         if not train_flag:
             a_tch = torch.tensor(a_tch, requires_grad=False)
             b_tch = torch.tensor(b_tch, requires_grad=False)
-        return a_tch, b_tch
+        return a_tch, b_tch, 1

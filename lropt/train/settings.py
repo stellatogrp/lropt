@@ -252,7 +252,8 @@ class TrainerSettings:
         self.validate_frequency = 10
         self.data = None
         self.cov_gam = 0.5
-
+        self.cost_func = False
+        self.use_eval = False
         self._generate_slots()
 
     def _attr_exists(self, name) -> None:

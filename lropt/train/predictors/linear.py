@@ -111,7 +111,7 @@ class LinearPredictor(torch.nn.Module):
         if not train_flag:
             a_tch = a_tch.detach().clone()
             b_tch = b_tch.detach().clone()
-        return a_tch, b_tch
+        return a_tch, b_tch, 1
 
     def knn_fit(self,trainer):
         knn = NearestNeighbors(n_neighbors=self.n_neighbors)
@@ -139,7 +139,7 @@ class LinearPredictor(torch.nn.Module):
             criterion = torch.nn.MSELoss()
             epochs=self.epochs
             for epoch in range(epochs):
-                _,yhat=trainer.create_predictor_tensors(trainer.x_train_tch)
+                _,yhat,_=trainer.create_predictor_tensors(trainer.x_train_tch)
                 loss=criterion(yhat,trainer.u_train_tch)
                 pred_optimizer.zero_grad()
                 loss.backward()

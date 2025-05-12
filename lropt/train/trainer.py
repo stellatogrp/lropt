@@ -210,10 +210,12 @@ class Trainer:
 
             # TODO (bart): this is not ideal since we are copying the kwargs
             constraint_kwargs["alpha"] = alpha
-            input_tensors = self.create_input_tensors(x_t)
-            coverage_loss, _ = self.dist_loss(a_tch,b_tch,radius,input_tensors,u_0)
-            constraint_cost += coverage_loss
-            # self.simulator.constraint_cost(x_t, z_t, **constraint_kwargs)
+            if self.settings.cost_func:
+                constraint_cost += self.simulator.constraint_cost(x_t, z_t, **constraint_kwargs)
+            else:
+                input_tensors = self.create_input_tensors(x_t)
+                coverage_loss, _ = self.dist_loss(a_tch,b_tch,radius,input_tensors,u_0)
+                constraint_cost += coverage_loss
 
             prob_vio += self.simulator.prob_constr_violation(x_t, z_t,
                                                              **self.settings.kwargs_simulator)
@@ -1021,7 +1023,22 @@ class Trainer:
             if not self._default_simulator:
                 eval_cost = eval_cost.repeat(3)
 
-            fin_cost = (1-self.settings.cov_gam)*cost + self.settings.cov_gam*constr_cost
+            if self.settings.cost_func:
+                if self.num_g_total > 1:
+                    fin_cost = (
+                        cost + lam @ torch.maximum(
+                            constr_cost,torch.zeros(self.num_g_total)) + (
+                                mu / 2) * (torch.linalg.norm(
+                                    torch.maximum(constr_cost,
+                                                    torch.zeros(self.num_g_total))) ** 2)
+                    )
+                else:
+                    fin_cost = cost + lam * torch.maximum(
+                        constr_cost,torch.zeros(1)) + (
+                            mu / 2) * (torch.maximum(
+                                constr_cost,torch.zeros(1))**2)
+            else:
+                fin_cost = (1-self.settings.cov_gam)*cost + self.settings.cov_gam*constr_cost
 
             if self.settings.line_search:
                 search_condition = fin_cost <= self.settings.line_search_threshold*prev_fin_cost

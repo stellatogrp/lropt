@@ -66,18 +66,34 @@ class DefaultSimulator(ABC):
         """ Create the current stage cost using the current state x
         and decision u
         """
-        weights = u[1]
-        prod = weights.mul(kwargs["u_train"])
-        port_values = torch.sum(prod, dim=1)
-        quant = int((1-kwargs["eta"])*len(port_values)) + 1
-        port_sorted = torch.sort(port_values, descending=True)[0]
-        quant = port_sorted[quant]
+        if self.trainer.settings.cost_func:
+            if self.trainer.settings.use_eval:
+            #     return self.trainer.settings.obj_scale*self.trainer.evaluation_metric(
+            # kwargs['batch_int'], kwargs['eval_args'],
+            # self.trainer.settings.quantiles)[1]
+                return self.trainer.settings.obj_scale*\
+                self.trainer.train_objective(kwargs['batch_int'], kwargs['eval_args'])
+            else:
+                weights = u[1]
+                prod = weights.mul(kwargs["u_train"])
+                port_values = torch.sum(prod, dim=1)
+                loss = -port_values.sum()
+                return self.trainer.settings.obj_scale*loss
+            # return self.trainer.settings.obj_scale*\
+            # self.trainer.train_objective(kwargs['batch_int'], kwargs['eval_args'])
+        else:
+            weights = u[1]
+            prod = weights.mul(kwargs["u_train"])
+            port_values = torch.sum(prod, dim=1)
+            quant = int((1-kwargs["eta"])*len(port_values)) + 1
+            port_sorted = torch.sort(port_values, descending=True)[0]
+            quant = port_sorted[quant]
 
-        port_le_quant = port_values.le(quant).float()
-        port_le_quant.requires_grad = True
-        cvar_loss =  port_values.mul(port_le_quant).sum() / port_le_quant.sum()
-        loss = -cvar_loss
-        return self.trainer.settings.obj_scale*loss
+            port_le_quant = port_values.le(quant).float()
+            port_le_quant.requires_grad = True
+            cvar_loss =  port_values.mul(port_le_quant).sum() / port_le_quant.sum()
+            loss = -cvar_loss
+            return self.trainer.settings.obj_scale*loss
 
     def stage_cost_eval(self,x,u,**kwargs):
         """ Create the current stage evaluation cost using the current state x
