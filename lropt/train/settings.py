@@ -254,6 +254,8 @@ class TrainerSettings:
         self.cov_gam = 0.5
         self.cost_func = False
         self.use_eval = False
+        self.cvar_eval = False
+        self.target_eta = 0.1
         self._generate_slots()
 
     def _attr_exists(self, name) -> None:
