@@ -25,10 +25,24 @@ class Simulator(ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def stage_cost_eval(self,x,u, **kwargs):
+    def stage_cost_avg(self,x,u, **kwargs):
         """ Create the current stage evaluation cost using the current state x
         and decision u. This may differ from the stage cost, which is used
         for training.
+        """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def stage_cost_cvar(self,x,u, **kwargs):
+        """ Create the current stage cvar cost using the current state x
+        and decision u. This may differ from the stage cost, which is used
+        for training.
+        """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def in_sample_obj(self,x,u,**kwargs):
+        """ Record the in-sample ojective value.
         """
         raise NotImplementedError()
 
@@ -66,64 +80,23 @@ class DefaultSimulator(ABC):
         """ Create the current stage cost using the current state x
         and decision u
         """
-        if self.trainer.settings.cost_func:
-            if self.trainer.settings.use_eval:
-            #     return self.trainer.settings.obj_scale*self.trainer.evaluation_metric(
-            # kwargs['batch_int'], kwargs['eval_args'],
-            # self.trainer.settings.quantiles)[1]
-                return self.trainer.settings.obj_scale*\
-                self.trainer.train_objective(kwargs['batch_int'], kwargs['eval_args'])
-            else:
-                weights = u[1]
-                prod = weights.mul(kwargs["u_train"])
-                port_values = torch.sum(prod, dim=1)
-                quant = int((1-kwargs["eta"])*len(port_values)) + 1
-                port_sorted = torch.sort(port_values, descending=True)[0]
-                quant = port_sorted[quant]
+        return self.trainer.settings.obj_scale*self.trainer.evaluation_cvar(
+            kwargs['batch_int'], kwargs['eval_args'])
 
-                port_le_quant = port_values.le(quant).float()
-                port_le_quant.requires_grad = True
-                cvar_loss =  port_values.mul(port_le_quant).sum() / port_le_quant.sum()
-                loss = -cvar_loss
-                return self.trainer.settings.obj_scale*loss
-            # return self.trainer.settings.obj_scale*\
-            # self.trainer.train_objective(kwargs['batch_int'], kwargs['eval_args'])
-        else:
-            weights = u[1]
-            prod = weights.mul(kwargs["u_train"])
-            port_values = torch.sum(prod, dim=1)
-            quant = int((1-kwargs["eta"])*len(port_values)) + 1
-            port_sorted = torch.sort(port_values, descending=True)[0]
-            quant = port_sorted[quant]
+    def in_sample_obj(self,x,u,**kwargs):
+        return self.trainer.train_objective(kwargs['batch_int'], kwargs['eval_args'])
 
-            port_le_quant = port_values.le(quant).float()
-            port_le_quant.requires_grad = True
-            cvar_loss =  port_values.mul(port_le_quant).sum() / port_le_quant.sum()
-            loss = -cvar_loss
-            return self.trainer.settings.obj_scale*loss
-
-    def stage_cost_eval(self,x,u,**kwargs):
+    def stage_cost_avg(self,x,u,**kwargs):
         """ Create the current stage evaluation cost using the current state x
         and decision u
         """
-        if self.trainer.settings.cvar_eval:
-            weights = u[1]
-            prod = weights.mul(kwargs["u_train"])
-            port_values = torch.sum(prod, dim=1)
-            quant = int((1-self.trainer.settings.target_eta)*len(port_values)) + 1
-            port_sorted = torch.sort(port_values, descending=True)[0]
-            quant = port_sorted[quant]
-
-            port_le_quant = port_values.le(quant).float()
-            port_le_quant.requires_grad = True
-            cvar_loss =  port_values.mul(port_le_quant).sum() / port_le_quant.sum()
-            loss = -cvar_loss
-            return loss.repeat(3)
-        else:
-            return torch.tensor(self.trainer.evaluation_metric(
+        return torch.tensor(self.trainer.evaluation_metric(
             kwargs['batch_int'], kwargs['eval_args'],
             self.trainer.settings.quantiles),dtype=settings.DTYPE)
 
+    def stage_cost_cvar(self,x,u,**kwargs):
+        return self.trainer.evaluation_cvar(
+            kwargs['batch_int'], kwargs['eval_args'])
 
     def constraint_cost(self,x,u,**kwargs):
         """ Create the current constraint penalty cost

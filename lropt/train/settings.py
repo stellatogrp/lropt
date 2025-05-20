@@ -252,9 +252,7 @@ class TrainerSettings:
         self.validate_frequency = 10
         self.data = None
         self.cov_gam = 0.5
-        self.cost_func = False
-        self.use_eval = False
-        self.cvar_eval = False
+        self.cost_func = True
         self.target_eta = 0.1
         self._generate_slots()
 

@@ -11,7 +11,7 @@ from torch import Tensor
 
 import lropt.train.settings as settings
 
-EVAL_INPUT_CASE = Enum("_EVAL_INPUT_CASE", "MEAN EVALMEAN MAX")
+EVAL_INPUT_CASE = Enum("_EVAL_INPUT_CASE", "MEAN EVALMEAN MAX CVAR")
 
 
 def get_n_processes(max_n=np.inf):
@@ -54,6 +54,7 @@ def eval_prob_constr_violation(
             init_val=G[sum(g_shapes[:k]) : sum(g_shapes[: (k + 1)])],
             eval_input_case=EVAL_INPUT_CASE.MAX,
             quantiles=None,
+            eta_target = None
         )
     return G.mean(axis=1)
 
@@ -65,6 +66,7 @@ def eval_input(
     init_val,
     eval_input_case,
     quantiles,
+    eta_target,
     serial_flag=False,
     **kwargs,
 ):
@@ -139,6 +141,17 @@ def eval_input(
         init_val_mean = torch.mean(init_val, axis=0)
         init_val_upper = torch.quantile(init_val, top_q, axis=0)
         return (init_val_lower, init_val_mean, init_val_upper)
+    elif eval_input_case == EVAL_INPUT_CASE.CVAR:
+        if serial_flag:
+            init_val = torch.stack([curr_result[v] for v in curr_result])
+        else:
+            init_val = curr_result
+        quant = min(len(init_val)-1, int((1-eta_target)*len(init_val)) + 1)
+        init_sorted = torch.sort(init_val, descending=False)[0]
+        quant = init_sorted[quant]
+        init_ge_quant = init_val.ge(quant).float()
+        cvar_loss =  init_val.mul(init_ge_quant).sum() / init_ge_quant.sum()
+        return cvar_loss
     elif eval_input_case == EVAL_INPUT_CASE.MAX:
         # We want to see if there's a violation: either 1 from previous iterations,
         # or new positive value from now

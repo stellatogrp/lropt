@@ -96,7 +96,8 @@ class Trainer:
             torch.manual_seed(seed)
 
         # remove for loop, set batch size to trials
-        cost, constraint_cost, x_hist, z_hist, constraint_status, eval_cost, prob_vio, u_hist ,other_cost = (
+        cost, constraint_cost, x_hist, z_hist, constraint_status, \
+            avg_cost, prob_vio, u_hist ,cvar_cost,in_sample_cost = (
             self.loss_and_constraints(
                 a_tch=a_tch,
                 b_tch=b_tch,
@@ -112,7 +113,8 @@ class Trainer:
             #     + "Or infeasibility encountered in the testing set"
             # )
             print("Infeasible init")
-        return cost, constraint_cost, x_hist, z_hist, eval_cost, prob_vio, u_hist, other_cost
+        return cost, constraint_cost, x_hist, z_hist, avg_cost, \
+            prob_vio, u_hist, cvar_cost, in_sample_cost
 
     def loss_and_constraints(
         self,
@@ -146,7 +148,7 @@ class Trainer:
                 the list of all decisions over time
             constraints_status
                 whether any constraint was infeasible
-            eval_cost
+            avg_cost
                 evaluation function cost, averaged across time steps
             prob_vio
                 probability of constraint violation, averaged across time steps
@@ -172,11 +174,12 @@ class Trainer:
 
         cost = 0.0
         constraint_cost = 0.0
-        other_cost = 0.0
+        cvar_cost = 0.0
+        in_sample_cost = 0.0
         if self._default_simulator:
-            eval_cost = torch.tensor([0, 0, 0], dtype=s.DTYPE)
+            avg_cost = torch.tensor([0, 0, 0], dtype=s.DTYPE)
         else:
-            eval_cost = 0.0
+            avg_cost = 0.0
         prob_vio = 0.0
         x_t = x_0
         x_hist = [[xval.detach().numpy().copy() for xval in x_t.copy()]]
@@ -200,13 +203,13 @@ class Trainer:
                 eval_args = self.order_args(z_t, x_t, u_0)
                 self.settings.kwargs_simulator["eval_args"] = eval_args
                 self.settings.kwargs_simulator["u_train"] = u_0
-                self.settings.kwargs_simulator["eta"] = self.settings.eta
-                other_cost += torch.tensor(self.evaluation_metric(
-            batch_int, eval_args,
-            self.settings.quantiles),dtype=self.settings.DTYPE)[1]
+
             x_t = self.simulator.simulate(x_t, z_t, **self.settings.kwargs_simulator)
+            in_sample_cost += self.simulator.in_sample_obj(
+                x_t, z_t, **self.settings.kwargs_simulator)
+            cvar_cost += self.simulator.stage_cost_cvar(x_t, z_t, **self.settings.kwargs_simulator)
             cost += self.simulator.stage_cost(x_t, z_t, **self.settings.kwargs_simulator)
-            eval_cost += self.simulator.stage_cost_eval(x_t, z_t, **self.settings.kwargs_simulator)
+            avg_cost += self.simulator.stage_cost_avg(x_t, z_t, **self.settings.kwargs_simulator)
             if self.settings.kwargs_simulator is not None:
                 constraint_kwargs = self.settings.kwargs_simulator.copy()
             else:
@@ -220,7 +223,7 @@ class Trainer:
                 input_tensors = self.create_input_tensors(x_t)
                 coverage_loss, _ = self.dist_loss(a_tch,b_tch,radius,input_tensors,u_0)
                 constraint_cost += coverage_loss
-            
+
 
             prob_vio += self.simulator.prob_constr_violation(x_t, z_t,
                                                              **self.settings.kwargs_simulator)
@@ -232,7 +235,9 @@ class Trainer:
             self._b_tch = b_tch
             self._cur_x = x_t
             self._cur_u = u_0
-        return cost, constraint_cost, x_hist, z_hist, constraints_status, eval_cost, prob_vio, u_0, other_cost
+        return cost, constraint_cost, x_hist, z_hist, \
+            constraints_status, avg_cost, prob_vio, u_0, \
+                cvar_cost, in_sample_cost
 
     def _validate_unc_set_T(self):
         """
@@ -775,6 +780,7 @@ class Trainer:
             init_val=0,
             eval_input_case=EVAL_INPUT_CASE.MEAN,
             quantiles=None,
+            eta_target= None
         )
 
     def train_constraint(self, batch_int, eval_args, alpha, eta, kappa):
@@ -804,6 +810,7 @@ class Trainer:
                 quantiles=None,
                 alpha=alpha,
                 eta=eta,
+                eta_target = None
             )
             h_k_expectation = (
                 init_val
@@ -836,8 +843,36 @@ class Trainer:
             eval_input_case=EVAL_INPUT_CASE.EVALMEAN,
             quantiles=quantiles,
             serial_flag=True,
+            eta_target= None
         )
 
+    def evaluation_cvar(self, batch_int, eval_args, eta = None):
+        """
+        This function evaluates the evaluation CVaR over the batched set.
+        Args:
+            batch_int:
+                The number of samples in the batch, to take the mean over
+            eval_args:
+                The arguments of the evaluation function
+            eta:
+                The eta value for the CVaR.
+        Returns:
+            The CVaR of the evaluation function
+        """
+        if self.eval is None:
+            return 0
+        if eta is None:
+            eta = self.settings.target_eta
+        return eval_input(
+            batch_int,
+            eval_func=self.eval,
+            eval_args=eval_args,
+            init_val=0,
+            eval_input_case=EVAL_INPUT_CASE.CVAR,
+            serial_flag=True,
+            quantiles = None,
+            eta_target = eta
+        )
 
     def dist_loss(self,cho,mean,radius, x, y):
         convergence_threshold=1e-4
@@ -1003,7 +1038,7 @@ class Trainer:
 
             fin_cost
 
-            eval_cost (torch.Tensor):
+            avg_cost (torch.Tensor):
 
             prob_violation_train (torch.Tensor):
 
@@ -1014,7 +1049,9 @@ class Trainer:
         for violation_counter in range(current_iter_line_search):
             self._validate_flag = False
             self._test_flag = False
-            cost, constr_cost, _, _, constraint_status, eval_cost, prob_violation_train, _ ,_= (
+            cost, constr_cost, _, _, constraint_status, \
+                avg_cost, prob_violation_train, _ ,cvar_cost, \
+                    in_sample_cost= (
                 self.loss_and_constraints(
                     a_tch=a_tch,
                     b_tch=b_tch,
@@ -1026,7 +1063,7 @@ class Trainer:
             )
 
             if not self._default_simulator:
-                eval_cost = eval_cost.repeat(3)
+                avg_cost = avg_cost.repeat(3)
 
             if self.settings.cost_func:
                 if self.num_g_total > 1:
@@ -1070,7 +1107,8 @@ class Trainer:
                 fin_cost.backward()
                 prev_fin_cost = fin_cost.clone().detach()
                 break
-        return constraint_status, fin_cost, eval_cost, prob_violation_train, constr_cost
+        return constraint_status, fin_cost, avg_cost, \
+            prob_violation_train, constr_cost, cvar_cost, in_sample_cost
 
     def _train_loop(self, init_num):
         if self.settings.random_init and self.settings.train_shape:
@@ -1144,7 +1182,8 @@ class Trainer:
             )
 
             torch.manual_seed(self.settings.seed + step_num)
-            constraint_status, fin_cost, eval_cost, prob_violation_train, constr_cost = \
+            constraint_status, fin_cost, avg_cost, \
+                prob_violation_train, constr_cost, cvar_cost, in_sample_cost = \
                 self._line_search(step_num=step_num, a_tch=a_tch, b_tch=b_tch, rho_tch=rho_tch,
                                   alpha=alpha, lam=lam, mu=mu, opt=opt,
                                   prev_states=prev_states,
@@ -1159,9 +1198,10 @@ class Trainer:
                 print(exception_message)
                 # raise InfeasibleConstraintException(exception_message)
             train_stats.update_train_stats(
+                in_sample_cost.detach().numpy().copy(),
+                cvar_cost.detach().numpy().copy(),
                 fin_cost.detach().numpy().copy(),
-                fin_cost.detach().numpy().copy(),
-                eval_cost,
+                avg_cost,
                 prob_violation_train,
                 constr_cost.detach(),
             )
@@ -1211,9 +1251,10 @@ class Trainer:
                     val_cost_constr,
                     x_batch,
                     z_batch,
-                    eval_cost,
+                    avg_cost,
                     prob_constr_violation,
-                    u_batch,other_cost
+                    u_batch,cvar_cost,
+                    in_sample_cost
                 ) = self.monte_carlo(
                     a_tch=a_tch,
                     b_tch=b_tch,
@@ -1221,9 +1262,9 @@ class Trainer:
                     alpha=alpha,
                     seed = self.settings.seed + 10000
                 )
-                record_eval_cost = eval_cost
+                record_avg_cost = avg_cost
                 if not self._default_simulator:
-                    record_eval_cost = eval_cost.repeat(3)
+                    record_avg_cost = avg_cost.repeat(3)
 
                 # Update progress bar with current metrics
                 if not hasattr(self, "_pbar"):
@@ -1241,7 +1282,7 @@ class Trainer:
                         # Fallback to regular print if tqdm not available
                         print(
                             "it %d, loss %1.2e, viol %1.2e"
-                            % (step_num, record_eval_cost[1].item(), val_cost_constr.mean().item())
+                            % (step_num, cvar_cost.item(), val_cost_constr.mean().item())
                         )
                 else:
                     # Update progress bar position
@@ -1250,13 +1291,13 @@ class Trainer:
                     # Set description with metrics
                     self._pbar.set_postfix(
                         {
-                            "loss": f"{record_eval_cost[1].item():1.2e}",
+                            "loss": f"{cvar_cost.item():1.2e}",
                             "viol": f"{val_cost_constr.mean().item():1.2e}",
                         }
                     )
 
-                train_stats.update_validate_stats(val_cost/self.settings.obj_scale,
-                    record_eval_cost, prob_constr_violation, val_cost_constr.detach()
+                train_stats.update_validate_stats(in_sample_cost,cvar_cost,
+                    record_avg_cost, prob_constr_violation, val_cost_constr.detach()
                 )
                 new_row = train_stats.generate_validation_row(
                     self._calc_coverage,
@@ -1281,10 +1322,11 @@ class Trainer:
                     val_cost_constr,
                     x_batch,
                     z_batch,
-                    eval_cost,
+                    avg_cost,
                     prob_constr_violation,
                     u_batch,
-                    other_cost
+                    cvar_cost,
+                    in_sample_cost
                 ) = self.monte_carlo(
                     a_tch=a_tch,
                     b_tch=b_tch,
@@ -1292,12 +1334,12 @@ class Trainer:
                     alpha=alpha,
                     seed = self.settings.seed
                 )
-                record_eval_cost = eval_cost
+                record_avg_cost = avg_cost
                 if not self._default_simulator:
-                    record_eval_cost = eval_cost.repeat(3)
+                    record_avg_cost = avg_cost.repeat(3)
 
-                train_stats.update_test_stats(other_cost,val_cost/self.settings.obj_scale,
-                    record_eval_cost, prob_constr_violation, val_cost_constr.detach()
+                train_stats.update_test_stats(in_sample_cost,cvar_cost,
+                    record_avg_cost, prob_constr_violation, val_cost_constr.detach()
                 )
                 new_row = train_stats.generate_test_row(
                     self._calc_coverage,
@@ -1314,13 +1356,13 @@ class Trainer:
                 df_test = pd.concat([df_test, new_row.to_frame().T], ignore_index=True)
 
         if constr_cost.detach().numpy().sum() / self.num_g_total <= self.settings.kappa:
-            fin_val = record_eval_cost[1].item()
+            fin_val = record_avg_cost[1].item()
         else:
-            fin_val = record_eval_cost[1].item() + 10 * abs(constr_cost.detach().numpy().sum())
+            fin_val = record_avg_cost[1].item() + 10 * abs(constr_cost.detach().numpy().sum())
         a_val = self._a_tch.detach().numpy().copy()
         b_val = self._b_tch.detach().numpy().copy()
         rho_val = rho_tch.detach().numpy().copy()
-        param_vals = (a_val, b_val, rho_val, record_eval_cost[1].item())
+        param_vals = (a_val, b_val, rho_val, record_avg_cost[1].item())
         ret_context = (self._cur_x, self._cur_u)
         # Close progress bar if it exists
         if hasattr(self, "_pbar"):
@@ -1547,7 +1589,13 @@ class Trainer:
         settings.max_batch_size = np.inf
         test_dfs = []
         validate_dfs = []
+        num_rho = len(rho_list)
+        if len(predictors_list)==1:
+            if num_rho > 1:
+                predictors_list = predictors_list*num_rho
         for ind, predictor in enumerate(predictors_list):
+            if predictor is None:
+                settings.contextual = False
             settings.predictor = predictor
             settings.initialize_predictor = False
             settings.init_rho = rho_list[ind]
@@ -1555,7 +1603,6 @@ class Trainer:
             test_dfs.append(result.df_test)
             validate_dfs.append(result.df_validate)
         return pd.concat(validate_dfs), pd.concat(test_dfs)
-
 
 
 
@@ -1635,19 +1682,6 @@ class Trainer:
     def grid(
         self,
         rholst=s.RHO_LST_DEFAULT,
-        seed=DS.seed,
-        init_A=DS.init_A,
-        init_b=DS.init_b,
-        init_rho=DS.init_rho,
-        init_alpha=DS.init_alpha,
-        test_percentage=DS.test_percentage,
-        validate_percentage = DS.validate_percentage,
-        solver_args=DS.solver_args,
-        quantiles=DS.quantiles,
-        newdata=None,
-        eta=DS.eta,
-        contextual=DS.contextual,
-        predictor=DS.predictor,
         settings = DS
     ):
         r"""
@@ -1656,30 +1690,8 @@ class Trainer:
         Args:
         rholst : np.array, optional
             The list of :math:`\rho` to iterate over. "Default np.logspace(-3, 1, 20)
-        seed: int, optional
-            The seed to control the train test split. Default 1.
-        init_A: np.array
-            The shape A of the set
-        init_b: np.array
-            The shape b of the set
-        init_alpha: float, optional
-            The alpha value of the CVaR constraint
-        test_percentage: float, optional
-            The percengate of the data used in the testing set
-        solver_args: dict, optional
-            Optional arguments to pass to the solver
-        quantiles: tuple, optional
-            The quantiles to calculate for the testing results
-        newdata: tuple, optional
-            New data for the uncertain parameter and context parameters. should
-            be given as a tuple with two entries, a np.array for u, and a list
-            of np.arrays for x.
-        eta:
-            The eta value for the CVaR constraint
-        contextual:
-            Whether or not a contextual set is considered
-        linear:
-            The linear NN model if contextual is true
+        settings:
+            TrainerSettings
 
         Returns:
         A pandas data frame with information on each :math:`\rho` having the following columns:
@@ -1694,32 +1706,16 @@ class Trainer:
         """
         self._multistage = False
         self.settings = settings
-        self.settings.predictor = predictor
+        self.settings.predictor = settings.predictor
         if self.settings.data is None:
             self.settings.data = self.unc_set.data
-        if contextual:
-            if predictor is None:
+        if settings.contextual:
+            if settings.predictor is None:
                 raise ValueError("Missing NN-Model")
 
         self.train_flag = False
         df = pd.DataFrame(columns=["Rho"])
-        self._split_dataset(test_percentage, validate_percentage, seed)
-        if newdata is not None:
-            newtest_set, x_set = newdata
-            self.test_size = newtest_set.shape[0]
-            self.u_test_tch = torch.tensor(
-                newtest_set, requires_grad=self.train_flag, dtype=s.DTYPE
-            )
-            self.u_test_set = newdata
-            if not isinstance(x_set, list):
-                self.x_test_tch = [
-                    torch.tensor(x_set, requires_grad=self.train_flag, dtype=s.DTYPE)
-                ]
-            else:
-                self.x_test_tch = [
-                    torch.tensor(x, requires_grad=self.train_flag, dtype=s.DTYPE) for x in x_set
-                ]
-
+        self._split_dataset(settings.test_percentage, settings.validate_percentage, settings.seed)
         self.cvxpylayer = self.create_cvxpylayer()
 
         grid_stats = GridStats()
@@ -1728,7 +1724,7 @@ class Trainer:
         # initialize torches
         rho_tch = self._gen_rho_tch(1)
         a_tch_init, b_tch_init, alpha = self._init_torches(
-            init_A, init_b, init_alpha, self.u_train_set
+            settings.init_A, settings.init_b, settings.init_alpha, self.u_train_set
         )
 
         x_batch_array, num_unique_indices, x_unique, x_unique_array = self.gen_unique_x(
@@ -1740,8 +1736,9 @@ class Trainer:
         )
 
         for rho in rholst:
-            rho_tch = torch.tensor(rho * init_rho, requires_grad=self.train_flag, dtype=s.DTYPE)
-            if contextual:
+            rho_tch = torch.tensor(rho * settings.init_rho,
+                                   requires_grad=self.train_flag, dtype=s.DTYPE)
+            if settings.contextual:
                 a_tch_init, b_tch_init,radius = self.create_predictor_tensors(x_unique)
             z_unique = self.cvxpylayer(
                 rho_tch,
@@ -1749,7 +1746,7 @@ class Trainer:
                 *x_unique,
                 a_tch_init,
                 b_tch_init,
-                solver_args=solver_args,
+                solver_args=settings.solver_args,
             )
             new_z_batch, a_tch_init, b_tch_init = self.gen_new_z(
                 num_unique_indices,
@@ -1757,12 +1754,12 @@ class Trainer:
                 z_unique,
                 self.test_size,
                 x_batch_array,
-                contextual,
+                settings.contextual,
                 a_tch_init,
                 b_tch_init,
             )
 
-            if contextual:
+            if settings.contextual:
                 a_tch_init, b_tch_init,radius = self.create_predictor_tensors(
                     x_unique_t)
             z_unique_t = self.cvxpylayer(
@@ -1771,7 +1768,7 @@ class Trainer:
                 *x_unique_t,
                 a_tch_init,
                 b_tch_init,
-                solver_args=solver_args,
+                solver_args=settings.solver_args,
             )
 
             new_z_batch_t, _, _ = self.gen_new_z(
@@ -1780,7 +1777,7 @@ class Trainer:
                 z_unique_t,
                 self.validate_size,
                 x_batch_array_t,
-                contextual,
+                settings.contextual,
                 a_tch_init,
                 b_tch_init,
             )
@@ -1794,63 +1791,47 @@ class Trainer:
                 test_args = self.order_args(z_batch=new_z_batch,
                                              x_batch=self.x_test_tch,
                                              u_batch=self.u_test_tch)
-                test_obj = self.train_objective(self.test_size, test_args)
-                if self.settings.cvar_eval:
-                    weights = new_z_batch[1]
-                    prod = weights.mul(self.u_test_tch)
-                    port_values = torch.sum(prod, dim=1)
-                    quant = int((1-self.settings.target_eta)*len(port_values)) + 1
-                    port_sorted = torch.sort(port_values, descending=True)[0]
-                    quant = port_sorted[quant]
-                    port_le_quant = port_values.le(quant).float()
-                    port_le_quant.requires_grad = True
-                    cvar_loss =  port_values.mul(port_le_quant).sum() / port_le_quant.sum()
-                    loss = -cvar_loss
-                    obj_test = loss.repeat(3)
-                
-                other_cost = self.evaluation_metric(self.test_size, test_args, quantiles)
-        
+                obj_test = self.evaluation_metric(self.test_size, test_args, settings.quantiles)
+                cvar_test = self.evaluation_cvar(self.test_size, test_args)
+                in_sample_test = self.train_objective(self.test_size, test_args)
+
                 prob_violation_test = self.prob_constr_violation(self.test_size, test_args)
-                _, var_vio = self.lagrangian(self.test_size, test_args, alpha, lam, 1, eta)
+                _, var_vio = self.lagrangian(self.test_size, test_args, alpha, lam, 1, settings.eta)
 
                 test_args_t = self.order_args(
                     z_batch=new_z_batch_t, x_batch=self.x_validate_tch, u_batch=self.u_validate_tch
                 )
-                valid_obj = self.train_objective(self.validate_size, test_args_t)
-                if self.settings.cvar_eval:
-                    weights = new_z_batch_t[1]
-                    prod = weights.mul(self.u_validate_tch)
-                    port_values = torch.sum(prod, dim=1)
-                    quant = int((1-self.settings.target_eta)*len(port_values)) + 1
-                    port_sorted = torch.sort(port_values, descending=True)[0]
-                    quant = port_sorted[quant]
-                    port_le_quant = port_values.le(quant).float()
-                    port_le_quant.requires_grad = True
-                    cvar_loss =  port_values.mul(port_le_quant).sum() / port_le_quant.sum()
-                    loss = -cvar_loss
-                    obj_train = loss.repeat(3)
-                else:
-                    obj_train = self.evaluation_metric(self.validate_size, test_args_t, quantiles)
+
+                cvar_train = self.evaluation_cvar(self.validate_size, test_args_t)
+                obj_train = self.evaluation_metric(self.validate_size,
+                                                    test_args_t,
+                                                    settings.quantiles)
+                in_sample_cost = self.train_objective(self.validate_size, test_args_t)
 
                 prob_violation_train = self.prob_constr_violation(self.validate_size, test_args_t)
                 _, var_vio_train = self.lagrangian(
-                    self.validate_size, test_args_t, alpha, lam, 1, eta
+                    self.validate_size, test_args_t, alpha, lam, 1, settings.eta
                 )
 
-            train_stats.update_test_stats(other_cost,test_obj,obj_test, prob_violation_test, var_vio)
-            train_stats.update_train_stats(valid_obj,None, obj_train, prob_violation_train,var_vio_train)
-            grid_stats.update(train_stats, obj_test, rho_tch, a_tch_init, new_z_batch)
+            train_stats.update_test_stats(in_sample_test,cvar_test,
+                                          obj_test,
+                                          prob_violation_test, var_vio)
+            train_stats.update_train_stats(in_sample_cost.item(),
+                                    cvar_train.item(), None,
+                                    obj_train, prob_violation_train,
+                                    var_vio_train)
+            grid_stats.update(train_stats, cvar_test, rho_tch, a_tch_init, new_z_batch)
 
             new_row = train_stats.generate_test_row(
                 self._calc_coverage, a_tch_init,b_tch_init,
                 alpha, self.u_test_tch,rho_tch, self.unc_set, new_z_batch,
-                contextual, [self.x_test_tch])
+                settings.contextual, [self.x_test_tch])
             df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
 
         self.orig_problem._trained = True
         self.unc_set._trained = True
 
-        if contextual:
+        if settings.contextual:
             self.unc_set.a.value = (grid_stats.minrho * a_tch_init[0]).detach().numpy().copy()
             self.unc_set.b.value = (b_tch_init[0]).detach().numpy().copy()
             b_value = self.unc_set.b.value[0]
@@ -1913,33 +1894,37 @@ class TrainLoopStats:
         self.violation_train = __value_init__(self)
         self.num_g_total = num_g_total
 
-    def update_train_stats(self, val_cost,temp_lagrangian, obj, prob_violation_train, train_constraint):
+    def update_train_stats(self, in_sample_cost,cvar_cost,temp_lagrangian,
+                           obj, prob_violation_train, train_constraint):
         """
         This function updates the statistics after each training iteration
         """
-        self.valid_obj_val = val_cost.item()
+        self.in_sample_cost = in_sample_cost
+        self.cvar_val = cvar_cost
         self.tot_lagrangian = temp_lagrangian
         self.trainval = obj[1].item()
         self.prob_violation_train = prob_violation_train.detach().numpy()
         self.violation_train = train_constraint.numpy().sum() / self.num_g_total
 
-    def update_test_stats(self, other_cost, val_cost, obj_test, prob_violation_test, var_vio):
+    def update_test_stats(self, in_sample_test, cvar_cost,obj_test, prob_violation_test, var_vio):
         """
         This function updates the statistics after each training iteration
         """
-        self.other_cost = other_cost.item()
-        self.val_cost = val_cost.item()
+        self.in_sample_test = in_sample_test.item()
+        self.test_cvar = cvar_cost.item()
         self.lower_testval = obj_test[0].item()
         self.testval = obj_test[1].item()
         self.upper_testval = obj_test[2].item()
         self.prob_violation_test = prob_violation_test.detach().numpy()
         self.violation_test = var_vio.numpy().sum() / self.num_g_total
 
-    def update_validate_stats(self, val_cost,obj_vali, prob_violation_vali, var_vio_vali):
+    def update_validate_stats(self, in_sample_cost,cvar_cost,
+                              obj_vali, prob_violation_vali, var_vio_vali):
         """
         This function updates the statistics after each training iteration
         """
-        self.val_vali = val_cost.item()
+        self.in_sample_vali = in_sample_cost.item()
+        self.vali_cvar = cvar_cost.item()
         self.lower_valival = obj_vali[0].item()
         self.valival = obj_vali[1].item()
         self.upper_valival = obj_vali[2].item()
@@ -1955,6 +1940,8 @@ class TrainLoopStats:
         row_dict = {
             "Lagrangian_val": self.tot_lagrangian.item(),
             "Train_val": self.trainval,
+            "Train_cvar": self.cvar_val,
+            "Train_insample": self.in_sample_cost,
             "Probability_violations_train": self.prob_violation_train,
             "Violations_train": self.violation_train,
             "Avg_prob_train": np.mean(self.prob_violation_train),
@@ -1997,9 +1984,9 @@ class TrainLoopStats:
             test_tch, a_tch, b_tch, uncset._rho * rho_tch, uncset.p, contextual, x_test_tch
         )
         row_dict = {
-            "Test_other_obj": self.other_cost,
-            "Test_obj": self.val_cost,
+            "Test_insample": self.in_sample_test,
             "Test_val": self.testval,
+            "Test_cvar": self.test_cvar,
             "Lower_test": self.lower_testval,
             "Upper_test": self.upper_testval,
             "Probability_violations_test": self.prob_violation_test,
@@ -2012,7 +1999,8 @@ class TrainLoopStats:
         }
         row_dict["step"] = (self.step_num,)
         if not self.train_flag:
-            row_dict["Validate_obj"] = self.valid_obj_val
+            row_dict["Validate_insample"] = self.in_sample_cost
+            row_dict["Validate_cvar"] = self.cvar_val
             row_dict["Validate_val"] = self.trainval
             row_dict["Probability_violations_validate"] = self.prob_violation_train
             row_dict["Violations_validate"] = self.violation_train
@@ -2040,7 +2028,8 @@ class TrainLoopStats:
             vali_tch, a_tch, b_tch, uncset._rho * rho_tch, uncset.p, contextual, x_validate_tch
         )
         row_dict = {
-            "Validate_obj": self.val_vali,
+            "Validate_insample": self.in_sample_vali,
+            "Validate_cvar": self.vali_cvar,
             "Validate_val": self.valival,
             "Lower_validate": self.lower_valival,
             "Upper_validate": self.upper_valival,
@@ -2054,7 +2043,9 @@ class TrainLoopStats:
         }
         row_dict["step"] = (self.step_num,)
         if not self.train_flag:
+            row_dict["Train_cvar"] = self.cvar_val
             row_dict["Train_val"] = self.trainval
+            row_dict["Train_insample"] = self.in_sample_cost
             row_dict["Probability_violations_train"] = self.prob_violation_train
             row_dict["Violations_train"] = self.violation_train
             row_dict["Avg_prob_train"] = np.mean(self.prob_violation_train)
@@ -2087,7 +2078,7 @@ class GridStats:
                 Variable values
         """
         if train_stats.testval <= self.minval:
-            self.minval = obj[1]
+            self.minval = obj
             self.minrho = rho_tch.clone()
             self.minT = a_tch.clone()
             self.z_batch = z_batch

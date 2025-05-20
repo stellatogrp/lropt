@@ -463,7 +463,7 @@ class TestMultiStage(unittest.TestCase):
                 # print(x)
                 return x
 
-            def stage_cost_eval(self, x, u):
+            def stage_cost_avg(self, x, u):
                 u = u[0]
                 x_hat, _, q_hat, _, _, u_hat, _, _, _, t, _, _, _, _, _ = x
                 assert x_hat.shape[0] == u.shape[0]
@@ -477,6 +477,12 @@ class TestMultiStage(unittest.TestCase):
                     + torch.max(-p[t - 1] * x_hat, h[t - 1] * x_hat)
                     + u_hat[:, t - 1]
                 ).mean()
+
+            def stage_cost_cvar(self,x,u):
+                return self.stage_cost_avg(x,u)
+
+            def in_sample_obj(self,x,u):
+                return self.stage_cost(x,u)
 
             def stage_cost(self, x, u):
                 u = u[0]
