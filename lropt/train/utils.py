@@ -143,7 +143,7 @@ def eval_input(
         return (init_val_lower, init_val_mean, init_val_upper)
     elif eval_input_case == EVAL_INPUT_CASE.CVAR:
         if serial_flag:
-            init_val = torch.stack([curr_result[v] for v in curr_result])
+            init_val = torch.hstack([curr_result[v] for v in curr_result])
         else:
             init_val = curr_result
         quant = min(len(init_val)-1, int((1-eta_target)*len(init_val)) + 1)
@@ -151,7 +151,7 @@ def eval_input(
         quant = init_sorted[quant]
         init_ge_quant = init_val.ge(quant).float()
         cvar_loss =  init_val.mul(init_ge_quant).sum() / init_ge_quant.sum()
-        return cvar_loss
+        return (cvar_loss, quant)
     elif eval_input_case == EVAL_INPUT_CASE.MAX:
         # We want to see if there's a violation: either 1 from previous iterations,
         # or new positive value from now

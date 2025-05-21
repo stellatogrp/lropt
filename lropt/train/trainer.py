@@ -97,7 +97,7 @@ class Trainer:
 
         # remove for loop, set batch size to trials
         cost, constraint_cost, x_hist, z_hist, constraint_status, \
-            avg_cost, prob_vio, u_hist ,cvar_cost,in_sample_cost = (
+            avg_cost, prob_vio, u_hist ,cvar_cost,in_sample_cost, worst_cost = (
             self.loss_and_constraints(
                 a_tch=a_tch,
                 b_tch=b_tch,
@@ -114,7 +114,7 @@ class Trainer:
             # )
             print("Infeasible init")
         return cost, constraint_cost, x_hist, z_hist, avg_cost, \
-            prob_vio, u_hist, cvar_cost, in_sample_cost
+            prob_vio, u_hist, cvar_cost, in_sample_cost, worst_cost
 
     def loss_and_constraints(
         self,
@@ -175,6 +175,7 @@ class Trainer:
         cost = 0.0
         constraint_cost = 0.0
         cvar_cost = 0.0
+        worst_cost = 0.0
         in_sample_cost = 0.0
         if self._default_simulator:
             avg_cost = torch.tensor([0, 0, 0], dtype=s.DTYPE)
@@ -207,7 +208,9 @@ class Trainer:
             x_t = self.simulator.simulate(x_t, z_t, **self.settings.kwargs_simulator)
             in_sample_cost += self.simulator.in_sample_obj(
                 x_t, z_t, **self.settings.kwargs_simulator)
-            cvar_cost += self.simulator.stage_cost_cvar(x_t, z_t, **self.settings.kwargs_simulator)
+            cvar_cur = self.simulator.stage_cost_cvar(x_t, z_t, **self.settings.kwargs_simulator)
+            cvar_cost += cvar_cur[0]
+            worst_cost += cvar_cur[1]
             cost += self.simulator.stage_cost(x_t, z_t, **self.settings.kwargs_simulator)
             avg_cost += self.simulator.stage_cost_avg(x_t, z_t, **self.settings.kwargs_simulator)
             if self.settings.kwargs_simulator is not None:
@@ -237,7 +240,7 @@ class Trainer:
             self._cur_u = u_0
         return cost, constraint_cost, x_hist, z_hist, \
             constraints_status, avg_cost, prob_vio, u_0, \
-                cvar_cost, in_sample_cost
+                cvar_cost, in_sample_cost, worst_cost
 
     def _validate_unc_set_T(self):
         """
@@ -1051,7 +1054,7 @@ class Trainer:
             self._test_flag = False
             cost, constr_cost, _, _, constraint_status, \
                 avg_cost, prob_violation_train, _ ,cvar_cost, \
-                    in_sample_cost= (
+                    in_sample_cost, worst_cost= (
                 self.loss_and_constraints(
                     a_tch=a_tch,
                     b_tch=b_tch,
@@ -1108,7 +1111,7 @@ class Trainer:
                 prev_fin_cost = fin_cost.clone().detach()
                 break
         return constraint_status, fin_cost, avg_cost, \
-            prob_violation_train, constr_cost, cvar_cost, in_sample_cost
+            prob_violation_train, constr_cost, cvar_cost, in_sample_cost, worst_cost
 
     def _train_loop(self, init_num):
         if self.settings.random_init and self.settings.train_shape:
@@ -1183,7 +1186,7 @@ class Trainer:
 
             torch.manual_seed(self.settings.seed + step_num)
             constraint_status, fin_cost, avg_cost, \
-                prob_violation_train, constr_cost, cvar_cost, in_sample_cost = \
+                prob_violation_train, constr_cost, cvar_cost, in_sample_cost,worst_cost = \
                 self._line_search(step_num=step_num, a_tch=a_tch, b_tch=b_tch, rho_tch=rho_tch,
                                   alpha=alpha, lam=lam, mu=mu, opt=opt,
                                   prev_states=prev_states,
@@ -1198,6 +1201,7 @@ class Trainer:
                 print(exception_message)
                 # raise InfeasibleConstraintException(exception_message)
             train_stats.update_train_stats(
+                worst_cost.detach().numpy().copy(),
                 in_sample_cost.detach().numpy().copy(),
                 cvar_cost.detach().numpy().copy(),
                 fin_cost.detach().numpy().copy(),
@@ -1254,7 +1258,7 @@ class Trainer:
                     avg_cost,
                     prob_constr_violation,
                     u_batch,cvar_cost,
-                    in_sample_cost
+                    in_sample_cost, worst_cost
                 ) = self.monte_carlo(
                     a_tch=a_tch,
                     b_tch=b_tch,
@@ -1282,7 +1286,7 @@ class Trainer:
                         # Fallback to regular print if tqdm not available
                         print(
                             "it %d, loss %1.2e, viol %1.2e"
-                            % (step_num, cvar_cost.item(), val_cost_constr.mean().item())
+                            % (step_num, worst_cost.item(), val_cost_constr.mean().item())
                         )
                 else:
                     # Update progress bar position
@@ -1291,12 +1295,13 @@ class Trainer:
                     # Set description with metrics
                     self._pbar.set_postfix(
                         {
-                            "loss": f"{cvar_cost.item():1.2e}",
+                            "loss": f"{worst_cost.item():1.2e}",
                             "viol": f"{val_cost_constr.mean().item():1.2e}",
                         }
                     )
 
-                train_stats.update_validate_stats(in_sample_cost,cvar_cost,
+                train_stats.update_validate_stats(worst_cost,in_sample_cost,
+                                                  cvar_cost,
                     record_avg_cost, prob_constr_violation, val_cost_constr.detach()
                 )
                 new_row = train_stats.generate_validation_row(
@@ -1326,7 +1331,7 @@ class Trainer:
                     prob_constr_violation,
                     u_batch,
                     cvar_cost,
-                    in_sample_cost
+                    in_sample_cost, worst_cost
                 ) = self.monte_carlo(
                     a_tch=a_tch,
                     b_tch=b_tch,
@@ -1338,7 +1343,8 @@ class Trainer:
                 if not self._default_simulator:
                     record_avg_cost = avg_cost.repeat(3)
 
-                train_stats.update_test_stats(in_sample_cost,cvar_cost,
+                train_stats.update_test_stats(worst_cost,
+                                              in_sample_cost,cvar_cost,
                     record_avg_cost, prob_constr_violation, val_cost_constr.detach()
                 )
                 new_row = train_stats.generate_test_row(
@@ -1813,14 +1819,16 @@ class Trainer:
                     self.validate_size, test_args_t, alpha, lam, 1, settings.eta
                 )
 
-            train_stats.update_test_stats(in_sample_test,cvar_test,
+            train_stats.update_test_stats(cvar_test[1],in_sample_test,
+                                          cvar_test[0],
                                           obj_test,
                                           prob_violation_test, var_vio)
-            train_stats.update_train_stats(in_sample_cost.item(),
-                                    cvar_train.item(), None,
+            train_stats.update_train_stats(cvar_test[1].item(),
+                                           in_sample_cost.item(),
+                                    cvar_train[0].item(), None,
                                     obj_train, prob_violation_train,
                                     var_vio_train)
-            grid_stats.update(train_stats, cvar_test, rho_tch, a_tch_init, new_z_batch)
+            grid_stats.update(train_stats, cvar_test[0], rho_tch, a_tch_init, new_z_batch)
 
             new_row = train_stats.generate_test_row(
                 self._calc_coverage, a_tch_init,b_tch_init,
@@ -1894,11 +1902,13 @@ class TrainLoopStats:
         self.violation_train = __value_init__(self)
         self.num_g_total = num_g_total
 
-    def update_train_stats(self, in_sample_cost,cvar_cost,temp_lagrangian,
+    def update_train_stats(self, worst_cost, in_sample_cost,
+                           cvar_cost,temp_lagrangian,
                            obj, prob_violation_train, train_constraint):
         """
         This function updates the statistics after each training iteration
         """
+        self.worst_train = worst_cost
         self.in_sample_cost = in_sample_cost
         self.cvar_val = cvar_cost
         self.tot_lagrangian = temp_lagrangian
@@ -1906,10 +1916,12 @@ class TrainLoopStats:
         self.prob_violation_train = prob_violation_train.detach().numpy()
         self.violation_train = train_constraint.numpy().sum() / self.num_g_total
 
-    def update_test_stats(self, in_sample_test, cvar_cost,obj_test, prob_violation_test, var_vio):
+    def update_test_stats(self, worst_cost, in_sample_test, cvar_cost,
+                          obj_test, prob_violation_test, var_vio):
         """
         This function updates the statistics after each training iteration
         """
+        self.worst_test = worst_cost.item()
         self.in_sample_test = in_sample_test.item()
         self.test_cvar = cvar_cost.item()
         self.lower_testval = obj_test[0].item()
@@ -1918,11 +1930,12 @@ class TrainLoopStats:
         self.prob_violation_test = prob_violation_test.detach().numpy()
         self.violation_test = var_vio.numpy().sum() / self.num_g_total
 
-    def update_validate_stats(self, in_sample_cost,cvar_cost,
+    def update_validate_stats(self,worst_cost, in_sample_cost,cvar_cost,
                               obj_vali, prob_violation_vali, var_vio_vali):
         """
         This function updates the statistics after each training iteration
         """
+        self.worst_vali = worst_cost.item()
         self.in_sample_vali = in_sample_cost.item()
         self.vali_cvar = cvar_cost.item()
         self.lower_valival = obj_vali[0].item()
@@ -1941,6 +1954,7 @@ class TrainLoopStats:
             "Lagrangian_val": self.tot_lagrangian.item(),
             "Train_val": self.trainval,
             "Train_cvar": self.cvar_val,
+            "Worst_val": self.worst_train,
             "Train_insample": self.in_sample_cost,
             "Probability_violations_train": self.prob_violation_train,
             "Violations_train": self.violation_train,
@@ -1984,6 +1998,7 @@ class TrainLoopStats:
             test_tch, a_tch, b_tch, uncset._rho * rho_tch, uncset.p, contextual, x_test_tch
         )
         row_dict = {
+            "Test_worst": self.worst_test,
             "Test_insample": self.in_sample_test,
             "Test_val": self.testval,
             "Test_cvar": self.test_cvar,
@@ -1999,6 +2014,7 @@ class TrainLoopStats:
         }
         row_dict["step"] = (self.step_num,)
         if not self.train_flag:
+            row_dict["Validate_worst"] = self.worst_train
             row_dict["Validate_insample"] = self.in_sample_cost
             row_dict["Validate_cvar"] = self.cvar_val
             row_dict["Validate_val"] = self.trainval
@@ -2028,6 +2044,7 @@ class TrainLoopStats:
             vali_tch, a_tch, b_tch, uncset._rho * rho_tch, uncset.p, contextual, x_validate_tch
         )
         row_dict = {
+            "Validate_worst": self.worst_vali,
             "Validate_insample": self.in_sample_vali,
             "Validate_cvar": self.vali_cvar,
             "Validate_val": self.valival,
@@ -2043,6 +2060,7 @@ class TrainLoopStats:
         }
         row_dict["step"] = (self.step_num,)
         if not self.train_flag:
+            row_dict["Train_worst"] = self.worst_train
             row_dict["Train_cvar"] = self.cvar_val
             row_dict["Train_val"] = self.trainval
             row_dict["Train_insample"] = self.in_sample_cost

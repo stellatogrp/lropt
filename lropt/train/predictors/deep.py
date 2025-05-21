@@ -2,17 +2,26 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.transforms import CorrCholeskyTransform
+import numpy as np
+import scipy as sc
 
 import lropt.train.settings as settings
+from sklearn.neighbors import NearestNeighbors
+
 
 torch.set_default_dtype(settings.DTYPE)
 
 class DeepNormalModel(torch.nn.Module):
     def __init__(
-        self
+        self,knn_cov = False,
+                 n_neighbors = 10, knn_scale = 1
     ):
         super().__init__()
         self.jitter = 1e-6
+        self.n_neighbors = n_neighbors
+        self.knn_cov = knn_cov
+        self.u_train_vals = None
+        self.knn_scale = knn_scale
 
 
     def initialize(self,a_tch,b_tch,trainer):
@@ -32,6 +41,8 @@ class DeepNormalModel(torch.nn.Module):
         t_radius = torch.tensor(2.)
         self.radius = nn.Parameter(t_radius, requires_grad=True)
         self.input_to_output = nn.Linear(n_inputs, 1, bias=True)
+        if self.knn_cov:
+            self.knn_fit(trainer)
         self.train()
 
 
@@ -64,5 +75,25 @@ class DeepNormalModel(torch.nn.Module):
         cho_scaled =  r*cho  # torch.matmul(cho, y)
         x = self.input_to_output(x)
         #torch.clamp(radius, min = 1e-2)
+        if self.knn_cov:
+            new_a_tch = self.knn_predict(x)
+            a_tch = (1-self.knn_scale)*cho_scaled + self.knn_scale*new_a_tch
+        else:
+            a_tch = cho_scaled
+        return a_tch, mean, r
 
-        return cho_scaled, mean, r
+    def knn_fit(self,trainer):
+        knn = NearestNeighbors(n_neighbors=self.n_neighbors)
+        x = trainer.create_input_tensors(trainer.x_train_tch)
+        knn.fit(x.detach())
+        self.knn = knn
+        self.u_train_vals = trainer.u_train_set
+
+    def knn_predict(self,x):
+        neighbors = self.knn.kneighbors(x.detach(), return_distance=False)
+        atchs = []
+        for i in range(x.shape[0]):
+            atchs.append(sc.linalg.sqrtm(np.cov(self.u_train_vals[neighbors[i]].T)))
+        atchs = np.stack(atchs)
+        a_tch = torch.tensor(atchs, dtype=torch.double, requires_grad=True)
+        return a_tch
