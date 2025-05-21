@@ -479,7 +479,7 @@ class TestMultiStage(unittest.TestCase):
                 ).mean()
 
             def stage_cost_cvar(self,x,u):
-                return (self.stage_cost_avg(x,u),0)
+                return (self.stage_cost_avg(x,u),torch.tensor(0))
 
             def in_sample_obj(self,x,u):
                 return self.stage_cost(x,u)

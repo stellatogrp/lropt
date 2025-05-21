@@ -80,8 +80,16 @@ class DefaultSimulator(ABC):
         """ Create the current stage cost using the current state x
         and decision u
         """
-        return self.trainer.settings.obj_scale*self.trainer.train_objective(
+        if not self.trainer.settings.cvar_obj:
+            return self.trainer.settings.obj_scale*self.trainer.train_objective(
             kwargs['batch_int'], kwargs['eval_args'])
+        
+        else:
+            return self.trainer.settings.obj_scale*(
+                self.trainer.evaluation_cvar(kwargs['batch_int'], 
+                                             kwargs['eval_args'],
+                                             self.trainer.settings.eta)[0])
+            
 
     def in_sample_obj(self,x,u,**kwargs):
         return self.trainer.train_objective(kwargs['batch_int'], kwargs['eval_args'])
