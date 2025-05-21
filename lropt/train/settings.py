@@ -255,6 +255,7 @@ class TrainerSettings:
         self.cost_func = True
         self.target_eta = 0.1
         self.cvar_obj = False
+        self.cvar_obj_only = False
         self._generate_slots()
 
     def _attr_exists(self, name) -> None:
