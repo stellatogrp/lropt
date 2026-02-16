@@ -14,10 +14,9 @@ from cvxpy.constraints.constraint import Constraint
 from cvxpy.expressions.expression import Expression
 from cvxpy.reductions.reduction import Reduction
 from numpy import ndarray
-from scipy.sparse import csc_matrix, csr_matrix
-from scipy.sparse._coo import coo_matrix
 
 from cvxro.robust_problem import RobustProblem
+from cvxro.uncertain_canon.utils import reshape_tensor as tensor_reshaper
 from cvxro.uncertain_parameter import UncertainParameter
 from cvxro.uncertainty_sets.ellipsoidal import Ellipsoidal
 
@@ -175,34 +174,6 @@ def _get_tensors(problem: RobustProblem, solver=SCS) -> ndarray:
     A_rec_certain, b_rec = _finalize_expressions(vec_Ab_certain, is_uncertain=False, n_var=n_var)
     A_rec_uncertain = _finalize_expressions_uncertain(T_Ab_uncertain, n_var=n_var)
     return A_rec_certain, A_rec_uncertain, b_rec
-
-
-def tensor_reshaper(T_Ab: coo_matrix, n_var: int) -> np.ndarray:
-    """
-    This function reshapes T_Ab so T_Ab@param_vec gives the constraints row by row instead of
-    column by column. At the moment, it returns a dense matrix instead of a sparse one.
-    """
-
-    def _calc_source_row(target_row: int, num_constraints: int) -> int:
-        """
-        This is a helper function that calculates the index of the source row of T_Ab for the
-        reshaped target row.
-        """
-        constraint_num = target_row % (num_constraints - 1)
-        var_num = target_row // (num_constraints - 1)
-        source_row = constraint_num * num_constraints + var_num
-        return source_row
-
-    T_Ab = csc_matrix(T_Ab)
-    n_var_full = n_var + 1  # Includes the free paramter
-    num_rows = T_Ab.shape[0]
-    num_constraints = num_rows // n_var_full
-    T_Ab_res = csr_matrix(T_Ab.shape)
-    target_row = 0  # Counter for populating the new row of T_Ab_res
-    for target_row in range(num_rows):
-        source_row = _calc_source_row(target_row, num_constraints)
-        T_Ab_res[target_row, :] = T_Ab[source_row, :]
-    return T_Ab_res
 
 
 def calc_num_constraints(constraints: list[Constraint]) -> int:

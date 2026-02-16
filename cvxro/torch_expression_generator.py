@@ -160,7 +160,7 @@ def generate_torch_expressions(problem, eval_exp: Expression | None = None):
             constraints = problem.ordered_uncertain_no_max_constraints[max_id]
         else:
             # Create a constraint from all the constraints of this max_id
-            args = [cp.reshape(constraint.args[0],(1,)) for \
+            args = [cp.reshape(constraint.args[0], (1,), order="F") for
                     constraint in problem.constraints_by_type[max_id]]
             constraints = [cp.NonNeg(-cp.maximum(*args))]
         for constraint in constraints:  # NOT problem.constraints: these are the new constraints
