@@ -259,25 +259,17 @@ class TrainerSettings:
         self.avg_scale = 0
 
         # --- AL improvement settings ---
-        self.dual_update_strategy = "classic"  # "classic" | "adaptive"
-
-        # Adaptive penalty settings (PECANN-CAPU style, arXiv:2508.15695)
-        #   ema_decay (zeta): EMA smoothing for squared violations
-        #     v_bar = zeta * v_bar + (1 - zeta) * h^2
-        #   eta_scale: RMSprop-style penalty floor
-        #     mu = max(mu, eta_scale / sqrt(v_bar + eps))
-        #   eps: numerical stability constant
-        #   satisfied_guard: freeze mu growth when h <= 0
-        #   mu_max: hard cap on per-constraint penalty (prevents explosion
-        #     when v_bar ≈ 0 in early iterations)
-        self.penalty_ema_decay = 0.99
-        self.penalty_eta_scale = 1.0
-        self.penalty_eps = 1e-8
-        self.penalty_satisfied_guard = True
-        self.penalty_mu_max = 100.0
+        self.dual_update_strategy = "classic"  # "classic" | "pid"
 
         # Shared improvement
         self.reset_prev_cost_on_al_update = True  # set False to disable prev_fin_cost reset
+
+        # νPI controller settings (Sohrabi et al., ICML 2024, arXiv:2406.04558)
+        # Dual variable update: λ += Ki·e + Kp·(1-ν)·(e - ξ̃)
+        # Setting Kp=0, Ki=1, ν=0 recovers standard gradient ascent.
+        self.pid_Kp = 5.0    # Proportional gain (damping; effective per-step = Kp*(1-ν))
+        self.pid_Ki = 1.0    # Integral gain (accumulates violations; like step size)
+        self.pid_nu = 0.99   # EMA coefficient (0=noiseless, 0.99=stochastic)
 
         self._generate_slots()
 

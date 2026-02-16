@@ -1,6 +1,6 @@
 """Tests for augmented Lagrangian improvement strategies.
 
-Tests the two dual-update strategies (classic, adaptive)
+Tests the two dual-update strategies (classic, pid)
 and related settings.
 
 All tests use minimal problem sizes (n=2, N=20) and few iterations
@@ -94,15 +94,14 @@ class TestALSettings(unittest.TestCase):
     def test_default_values(self):
         s = TrainerSettings()
         self.assertEqual(s.dual_update_strategy, "classic")
-        self.assertAlmostEqual(s.penalty_ema_decay, 0.99)
-        self.assertAlmostEqual(s.penalty_eta_scale, 1.0)
-        self.assertAlmostEqual(s.penalty_eps, 1e-8)
-        self.assertAlmostEqual(s.penalty_mu_max, 100.0)
+        self.assertAlmostEqual(s.pid_Kp, 5.0)
+        self.assertAlmostEqual(s.pid_Ki, 1.0)
+        self.assertAlmostEqual(s.pid_nu, 0.99)
         self.assertTrue(s.reset_prev_cost_on_al_update)
 
     def test_set_strategy(self):
         s = TrainerSettings()
-        for strategy in ("classic", "adaptive"):
+        for strategy in ("classic", "pid"):
             s.dual_update_strategy = strategy
             self.assertEqual(s.dual_update_strategy, strategy)
 
@@ -136,72 +135,46 @@ class TestClassicStrategy(unittest.TestCase):
         self.assertIsInstance(mu_val, float)
 
 
-class TestAdaptiveStrategy(unittest.TestCase):
-    """Test adaptive penalty (PECANN-CAPU style) dual-update strategy."""
+class TestPIDStrategy(unittest.TestCase):
+    """Test νPI controller (arXiv:2406.04558) dual-update strategy."""
 
     def setUp(self):
         self.n = 2
         self.N = 20
         _, self.trainer, self.data = _make_portfolio_problem(self.n, self.N)
 
-    def test_adaptive_trains(self):
+    def test_pid_trains(self):
         settings = _base_settings(self.data, self.n, self.N)
-        settings.dual_update_strategy = "adaptive"
+        settings.dual_update_strategy = "pid"
         result = self.trainer.train(settings=settings)
         self.assertIsNotNone(result.df)
         self.assertGreater(len(result.df), 0)
 
-    def test_adaptive_mu_is_vector(self):
-        """Adaptive strategy should produce per-constraint mu (array)."""
+    def test_pid_lambda_nonneg(self):
+        """PID strategy should keep lambda >= 0."""
         settings = _base_settings(self.data, self.n, self.N)
-        settings.dual_update_strategy = "adaptive"
-        result = self.trainer.train(settings=settings)
-        mu_val = result.df["mu"].iloc[-1]
-        self.assertTrue(hasattr(mu_val, '__len__'),
-                        f"mu should be an array, got {type(mu_val)}")
-
-    def test_adaptive_mu_monotonic(self):
-        """Adaptive mu should be monotonically non-decreasing per constraint."""
-        settings = _base_settings(self.data, self.n, self.N)
-        settings.dual_update_strategy = "adaptive"
-        result = self.trainer.train(settings=settings)
-        mu_series = result.df["mu"]
-        # Check that mu values are monotonically non-decreasing
-        for i in range(1, len(mu_series)):
-            prev = mu_series.iloc[i - 1]
-            curr = mu_series.iloc[i]
-            if hasattr(prev, '__len__') and hasattr(curr, '__len__'):
-                self.assertTrue(np.all(curr >= prev - 1e-10),
-                                f"mu decreased at step {i}: {prev} -> {curr}")
-
-    def test_adaptive_lambda_nonneg(self):
-        """Adaptive strategy should keep lambda >= 0."""
-        settings = _base_settings(self.data, self.n, self.N)
-        settings.dual_update_strategy = "adaptive"
+        settings.dual_update_strategy = "pid"
         result = self.trainer.train(settings=settings)
         for lam_arr in result.df["lam_list"]:
             self.assertTrue(np.all(lam_arr >= -1e-10))
 
-    def test_adaptive_mu_cap(self):
-        """Adaptive mu should never exceed penalty_mu_max."""
+    def test_pid_custom_gains(self):
+        """Training should work with custom Ki, Kp, nu."""
         settings = _base_settings(self.data, self.n, self.N)
-        settings.dual_update_strategy = "adaptive"
-        settings.penalty_mu_max = 5.0  # low cap to test enforcement
+        settings.dual_update_strategy = "pid"
+        settings.pid_Kp = 2.0
+        settings.pid_Ki = 0.5
+        settings.pid_nu = 0.9
         result = self.trainer.train(settings=settings)
-        for mu_val in result.df["mu"]:
-            if hasattr(mu_val, '__len__'):
-                self.assertTrue(np.all(mu_val <= 5.0 + 1e-10),
-                                f"mu exceeded cap: {mu_val}")
-            else:
-                self.assertLessEqual(mu_val, 5.0 + 1e-10)
+        self.assertIsNotNone(result.df)
 
-    def test_adaptive_custom_penalty_params(self):
-        """Training should work with custom adaptive penalty params."""
+    def test_pid_no_damping(self):
+        """Kp=0 should give integral-only update (no damping)."""
         settings = _base_settings(self.data, self.n, self.N)
-        settings.dual_update_strategy = "adaptive"
-        settings.penalty_ema_decay = 0.9
-        settings.penalty_eta_scale = 2.0
-        settings.penalty_eps = 1e-6
+        settings.dual_update_strategy = "pid"
+        settings.pid_Kp = 0.0
+        settings.pid_Ki = 1.0
+        settings.pid_nu = 0.0
         result = self.trainer.train(settings=settings)
         self.assertIsNotNone(result.df)
 
@@ -221,10 +194,10 @@ class TestResetPrevCost(unittest.TestCase):
         result = self.trainer.train(settings=settings)
         self.assertIsNotNone(result.df)
 
-    def test_no_reset_with_adaptive(self):
-        """Adaptive + no reset should complete."""
+    def test_no_reset_with_pid(self):
+        """PID + no reset should complete."""
         settings = _base_settings(self.data, self.n, self.N)
-        settings.dual_update_strategy = "adaptive"
+        settings.dual_update_strategy = "pid"
         settings.reset_prev_cost_on_al_update = False
         result = self.trainer.train(settings=settings)
         self.assertIsNotNone(result.df)
@@ -240,7 +213,7 @@ class TestStrategyCrossSettings(unittest.TestCase):
 
     def test_all_strategies_same_seed_deterministic(self):
         """Each strategy should produce deterministic results with same seed."""
-        for strategy in ("classic", "adaptive"):
+        for strategy in ("classic", "pid"):
             results = []
             for _ in range(2):
                 _, trainer, data = _make_portfolio_problem(self.n, self.N)
@@ -253,10 +226,10 @@ class TestStrategyCrossSettings(unittest.TestCase):
                 err_msg=f"Strategy '{strategy}' not deterministic",
             )
 
-    def test_adaptive_adam_optimizer(self):
-        """Adaptive strategy should work with Adam optimizer."""
+    def test_pid_adam_optimizer(self):
+        """PID strategy should work with Adam optimizer."""
         settings = _base_settings(self.data, self.n, self.N)
-        settings.dual_update_strategy = "adaptive"
+        settings.dual_update_strategy = "pid"
         settings.optimizer = "Adam"
         result = self.trainer.train(settings=settings)
         self.assertIsNotNone(result.df)

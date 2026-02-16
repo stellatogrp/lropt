@@ -1258,10 +1258,9 @@ class Trainer:
         mu = self.settings.init_mu
         strategy = self.settings.dual_update_strategy
 
-        if strategy == "adaptive":
-            # Per-constraint adaptive penalty
-            mu = self.settings.init_mu * torch.ones(self.num_g_total, dtype=s.DTYPE)
-            v_bar = torch.zeros(self.num_g_total, dtype=s.DTYPE)  # EMA of h^2
+        if strategy == "pid":
+            xi = torch.zeros(self.num_g_total, dtype=s.DTYPE)
+            pid_step = 0
 
         seed_num = 0
         curr_cvar = np.inf
@@ -1309,8 +1308,6 @@ class Trainer:
                 if self.settings.reset_prev_cost_on_al_update:
                     prev_fin_cost = np.inf
 
-                h = torch.maximum(constr_cost.detach(), torch.zeros_like(constr_cost.detach()))
-
                 if strategy == "classic":
                     # Original behavior (unchanged)
                     if (
@@ -1326,50 +1323,39 @@ class Trainer:
                     else:
                         mu = self.settings.mu_multiplier * mu
 
-                elif strategy == "adaptive":
-                    # Adaptive per-constraint penalty (arXiv:2508.15695)
-                    #   1. EMA of squared violations: v = zeta*v + (1-zeta)*h²
-                    #   2. RMSprop-style penalty floor: mu = max(mu, eta/sqrt(v+eps))
-                    #   3. Satisfied guard: freeze mu when h <= 0
-                    #   4. Hard cap: mu = min(mu, mu_max)
-                    #   5. Ungated lambda update: lam += mu * h
-                    zeta = self.settings.penalty_ema_decay
-                    eta_s = self.settings.penalty_eta_scale
-                    eps = self.settings.penalty_eps
-                    # Mask: only update mu for violated constraints
-                    raw_h = constr_cost.detach()
-                    if self.settings.penalty_satisfied_guard:
-                        violated = raw_h > 0
+                elif strategy == "pid":
+                    # νPI dual variable update (arXiv:2406.04558)
+                    e_t = constr_cost.detach()
+                    nu = self.settings.pid_nu
+                    Ki = self.settings.pid_Ki
+                    Kp = self.settings.pid_Kp
+
+                    if pid_step == 0:
+                        update = Ki * e_t
                     else:
-                        violated = torch.ones(
-                            self.num_g_total, dtype=torch.bool
-                        )
-                    # EMA of squared constraint values (only for violated)
-                    v_bar = torch.where(
-                        violated,
-                        zeta * v_bar + (1 - zeta) * h ** 2,
-                        v_bar,
-                    )
-                    # Monotonic penalty floor (only for violated)
-                    mu_candidate = torch.maximum(
-                        mu, eta_s / torch.sqrt(v_bar + eps)
-                    )
-                    mu = torch.where(violated, mu_candidate, mu)
-                    # Hard cap to prevent explosion when v_bar ≈ 0
-                    mu = torch.minimum(
-                        mu,
-                        self.settings.penalty_mu_max
-                        * torch.ones(self.num_g_total, dtype=s.DTYPE),
-                    )
-                    # Standard dual update (always, no threshold gate)
+                        bc = 1.0 - nu ** pid_step
+                        xi_bc = xi / bc
+                        update = Ki * e_t + Kp * (1 - nu) * (e_t - xi_bc)
+
+                    xi = nu * xi + (1 - nu) * e_t
+                    pid_step += 1
+
                     lam += torch.minimum(
-                        mu * h,
+                        update,
                         self.settings.lambda_update_max
                         * torch.ones(self.num_g_total, dtype=s.DTYPE),
                     )
                     lam = torch.maximum(
                         lam, torch.zeros(self.num_g_total, dtype=s.DTYPE)
                     )
+
+                    if (
+                        torch.norm(e_t)
+                        <= self.settings.lambda_update_threshold * curr_cvar
+                    ):
+                        curr_cvar = torch.norm(e_t)
+                    else:
+                        mu = self.settings.mu_multiplier * mu
 
             new_row = train_stats.generate_train_row(
                 self._a_tch,
