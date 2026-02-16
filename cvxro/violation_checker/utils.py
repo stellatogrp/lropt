@@ -4,7 +4,7 @@ import numpy as np
 from cvxpy import Constraint, Parameter
 from torch import Tensor
 
-from cvxro.train.parameter import ShapeParameter
+from cvxro.parameter import ShapeParameter
 from cvxro.violation_checker.settings import NO_BATCH, VIOLATION_TOL
 
 CONSTRAINT_STATUS = Enum("CONSTRAINT_STATUS", ["FEASIBLE", "INFEASIBLE"])

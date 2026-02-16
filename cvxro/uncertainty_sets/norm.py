@@ -1,7 +1,7 @@
 import numpy as np
 from cvxpy import Variable, norm
 
-from cvxro.train.parameter import ShapeParameter, SizeParameter
+from cvxro.parameter import ShapeParameter, SizeParameter
 from cvxro.uncertainty_sets.uncertainty_set import UncertaintySet
 from cvxro.uncertainty_sets.utils import check_indices_dict
 
@@ -11,7 +11,7 @@ class Norm(UncertaintySet):
     Norm uncertainty set, defined as
 
     .. math::
-        \mathcal{U}_{\text{Norm}} = \{Az+b \ | \ z\| \|_p \le \rho\}
+        \mathcal{U}_{\text{Norm}} = \{Az+b \ | \ \|z\|_p \le \rho\}
 
     when :math:`p = 2` this is an ellipsoidal set, and when :math:`p = \infty` this is a box set
 
@@ -29,16 +29,16 @@ class Norm(UncertaintySet):
         An array of uncertainty realizations, where each row is one realization.
         Required if the uncertainty should be trained.
     c: np.array, optional
-        matrix defining the lhs of the polyhedral support: :math: `cu \le d`. By default None.
+        matrix defining the lhs of the polyhedral support: :math:`cu \le d`. By default None.
     d: np.array, optional
-        vector defining the rhs of the polyhedral support: :math: `cu \le d`. By default None.
+        vector defining the rhs of the polyhedral support: :math:`cu \le d`. By default None.
     ub: np.array | float, optional
         vector or float defining the upper bound of the support. If scalar, broadcast to a vector.
         By default None.
     lb: np.array | float, optional
         vector or float defining the lower bound of the support. If scalar, broadcast to a vector.
         By default None.
-    sum_eq: np.array | float, optinal
+    sum_eq: np.array | float, optional
         vector or float defining an equality constraint for the uncertain vector. By default None.
     indices_dict: dict, optional
         Optional mapping with keys 'train', 'test', and 'validate' that specify
@@ -176,9 +176,6 @@ class Norm(UncertaintySet):
             constr = [lmbda >= 0]
             return self.rho_mult*self.rho*lmbda, constr, lmbda, None
         else:
-            # ushape = var.shape[1]  # shape of uncertainty
-            # if self.b is None:
-            #     self._b = np.zeros(ushape)
             lmbda = Variable()
             supp_newvar = Variable(len(self._d))
             constr = [norm(var, p=self.dual_norm()) <= lmbda]

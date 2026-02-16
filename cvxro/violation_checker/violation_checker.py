@@ -2,7 +2,7 @@ from cvxpy import Constraint, Parameter
 from cvxpylayers.torch import CvxpyLayer
 from torch import Tensor
 
-from cvxro.train.parameter import ContextParameter, ShapeParameter
+from cvxro.parameter import ContextParameter, ShapeParameter
 from cvxro.violation_checker.utils import (
     CONSTRAINT_STATUS,
     check_constraint,

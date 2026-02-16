@@ -1,6 +1,6 @@
 import numpy as np
 
-from cvxro.train.parameter import SizeParameter
+from cvxro.parameter import SizeParameter
 from cvxro.uncertainty_sets.uncertainty_set import UncertaintySet
 
 

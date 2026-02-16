@@ -14,8 +14,8 @@ import torch
 from sklearn.model_selection import train_test_split
 
 from cvxro import Trainer, TrainerSettings, max_of_uncertain
+from cvxro.parameter import ContextParameter
 from cvxro.robust_problem import RobustProblem
-from cvxro.train.parameter import ContextParameter
 from cvxro.uncertain_parameter import UncertainParameter
 from cvxro.uncertainty_sets.ellipsoidal import Ellipsoidal
 

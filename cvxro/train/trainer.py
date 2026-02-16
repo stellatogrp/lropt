@@ -11,7 +11,7 @@ from joblib import Parallel, delayed
 
 import cvxro.train.settings as s
 from cvxro import RobustProblem
-from cvxro.train.parameter import ContextParameter, ShapeParameter, SizeParameter
+from cvxro.parameter import ContextParameter, ShapeParameter, SizeParameter
 from cvxro.train.predictors.covpred import CovPredictor
 from cvxro.train.predictors.linear import LinearPredictor
 from cvxro.train.settings import DEFAULT_SETTINGS as DS

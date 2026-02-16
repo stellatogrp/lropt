@@ -79,7 +79,7 @@ class TrainerSettings:
         momentum: float between 0 and 1, optional
             The momentum for gradient descent. Default 0.8.
         optimizer: str or letters, optional
-            The optimizer to use tor the descent algorithm. Default SGD.
+            The optimizer to use for the descent algorithm. Default SGD.
         init_rho : float, optional
             The rho (radius) to initialize :math:`A` and :math:`b`, if passed.
         init_A : numpy array, optional
@@ -129,7 +129,7 @@ class TrainerSettings:
             The number of iterations before the learning rate is decreased,
             if scheduler is enabled. Default 500.
         lr_gamma: float, optional
-            The multiplier of the lr if the scheduler is enabled. DEfault 0.1.
+            The multiplier of the lr if the scheduler is enabled. Default 0.1.
         quantiles: tuple, optional
             The lower and upper quantiles of the test values desired. Default (0.25, 0.75)
         aug_lag_update_interval: int, optional
@@ -181,7 +181,7 @@ class TrainerSettings:
         predictor
             NN model, Default Linear
         line_search
-            Wheter or not to perform backtracking line search to choose step sizes
+            Whether or not to perform backtracking line search to choose step sizes
         line_search_mult
             The amount to reduce the step size by if the line search condition is not met
         line_search_threshold

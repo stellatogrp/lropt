@@ -31,4 +31,4 @@ jobs:
           pip install ".[dev]"
       - name: Test with pytest
         run: |
-          pytest tests
+          pytest tests/core/ tests/integration/ -q

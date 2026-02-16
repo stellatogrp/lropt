@@ -1,7 +1,7 @@
 import numpy as np
 from cvxpy import Variable, norm
 
-from cvxro.train.parameter import ShapeParameter, SizeParameter
+from cvxro.parameter import ShapeParameter, SizeParameter
 from cvxro.uncertainty_sets.uncertainty_set import UncertaintySet
 
 
@@ -31,16 +31,16 @@ class Budget(UncertaintySet):
         An array of uncertainty realizations, where each row is one realization.
         Required if the uncertainty should be trained.
     c: np.array, optional
-        matrix defining the lhs of the polyhedral support: :math: `cu \le d`. By default None.
+        matrix defining the lhs of the polyhedral support: :math:`cu \le d`. By default None.
     d: np.array, optional
-        vector defining the rhs of the polyhedral support: :math: `cu \le d`. By default None.
+        vector defining the rhs of the polyhedral support: :math:`cu \le d`. By default None.
     ub: np.array | float, optional
         vector or float defining the upper bound of the support. If scalar, broadcast to a vector.
         By default None.
     lb: np.array | float, optional
         vector or float defining the lower bound of the support. If scalar, broadcast to a vector.
         By default None.
-    sum_eq: np.array | float, optinal
+    sum_eq: np.array | float, optional
         vector or float defining an equality constraint for the uncertain vector. By default None.
     indices_dict: dict, optional
         Optional mapping with keys 'train', 'test', and 'validate' that specify

@@ -13,8 +13,8 @@ from cvxpy.reductions.reduction import Reduction
 from numpy import ndarray
 from scipy.sparse import csr_matrix
 
+from cvxro.parameter import ContextParameter
 from cvxro.robust_problem import RobustProblem
-from cvxro.train.parameter import ContextParameter
 from cvxro.uncertain_canon.utils import (
     CERTAIN_ID,
     gen_constraint_by_type,

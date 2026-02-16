@@ -2,7 +2,7 @@ import numpy as np
 from cvxpy import Variable, norm
 from sklearn.cluster import KMeans
 
-from cvxro.train.parameter import ShapeParameter, SizeParameter
+from cvxro.parameter import ShapeParameter, SizeParameter
 from cvxro.uncertainty_sets.uncertainty_set import UncertaintySet
 
 
@@ -122,31 +122,6 @@ class MRO(UncertaintySet):
         self._a = a
         self._rho_mult = SizeParameter(value=1.)
         self.indices_dict = indices_dict
-
-
-        # if train:
-        #     if self._uniqueA:
-        #         a = Parameter((K*self._m, self._m))
-        #         dat = data[kmeans.labels_ == 0]
-        #         if dat.shape[0] <= 2:
-        #             initnew = sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))
-        #         else:
-        #             initnew = sc.linalg.sqrtm(sc.linalg.inv(np.cov(dat.T)))
-        #         for k_ind in range(1, K):
-        #             dat = data[kmeans.labels_ == k_ind]
-        #             if dat.shape[0] <= 2:
-        #                 initnew = np.vstack((initnew,
-        #                                      sc.linalg.sqrtm(sc.linalg.inv(np.cov(data.T)))))
-        #             else:
-        #                 initnew = np.vstack((initnew,
-        #                                      sc.linalg.sqrtm(sc.linalg.inv(np.cov(dat.T)))))
-        #         self._initA = initnew
-        #     else:
-        #         a = Parameter((self._m, self._m))
-        # else:
-        #     if a is not None:
-        #         if self._uniqueA and a.shape[0] != (K*self._m):
-        #             raise ValueError("a must be of dimension (K*m, m)")
 
         self._lam = None
 

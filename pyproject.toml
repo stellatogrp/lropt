@@ -54,6 +54,13 @@ dev = [
     "hydra-optuna-sweeper"
 ]
 
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (learning/training tests)",
+    "core: marks tests as core robust optimization tests",
+]
+testpaths = ["tests"]
+
 [tool.ruff]
 exclude = [
     "build",
@@ -62,6 +69,7 @@ exclude = [
     "docs",
     "cvxpy_dpp",
     "*__init__.py",
+    "run_tests_safe.py",
 ]
 line-length = 100
 target-version = "py310"

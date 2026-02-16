@@ -6,8 +6,8 @@ import numpy.random as npr
 import numpy.testing as npt
 
 from cvxro import Trainer, TrainerSettings
+from cvxro.parameter import ContextParameter
 from cvxro.robust_problem import RobustProblem
-from cvxro.train.parameter import ContextParameter
 from cvxro.train.predictors.linear import LinearPredictor
 from cvxro.uncertain_parameter import UncertainParameter
 from cvxro.uncertainty_sets.ellipsoidal import Ellipsoidal

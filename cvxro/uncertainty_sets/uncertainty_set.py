@@ -14,7 +14,7 @@ class UncertaintySet(ABC):
     ----------
     indices_dict : dict, optional
         Optional mapping with keys 'train', 'test', and 'validate' that specify
-        integer index arrays or boolean boolean masks to split the provided
+        integer index arrays or boolean masks to split the provided
         `data` into training, testing, and validation subsets. When provided,
         the uncertainty set (and training utilities) will validate and use
         these explicit splits. Note: `data` must be supplied for validation
@@ -23,10 +23,6 @@ class UncertaintySet(ABC):
 
     # Optional explicit split indices that can be provided by users or settings
     indices_dict = None
-
-    # @abstractmethod
-    # def canonicalize(self, x, var):
-    #     return NotImplemented
 
     @abstractmethod
     def conjugate(self, var):
@@ -154,8 +150,6 @@ class UncertaintySet(ABC):
             if trans['b'] is not None:
                 new_expr += trans['b']
         e = np.eye(1)[0]
-        # if self.b is not None:
-        #     new_expr = new_expr + cp.multiply(e, self._safe_mul(-self.b,var))
 
         if trans:
             lhs = -trans['A']
@@ -165,7 +159,6 @@ class UncertaintySet(ABC):
         else:
             new_constraints = [var == - e]
 
-        # if i == (num_constr - 1):
         if self.affine_transform:
             self.affine_transform_temp = self.affine_transform.copy()
         else:

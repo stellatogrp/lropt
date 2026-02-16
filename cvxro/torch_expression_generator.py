@@ -281,7 +281,7 @@ def get_eval_data(problem, tch_exp, batch_num: int) -> list[torch.Tensor]:
         # Transform into a torch.Tensor
         if isinstance(value, (float, int)):
             value = [value]
-        return torch.Tensor(value)
+        return torch.tensor(value, dtype=torch.float64)
 
     # Get the vars_dict
     vars_dict = tch_exp.args[3]
