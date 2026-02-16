@@ -54,6 +54,7 @@ class TestEvaluateLearned(unittest.TestCase):
         settings.num_iter = 1
         settings.optimizer = "SGD"
         settings.parallel = False
+        settings.num_random_init = 1
         trainer.train(settings=settings)
 
         # Solve the robust problem to get the decision
@@ -116,6 +117,7 @@ class TestEvaluateLearned(unittest.TestCase):
         settings.predictor = LinearPredictor(predict_mean=True,knn_cov = True)
         settings.num_iter = 3
         settings.parallel = False
+        settings.num_random_init = 1
         trainer.train(settings=settings)
 
         # Manual per-context solve to compute expected evaluation and violations

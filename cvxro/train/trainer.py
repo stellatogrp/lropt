@@ -1,3 +1,4 @@
+import gc
 from abc import ABC
 
 import numpy as np
@@ -231,7 +232,9 @@ class Trainer:
             prob_vio += self.simulator.prob_constr_violation(x_t, z_t,
                                                              **self.settings.kwargs_simulator)
             x_hist.append([xval.detach().numpy().copy() for xval in x_t])
-            z_hist.append(z_t)
+            z_hist.append(
+                [z.detach() for z in z_t] if isinstance(z_t, list) else z_t.detach()
+            )
             if self.settings.contextual:
                 a_tch, b_tch,radius = self.create_predictor_tensors(x_t)
             self._a_tch = a_tch
@@ -1202,9 +1205,9 @@ class Trainer:
         a_history = []
         b_history = []
         rho_history = []
-        df = pd.DataFrame(columns=["step"])
-        df_test = pd.DataFrame(columns=["step"])
-        df_validate = pd.DataFrame(columns=["step"])
+        rows = []
+        rows_test = []
+        rows_validate = []
 
         rho_tch = self._gen_rho_tch(self.settings.init_rho)
         a_tch, b_tch, alpha = self._init_torches(
@@ -1314,7 +1317,7 @@ class Trainer:
                 self.settings.contextual,
                 self.settings.linear,
                 self.settings.predictor            )
-            df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
+            rows.append(new_row)
 
             self._update_iters(
                 self.settings.save_history,
@@ -1395,8 +1398,7 @@ class Trainer:
                     self.settings.contextual,
                     x_batch
                 )
-                df_validate = pd.concat([df_validate, new_row.to_frame().T], ignore_index=True)
-
+                rows_validate.append(new_row)
 
             if step_num % self.settings.test_frequency == 0:
                 self._test_flag = True
@@ -1438,7 +1440,17 @@ class Trainer:
                     self.settings.contextual,
                     x_batch
                 )
-                df_test = pd.concat([df_test, new_row.to_frame().T], ignore_index=True)
+                rows_test.append(new_row)
+
+        df = pd.DataFrame([r.to_dict() for r in rows]) if rows else pd.DataFrame()
+        df_test = (
+            pd.DataFrame([r.to_dict() for r in rows_test]) if rows_test else pd.DataFrame()
+        )
+        df_validate = (
+            pd.DataFrame([r.to_dict() for r in rows_validate])
+            if rows_validate
+            else pd.DataFrame()
+        )
 
         if constr_cost.detach().numpy().sum() / self.num_g_total <= self.settings.kappa:
             fin_val = record_avg_cost[1].item()
@@ -1551,6 +1563,7 @@ class Trainer:
             res = []
             for init_num in range(self.settings.num_random_init):
                 res.append(self._train_loop(init_num))
+                gc.collect()
         # Joblib version
         else:
             self.settings.n_jobs = get_n_processes() if self.settings.parallel else 1

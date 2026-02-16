@@ -211,7 +211,7 @@ class TrainerSettings:
         self.eta = 0.05
         self.kappa = -0.015  # (originally target_cvar)
         self.random_init = False
-        self.num_random_init = 10
+        self.num_random_init = 3
         self.test_frequency = 10
         self.test_percentage = 0.2
         self.batch_percentage = 0.1
@@ -221,7 +221,7 @@ class TrainerSettings:
         self.lr_step_size = 500
         self.lr_gamma = 0.1
         self.position = False
-        self.parallel = True
+        self.parallel = False
         self.aug_lag_update_interval = 20
         self.lambda_update_threshold = 0.99
         self.lambda_update_max = 1000
