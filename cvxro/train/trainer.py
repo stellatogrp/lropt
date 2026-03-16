@@ -1,3 +1,4 @@
+import copy
 import gc
 from abc import ABC
 
@@ -1061,9 +1062,13 @@ class Trainer:
         """
         F = self.train_objective(batch_int, eval_args=eval_args)
         H = self.train_constraint(
-            batch_int, eval_args=eval_args, alpha=alpha,eta=eta, kappa=kappa
+            batch_int, eval_args=eval_args, alpha=alpha, eta=eta, kappa=kappa
         )
-        return F + lam @ H + (mu / 2) * (torch.linalg.norm(H) ** 2), H.detach()
+        H_plus = torch.maximum(H, torch.zeros_like(H))
+        if isinstance(mu, torch.Tensor):
+            return F + lam @ H_plus + (mu / 2) @ (H_plus ** 2), H.detach()
+        else:
+            return F + lam @ H_plus + (mu / 2) * (torch.linalg.norm(H_plus) ** 2), H.detach()
 
     def _reduce_variables(self, z_batch: list[torch.Tensor]) -> list[torch.Tensor]:
         """
@@ -1082,7 +1087,7 @@ class Trainer:
 
     def _line_search(self, step_num: int, a_tch: torch.Tensor, b_tch: torch.Tensor,
                      rho_tch: torch.Tensor, alpha: torch.Tensor,
-                     lam: torch.Tensor, mu: float,
+                     lam: torch.Tensor, mu: "float | torch.Tensor",
                      opt: torch.optim.Optimizer, prev_states: list,
                      seed_num: int,prev_fin_cost: torch.Tensor) \
                         -> tuple[CONSTRAINT_STATUS, torch.Tensor, torch.Tensor, torch.Tensor,
@@ -1148,19 +1153,20 @@ class Trainer:
                 avg_cost = avg_cost.repeat(3)
 
             if self.settings.constraint_cvar:
+                h_plus = torch.maximum(constr_cost, torch.zeros_like(constr_cost))
                 if self.num_g_total > 1:
-                    fin_cost = (
-                        cost + lam @ torch.maximum(
-                            constr_cost,torch.zeros(self.num_g_total)) + (
-                                mu / 2) * (torch.linalg.norm(
-                                    torch.maximum(constr_cost,
-                                                    torch.zeros(self.num_g_total))) ** 2)
-                    )
+                    if isinstance(mu, torch.Tensor):
+                        fin_cost = cost + lam @ h_plus + (mu / 2) @ (h_plus ** 2)
+                    else:
+                        fin_cost = (
+                            cost + lam @ h_plus
+                            + (mu / 2) * (torch.linalg.norm(h_plus) ** 2)
+                        )
                 else:
-                    fin_cost = cost + lam * torch.maximum(
-                        constr_cost,torch.zeros(1)) + (
-                            mu / 2) * (torch.maximum(
-                                constr_cost,torch.zeros(1))**2)
+                    if isinstance(mu, torch.Tensor):
+                        fin_cost = cost + lam * h_plus + (mu[0] / 2) * (h_plus ** 2)
+                    else:
+                        fin_cost = cost + lam * h_plus + (mu / 2) * (h_plus ** 2)
             elif self.settings.delage_coverage:
                 fin_cost = (1-self.settings.coverage_gamma)*cost + \
                     self.settings.coverage_gamma*constr_cost
@@ -1253,6 +1259,12 @@ class Trainer:
         # y's and cvxpylayer begin
         lam = self.settings.init_lam * torch.ones(self.num_g_total, dtype=s.DTYPE)
         mu = self.settings.init_mu
+        strategy = self.settings.dual_update_strategy
+
+        if strategy == "pid":
+            xi = torch.zeros(self.num_g_total, dtype=s.DTYPE)
+            pid_step = 0
+
         seed_num = 0
         curr_cvar = np.inf
         prev_fin_cost = np.inf
@@ -1296,19 +1308,57 @@ class Trainer:
 
             if step_num % self.settings.aug_lag_update_interval == 0:
                 seed_num += 1
-                prev_fin_cost = np.inf
-                if (
-                    torch.norm(constr_cost.detach())
-                    <= self.settings.lambda_update_threshold * curr_cvar
-                ):
-                    curr_cvar = torch.norm(constr_cost.detach())
+                if self.settings.reset_prev_cost_on_al_update:
+                    prev_fin_cost = np.inf
+
+                if strategy == "classic":
+                    # Original behavior (unchanged)
+                    if (
+                        torch.norm(constr_cost.detach())
+                        <= self.settings.lambda_update_threshold * curr_cvar
+                    ):
+                        curr_cvar = torch.norm(constr_cost.detach())
+                        lam += torch.minimum(
+                            mu * constr_cost.detach(),
+                            self.settings.lambda_update_max
+                            * torch.ones(self.num_g_total, dtype=s.DTYPE),
+                        )
+                    else:
+                        mu = self.settings.mu_multiplier * mu
+
+                elif strategy == "pid":
+                    # νPI dual variable update (arXiv:2406.04558)
+                    e_t = constr_cost.detach()
+                    nu = self.settings.pid_nu
+                    Ki = self.settings.pid_Ki
+                    Kp = self.settings.pid_Kp
+
+                    if pid_step == 0:
+                        update = Ki * e_t
+                    else:
+                        bc = 1.0 - nu ** pid_step
+                        xi_bc = xi / bc
+                        update = Ki * e_t + Kp * (1 - nu) * (e_t - xi_bc)
+
+                    xi = nu * xi + (1 - nu) * e_t
+                    pid_step += 1
+
                     lam += torch.minimum(
-                        mu * constr_cost.detach(),
+                        update,
                         self.settings.lambda_update_max
                         * torch.ones(self.num_g_total, dtype=s.DTYPE),
                     )
-                else:
-                    mu = self.settings.mu_multiplier * mu
+                    lam = torch.maximum(
+                        lam, torch.zeros(self.num_g_total, dtype=s.DTYPE)
+                    )
+
+                    if (
+                        torch.norm(e_t)
+                        <= self.settings.lambda_update_threshold * curr_cvar
+                    ):
+                        curr_cvar = torch.norm(e_t)
+                    else:
+                        mu = self.settings.mu_multiplier * mu
 
             new_row = train_stats.generate_train_row(
                 self._a_tch,
@@ -1653,7 +1703,7 @@ class Trainer:
             return_a_history = a_history[index_chosen] + a_history_s[0]
             return_b_history = b_history[index_chosen] + b_history_s[0]
             return_rho_history = rho_history[index_chosen] + rho_history_s[0]
-            return Result(
+            result = Result(
                 self,
                 self.problem_canon,
                 return_df,
@@ -1670,23 +1720,32 @@ class Trainer:
                 predictor=predictors_s[0],
                 x_batch=x_batch[index_chosen] + x_batch_s[0]
             )
-        return Result(
-            self,
-            self.problem_canon,
-            df[index_chosen],
-            df_test[index_chosen],
-            df_validate[index_chosen],
-            self.unc_set.a.value,
-            self.unc_set.b.value,
-            return_rho,
-            param_vals[index_chosen][3],
-            var_values[index_chosen],
-            a_history=a_history[index_chosen],
-            b_history=b_history[index_chosen],
-            rho_history=rho_history[index_chosen],
-            predictor=predictors[index_chosen],
-            x=x_batch[index_chosen]
+        else:
+            result = Result(
+                self,
+                self.problem_canon,
+                df[index_chosen],
+                df_test[index_chosen],
+                df_validate[index_chosen],
+                self.unc_set.a.value,
+                self.unc_set.b.value,
+                return_rho,
+                param_vals[index_chosen][3],
+                var_values[index_chosen],
+                a_history=a_history[index_chosen],
+                b_history=b_history[index_chosen],
+                rho_history=rho_history[index_chosen],
+                predictor=predictors[index_chosen],
+                x=x_batch[index_chosen]
         )
+
+        # Post-training rho calibration
+        if self.settings.tune_rho:
+            calibrated_rho = self._tune_rho(result)
+            result._rho = calibrated_rho
+            self._rho_mult_parameter[0].value = calibrated_rho
+
+        return result
 
     def compare_predictors(
             self,
@@ -1713,7 +1772,54 @@ class Trainer:
             validate_dfs.append(result.df_validate)
         return pd.concat(validate_dfs), pd.concat(test_dfs)
 
+    def _tune_rho(self, result):
+        """Post-training rho calibration via grid search on validation data.
 
+        Finds the smallest rho where validation violation probability <= target_eta.
+        Uses compare_predictors to evaluate each candidate rho.
+        """
+        trained_rho = result.rho
+        target_eta = self.settings.target_eta
+        n_grid = self.settings.tune_rho_n_grid
+        lo, hi = self.settings.tune_rho_range
+
+        # Save settings (compare_predictors -> train() overwrites self.settings)
+        saved_settings = self.settings
+
+        # Build log-spaced grid of absolute rho values
+        rho_grid = np.logspace(np.log10(lo), np.log10(hi), n_grid) * trained_rho
+
+        best_rho = trained_rho
+        best_violation = np.inf
+        feasible_found = False
+
+        for rho_val in rho_grid:
+            eval_settings = copy.copy(saved_settings)
+            eval_settings.tune_rho = False  # prevent recursive calibration
+            try:
+                df_valid, _ = self.compare_predictors(
+                    settings=eval_settings,
+                    predictors_list=[result.predictor],
+                    rho_list=[rho_val],
+                )
+                viol = df_valid["Avg_prob_validate"].iloc[0]
+            except Exception:
+                continue
+
+            if viol <= target_eta:
+                if not feasible_found or rho_val < best_rho:
+                    best_rho = rho_val
+                    best_violation = viol
+                    feasible_found = True
+            elif not feasible_found:
+                if viol < best_violation:
+                    best_violation = viol
+                    best_rho = rho_val
+
+        # Restore settings
+        self.settings = saved_settings
+
+        return best_rho
 
     def gen_unique_x(self, x_batch):
         """get unique x's from a list of x parameters."""
@@ -2068,7 +2174,7 @@ class TrainLoopStats:
         row_dict["step"] = self.step_num
         row_dict["A_norm"] = np.linalg.norm(a_tch.detach().numpy().copy())
         row_dict["lam_list"] = lam.detach().numpy().copy()
-        row_dict["mu"] = mu
+        row_dict["mu"] = mu.detach().numpy().copy() if isinstance(mu, torch.Tensor) else mu
         row_dict["alpha"] = alpha.item()
         row_dict["alphagrad"] = alpha.grad
         if contextual:

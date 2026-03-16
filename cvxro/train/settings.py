@@ -257,6 +257,25 @@ class TrainerSettings:
         self.delage_coverage = False
         self.target_eta = 0.1
         self.avg_scale = 0
+
+        # --- Rho calibration settings ---
+        self.tune_rho = False               # Enable post-training rho calibration
+        self.tune_rho_n_grid = 30           # Number of grid points
+        self.tune_rho_range = (0.01, 3.0)   # Rho multiplier range (min, max)
+
+        # --- AL improvement settings ---
+        self.dual_update_strategy = "classic"  # "classic" | "pid"
+
+        # Shared improvement
+        self.reset_prev_cost_on_al_update = True  # set False to disable prev_fin_cost reset
+
+        # νPI controller settings (Sohrabi et al., ICML 2024, arXiv:2406.04558)
+        # Dual variable update: λ += Ki·e + Kp·(1-ν)·(e - ξ̃)
+        # Setting Kp=0, Ki=1, ν=0 recovers standard gradient ascent.
+        self.pid_Kp = 5.0    # Proportional gain (damping; effective per-step = Kp*(1-ν))
+        self.pid_Ki = 1.0    # Integral gain (accumulates violations; like step size)
+        self.pid_nu = 0.99   # EMA coefficient (0=noiseless, 0.99=stochastic)
+
         self._generate_slots()
 
     def _attr_exists(self, name) -> None:
