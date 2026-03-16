@@ -1169,6 +1169,8 @@ class Trainer:
 
             if self.settings.line_search:
                 search_condition = fin_cost <= self.settings.line_search_threshold*prev_fin_cost
+                # if not isinstance(search_condition, bool):
+                #     search_condition = search_condition.all().item()
             else:
                 search_condition = True
             if constraint_status is CONSTRAINT_STATUS.FEASIBLE and search_condition:
@@ -1479,6 +1481,7 @@ class Trainer:
             mu,
             self.settings.predictor,
             ret_context,
+            x_batch
         )
 
     def train(
@@ -1524,6 +1527,8 @@ class Trainer:
             self.settings.data = self.unc_set.data
         if self.settings.indices_dict is None:
             self.settings.indices_dict = self.unc_set.indices_dict
+
+        # if not self._multistage:
         self._split_dataset(self.settings.test_percentage,
                             self.settings.validate_percentage, self.settings.seed)
 
@@ -1584,6 +1589,7 @@ class Trainer:
             mu_val,
             predictors,
             ret_context,
+            x_batch
         ) = zip(*res)
         index_chosen = np.argmin(np.array(fin_val))
         self.orig_problem_trained = True
@@ -1634,6 +1640,7 @@ class Trainer:
                 mu_s,
                 predictors_s,
                 ret_context_s,
+                x_batch_s
             ) = zip(*res)
             return_rho = param_vals_s[0][2]
             self._rho_mult_parameter[0].value = return_rho
@@ -1661,6 +1668,7 @@ class Trainer:
                 b_history=return_b_history,
                 rho_history=return_rho_history,
                 predictor=predictors_s[0],
+                x_batch=x_batch[index_chosen] + x_batch_s[0]
             )
         return Result(
             self,
@@ -1677,6 +1685,7 @@ class Trainer:
             b_history=b_history[index_chosen],
             rho_history=rho_history[index_chosen],
             predictor=predictors[index_chosen],
+            x=x_batch[index_chosen]
         )
 
     def compare_predictors(
@@ -2217,6 +2226,7 @@ class Result(ABC):
         b_history=None,
         rho_history=None,
         predictor=None,
+        x = None
     ):
         self._final_prob = probnew
         self._problem = prob
@@ -2227,6 +2237,7 @@ class Result(ABC):
         self._b = b
         self._obj = obj
         self._z = z
+        self._x = x
         self._rho = rho
         self._a_history = a_history
         self._b_history = b_history
@@ -2271,6 +2282,10 @@ class Result(ABC):
 
     @property
     def var_values(self):
+        return self._z
+
+    @property
+    def context_values(self):
         return self._x
 
     @property
