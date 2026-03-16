@@ -258,6 +258,11 @@ class TrainerSettings:
         self.target_eta = 0.1
         self.avg_scale = 0
 
+        # --- Rho calibration settings ---
+        self.tune_rho = False               # Enable post-training rho calibration
+        self.tune_rho_n_grid = 30           # Number of grid points
+        self.tune_rho_range = (0.01, 3.0)   # Rho multiplier range (min, max)
+
         # --- AL improvement settings ---
         self.dual_update_strategy = "classic"  # "classic" | "pid"
 

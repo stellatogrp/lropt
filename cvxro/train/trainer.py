@@ -1,3 +1,4 @@
+import copy
 import gc
 from abc import ABC
 
@@ -1695,7 +1696,7 @@ class Trainer:
             return_a_history = a_history[index_chosen] + a_history_s[0]
             return_b_history = b_history[index_chosen] + b_history_s[0]
             return_rho_history = rho_history[index_chosen] + rho_history_s[0]
-            return Result(
+            result = Result(
                 self,
                 self.problem_canon,
                 return_df,
@@ -1711,22 +1712,31 @@ class Trainer:
                 rho_history=return_rho_history,
                 predictor=predictors_s[0],
             )
-        return Result(
-            self,
-            self.problem_canon,
-            df[index_chosen],
-            df_test[index_chosen],
-            df_validate[index_chosen],
-            self.unc_set.a.value,
-            self.unc_set.b.value,
-            return_rho,
-            param_vals[index_chosen][3],
-            var_values[index_chosen],
-            a_history=a_history[index_chosen],
-            b_history=b_history[index_chosen],
-            rho_history=rho_history[index_chosen],
-            predictor=predictors[index_chosen],
-        )
+        else:
+            result = Result(
+                self,
+                self.problem_canon,
+                df[index_chosen],
+                df_test[index_chosen],
+                df_validate[index_chosen],
+                self.unc_set.a.value,
+                self.unc_set.b.value,
+                return_rho,
+                param_vals[index_chosen][3],
+                var_values[index_chosen],
+                a_history=a_history[index_chosen],
+                b_history=b_history[index_chosen],
+                rho_history=rho_history[index_chosen],
+                predictor=predictors[index_chosen],
+            )
+
+        # Post-training rho calibration
+        if self.settings.tune_rho:
+            calibrated_rho = self._tune_rho(result)
+            result._rho = calibrated_rho
+            self._rho_mult_parameter[0].value = calibrated_rho
+
+        return result
 
     def compare_predictors(
             self,
@@ -1753,7 +1763,54 @@ class Trainer:
             validate_dfs.append(result.df_validate)
         return pd.concat(validate_dfs), pd.concat(test_dfs)
 
+    def _tune_rho(self, result):
+        """Post-training rho calibration via grid search on validation data.
 
+        Finds the smallest rho where validation violation probability <= target_eta.
+        Uses compare_predictors to evaluate each candidate rho.
+        """
+        trained_rho = result.rho
+        target_eta = self.settings.target_eta
+        n_grid = self.settings.tune_rho_n_grid
+        lo, hi = self.settings.tune_rho_range
+
+        # Save settings (compare_predictors -> train() overwrites self.settings)
+        saved_settings = self.settings
+
+        # Build log-spaced grid of absolute rho values
+        rho_grid = np.logspace(np.log10(lo), np.log10(hi), n_grid) * trained_rho
+
+        best_rho = trained_rho
+        best_violation = np.inf
+        feasible_found = False
+
+        for rho_val in rho_grid:
+            eval_settings = copy.copy(saved_settings)
+            eval_settings.tune_rho = False  # prevent recursive calibration
+            try:
+                df_valid, _ = self.compare_predictors(
+                    settings=eval_settings,
+                    predictors_list=[result.predictor],
+                    rho_list=[rho_val],
+                )
+                viol = df_valid["Avg_prob_validate"].iloc[0]
+            except Exception:
+                continue
+
+            if viol <= target_eta:
+                if not feasible_found or rho_val < best_rho:
+                    best_rho = rho_val
+                    best_violation = viol
+                    feasible_found = True
+            elif not feasible_found:
+                if viol < best_violation:
+                    best_violation = viol
+                    best_rho = rho_val
+
+        # Restore settings
+        self.settings = saved_settings
+
+        return best_rho
 
     def gen_unique_x(self, x_batch):
         """get unique x's from a list of x parameters."""

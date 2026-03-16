@@ -235,5 +235,58 @@ class TestStrategyCrossSettings(unittest.TestCase):
         self.assertIsNotNone(result.df)
 
 
+class TestRhoCalibration(unittest.TestCase):
+    """Test post-training rho calibration."""
+
+    def test_tune_rho_setting_defaults(self):
+        """Verify new settings exist with correct defaults."""
+        s = TrainerSettings()
+        self.assertFalse(s.tune_rho)
+        self.assertEqual(s.tune_rho_n_grid, 30)
+        self.assertEqual(s.tune_rho_range, (0.01, 3.0))
+
+    def test_tune_rho_disabled_no_change(self):
+        """tune_rho=False should not alter training behavior."""
+        _, trainer, data = _make_portfolio_problem()
+        settings = _base_settings(data)
+        settings.tune_rho = False
+        result = trainer.train(settings=settings)
+        self.assertIsNotNone(result.df)
+        self.assertGreater(result.rho, 0)
+
+    def test_tune_rho_enabled(self):
+        """tune_rho=True should run and return a valid rho."""
+        _, trainer, data = _make_portfolio_problem()
+        settings = _base_settings(data)
+        settings.tune_rho = True
+        settings.tune_rho_n_grid = 5
+        settings.tune_rho_range = (0.5, 2.0)
+        result = trainer.train(settings=settings)
+        self.assertIsNotNone(result.df)
+        self.assertGreater(result.rho, 0)
+
+    def test_tune_rho_with_pid(self):
+        """Rho calibration should work with PID strategy."""
+        _, trainer, data = _make_portfolio_problem()
+        settings = _base_settings(data)
+        settings.dual_update_strategy = "pid"
+        settings.tune_rho = True
+        settings.tune_rho_n_grid = 5
+        settings.tune_rho_range = (0.5, 2.0)
+        result = trainer.train(settings=settings)
+        self.assertIsNotNone(result.df)
+        self.assertGreater(result.rho, 0)
+
+    def test_tune_rho_preserves_predictor(self):
+        """Predictor should survive rho calibration."""
+        _, trainer, data = _make_portfolio_problem()
+        settings = _base_settings(data)
+        settings.tune_rho = True
+        settings.tune_rho_n_grid = 3
+        settings.tune_rho_range = (0.8, 1.2)
+        result = trainer.train(settings=settings)
+        self.assertIsNotNone(result.predictor)
+
+
 if __name__ == "__main__":
     unittest.main()
