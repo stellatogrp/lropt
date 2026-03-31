@@ -1,4 +1,3 @@
-from enum import Enum
 
 import numpy as np
 import torch
@@ -9,18 +8,18 @@ LAYER_SOLVER = {"solve_method": "Clarabel", "tol_feas": 1e-7}
 TOL = 1e-5
 DTYPE = torch.double
 
-"""
-Different types of MRO:
-#NO_MRO:
-    No MRO
-#DIFF_A_UNINIT:
-    Different A for each k and uninitialized
-#DIFF_A_INIT:
-    Different A for each k, initialized with a different matrix for each k
-#SAME_A:
-    same A for each k
-"""
-MRO_CASE = Enum("MRO_CASE", "NO_MRO DIFF_A_UNINIT DIFF_A_INIT SAME_A")
+# """
+# Different types of MRO:
+# #NO_MRO:
+#     No MRO
+# #DIFF_A_UNINIT:
+#     Different A for each k and uninitialized
+# #DIFF_A_INIT:
+#     Different A for each k, initialized with a different matrix for each k
+# #SAME_A:
+#     same A for each k
+# """
+# MRO_CASE = Enum("MRO_CASE", "NO_MRO DIFF_A_UNINIT DIFF_A_INIT SAME_A")
 
 # Optimizer constants
 ADADELTA = "Adadelta"

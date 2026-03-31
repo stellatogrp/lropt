@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'LROPT documentation'
+project = 'CVXRO'
 copyright = '2025, Irina Wang, Amit Solomon, Bart Van Parys, Bartolomeo Stellato'
 author = 'Irina Wang, Amit Solomon, Bart Van Parys, Bartolomeo Stellato'
 
@@ -23,3 +23,4 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'furo'
+html_title = 'CVXRO documentation'

@@ -7,7 +7,6 @@ API documentation to solve robust problems!
    :maxdepth: 2
    :caption: Contents:
 
-   lropt_ruleset/index
    robust_problem/index
    uncertainty_sets/index
    train/index
