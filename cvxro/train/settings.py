@@ -243,7 +243,7 @@ class TrainerSettings:
         self.init_uncertain_param = None
         self.trained_shape = False
         self.predictor = None
-        self.obj_scale = 1
+        self.cvar_scale = 1
         self.line_search_mult = 0.8
         self.line_search_threshold = 1
         self.line_search = True
