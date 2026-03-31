@@ -105,13 +105,11 @@ are now functions both of :math:`\theta` and :math:`y`
 
 .. math::
 
-  \begin{equation}
-    x(\theta, y) \in
-    \begin{array}[t]{ll}
-      \mbox{minimize}&f(x,y)\\
-      \mbox{subject to} & g(x,u,y)  \le 0  \quad \forall u \in \mathcal{U}(\theta),
-    \end{array}
-  \end{equation}
+  x(\theta, y) \in
+  \begin{array}[t]{ll}
+    \mbox{minimize}&f(x,y)\\
+    \mbox{subject to} & g(x,u,y) \le 0 \quad \forall u \in \mathcal{U}(\theta),
+  \end{array}
 
 In these instances, the user passes a dataset of :math:`Y^J` of :math:`y`'s we can use CVXRO to learn a :math:`\theta` which generalizes well for the entire family of optimization problems. To write it up, we can consider the following example.
 
