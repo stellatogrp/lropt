@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="prev" title="Budget Uncertainty" href="../uncertainty_sets/budget.html">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Train - LROPT documentation documentation</title>
+        <title>Train - CVXRO documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -161,7 +161,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">LROPT documentation  documentation</div></a>
+      <a href="../../index.html"><div class="brand">CVXRO documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -182,7 +182,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">LROPT documentation  documentation</span>
+  <span class="sidebar-brand-text">CVXRO documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -206,7 +206,6 @@
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">API</a><input aria-label="Toggle navigation of API" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="../lropt_ruleset/index.html">CVXRO RULESET</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../robust_problem/index.html">Robust Problem</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../uncertainty_sets/index.html">Uncertainty Sets</a><input aria-label="Toggle navigation of Uncertainty Sets" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../uncertainty_sets/norm.html">Norm Uncertainty</a></li>
@@ -259,29 +258,6 @@
         <article role="main" id="furo-main-content">
           <section id="module-cvxro.train.settings">
 <span id="train"></span><h1>Train<a class="headerlink" href="#module-cvxro.train.settings" title="Link to this heading">¶</a></h1>
-<dl class="py data">
-<dt class="sig sig-object py" id="cvxro.train.settings.DTYPE">
-<span class="sig-prename descclassname"><span class="pre">cvxro.train.settings.</span></span><span class="sig-name descname"><span class="pre">DTYPE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">torch.float64</span></span><a class="headerlink" href="#cvxro.train.settings.DTYPE" title="Link to this definition">¶</a></dt>
-<dd><p>Different types of MRO:
-#NO_MRO:</p>
-<blockquote>
-<div><p>No MRO</p>
-</div></blockquote>
-<dl class="simple">
-<dt>#DIFF_A_UNINIT:</dt><dd><p>Different A for each k and uninitialized</p>
-</dd>
-<dt>#DIFF_A_INIT:</dt><dd><p>Different A for each k, initialized with a different matrix for each k</p>
-</dd>
-<dt>#SAME_A:</dt><dd><p>same A for each k</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="cvxro.train.settings.MRO_CASE">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cvxro.train.settings.</span></span><span class="sig-name descname"><span class="pre">MRO_CASE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.settings.MRO_CASE" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="py class">
 <dt class="sig sig-object py" id="cvxro.train.settings.TrainerSettings">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cvxro.train.settings.</span></span><span class="sig-name descname"><span class="pre">TrainerSettings</span></span><a class="headerlink" href="#cvxro.train.settings.TrainerSettings" title="Link to this definition">¶</a></dt>
@@ -1049,8 +1025,6 @@ for training.</p>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Train</a><ul>
-<li><a class="reference internal" href="#cvxro.train.settings.DTYPE"><code class="docutils literal notranslate"><span class="pre">DTYPE</span></code></a></li>
-<li><a class="reference internal" href="#cvxro.train.settings.MRO_CASE"><code class="docutils literal notranslate"><span class="pre">MRO_CASE</span></code></a></li>
 <li><a class="reference internal" href="#cvxro.train.settings.TrainerSettings"><code class="docutils literal notranslate"><span class="pre">TrainerSettings</span></code></a><ul>
 <li><a class="reference internal" href="#cvxro.train.settings.TrainerSettings.set"><code class="docutils literal notranslate"><span class="pre">TrainerSettings.set()</span></code></a></li>
 </ul>
