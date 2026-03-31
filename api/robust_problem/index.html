@@ -265,18 +265,11 @@
 <dt class="sig sig-object py" id="cvxro.RobustProblem.evaluate">
 <span class="sig-name descname"><span class="pre">evaluate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#cvxro.RobustProblem.evaluate" title="Link to this definition">¶</a></dt>
 <dd><p>When the context parameter(s) are provided with eval_data,
-evaluates the out-of-sample value for each context parameter(s) -</p>
-<blockquote>
-<div><p>uncertain parameter(s) pair. The first dimension of the eval_data
-for the context parameter(s) and uncertain parameter(s) must be
-the same. The problem is re-solved for each context parameter(s)</p>
-<blockquote>
-<div><p>value, and evaluated at the corresponding uncertain
-parameter(s) value. Context parameters without eval_data
-are treated as constants.</p>
-</div></blockquote>
-</div></blockquote>
-<p>When the context parameters are not provided with eval_data,
+evaluates the out-of-sample value for each context parameter(s) -
+uncertain parameter(s) pair. The problem is re-solved for each
+context parameter(s) value, and evaluated at the corresponding
+uncertain parameter(s) value.
+When the context parameters are not provided with eval_data,
 return the same as evaluate_sol().</p>
 </dd></dl>
 
@@ -286,10 +279,8 @@ return the same as evaluate_sol().</p>
 <dd><p>When the context parameter(s) are provided with eval_data,
 evaluates the mean of the out-of-sample values for all
 context parameter(s) - uncertain parameter(s) pairs.
-When the context parameters are not provided with eval_data,</p>
-<blockquote>
-<div><p>return the same as evaluate_sol_mean().</p>
-</div></blockquote>
+When the context parameters are not provided with eval_data,
+return the same as evaluate_sol_mean().</p>
 </dd></dl>
 
 <dl class="py method">
@@ -304,15 +295,13 @@ for each uncertain parameter u.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="cvxro.RobustProblem.evaluate_sol_mean">
 <span class="sig-name descname"><span class="pre">evaluate_sol_mean</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#cvxro.RobustProblem.evaluate_sol_mean" title="Link to this definition">¶</a></dt>
-<dd><dl class="simple">
-<dt>Evaluates the mean of the out-of-sample values of the current</dt><dd><p>solution and cvxpy/context parameters.</p>
-</dd>
-</dl>
+<dd><p>Evaluates the mean of the out-of-sample values of the current
+solution and cvxpy/context parameters.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="cvxro.RobustProblem.order_args">
-<span class="sig-name descname"><span class="pre">order_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">z_batch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_batch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u_batch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.RobustProblem.order_args" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">order_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">z_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u_batch</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.RobustProblem.order_args" title="Link to this definition">¶</a></dt>
 <dd><p>This function orders z_batch (decisions), x_batch (context), and
 u_batch (uncertainty) according to the order in vars_params.</p>
 </dd></dl>
@@ -335,7 +324,10 @@ If False and problem_no_unc exists, does nothing.</p>
 <dt class="sig sig-object py" id="cvxro.RobustProblem.solve">
 <span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warm_start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qcp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requires_grad</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enforce_dpp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_dpp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canon_backend</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.RobustProblem.solve" title="Link to this definition">¶</a></dt>
 <dd><p>This function solves the robust problem, and dualizes it first if it has
-not been dualized</p>
+not been dualized.</p>
+<p>For problems with data-driven uncertainty sets, call
+Trainer(prob).train(settings) before solve() to train the
+uncertainty set parameters.</p>
 <p>Returns: the solution to the original problem</p>
 </dd></dl>
 
@@ -350,7 +342,7 @@ not been dualized</p>
 <span class="sig-name descname"><span class="pre">unpack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#cvxro.RobustProblem.unpack" title="Link to this definition">¶</a></dt>
 <dd><p>Updates the problem state given a Solution.</p>
 <p>Updates problem.status, problem.value and value of primal and dual
-variables. If solution.status is in cvxpy.settins.ERROR, this method
+variables. If solution.status is in cvxpy.settings.ERROR, this method
 is a no-op.</p>
 <section id="arguments">
 <h2>Arguments<a class="headerlink" href="#arguments" title="Link to this heading">¶</a></h2>
@@ -398,7 +390,7 @@ and invoking the solver on the resulting data.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="cvxro.RobustProblem.verify_x_parameters">
 <span class="sig-name descname"><span class="pre">verify_x_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.RobustProblem.verify_x_parameters" title="Link to this definition">¶</a></dt>
-<dd><p>This function verifies that x and u are in the correct diemsnions.</p>
+<dd><p>This function verifies that x and u are in the correct dimensions.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -406,27 +398,17 @@ and invoking the solver on the resulting data.</p>
 <span class="sig-name descname"><span class="pre">violation_indicator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#cvxro.RobustProblem.violation_indicator" title="Link to this definition">¶</a></dt>
 <dd><p>When the context parameter(s) are provided with eval_data,
 evaluates the out-of-sample probability of constraint violation for
-each context parameter(s) - uncertain parameter(s) pair. The first</p>
-<blockquote>
-<div><p>dimension of the eval_data for the context parameter(s) and
-uncertain parameter(s) must be the same. The problem is re-solved
-for each context parameter(s) value, and evaluated at
-the corresponding uncertain parameter(s) value. Context</p>
-<blockquote>
-<div><p>parameters without eval_data are treated as constants.</p>
-</div></blockquote>
-</div></blockquote>
-<p>When the context parameters are not provided with
-eval_data, return the same as evaluate_probability_sol().</p>
+each context parameter(s) - uncertain parameter(s) pair.
+When the context parameters are not provided with eval_data,
+return the same as violation_indicator_sol().</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="cvxro.RobustProblem.violation_indicator_sol">
 <span class="sig-name descname"><span class="pre">violation_indicator_sol</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#cvxro.RobustProblem.violation_indicator_sol" title="Link to this definition">¶</a></dt>
-<dd><p>Evaluates the out-of-sample probability of constraint violation of the current solution and
-cvxpy/context parameters, with respect to the input data-set
-of uncertain parameters. The dataset is taken from u.eval_data
-for each uncertain parameter u.</p>
+<dd><p>Evaluates the out-of-sample probability of constraint violation
+of the current solution, with respect to the input data-set
+of uncertain parameters.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -437,7 +419,7 @@ evaluates the mean out-of-sample probability of constraint
 violation across all context parameter(s) - uncertain
 parameter(s) pairs.
 When the context parameters are not provided with eval_data,
-return the same as evaluate_probability_sol_mean().</p>
+return the same as violation_probability_sol().</p>
 </dd></dl>
 
 <dl class="py method">

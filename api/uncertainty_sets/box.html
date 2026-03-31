@@ -277,9 +277,9 @@
 <dt>data: np.array, optional</dt><dd><p>An array of uncertainty realizations, where each row is one realization.
 Required if the uncertainty should be trained.</p>
 </dd>
-<dt>c: np.array, optional</dt><dd><p>matrix defining the lhs of the polyhedral support: :math: <cite>cu le d</cite>. By default None.</p>
+<dt>c: np.array, optional</dt><dd><p>matrix defining the lhs of the polyhedral support: <span class="math notranslate nohighlight">\(cu \le d\)</span>. By default None.</p>
 </dd>
-<dt>d: np.array, optional</dt><dd><p>vector defining the rhs of the polyhedral support: :math: <cite>cu le d</cite>. By default None.</p>
+<dt>d: np.array, optional</dt><dd><p>vector defining the rhs of the polyhedral support: <span class="math notranslate nohighlight">\(cu \le d\)</span>. By default None.</p>
 </dd>
 <dt>ub: np.array | float, optional</dt><dd><p>vector or float defining the upper bound of the support. If scalar, broadcast to a vector.
 By default None.</p>
@@ -287,7 +287,7 @@ By default None.</p>
 <dt>lb: np.array | float, optional</dt><dd><p>vector or float defining the lower bound of the support. If scalar, broadcast to a vector.
 By default None.</p>
 </dd>
-<dt>sum_eq: np.array | float, optinal</dt><dd><p>vector or float defining an equality constraint for the uncertain vector. By default None.</p>
+<dt>sum_eq: np.array | float, optional</dt><dd><p>vector or float defining an equality constraint for the uncertain vector. By default None.</p>
 </dd>
 <dt>indices_dict: dict, optional</dt><dd><p>Optional mapping with keys ‘train’, ‘test’, and ‘validate’ that specify
 integer index arrays or boolean masks to split the provided <cite>data</cite> into
