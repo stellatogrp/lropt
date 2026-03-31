@@ -1,0 +1,1143 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="prev" title="Budget Uncertainty" href="../uncertainty_sets/budget.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Train - LROPT documentation documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">LROPT documentation  documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  <span class="sidebar-brand-text">LROPT documentation  documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../getting_started/index.html">Getting started</a><input aria-label="Toggle navigation of Getting started" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting_started/my_first_robust/my_first_robust_prob.html">My First Robust Problem</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../examples/index.html">Examples</a><input aria-label="Toggle navigation of Examples" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/portfolio.html">Robust Mean - Variance Portfolio</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/robust_facility.html">Robust Facility Location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/robust_knapsack.html">Robust Knapsack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/robust_lot_sizing.html">Robust Lot Sizing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/robust_prod_inventory.html">Robust Production - Inventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/robust_prod_inventory.html#References">References</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/robust_svm.html">Robust Support Vector Machine</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">API</a><input aria-label="Toggle navigation of API" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../lropt_ruleset/index.html">CVXRO RULESET</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../robust_problem/index.html">Robust Problem</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../uncertainty_sets/index.html">Uncertainty Sets</a><input aria-label="Toggle navigation of Uncertainty Sets" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../uncertainty_sets/norm.html">Norm Uncertainty</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../uncertainty_sets/ellipsoidal.html">Ellipsoidal Uncertainty</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../uncertainty_sets/box.html">Box Uncertainty</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../uncertainty_sets/polyhedral.html">Polyhedral Uncertainty</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../uncertainty_sets/budget.html">Budget Uncertainty</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Train</a></li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../_sources/api/train/index.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="module-cvxro.train.settings">
+<span id="train"></span><h1>Train<a class="headerlink" href="#module-cvxro.train.settings" title="Link to this heading">¶</a></h1>
+<dl class="py data">
+<dt class="sig sig-object py" id="cvxro.train.settings.DTYPE">
+<span class="sig-prename descclassname"><span class="pre">cvxro.train.settings.</span></span><span class="sig-name descname"><span class="pre">DTYPE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">torch.float64</span></span><a class="headerlink" href="#cvxro.train.settings.DTYPE" title="Link to this definition">¶</a></dt>
+<dd><p>Different types of MRO:
+#NO_MRO:</p>
+<blockquote>
+<div><p>No MRO</p>
+</div></blockquote>
+<dl class="simple">
+<dt>#DIFF_A_UNINIT:</dt><dd><p>Different A for each k and uninitialized</p>
+</dd>
+<dt>#DIFF_A_INIT:</dt><dd><p>Different A for each k, initialized with a different matrix for each k</p>
+</dd>
+<dt>#SAME_A:</dt><dd><p>same A for each k</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cvxro.train.settings.MRO_CASE">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cvxro.train.settings.</span></span><span class="sig-name descname"><span class="pre">MRO_CASE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.settings.MRO_CASE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cvxro.train.settings.TrainerSettings">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cvxro.train.settings.</span></span><span class="sig-name descname"><span class="pre">TrainerSettings</span></span><a class="headerlink" href="#cvxro.train.settings.TrainerSettings" title="Link to this definition">¶</a></dt>
+<dd><p>A trainer settings class.
+Contains default settings unless changed.
+Args:
+————-</p>
+<blockquote>
+<div><dl class="simple">
+<dt>train_size<span class="classifier">bool, optional</span></dt><dd><p>If True, train only rho. Default False.</p>
+</dd>
+<dt>train_shape: bool, optional</dt><dd><p>If True, train both the shape A, b, and size rhos. Default True.</p>
+</dd>
+<dt>fixb<span class="classifier">bool, optional</span></dt><dd><p>If True, do not train b. Default False.</p>
+</dd>
+<dt>num_iter<span class="classifier">int, optional</span></dt><dd><p>The total number of gradient steps performed. Default 45.</p>
+</dd>
+<dt>num_iter_size<span class="classifier">int, optional</span></dt><dd><p>The total number of gradient steps performed for training
+only rho. Default None.</p>
+</dd>
+<dt>lr<span class="classifier">float, optional</span></dt><dd><p>The learning rate of gradient descent. Default 0.0001.</p>
+</dd>
+<dt>lr_size<span class="classifier">float, optional</span></dt><dd><p>The learning rate of gradient descent for training only rho. Default 0.0001.</p>
+</dd>
+<dt>momentum: float between 0 and 1, optional</dt><dd><p>The momentum for gradient descent. Default 0.8.</p>
+</dd>
+<dt>optimizer: str or letters, optional</dt><dd><p>The optimizer to use for the descent algorithm. Default SGD.</p>
+</dd>
+<dt>init_rho<span class="classifier">float, optional</span></dt><dd><p>The rho (radius) to initialize <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(b\)</span>, if passed.</p>
+</dd>
+<dt>init_A<span class="classifier">numpy array, optional</span></dt><dd><p>Initialization for the reshaping matrix, if passed.
+If not passed, <span class="math notranslate nohighlight">\(A\)</span> will be initialized as the
+inverse square root of the
+covariance of the data.</p>
+</dd>
+<dt>init_b<span class="classifier">numpy array, optional</span></dt><dd><p>Initialization for the relocation vector, if passed.
+If not passed, b will be initialized as <span class="math notranslate nohighlight">\(ar{d}\)</span>.</p>
+</dd>
+<dt>save_history: bool, optional</dt><dd><p>Whether or not to save the A and b over the training iterations. Default False.</p>
+</dd>
+<dt>init_alpha<span class="classifier">float, optional</span></dt><dd><p>The initial alpha value for the CVaR constraint in the outer
+level problem. Default 0.</p>
+</dd>
+<dt>eta: float, optional</dt><dd><p>The eta value for the CVaR constraint. Default 0.05.</p>
+</dd>
+<dt>init_lam<span class="classifier">float, optional</span></dt><dd><p>The initial lambda value for the outer level lagrangian function. Default 0.</p>
+</dd>
+<dt>init_mu<span class="classifier">float, optional</span></dt><dd><p>The initial mu value for the outer level lagrangian function. Default 0.5.</p>
+</dd>
+<dt>mu_multiplier<span class="classifier">float, optional</span></dt><dd><p>The initial mu multiplier for the outer level lagrangian function. Default 1.01.</p>
+</dd>
+<dt>kappa<span class="classifier">float, optional</span></dt><dd><p>The target threshold for the outer level CVaR constraint. Default -0.01.</p>
+</dd>
+<dt>random_int<span class="classifier">bool, optional</span></dt><dd><p>Whether or not to initialize the set with random values. Default False.</p>
+</dd>
+<dt>num_random_int<span class="classifier">int, optional</span></dt><dd><p>The number of random initializations performed if random_int is True. Default 10.</p>
+</dd>
+<dt>test_frequency<span class="classifier">int, optional</span></dt><dd><p>The number of iterations before testing results are recorded</p>
+</dd>
+<dt>test_percentage<span class="classifier">float, optional. Default 10.</span></dt><dd><p>The percentage of data to use in the testing set. Default 0.2.</p>
+</dd>
+<dt>seed<span class="classifier">int, optional</span></dt><dd><p>The seed to control the random state of the train-test data split. Default 1.</p>
+</dd>
+<dt>batch_percentage<span class="classifier">float, optional</span></dt><dd><p>The percentage of data to use in each training step. Default 0.1</p>
+</dd>
+<dt>solver_args:</dt><dd><p>The optional arguments passed to the solver. Default Clarabel.</p>
+</dd>
+<dt>parallel<span class="classifier">bool, optional</span></dt><dd><p>Whether or not to parallelize the training loops. Default True.</p>
+</dd>
+<dt>position: bool, optional</dt><dd><p>The position of the tqdm statements for the training loops. Default False.</p>
+</dd>
+<dt>scheduler: bool, optional</dt><dd><p>Whether or not the learning rate is decreased over steps. Default True.</p>
+</dd>
+<dt>lr_step_size: int, optional</dt><dd><p>The number of iterations before the learning rate is decreased,
+if scheduler is enabled. Default 500.</p>
+</dd>
+<dt>lr_gamma: float, optional</dt><dd><p>The multiplier of the lr if the scheduler is enabled. Default 0.1.</p>
+</dd>
+<dt>quantiles: tuple, optional</dt><dd><p>The lower and upper quantiles of the test values desired. Default (0.25, 0.75)</p>
+</dd>
+<dt>aug_lag_update_interval: int, optional</dt><dd><p>The number of iterations before the augmented lagrangian parameters
+(lambda, mu) are updated. Default 20.</p>
+</dd>
+<dt>lambda_update_threshold: float, optional</dt><dd><p>The threshold of CVaR improvement, between 0 and 1, where an update
+to lambda is accepted. Otherwise, mu is updated. Default 0.99.</p>
+</dd>
+<dt>lambda_update_max: float, optional</dt><dd><p>The maximum allowed lambda value, default 1000.</p>
+</dd>
+<dt>max_batch_size: int, optional</dt><dd><p>The maximum data batch size allowed for each iteration. Default 30.</p>
+</dd>
+<dt>contextual: bool, optional</dt><dd><p>Whether or not the learned set is contextual. Default False.</p>
+</dd>
+<dt>init_weight: np.array, optional</dt><dd><p>The initial weight of the NN model. Default None.</p>
+</dd>
+<dt>init_bias: np.array, optional</dt><dd><p>The initial bias of the NN model. Default None.</p>
+</dd>
+<dt>n_jobs:</dt><dd><p>The number of parallel processes. Default 5.</p>
+</dd>
+<dt>max_iter_line_search</dt><dd><p>The maximum number of times we halve the step size when an
+infeasibility occurs. Default 10.</p>
+</dd>
+<dt>x_endind</dt><dd><p>If given, the ending index for the context parameters we want to
+use for training the shape parameters. All parameters after this
+index will not be used for training. Default None.</p>
+</dd>
+<dt>policy</dt><dd><p>The cvxpylayers object for the robust problem. Default is to use
+all variables and parameters (when set to None).</p>
+</dd>
+<dt>time_horizon</dt><dd><p>The time horizon for the multistage problem. Single-stage problems
+must have a horizon of 1. Default 1.</p>
+</dd>
+<dt>batch_size</dt><dd><p>The training batch size for multi-stage problems. Default 1.</p>
+</dd>
+<dt>test_batch_size</dt><dd><p>The testing batch size for multi-stage problems. Default 1.</p>
+</dd>
+<dt>simulator</dt><dd><p>The self-defined functions for propagating states and constructing
+cost functions for the multi-stage problem. Initialized to a
+default version for the single-stage problem if not given.
+Default None.</p>
+</dd>
+<dt>kwargs_simulator</dt><dd><p>The extra keyword arguments required for the self-defined simulator
+class. The simulator functions must be defined with these keyword
+arguments as inputs. Default {}.</p>
+</dd>
+<dt>multistage</dt><dd><p>Flag for whether or not the problem is multistage. Default False.</p>
+</dd>
+<dt>predictor</dt><dd><p>NN model, Default Linear</p>
+</dd>
+<dt>line_search</dt><dd><p>Whether or not to perform backtracking line search to choose step sizes</p>
+</dd>
+<dt>line_search_mult</dt><dd><p>The amount to reduce the step size by if the line search condition is not met</p>
+</dd>
+<dt>line_search_threshold</dt><dd><p>The threshold (between 0 and 1) for the line search condition</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.settings.TrainerSettings.set">
+<span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#cvxro.train.settings.TrainerSettings.set" title="Link to this definition">¶</a></dt>
+<dd><p>This function sets all the values of kwargs to the keys.
+It sets only if all the keys are valid.
+Raises AttributeError if a key in kwargs does not exist.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class" id="module-cvxro.train.trainer">
+<dt class="sig sig-object py" id="cvxro.train.trainer.GridStats">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cvxro.train.trainer.</span></span><span class="sig-name descname"><span class="pre">GridStats</span></span><a class="headerlink" href="#cvxro.train.trainer.GridStats" title="Link to this definition">¶</a></dt>
+<dd><p>This class contains useful information for grid search</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.GridStats.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_stats</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_batch</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.GridStats.update" title="Link to this definition">¶</a></dt>
+<dd><p>This function updates the best stats in the grid search.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>train_stats:</dt><dd><p>The train stats</p>
+</dd>
+<dt>obj:</dt><dd><p>Calculated test objective</p>
+</dd>
+<dt>rho_tch:</dt><dd><p>Rho torch</p>
+</dd>
+<dt>a_tch</dt><dd><p>A torch</p>
+</dd>
+<dt>z_batch</dt><dd><p>Variable values</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cvxro.train.trainer.LogisticRegression">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cvxro.train.trainer.</span></span><span class="sig-name descname"><span class="pre">LogisticRegression</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_outputs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.LogisticRegression" title="Link to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.LogisticRegression.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.LogisticRegression.forward" title="Link to this definition">¶</a></dt>
+<dd><p>Define the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Result">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cvxro.train.trainer.</span></span><span class="sig-name descname"><span class="pre">Result</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prob</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probnew</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df_test</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df_validate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Result" title="Link to this definition">¶</a></dt>
+<dd><p>A class to store the results of training</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cvxro.train.trainer.TrainLoopStats">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cvxro.train.trainer.</span></span><span class="sig-name descname"><span class="pre">TrainLoopStats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step_num</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_flag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_g_total</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.TrainLoopStats" title="Link to this definition">¶</a></dt>
+<dd><p>A class that contains useful statistics for each training iteration</p>
+<dl class="simple">
+<dt>Attributes:</dt><dd><dl class="simple">
+<dt>step_num:</dt><dd><p>Current iteration number</p>
+</dd>
+<dt>tot_lagrangian:</dt><dd><p>Lagrangian over training set</p>
+</dd>
+<dt>testval:</dt><dd><p>Evaluation function over test set</p>
+</dd>
+<dt>prob_violation_test:</dt><dd><p>Probability of constraint violation over test set</p>
+</dd>
+<dt>prob_violation_train:</dt><dd><p>Probability of constraint violation over train set</p>
+</dd>
+<dt>violation_test:</dt><dd><p>Violation of learning constraint over test set</p>
+</dd>
+<dt>violation_train:</dt><dd><p>Violation of learning constraint over train set</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.TrainLoopStats.generate_test_row">
+<span class="sig-name descname"><span class="pre">generate_test_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calc_coverage</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uncset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_batch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contextual</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_test_tch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.TrainLoopStats.generate_test_row" title="Link to this definition">¶</a></dt>
+<dd><p>This function generates a new row with the statistics</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.TrainLoopStats.generate_train_row">
+<span class="sig-name descname"><span class="pre">generate_train_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contextual</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linear</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.TrainLoopStats.generate_train_row" title="Link to this definition">¶</a></dt>
+<dd><p>This function generates a new row with the statistics</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.TrainLoopStats.generate_validation_row">
+<span class="sig-name descname"><span class="pre">generate_validation_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calc_coverage</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vali_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uncset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_batch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contextual</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_validate_tch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.TrainLoopStats.generate_validation_row" title="Link to this definition">¶</a></dt>
+<dd><p>This function generates a new row with the statistics</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.TrainLoopStats.update_test_stats">
+<span class="sig-name descname"><span class="pre">update_test_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">worst_cost</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_sample_test</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cvar_cost</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj_test</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prob_violation_test</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_vio</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.TrainLoopStats.update_test_stats" title="Link to this definition">¶</a></dt>
+<dd><p>This function updates the statistics after each training iteration</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.TrainLoopStats.update_train_stats">
+<span class="sig-name descname"><span class="pre">update_train_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">worst_cost</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_sample_cost</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cvar_cost</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temp_lagrangian</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prob_violation_train</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_constraint</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.TrainLoopStats.update_train_stats" title="Link to this definition">¶</a></dt>
+<dd><p>This function updates the statistics after each training iteration</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.TrainLoopStats.update_validate_stats">
+<span class="sig-name descname"><span class="pre">update_validate_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">worst_cost</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_sample_cost</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cvar_cost</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj_vali</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prob_violation_vali</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_vio_vali</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.TrainLoopStats.update_validate_stats" title="Link to this definition">¶</a></dt>
+<dd><p>This function updates the statistics after each training iteration</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cvxro.train.trainer.</span></span><span class="sig-name descname"><span class="pre">Trainer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../robust_problem/index.html#cvxro.RobustProblem" title="cvxro.robust_problem.RobustProblem"><span class="pre">RobustProblem</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer" title="Link to this definition">¶</a></dt>
+<dd><p>Create a class to handle training</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.compare_predictors">
+<span class="sig-name descname"><span class="pre">compare_predictors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">settings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cvxro.train.settings.TrainerSettings" title="cvxro.train.settings.TrainerSettings"><span class="pre">TrainerSettings</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;cvxro.train.settings.TrainerSettings</span> <span class="pre">object&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictors_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.compare_predictors" title="Link to this definition">¶</a></dt>
+<dd><p>This function computes the validation and testing values for a
+list of predictors</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.cp_params">
+<span class="sig-name descname"><span class="pre">cp_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.cp_params" title="Link to this definition">¶</a></dt>
+<dd><p>Find cvxpy (noncontextual) parameters</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.create_cp_param_tch">
+<span class="sig-name descname"><span class="pre">create_cp_param_tch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.create_cp_param_tch" title="Link to this definition">¶</a></dt>
+<dd><p>This function creates tensors for the cvxpy parameters</p>
+<p>Args:
+num</p>
+<blockquote>
+<div><p>batch size</p>
+</div></blockquote>
+<p>Returns:</p>
+<dl class="simple">
+<dt>cp_param_tchs</dt><dd><p>The list of torches of the cvxpy parameters,
+repeated with batch_size as the first dimension</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.create_cvxpylayer">
+<span class="sig-name descname"><span class="pre">create_cvxpylayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">CvxpyLayer</span></span></span><a class="headerlink" href="#cvxro.train.trainer.Trainer.create_cvxpylayer" title="Link to this definition">¶</a></dt>
+<dd><p>Create cvxpylayers.
+Default parameter order: rho multiplier, cvxpy parameters, context parameters, a, b.
+Default variable order: the variables of problem_canon</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.create_predictor_tensors">
+<span class="sig-name descname"><span class="pre">create_predictor_tensors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_batch</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.create_predictor_tensors" title="Link to this definition">¶</a></dt>
+<dd><p>Create the tensors of a’s and b’s using the trained linear model</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.evaluation_cvar">
+<span class="sig-name descname"><span class="pre">evaluation_cvar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.evaluation_cvar" title="Link to this definition">¶</a></dt>
+<dd><p>This function evaluates the evaluation CVaR over the batched set.
+Args:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>batch_int:</dt><dd><p>The number of samples in the batch, to take the mean over</p>
+</dd>
+<dt>eval_args:</dt><dd><p>The arguments of the evaluation function</p>
+</dd>
+<dt>eta:</dt><dd><p>The eta value for the CVaR.</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>The CVaR of the evaluation function</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.evaluation_metric">
+<span class="sig-name descname"><span class="pre">evaluation_metric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantiles</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.evaluation_metric" title="Link to this definition">¶</a></dt>
+<dd><p>This function evaluates the evaluation metric over the batched set.
+Args:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>batch_int:</dt><dd><p>The number of samples in the batch, to take the mean over</p>
+</dd>
+<dt>eval_args:</dt><dd><p>The arguments of the evaluation function</p>
+</dd>
+<dt>quantiles:</dt><dd><p>The upper and lowerx quantiles to be returned.</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>The average among all evaluated J x N pairs</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.gen_new_z">
+<span class="sig-name descname"><span class="pre">gen_new_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_unique_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_unique_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_batch_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contextual</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_tch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b_tch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.gen_new_z" title="Link to this definition">¶</a></dt>
+<dd><p>get var_values for all x’s, repeated for the repeated x’s</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.gen_rho_mult_tch">
+<span class="sig-name descname"><span class="pre">gen_rho_mult_tch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rhoparams</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.gen_rho_mult_tch" title="Link to this definition">¶</a></dt>
+<dd><p>Generate the torch of the rho multiplier value, placed in a list</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.gen_unique_x">
+<span class="sig-name descname"><span class="pre">gen_unique_x</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_batch</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.gen_unique_x" title="Link to this definition">¶</a></dt>
+<dd><p>get unique x’s from a list of x parameters.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.grid">
+<span class="sig-name descname"><span class="pre">grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rholst</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([1.00000000e-03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">1.62377674e-03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2.63665090e-03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">4.28133240e-03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">6.95192796e-03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">1.12883789e-02</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">1.83298071e-02</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2.97635144e-02</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">4.83293024e-02</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">7.84759970e-02</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">1.27427499e-01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2.06913808e-01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">3.35981829e-01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">5.45559478e-01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">8.85866790e-01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">1.43844989e+00</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2.33572147e+00</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">3.79269019e+00</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">6.15848211e+00</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">1.00000000e+01])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">settings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;cvxro.train.settings.TrainerSettings</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.grid" title="Link to this definition">¶</a></dt>
+<dd><p>Perform gridsearch to find optimal <span class="math notranslate nohighlight">\(\rho\)</span>-ball around data.</p>
+<p>Args:
+rholst : np.array, optional</p>
+<blockquote>
+<div><p>The list of <span class="math notranslate nohighlight">\(\rho\)</span> to iterate over. “Default np.logspace(-3, 1, 20)</p>
+</div></blockquote>
+<dl class="simple">
+<dt>settings:</dt><dd><p>TrainerSettings</p>
+</dd>
+</dl>
+<p>Returns:
+A pandas data frame with information on each <span class="math notranslate nohighlight">\(\rho\)</span> having the following columns:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>Opt_val: float</dt><dd><p>The objective value of the Robust Problem</p>
+</dd>
+<dt>Lagrangian_val: float</dt><dd><p>The value of the lagrangian function applied to the training data</p>
+</dd>
+<dt>Eval_val: float</dt><dd><p>The value of the lagrangian function applied to the evaluation data</p>
+</dd>
+<dt>Rho: float</dt><dd><p>The rho value</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.initialize_predictor_dims">
+<span class="sig-name descname"><span class="pre">initialize_predictor_dims</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.initialize_predictor_dims" title="Link to this definition">¶</a></dt>
+<dd><p>Find the dimensions of the linear model</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.lagrangian">
+<span class="sig-name descname"><span class="pre">lagrangian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kappa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-0.015</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.lagrangian" title="Link to this definition">¶</a></dt>
+<dd><p>The function evaluates generates the augmented lagrangian of
+the problem, over the batched set.
+Args:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>batch_int:x</dt><dd><p>The number of samples in the batch, to take the mean over</p>
+</dd>
+<dt>eval_args:</dt><dd><p>The arguments of the problems (variables, parameters)</p>
+</dd>
+<dt>alpha:</dt><dd><p>The alpha of the CVaR constraint</p>
+</dd>
+<dt>lam:</dt><dd><p>The lagrangian multiplier</p>
+</dd>
+<dt>mu:</dt><dd><p>The penalty multiplier</p>
+</dd>
+<dt>eta:</dt><dd><p>The eta value for the CVaR constraint</p>
+</dd>
+<dt>kappa:</dt><dd><p>The target CVaR threshold</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>The average among all evaluated J x N pairs</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.loss_and_constraints">
+<span class="sig-name descname"><span class="pre">loss_and_constraints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.loss_and_constraints" title="Link to this definition">¶</a></dt>
+<dd><p>This function propagates the system state, calculates the costs,
+and checks feasibility
+Args:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>rho_tch</dt><dd><p>size of the uncertainty set. A torch tensor.</p>
+</dd>
+<dt>alpha</dt><dd><p>cvar variable for the constraint cost.</p>
+</dd>
+<dt>a_tch, b_tch</dt><dd><p>the initialized size and shape parameters</p>
+</dd>
+<dt>seed</dt><dd><p>RNG seed.</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="simple">
+<dt>Returns:</dt><dd><dl class="simple">
+<dt>cost</dt><dd><p>objective function cost, averaged across time steps</p>
+</dd>
+<dt>constraint_cost</dt><dd><p>cost of constraint violation, averaged across time steps</p>
+</dd>
+<dt>x_hist</dt><dd><p>the list of all systems states over time</p>
+</dd>
+<dt>z_hist</dt><dd><p>the list of all decisions over time</p>
+</dd>
+<dt>constraints_status</dt><dd><p>whether any constraint was infeasible</p>
+</dd>
+<dt>avg_cost</dt><dd><p>evaluation function cost, averaged across time steps</p>
+</dd>
+<dt>prob_vio</dt><dd><p>probability of constraint violation, averaged across time steps</p>
+</dd>
+<dt>u_0</dt><dd><p>uncertainty data for the single-stage case</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.monte_carlo">
+<span class="sig-name descname"><span class="pre">monte_carlo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b_tch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.monte_carlo" title="Link to this definition">¶</a></dt>
+<dd><p>This function calls the loss and constraint function, and returns
+an error if an infeasibility is encountered. This is infeasibility
+dependent on the testing data-set.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.order_args">
+<span class="sig-name descname"><span class="pre">order_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">z_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u_batch</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.order_args" title="Link to this definition">¶</a></dt>
+<dd><p>This function orders z_batch (decisions), x_batch (context), and
+u_batch (uncertainty) according to the order in vars_params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.prob_constr_violation">
+<span class="sig-name descname"><span class="pre">prob_constr_violation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.prob_constr_violation" title="Link to this definition">¶</a></dt>
+<dd><p>This function evaluates the probability of constraint violation
+of all uncertain constraints over the batched set.
+Args:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>batch_int:</dt><dd><p>The number of samples in the batch, to take the mean over</p>
+</dd>
+<dt>eval_args:</dt><dd><p>The arguments of the constraints</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>The average among all evaluated J x N pairs</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.rho_mult_param">
+<span class="sig-name descname"><span class="pre">rho_mult_param</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.rho_mult_param" title="Link to this definition">¶</a></dt>
+<dd><p>Find the rho multiplier parameter</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.shape_parameters">
+<span class="sig-name descname"><span class="pre">shape_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.shape_parameters" title="Link to this definition">¶</a></dt>
+<dd><p>Get the reshaping parameters a and b</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.train">
+<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">settings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cvxro.train.settings.TrainerSettings" title="cvxro.train.settings.TrainerSettings"><span class="pre">TrainerSettings</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;cvxro.train.settings.TrainerSettings</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.train" title="Link to this definition">¶</a></dt>
+<dd><p>Trains the uncertainty set parameters to find optimal set
+w.r.t. augmented lagrangian metric</p>
+<section id="args">
+<h2>Args:<a class="headerlink" href="#args" title="Link to this heading">¶</a></h2>
+<p>Returns:
+A Result object, including a pandas data frame with the following columns:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>Test_val: float</dt><dd><p>The out of sample objective value of the Robust Problem</p>
+</dd>
+<dt>Probability_violations_test</dt><dd><p>Probability of constraint violation over test set</p>
+</dd>
+<dt>Avg_prob_test</dt><dd><p>Probability of constraint violation averaged over all constraints</p>
+</dd>
+<dt>Violations_test:</dt><dd><p>Violation of learning constraint over test set</p>
+</dd>
+<dt>Rho: float</dt><dd><p>The <span class="math notranslate nohighlight">\(\rho\)</span> value</p>
+</dd>
+<dt>Coverage_test: float</dt><dd><p>The percentage of testing data covered by the uncertainty set</p>
+</dd>
+<dt>var_values: list</dt><dd><p>A list of returned variable values from the last solve</p>
+</dd>
+</dl>
+</div></blockquote>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.train_constraint">
+<span class="sig-name descname"><span class="pre">train_constraint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kappa</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.train_constraint" title="Link to this definition">¶</a></dt>
+<dd><p>This function evaluates the expectation of the CVaR
+constraint functions over the batched set.
+Args:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>batch_int:</dt><dd><p>The number of samples in the batch, to take the mean over</p>
+</dd>
+<dt>eval_args:</dt><dd><p>The arguments of the constraint functions</p>
+</dd>
+<dt>alpha:</dt><dd><p>The alpha of the CVaR constraint</p>
+</dd>
+<dt>kappa:</dt><dd><p>The target CVaR threshold</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>The average among all evaluated J x N pairs</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.train_objective">
+<span class="sig-name descname"><span class="pre">train_objective</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.train_objective" title="Link to this definition">¶</a></dt>
+<dd><p>This function evaluates the expectation of the objective function over the batched set.
+Args:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>batch_int:</dt><dd><p>The number of samples in the batch, to take the mean over</p>
+</dd>
+<dt>eval_args:</dt><dd><p>The arguments of the objective function</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>The average among all evaluated J x N pairs</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.uncertain_parameters">
+<span class="sig-name descname"><span class="pre">uncertain_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.uncertain_parameters" title="Link to this definition">¶</a></dt>
+<dd><p>Find uncertain (u) parameters</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.x_parameter_shapes">
+<span class="sig-name descname"><span class="pre">x_parameter_shapes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.x_parameter_shapes" title="Link to this definition">¶</a></dt>
+<dd><p>Get the size of all y parameters</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.trainer.Trainer.x_parameters">
+<span class="sig-name descname"><span class="pre">x_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.trainer.Trainer.x_parameters" title="Link to this definition">¶</a></dt>
+<dd><p>Find context (x) parameters</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class" id="module-cvxro.train.simulator">
+<dt class="sig sig-object py" id="cvxro.train.simulator.DefaultSimulator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cvxro.train.simulator.</span></span><span class="sig-name descname"><span class="pre">DefaultSimulator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trainer</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.simulator.DefaultSimulator" title="Link to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.simulator.DefaultSimulator.constraint_cost">
+<span class="sig-name descname"><span class="pre">constraint_cost</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.simulator.DefaultSimulator.constraint_cost" title="Link to this definition">¶</a></dt>
+<dd><p>Create the current constraint penalty cost</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.simulator.DefaultSimulator.init_state">
+<span class="sig-name descname"><span class="pre">init_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.simulator.DefaultSimulator.init_state" title="Link to this definition">¶</a></dt>
+<dd><p>initialize the parameter value</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.simulator.DefaultSimulator.prob_constr_violation">
+<span class="sig-name descname"><span class="pre">prob_constr_violation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.simulator.DefaultSimulator.prob_constr_violation" title="Link to this definition">¶</a></dt>
+<dd><p>calculate current probability of constraint violation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.simulator.DefaultSimulator.simulate">
+<span class="sig-name descname"><span class="pre">simulate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.simulator.DefaultSimulator.simulate" title="Link to this definition">¶</a></dt>
+<dd><p>Simulate next set of parameters using current parameters x
+and variables u, with added uncertainty</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.simulator.DefaultSimulator.stage_cost">
+<span class="sig-name descname"><span class="pre">stage_cost</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.simulator.DefaultSimulator.stage_cost" title="Link to this definition">¶</a></dt>
+<dd><p>Create the current stage cost using the current state x
+and decision u</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.simulator.DefaultSimulator.stage_cost_avg">
+<span class="sig-name descname"><span class="pre">stage_cost_avg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.simulator.DefaultSimulator.stage_cost_avg" title="Link to this definition">¶</a></dt>
+<dd><p>Create the current stage evaluation cost using the current state x
+and decision u</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cvxro.train.simulator.Simulator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cvxro.train.simulator.</span></span><span class="sig-name descname"><span class="pre">Simulator</span></span><a class="headerlink" href="#cvxro.train.simulator.Simulator" title="Link to this definition">¶</a></dt>
+<dd><p>Simulator class for the multi-stage problem. All parameters should be tensors.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.simulator.Simulator.constraint_cost">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">constraint_cost</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.simulator.Simulator.constraint_cost" title="Link to this definition">¶</a></dt>
+<dd><p>Create the current constraint penalty cost</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.simulator.Simulator.in_sample_obj">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">in_sample_obj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.simulator.Simulator.in_sample_obj" title="Link to this definition">¶</a></dt>
+<dd><p>Record the in-sample ojective value.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.simulator.Simulator.init_state">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">init_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.simulator.Simulator.init_state" title="Link to this definition">¶</a></dt>
+<dd><p>initialize the parameter value</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.simulator.Simulator.prob_constr_violation">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">prob_constr_violation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.simulator.Simulator.prob_constr_violation" title="Link to this definition">¶</a></dt>
+<dd><p>calculate current probability of constraint violation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.simulator.Simulator.simulate">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">simulate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.simulator.Simulator.simulate" title="Link to this definition">¶</a></dt>
+<dd><p>Simulate next set of parameters using current parameters x
+and variables u, with added uncertainty</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.simulator.Simulator.stage_cost">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">stage_cost</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.simulator.Simulator.stage_cost" title="Link to this definition">¶</a></dt>
+<dd><p>Create the current stage cost using the current state x
+and decision u</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.simulator.Simulator.stage_cost_avg">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">stage_cost_avg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.simulator.Simulator.stage_cost_avg" title="Link to this definition">¶</a></dt>
+<dd><p>Create the current stage evaluation cost using the current state x
+and decision u. This may differ from the stage cost, which is used
+for training.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvxro.train.simulator.Simulator.stage_cost_cvar">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">stage_cost_cvar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvxro.train.simulator.Simulator.stage_cost_cvar" title="Link to this definition">¶</a></dt>
+<dd><p>Create the current stage cvar cost using the current state x
+and decision u. This may differ from the stage cost, which is used
+for training.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          <a class="prev-page" href="../uncertainty_sets/budget.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Budget Uncertainty</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2025, Irina Wang, Amit Solomon, Bart Van Parys, Bartolomeo Stellato
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Train</a><ul>
+<li><a class="reference internal" href="#cvxro.train.settings.DTYPE"><code class="docutils literal notranslate"><span class="pre">DTYPE</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.settings.MRO_CASE"><code class="docutils literal notranslate"><span class="pre">MRO_CASE</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.settings.TrainerSettings"><code class="docutils literal notranslate"><span class="pre">TrainerSettings</span></code></a><ul>
+<li><a class="reference internal" href="#cvxro.train.settings.TrainerSettings.set"><code class="docutils literal notranslate"><span class="pre">TrainerSettings.set()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#cvxro.train.trainer.GridStats"><code class="docutils literal notranslate"><span class="pre">GridStats</span></code></a><ul>
+<li><a class="reference internal" href="#cvxro.train.trainer.GridStats.update"><code class="docutils literal notranslate"><span class="pre">GridStats.update()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#cvxro.train.trainer.LogisticRegression"><code class="docutils literal notranslate"><span class="pre">LogisticRegression</span></code></a><ul>
+<li><a class="reference internal" href="#cvxro.train.trainer.LogisticRegression.forward"><code class="docutils literal notranslate"><span class="pre">LogisticRegression.forward()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Result"><code class="docutils literal notranslate"><span class="pre">Result</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.TrainLoopStats"><code class="docutils literal notranslate"><span class="pre">TrainLoopStats</span></code></a><ul>
+<li><a class="reference internal" href="#cvxro.train.trainer.TrainLoopStats.generate_test_row"><code class="docutils literal notranslate"><span class="pre">TrainLoopStats.generate_test_row()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.TrainLoopStats.generate_train_row"><code class="docutils literal notranslate"><span class="pre">TrainLoopStats.generate_train_row()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.TrainLoopStats.generate_validation_row"><code class="docutils literal notranslate"><span class="pre">TrainLoopStats.generate_validation_row()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.TrainLoopStats.update_test_stats"><code class="docutils literal notranslate"><span class="pre">TrainLoopStats.update_test_stats()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.TrainLoopStats.update_train_stats"><code class="docutils literal notranslate"><span class="pre">TrainLoopStats.update_train_stats()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.TrainLoopStats.update_validate_stats"><code class="docutils literal notranslate"><span class="pre">TrainLoopStats.update_validate_stats()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer"><code class="docutils literal notranslate"><span class="pre">Trainer</span></code></a><ul>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.compare_predictors"><code class="docutils literal notranslate"><span class="pre">Trainer.compare_predictors()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.cp_params"><code class="docutils literal notranslate"><span class="pre">Trainer.cp_params()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.create_cp_param_tch"><code class="docutils literal notranslate"><span class="pre">Trainer.create_cp_param_tch()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.create_cvxpylayer"><code class="docutils literal notranslate"><span class="pre">Trainer.create_cvxpylayer()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.create_predictor_tensors"><code class="docutils literal notranslate"><span class="pre">Trainer.create_predictor_tensors()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.evaluation_cvar"><code class="docutils literal notranslate"><span class="pre">Trainer.evaluation_cvar()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.evaluation_metric"><code class="docutils literal notranslate"><span class="pre">Trainer.evaluation_metric()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.gen_new_z"><code class="docutils literal notranslate"><span class="pre">Trainer.gen_new_z()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.gen_rho_mult_tch"><code class="docutils literal notranslate"><span class="pre">Trainer.gen_rho_mult_tch()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.gen_unique_x"><code class="docutils literal notranslate"><span class="pre">Trainer.gen_unique_x()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.grid"><code class="docutils literal notranslate"><span class="pre">Trainer.grid()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.initialize_predictor_dims"><code class="docutils literal notranslate"><span class="pre">Trainer.initialize_predictor_dims()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.lagrangian"><code class="docutils literal notranslate"><span class="pre">Trainer.lagrangian()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.loss_and_constraints"><code class="docutils literal notranslate"><span class="pre">Trainer.loss_and_constraints()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.monte_carlo"><code class="docutils literal notranslate"><span class="pre">Trainer.monte_carlo()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.order_args"><code class="docutils literal notranslate"><span class="pre">Trainer.order_args()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.prob_constr_violation"><code class="docutils literal notranslate"><span class="pre">Trainer.prob_constr_violation()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.rho_mult_param"><code class="docutils literal notranslate"><span class="pre">Trainer.rho_mult_param()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.shape_parameters"><code class="docutils literal notranslate"><span class="pre">Trainer.shape_parameters()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.train"><code class="docutils literal notranslate"><span class="pre">Trainer.train()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.train_constraint"><code class="docutils literal notranslate"><span class="pre">Trainer.train_constraint()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.train_objective"><code class="docutils literal notranslate"><span class="pre">Trainer.train_objective()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.uncertain_parameters"><code class="docutils literal notranslate"><span class="pre">Trainer.uncertain_parameters()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.x_parameter_shapes"><code class="docutils literal notranslate"><span class="pre">Trainer.x_parameter_shapes()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.trainer.Trainer.x_parameters"><code class="docutils literal notranslate"><span class="pre">Trainer.x_parameters()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#cvxro.train.simulator.DefaultSimulator"><code class="docutils literal notranslate"><span class="pre">DefaultSimulator</span></code></a><ul>
+<li><a class="reference internal" href="#cvxro.train.simulator.DefaultSimulator.constraint_cost"><code class="docutils literal notranslate"><span class="pre">DefaultSimulator.constraint_cost()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.simulator.DefaultSimulator.init_state"><code class="docutils literal notranslate"><span class="pre">DefaultSimulator.init_state()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.simulator.DefaultSimulator.prob_constr_violation"><code class="docutils literal notranslate"><span class="pre">DefaultSimulator.prob_constr_violation()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.simulator.DefaultSimulator.simulate"><code class="docutils literal notranslate"><span class="pre">DefaultSimulator.simulate()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.simulator.DefaultSimulator.stage_cost"><code class="docutils literal notranslate"><span class="pre">DefaultSimulator.stage_cost()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.simulator.DefaultSimulator.stage_cost_avg"><code class="docutils literal notranslate"><span class="pre">DefaultSimulator.stage_cost_avg()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#cvxro.train.simulator.Simulator"><code class="docutils literal notranslate"><span class="pre">Simulator</span></code></a><ul>
+<li><a class="reference internal" href="#cvxro.train.simulator.Simulator.constraint_cost"><code class="docutils literal notranslate"><span class="pre">Simulator.constraint_cost()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.simulator.Simulator.in_sample_obj"><code class="docutils literal notranslate"><span class="pre">Simulator.in_sample_obj()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.simulator.Simulator.init_state"><code class="docutils literal notranslate"><span class="pre">Simulator.init_state()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.simulator.Simulator.prob_constr_violation"><code class="docutils literal notranslate"><span class="pre">Simulator.prob_constr_violation()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.simulator.Simulator.simulate"><code class="docutils literal notranslate"><span class="pre">Simulator.simulate()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.simulator.Simulator.stage_cost"><code class="docutils literal notranslate"><span class="pre">Simulator.stage_cost()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.simulator.Simulator.stage_cost_avg"><code class="docutils literal notranslate"><span class="pre">Simulator.stage_cost_avg()</span></code></a></li>
+<li><a class="reference internal" href="#cvxro.train.simulator.Simulator.stage_cost_cvar"><code class="docutils literal notranslate"><span class="pre">Simulator.stage_cost_cvar()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    </body>
+</html>

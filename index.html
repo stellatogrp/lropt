@@ -206,6 +206,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="api/index.html">API</a><input aria-label="Toggle navigation of API" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/lropt_ruleset/index.html">CVXRO RULESET</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/robust_problem/index.html">Robust Problem</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="api/uncertainty_sets/index.html">Uncertainty Sets</a><input aria-label="Toggle navigation of Uncertainty Sets" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="api/uncertainty_sets/norm.html">Norm Uncertainty</a></li>
@@ -215,6 +216,7 @@
 <li class="toctree-l3"><a class="reference internal" href="api/uncertainty_sets/budget.html">Budget Uncertainty</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="api/train/index.html">Train</a></li>
 </ul>
 </li>
 </ul>
@@ -355,13 +357,11 @@ uncertainty (we are working to remove the need for this feature). Because Ellips
 are now functions both of <span class="math notranslate nohighlight">\(\theta\)</span> and <span class="math notranslate nohighlight">\(y\)</span></p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
-\[\begin{split}\begin{equation}
-  x(\theta, y) \in
-  \begin{array}[t]{ll}
-    \mbox{minimize}&amp;f(x,y)\\
-    \mbox{subject to} &amp; g(x,u,y)  \le 0  \quad \forall u \in \mathcal{U}(\theta),
-  \end{array}
-\end{equation}\end{split}\]</div>
+\[\begin{split}x(\theta, y) \in
+\begin{array}[t]{ll}
+  \mbox{minimize}&amp;f(x,y)\\
+  \mbox{subject to} &amp; g(x,u,y) \le 0 \quad \forall u \in \mathcal{U}(\theta),
+\end{array}\end{split}\]</div>
 </div>
 <p>In these instances, the user passes a dataset of <span class="math notranslate nohighlight">\(Y^J\)</span> of <span class="math notranslate nohighlight">\(y\)</span>’s we can use CVXRO to learn a <span class="math notranslate nohighlight">\(\theta\)</span> which generalizes well for the entire family of optimization problems. To write it up, we can consider the following example.</p>
 <div class="math-wrapper docutils container">
