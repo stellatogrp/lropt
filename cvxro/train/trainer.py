@@ -175,7 +175,11 @@ class Trainer:
             a_tch, b_tch, radius = self.create_predictor_tensors(x_0)
 
         cost = 0.0
-        constraint_cost = 0.0
+        # Always a tensor of the same shape accumulated into below (not a
+        # plain float): if both constraint_cvar and delage_coverage are
+        # False, this is never accumulated into, and downstream code
+        # unconditionally calls .detach() on it.
+        constraint_cost = torch.zeros(1, dtype=s.DTYPE)
         cvar_cost = 0.0
         worst_cost = 0.0
         in_sample_cost = 0.0

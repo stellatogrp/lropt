@@ -11,7 +11,7 @@ class LinearPredictor(torch.nn.Module):
 
     def __init__(self,predict_mean = False, predict_cov= False,
                  pretrain = False,epochs = 100,lr = 0,
-                 knn_cov = False,
+                 knn_cov = False, knn_mean = False,
                  n_neighbors = 10, knn_scale = 1):
         super(LinearPredictor, self).__init__()
         self.predict = predict_mean
@@ -21,6 +21,7 @@ class LinearPredictor(torch.nn.Module):
         self.lr = lr
         self.n_neighbors = n_neighbors
         self.knn_cov = knn_cov
+        self.knn_mean = knn_mean
         self.u_train_vals = None
         self.knn_scale = knn_scale
 
@@ -33,7 +34,7 @@ class LinearPredictor(torch.nn.Module):
         if self.predict:
             input_tensors = trainer.create_input_tensors(trainer.x_train_tch)
             self.gen_weights(input_tensors,trainer.u_train_tch)
-        if self.knn_cov or self.predict_cov:
+        if self.knn_cov or self.predict_cov or self.knn_mean:
             self.knn_fit(trainer)
         if self.predict_cov:
             input_tensors = trainer.create_input_tensors(trainer.x_train_tch)
@@ -140,6 +141,9 @@ class LinearPredictor(torch.nn.Module):
         if self.knn_cov:
             new_a_tch = self.knn_predict(x)
             a_tch = (1-self.knn_scale)*a_tch + self.knn_scale*new_a_tch
+        if self.knn_mean:
+            new_b_tch = self.knn_predict_mean(x)
+            b_tch = (1-self.knn_scale)*b_tch + self.knn_scale*new_b_tch
         if not train_flag:
             a_tch = a_tch.detach().clone()
             b_tch = b_tch.detach().clone()
@@ -160,6 +164,15 @@ class LinearPredictor(torch.nn.Module):
         atchs = np.stack(atchs)
         a_tch = torch.tensor(atchs, dtype=torch.double, requires_grad=True)
         return a_tch
+
+    def knn_predict_mean(self,x):
+        neighbors = self.knn.kneighbors(x.detach(), return_distance=False)
+        btchs = []
+        for i in range(x.shape[0]):
+            btchs.append(np.mean(self.u_train_vals[neighbors[i]], axis=0))
+        btchs = np.stack(btchs)
+        b_tch = torch.tensor(btchs, dtype=torch.double, requires_grad=True)
+        return b_tch
 
     def pretrain_func(self,trainer):
         # call it pre-training

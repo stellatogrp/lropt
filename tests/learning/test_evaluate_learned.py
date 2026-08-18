@@ -4,6 +4,7 @@ import cvxpy as cp
 import numpy as np
 import numpy.random as npr
 import numpy.testing as npt
+import torch
 
 from cvxro import Trainer, TrainerSettings
 from cvxro.parameter import ContextParameter
@@ -156,3 +157,44 @@ class TestEvaluateLearned(unittest.TestCase):
         eval_viols =prob.violation_indicator()
         npt.assert_allclose( np.mean(eval_viols, axis=1)[0], expected_viol, rtol=RTOL, atol=ATOL)
         npt.assert_allclose(eval_viols[0], manual_violations, rtol=RTOL, atol=ATOL)
+
+    def test_contextual_linear_predictor_knn_mean(self):
+        """A fully local kNN predictor (knn_cov=True, knn_mean=True, no global
+        regression component) should train and evaluate without error, and its
+        predicted center for a context should match the plain average of the
+        k nearest training uncertainty realizations.
+        """
+        n = self.n
+        y_data = npr.multivariate_normal(np.zeros(n), np.eye(n), self.N)
+
+        y = ContextParameter(n, data=y_data)
+        u = UncertainParameter(n, uncertainty_set=Ellipsoidal(data=self.data))
+
+        x = cp.Variable(n)
+        objective = cp.Maximize(np.ones(n) @ x)
+        c = 5.0
+        constraints = [x @ (u + y) <= c, cp.norm(x) <= 2 * c]
+        eval_exp = -u @ x
+        prob = RobustProblem(objective, constraints, eval_exp=eval_exp)
+
+        trainer = Trainer(prob)
+        settings = TrainerSettings()
+        settings.contextual = True
+        n_neighbors = 5
+        predictor = LinearPredictor(
+            predict_mean=False, knn_cov=True, knn_mean=True, n_neighbors=n_neighbors
+        )
+        settings.predictor = predictor
+        settings.num_iter = 1
+        settings.parallel = False
+        settings.num_random_init = 1
+        trainer.train(settings=settings)
+
+        x_bar = y_data[0:1]
+        x_bar_tch = torch.tensor(x_bar, dtype=torch.double)
+        b_tch = predictor.knn_predict_mean(x_bar_tch)
+        # kneighbors() returns indices into the fitted training subset
+        # (trainer.u_train_set, stored as predictor.u_train_vals), not the full dataset.
+        neighbors = predictor.knn.kneighbors(x_bar, return_distance=False)
+        expected_mean = np.mean(predictor.u_train_vals[neighbors[0]], axis=0)
+        npt.assert_allclose(b_tch.detach().numpy()[0], expected_mean, rtol=RTOL, atol=ATOL)
