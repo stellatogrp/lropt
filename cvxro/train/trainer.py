@@ -1,6 +1,9 @@
 import copy
 import gc
+import time
+import warnings
 from abc import ABC
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
@@ -14,6 +17,7 @@ from joblib import Parallel, delayed
 import cvxro.train.settings as s
 from cvxro import RobustProblem
 from cvxro.parameter import ContextParameter, ShapeParameter, SizeParameter
+from cvxro.torch_expression_generator import feasibility_constraints
 from cvxro.train.predictors.covpred import CovPredictor
 from cvxro.train.predictors.linear import LinearPredictor
 from cvxro.train.settings import DEFAULT_SETTINGS as DS
@@ -22,6 +26,7 @@ from cvxro.train.settings import DEFAULT_SETTINGS as DS
 from cvxro.train.simulator import DefaultSimulator
 from cvxro.train.utils import (
     EVAL_INPUT_CASE,
+    eval_constr_indicator,
     eval_input,
     eval_prob_constr_violation,
     get_n_processes,
@@ -63,6 +68,10 @@ class Trainer:
 
         self.f = self.problem_canon.f
         self.g = self.problem_canon.g
+        self.g_feas = getattr(self.problem_canon, "g_feas", [None] * len(self.problem_canon.g))
+        self._last_eval_args = None
+        self._last_solved = None
+        self.violation_checker = None
         self.h = self.problem_canon.h
         self.g_shapes = self.problem_canon.g_shapes
         self.num_g_total = self.problem_canon.num_g_total
@@ -175,11 +184,14 @@ class Trainer:
             a_tch, b_tch, radius = self.create_predictor_tensors(x_0)
 
         cost = 0.0
-        # Always a tensor of the same shape accumulated into below (not a
-        # plain float): if both constraint_cvar and delage_coverage are
-        # False, this is never accumulated into, and downstream code
-        # unconditionally calls .detach() on it.
-        constraint_cost = torch.zeros(1, dtype=s.DTYPE)
+        # Shaped [num_g_total], matching what train_constraint returns (its H is one
+        # entry per uncertain constraint group). It has to be a tensor rather than a
+        # plain float because when both constraint_cvar and delage_coverage are False
+        # it is never accumulated into, and downstream code unconditionally calls
+        # .detach() on it -- but it also has to be the FULL length, since the
+        # accumulation below is in-place: with torch.zeros(1) and num_g_total > 1 that
+        # raises "output with shape [1] doesn't match the broadcast shape [k]".
+        constraint_cost = torch.zeros(self.num_g_total, dtype=s.DTYPE)
         cvar_cost = 0.0
         worst_cost = 0.0
         in_sample_cost = 0.0
@@ -192,6 +204,7 @@ class Trainer:
         x_hist = [[xval.detach().numpy().copy() for xval in x_t.copy()]]
         z_hist = []
         for t in range(self.settings.time_horizon):
+            x_solve = x_t
             z_t = self.cvxpylayer(rho_tch, *self.cp_param_tch, *x_t, a_tch, b_tch,
                                   solver_args=self.settings.solver_args)
             constraints_status = self.violation_checker.check_constraints(
@@ -204,12 +217,19 @@ class Trainer:
                 x_batch=x_t,
                 shape_parameters=self._shape_parameters,
                 shape_torches=[a_tch, b_tch],
+                # Only on the evaluation passes: recording per-sample status forgoes the
+                # early exit, and this runs once per line-search attempt while training.
+                per_sample=self._test_flag or self._validate_flag,
             )
             z_t = self._reduce_variables(z_t)
             if not self._multistage:
                 eval_args = self.order_args(z_t, x_t, u_0)
                 self.settings.kwargs_simulator["eval_args"] = eval_args
                 self.settings.kwargs_simulator["u_train"] = u_0
+                # Kept for _record_feasibility: _train_loop only has the numpy history
+                # of x, not the ordered tensors the constraint callables need.
+                self._last_eval_args = (eval_args, u_0.shape[0])
+                self._last_solved = self.violation_checker.last_sample_feasible
 
             x_t = self.simulator.simulate(x_t, z_t, **self.settings.kwargs_simulator)
             in_sample_cost += self.simulator.in_sample_obj(
@@ -229,7 +249,10 @@ class Trainer:
             if self.settings.constraint_cvar:
                 constraint_cost += self.simulator.constraint_cost(x_t, z_t, **constraint_kwargs)
             elif self.settings.delage_coverage:
-                input_tensors = self.create_input_tensors(x_t)
+                # dist_loss regresses the in-set indicator of u_0 onto the contexts, so
+                # its x must be the contexts a_tch/b_tch/radius were fit from -- x_solve,
+                # not the state simulate() has since advanced to.
+                input_tensors = self.create_input_tensors(x_solve)
                 coverage_loss, _ = self.dist_loss(a_tch,b_tch,radius,input_tensors,u_0)
                 constraint_cost += coverage_loss
 
@@ -591,12 +614,17 @@ class Trainer:
                 self._init_uncertain_parameter, requires_grad=True, dtype=s.DTYPE
             )
             self.x_train_tch = self._init_context
+            self.u_train_set = self._init_uncertain_parameter
         elif self._multistage and isinstance(\
             self.settings.predictor,LinearPredictor):
-            if self.settings.predictor.predict:
+            predictor = self.settings.predictor
+            if (predictor.predict or predictor.predict_cov
+                    or predictor.knn_cov or predictor.knn_mean):
                 if (self._init_uncertain_parameter is None):
                     raise ValueError(
-                    "You must provide init_uncertain_param when using the mean linear predictor"
+                    "You must provide init_uncertain_param when using a linear "
+                    "predictor that reads the training rows (predict_mean, "
+                    "predict_cov, knn_cov or knn_mean)"
                 )
                 self.u_train_tch = torch.tensor(
                 self._init_uncertain_parameter, requires_grad=True, dtype=s.DTYPE
@@ -605,6 +633,7 @@ class Trainer:
                     self._init_uncertain_parameter.shape[0],
                       self.settings.seed,
                                             **self.settings.kwargs_simulator)
+                self.u_train_set = self._init_uncertain_parameter
 
         # return (
         #     unc_train_set,
@@ -821,7 +850,7 @@ class Trainer:
             for i in range(dset.shape[0]):
                 coverage += torch.where(
                     torch.norm(
-                        (a_tch[i].T @ torch.linalg.inv(a_tch[i] @ a_tch[i].T))
+                        (a_tch[i].T @ torch.linalg.inv(a_tch[i] @ a_tch[i].T + 0.00001*torch.eye(a_tch[i].shape[0])))
                         @ (dset[i] - b_tch[i]),
                         p,
                     )
@@ -833,7 +862,7 @@ class Trainer:
             for datind in range(dset.shape[0]):
                 coverage += torch.where(
                     torch.norm(
-                        (a_tch.T @ torch.linalg.inv(a_tch @ a_tch.T)) @ (dset[datind] - b_tch), p
+                        (a_tch.T @ torch.linalg.inv((a_tch @ a_tch.T)+ 0.00001*torch.eye(a_tch.shape[0]))) @ (dset[datind] - b_tch), p
                     )
                     <= rho,
                     1,
@@ -906,7 +935,7 @@ class Trainer:
             H[sum(self.g_shapes[:k]) : sum(self.g_shapes[: (k + 1)])] = h_k_expectation
         return H
 
-    def evaluation_metric(self, batch_int, eval_args, quantiles):
+    def evaluation_metric(self, batch_int, eval_args, quantiles, mask=None):
         """
         This function evaluates the evaluation metric over the batched set.
         Args:
@@ -916,6 +945,9 @@ class Trainer:
                 The arguments of the evaluation function
             quantiles:
                 The upper and lowerx quantiles to be returned.
+            mask:
+                Optional boolean tensor over the batch, restricting the statistic to the
+                selected samples (e.g. the feasible ones).
         Returns:
             The average among all evaluated J x N pairs
         """
@@ -930,10 +962,11 @@ class Trainer:
             eval_input_case=EVAL_INPUT_CASE.EVALMEAN,
             quantiles=quantiles,
             serial_flag=True,
-            eta_target= None
+            eta_target= None,
+            mask=mask,
         )
 
-    def evaluation_cvar(self, batch_int, eval_args, eta = None):
+    def evaluation_cvar(self, batch_int, eval_args, eta = None, mask=None):
         """
         This function evaluates the evaluation CVaR over the batched set.
         Args:
@@ -943,6 +976,9 @@ class Trainer:
                 The arguments of the evaluation function
             eta:
                 The eta value for the CVaR.
+            mask:
+                Optional boolean tensor over the batch, restricting the statistic to the
+                selected samples (e.g. the feasible ones).
         Returns:
             The CVaR of the evaluation function
         """
@@ -958,7 +994,8 @@ class Trainer:
             eval_input_case=EVAL_INPUT_CASE.CVAR,
             serial_flag=True,
             quantiles = None,
-            eta_target = eta
+            eta_target = eta,
+            mask=mask,
         )
 
     def dist_loss(self,cho,mean,radius, x, y):
@@ -1016,7 +1053,7 @@ class Trainer:
 
         return loss_final, assign_list.mean().item()
 
-    def prob_constr_violation(self, batch_int, eval_args):
+    def prob_constr_violation(self, batch_int, eval_args, exclude_epigraph=False):
         """
         This function evaluates the probability of constraint violation
         of all uncertain constraints over the batched set.
@@ -1025,12 +1062,150 @@ class Trainer:
                 The number of samples in the batch, to take the mean over
             eval_args:
                 The arguments of the constraints
+            exclude_epigraph:
+                Whether to leave the epigraph-objective row out, giving the probability of
+                genuine infeasibility rather than of certificate violation. Only differs
+                when an epigraph row was identified; see max_of_uncertain's
+                epigraph_index.
         Returns:
             The average among all evaluated J x N pairs
         """
+        g = feasibility_constraints(self.problem_canon) if exclude_epigraph else self.g
         return eval_prob_constr_violation(
-            g=self.g, g_shapes=self.g_shapes, batch_int=batch_int, eval_args=eval_args
+            g=g, g_shapes=self.g_shapes, batch_int=batch_int, eval_args=eval_args
         )
+
+    def _grid_solved_mask(self, settings, split, rho_tch):
+        """Per-sample solvability of the robust problem, or None when not tracked.
+
+        Takes a SplitTensors rather than loose tensors so that the decisions, the
+        uncertainty-set parameters and the contexts it checks them against are
+        guaranteed to describe the same samples.
+        """
+        if not settings.track_unsolved:
+            return None
+        # grid() does not go through train(), which is where the checker is normally built.
+        if getattr(self, "violation_checker", None) is None:
+            self.violation_checker = ViolationChecker(
+                self.cvxpylayer, self.problem_no_unc.constraints
+            )
+        self.violation_checker.check_constraints(
+            z_batch=split.z,
+            rho_mult_parameter=self._rho_mult_parameter,
+            rho_tch=rho_tch,
+            cp_parameters=self._cp_parameters,
+            cp_param_tch=self.cp_param_tch,
+            x_parameters=self._x_parameters,
+            x_batch=split.x_batch,
+            shape_parameters=self._shape_parameters,
+            shape_torches=[split.a_tch, split.b_tch],
+            per_sample=True,
+        )
+        return self.violation_checker.last_sample_feasible
+
+    def _grid_unique_contexts(self, x_tch, batch_int):
+        """Deduplicate one split's contexts, once, for reuse across the rho sweep."""
+        x_batch_array, num_unique, x_unique, x_unique_array = self.gen_unique_x(x_tch)
+        return _UniqueContexts(
+            x_tch=x_tch, batch_int=batch_int, x_batch_array=x_batch_array,
+            num_unique=num_unique, x_unique=x_unique, x_unique_array=x_unique_array,
+        )
+
+    def _grid_solve_split(self, settings, rho_tch, contexts, a_tch_init, b_tch_init):
+        """Solve one split at this rho and return its tensors bound together.
+
+        Both the layer solve and the fan-out back to sample resolution happen here, so
+        the A/b that end up in the returned SplitTensors are necessarily the ones this
+        split was solved with. That is the property that keeps the four A/b lengths
+        alive in a grid() iteration from ever being crossed.
+        """
+        a_tch, b_tch = a_tch_init, b_tch_init
+        if settings.contextual:
+            a_tch, b_tch, _radius = self.create_predictor_tensors(contexts.x_unique)
+        z_unique = self.cvxpylayer(
+            rho_tch,
+            *self.cp_param_tch,
+            *contexts.x_unique,
+            a_tch,
+            b_tch,
+            solver_args=settings.solver_args,
+        )
+        z_batch, a_tch, b_tch = self.gen_new_z(
+            contexts.num_unique,
+            contexts.x_unique_array,
+            z_unique,
+            contexts.batch_int,
+            contexts.x_batch_array,
+            settings.contextual,
+            a_tch,
+            b_tch,
+        )
+        return SplitTensors(x_batch=contexts.x_tch, z=z_batch, a_tch=a_tch,
+                            b_tch=b_tch, contextual=settings.contextual)
+
+    def feasibility_stats(self, batch_int, eval_args, quantiles, eta=None, solved=None):
+        """
+        This function evaluates the fraction of feasible samples and the evaluation
+        statistics restricted to them.
+        Args:
+            batch_int:
+                The number of samples in the batch
+            eval_args:
+                The arguments of the constraints and the evaluation function
+            quantiles:
+                The upper and lower quantiles to be returned
+            eta:
+                The eta value for the CVaR
+            solved:
+                Optional boolean array saying which samples the robust problem could
+                actually be solved for. Unsolved samples count as infeasible, because
+                cvxpylayers returns a degenerate decision rather than failing.
+        Returns:
+            (frac_feasible, (lower, mean, upper), (cvar, quantile), frac_unsolved)
+        """
+        mask = self.feasibility_indicator(batch_int, eval_args)
+        frac_unsolved = float("nan")
+        if solved is not None and len(solved) == batch_int:
+            solved = torch.as_tensor(np.asarray(solved), dtype=torch.bool)
+            frac_unsolved = 1.0 - solved.double().mean().item()
+            mask = mask & solved
+        frac_feasible = mask.double().mean().item()
+        obj = self.evaluation_metric(batch_int, eval_args, quantiles, mask=mask)
+        cvar = self.evaluation_cvar(batch_int, eval_args, eta=eta, mask=mask)
+        return frac_feasible, obj, cvar, frac_unsolved
+
+    def _record_feasibility(self, train_stats, split):
+        """Record the feasibility statistics of the split just evaluated by monte_carlo."""
+        if self._last_eval_args is None:
+            return
+        eval_args, batch_int = self._last_eval_args
+        with torch.no_grad():
+            train_stats.update_feasibility(
+                split,
+                *self.feasibility_stats(
+                    batch_int, eval_args, self.settings.quantiles, solved=self._last_solved
+                ),
+            )
+
+    def feasibility_indicator(self, batch_int, eval_args):
+        """
+        This function evaluates, per sample, whether every uncertain constraint other than
+        the epigraph-objective row holds.
+        Args:
+            batch_int:
+                The number of samples in the batch
+            eval_args:
+                The arguments of the constraints
+        Returns:
+            A boolean tensor of length batch_int
+        """
+        indicator = eval_constr_indicator(
+            g=feasibility_constraints(self.problem_canon),
+            g_shapes=self.g_shapes,
+            batch_int=batch_int,
+            eval_args=eval_args,
+        )
+        return indicator.sum(axis=0) == 0
 
     def lagrangian(
         self,
@@ -1245,6 +1420,24 @@ class Trainer:
             self.settings.contextual,
             self.settings.predictor,
         )
+        # Predictors that expose param_groups() (e.g. LinearPredictor's
+        # cov_lr_mult) get per-submodule learning rates instead of every
+        # parameter sharing self.settings.lr.
+        #
+        # NOT in the size-only phase, though: when trained_shape is True
+        # (the second phase of the train_shape+train_size flow), the shape
+        # predictor is meant to be FROZEN and only rho/alpha trained --
+        # _set_train_variables has already returned [rho_tch, alpha] for
+        # exactly that. Overwriting it with the predictor's parameter groups
+        # here silently dropped rho_tch from the optimizer entirely, so the
+        # "train rho" phase never moved rho at all (result.rho stayed at
+        # init_rho), while instead continuing to train the shape predictor
+        # at lr_size -- typically much larger than the phase-1 lr, which
+        # wrecked the covariance fit (observed: condition number 2.7 -> 670).
+        if (self.settings.contextual
+                and hasattr(self.settings.predictor, "param_groups")
+                and not self.settings.trained_shape):
+            variables = self.settings.predictor.param_groups(self.settings.lr, extra_params=[alpha])
         if self.settings.optimizer == "SGD":
             opt = s.OPTIMIZERS[self.settings.optimizer](
                 variables, lr=self.settings.lr, momentum=self.settings.momentum
@@ -1252,7 +1445,7 @@ class Trainer:
         else:
             opt = s.OPTIMIZERS[self.settings.optimizer](variables,
                                                          lr=self.settings.lr,
-                                                         weight_decay = 1e-1)
+                                                         weight_decay = self.settings.weight_decay)
 
         if self.settings.scheduler:
             scheduler_ = torch.optim.lr_scheduler.StepLR(
@@ -1285,6 +1478,7 @@ class Trainer:
             )
 
             torch.manual_seed(self.settings.seed + step_num)
+            _train_start_time = time.time()
             constraint_status, fin_cost, avg_cost, \
                 prob_violation_train, constr_cost, cvar_cost, in_sample_cost,worst_cost = \
                 self._line_search(step_num=step_num, a_tch=a_tch, b_tch=b_tch, rho_tch=rho_tch,
@@ -1292,6 +1486,7 @@ class Trainer:
                                   prev_states=prev_states,
                                   seed_num = seed_num,
                                   prev_fin_cost = prev_fin_cost)
+            _train_elapsed_time = time.time() - _train_start_time
             if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
                 if step_num == 0:
                     exception_message = "Infeasible uncertainty set initialization"
@@ -1373,6 +1568,7 @@ class Trainer:
                 self.settings.contextual,
                 self.settings.linear,
                 self.settings.predictor            )
+            new_row["Train_time"] = _train_elapsed_time
             rows.append(new_row)
 
             self._update_iters(
@@ -1388,6 +1584,7 @@ class Trainer:
             if step_num % self.settings.validate_frequency == 0:
                 self._validate_flag = True
                 self._test_flag = False
+                _validate_start_time = time.time()
                 (
                     val_cost,
                     val_cost_constr,
@@ -1404,6 +1601,7 @@ class Trainer:
                     alpha=alpha,
                     seed = self.settings.seed + 10000
                 )
+                _validate_elapsed_time = time.time() - _validate_start_time
                 record_avg_cost = avg_cost
                 if not self._default_simulator:
                     record_avg_cost = avg_cost.repeat(3)
@@ -1442,6 +1640,7 @@ class Trainer:
                                                   cvar_cost,
                     record_avg_cost, prob_constr_violation, val_cost_constr.detach()
                 )
+                self._record_feasibility(train_stats, "validate")
                 new_row = train_stats.generate_validation_row(
                     self._calc_coverage,
                     self._a_tch,
@@ -1454,11 +1653,13 @@ class Trainer:
                     self.settings.contextual,
                     x_batch
                 )
+                new_row["Validate_time"] = _validate_elapsed_time
                 rows_validate.append(new_row)
 
             if step_num % self.settings.test_frequency == 0:
                 self._test_flag = True
                 self._validate_flag= False
+                _test_start_time = time.time()
                 (
                     val_cost,
                     val_cost_constr,
@@ -1476,6 +1677,7 @@ class Trainer:
                     alpha=alpha,
                     seed = self.settings.seed
                 )
+                _test_elapsed_time = time.time() - _test_start_time
                 record_avg_cost = avg_cost
                 if not self._default_simulator:
                     record_avg_cost = avg_cost.repeat(3)
@@ -1484,6 +1686,7 @@ class Trainer:
                                               in_sample_cost,cvar_cost,
                     record_avg_cost, prob_constr_violation, val_cost_constr.detach()
                 )
+                self._record_feasibility(train_stats, "test")
                 new_row = train_stats.generate_test_row(
                     self._calc_coverage,
                     self._a_tch,
@@ -1496,6 +1699,7 @@ class Trainer:
                     self.settings.contextual,
                     x_batch
                 )
+                new_row["Test_time"] = _test_elapsed_time
                 rows_test.append(new_row)
 
         df = pd.DataFrame([r.to_dict() for r in rows]) if rows else pd.DataFrame()
@@ -1722,7 +1926,7 @@ class Trainer:
                 b_history=return_b_history,
                 rho_history=return_rho_history,
                 predictor=predictors_s[0],
-                x_batch=x_batch[index_chosen] + x_batch_s[0]
+                x=x_batch[index_chosen] + x_batch_s[0]
             )
         else:
             result = Result(
@@ -1756,7 +1960,21 @@ class Trainer:
             settings: s.TrainerSettings | None = s.TrainerSettings(),
             predictors_list = [],rho_list = []):
         """This function computes the validation and testing values for a
-        list of predictors"""
+        list of predictors.
+
+        The fields below are ARGUMENTS of this call, not durable configuration, so the
+        caller's settings object is left exactly as it was found. It used to keep the
+        last radius and predictor written onto it, which is silent and easy to miss:
+        `grid()` and `bisection()` read `rholst` as a MULTIPLIER on `init_rho`, so any
+        code that swept radii here and then ran a grid on the same settings searched a
+        rescaled range without any error. See experiments/newsvendor/news.py, where the
+        mean-variance baseline's grid inherited the sweep's last radius. Several call
+        sites already worked around this by re-assigning `settings.init_rho` by hand
+        before their own search; that is no longer necessary.
+        """
+        saved = {name: getattr(settings, name) for name in
+                 ("num_iter", "max_batch_size", "init_rho", "predictor",
+                  "initialize_predictor", "contextual")}
         settings.num_iter = 0
         settings.max_batch_size = np.inf
         test_dfs = []
@@ -1765,15 +1983,19 @@ class Trainer:
         if len(predictors_list)==1:
             if num_rho > 1:
                 predictors_list = predictors_list*num_rho
-        for ind, predictor in enumerate(predictors_list):
-            if predictor is None:
-                settings.contextual = False
-            settings.predictor = predictor
-            settings.initialize_predictor = False
-            settings.init_rho = rho_list[ind]
-            result = self.train(settings=settings)
-            test_dfs.append(result.df_test)
-            validate_dfs.append(result.df_validate)
+        try:
+            for ind, predictor in enumerate(predictors_list):
+                if predictor is None:
+                    settings.contextual = False
+                settings.predictor = predictor
+                settings.initialize_predictor = False
+                settings.init_rho = rho_list[ind]
+                result = self.train(settings=settings)
+                test_dfs.append(result.df_test)
+                validate_dfs.append(result.df_validate)
+        finally:
+            for name, value in saved.items():
+                setattr(settings, name, value)
         return pd.concat(validate_dfs), pd.concat(test_dfs)
 
     def _tune_rho(self, result):
@@ -1898,129 +2120,122 @@ class Trainer:
                 new_b_tch[i] = values_list[2]
         return new_var_values, new_a_tch, new_b_tch
 
-    def grid(
-        self,
-        rholst=s.RHO_LST_DEFAULT,
-        settings = DS
-    ):
-        r"""
-        Perform gridsearch to find optimal :math:`\rho`-ball around data.
+    def _rho_search_setup(self, settings):
+        """Prepare the state every radius of a rho search reuses.
 
-        Args:
-        rholst : np.array, optional
-            The list of :math:`\rho` to iterate over. "Default np.logspace(-3, 1, 20)
-        settings:
-            TrainerSettings
+        Splitting the dataset, building the CvxpyLayer and deduplicating the contexts
+        cost the same whether one radius is evaluated or a hundred, so grid() and
+        bisection() both do them exactly once, here.
 
-        Returns:
-        A pandas data frame with information on each :math:`\rho` having the following columns:
-            Opt_val: float
-                The objective value of the Robust Problem
-            Lagrangian_val: float
-                The value of the lagrangian function applied to the training data
-            Eval_val: float
-                The value of the lagrangian function applied to the evaluation data
-            Rho: float
-                The rho value
+        Honours settings.multistage. This used to hard-set self._multistage = False, so
+        grid() and bisection() scored the SINGLE-STAGE problem for a multistage model.
+        What that looked like depended on the problem: some raise in setup ("need at
+        least one array to concatenate"), others run to completion and report numbers
+        for a different model than train() evaluates, with no error at all. Callers
+        worked around it by bisecting over compare_predictors themselves. A multistage
+        radius is now evaluated by the same monte_carlo rollout train() uses, so the
+        workaround is no longer needed.
         """
-        self._multistage = False
+        self._multistage = bool(settings.multistage)
         self.settings = settings
         self.settings.predictor = settings.predictor
         if self.settings.data is None:
             self.settings.data = self.unc_set.data
-        if settings.contextual:
-            if settings.predictor is None:
-                raise ValueError("Missing NN-Model")
+        if settings.contextual and settings.predictor is None:
+            raise ValueError("Missing NN-Model")
 
         self.train_flag = False
-        df = pd.DataFrame(columns=["Rho"])
         if self.settings.indices_dict is None:
             self.settings.indices_dict = self.unc_set.indices_dict
         self._split_dataset(settings.test_percentage, settings.validate_percentage, settings.seed)
-        self.cvxpylayer = self.create_cvxpylayer()
 
-        grid_stats = GridStats()
+        if self._multistage:
+            # The same runtime state train() builds for a rollout. Kept here rather
+            # than shared with train() so the single-stage search stays byte-identical.
+            self._init_uncertain_parameter = settings.init_uncertain_param
+            self._init_context = settings.init_context
+            self.num_g_total = 1
+            self.cvxpylayer = settings.policy if settings.policy \
+                else self.create_cvxpylayer()
+            if settings.simulator:
+                self.simulator = settings.simulator
+                self._default_simulator = False
+            else:
+                self.simulator = DefaultSimulator(self)
+                self._default_simulator = True
+            self.violation_checker = ViolationChecker(
+                self.cvxpylayer, self.problem_no_unc.constraints)
+            self._max_iter_line_search = settings.max_iter_line_search
+            self.x_endind = settings.x_endind
+        else:
+            self.cvxpylayer = self.create_cvxpylayer()
 
         lam = 1000 * torch.ones(self.num_g_total, dtype=s.DTYPE)
-        # initialize torches
-        rho_tch = self._gen_rho_tch(1)
         a_tch_init, b_tch_init, alpha = self._init_torches(
             settings.init_A, settings.init_b, settings.init_alpha, self.u_train_set
         )
-
-        x_batch_array, num_unique_indices, x_unique, x_unique_array = self.gen_unique_x(
-            self.x_test_tch
+        return _RhoSearchContext(
+            lam=lam,
+            alpha=alpha,
+            a_tch_init=a_tch_init,
+            b_tch_init=b_tch_init,
+            # Deduplicated once, outside the sweep: the contexts do not depend on rho.
+            # A multistage rollout draws its own contexts from simulator.init_state at
+            # every radius, so there is nothing to deduplicate up front.
+            test=None if self._multistage
+            else self._grid_unique_contexts(self.x_test_tch, self.test_size),
+            validate=None if self._multistage
+            else self._grid_unique_contexts(self.x_validate_tch, self.validate_size),
         )
 
-        x_batch_array_t, num_unique_indices_t, x_unique_t, x_unique_array_t = self.gen_unique_x(
-            self.x_validate_tch
+    def _evaluate_rho(self, rho, settings, ctx, grid_stats):
+        """Evaluate one radius: solve both splits, score them, build the result row.
+
+        `rho` is a multiplier on settings.init_rho, not an absolute radius. Returns the
+        row alongside the test split, which is what the uncertainty set is written from.
+        """
+        if self._multistage:
+            return self._evaluate_rho_multistage(rho, settings, ctx, grid_stats)
+        rho_tch = torch.tensor(rho * settings.init_rho,
+                               requires_grad=self.train_flag, dtype=s.DTYPE)
+        # Each split accumulates only the segments that are its own work, so
+        # Test_time and Validate_time are disjoint and their sum is the radius's real
+        # cost. They used to be two overlapping stopwatches started before each solve
+        # and stopped much later, which billed the validate solve and the test metrics
+        # to both splits, and the test feasibility check to the validate split.
+        test_time = _Stopwatch()
+        validate_time = _Stopwatch()
+
+        with test_time:
+            test_split = self._grid_solve_split(
+                settings, rho_tch, ctx.test, ctx.a_tch_init, ctx.b_tch_init)
+        with validate_time:
+            validate_split = self._grid_solve_split(
+                settings, rho_tch, ctx.validate, ctx.a_tch_init, ctx.b_tch_init)
+
+        train_stats = TrainLoopStats(
+            step_num=0, train_flag=self.train_flag, num_g_total=self.num_g_total
         )
-
-        for rho in rholst:
-            rho_tch = torch.tensor(rho * settings.init_rho,
-                                   requires_grad=self.train_flag, dtype=s.DTYPE)
-            if settings.contextual:
-                a_tch_init, b_tch_init,radius = self.create_predictor_tensors(x_unique)
-            z_unique = self.cvxpylayer(
-                rho_tch,
-                *self.cp_param_tch,
-                *x_unique,
-                a_tch_init,
-                b_tch_init,
-                solver_args=settings.solver_args,
-            )
-            new_z_batch, a_tch_init, b_tch_init = self.gen_new_z(
-                num_unique_indices,
-                x_unique_array,
-                z_unique,
-                self.test_size,
-                x_batch_array,
-                settings.contextual,
-                a_tch_init,
-                b_tch_init,
-            )
-
-            if settings.contextual:
-                a_tch_init, b_tch_init,radius = self.create_predictor_tensors(
-                    x_unique_t)
-            z_unique_t = self.cvxpylayer(
-                rho_tch,
-                *self.cp_param_tch,
-                *x_unique_t,
-                a_tch_init,
-                b_tch_init,
-                solver_args=settings.solver_args,
-            )
-
-            new_z_batch_t, _, _ = self.gen_new_z(
-                num_unique_indices_t,
-                x_unique_array_t,
-                z_unique_t,
-                self.validate_size,
-                x_batch_array_t,
-                settings.contextual,
-                a_tch_init,
-                b_tch_init,
-            )
-
-            train_stats = TrainLoopStats(
-                step_num=0, train_flag=self.train_flag, num_g_total=self.num_g_total
-            )
-            with torch.no_grad():
-                new_z_batch = self._reduce_variables(new_z_batch)
-                new_z_batch_t = self._reduce_variables(new_z_batch_t)
+        with torch.no_grad():
+            with test_time:
+                new_z_batch = self._reduce_variables(test_split.z)
                 test_args = self.order_args(z_batch=new_z_batch,
-                                             x_batch=self.x_test_tch,
+                                             x_batch=test_split.x_batch,
                                              u_batch=self.u_test_tch)
-                obj_test = self.evaluation_metric(self.test_size, test_args, settings.quantiles)
+                obj_test = self.evaluation_metric(
+                    self.test_size, test_args, settings.quantiles)
                 cvar_test = self.evaluation_cvar(self.test_size, test_args)
                 in_sample_test = self.train_objective(self.test_size, test_args)
 
                 prob_violation_test = self.prob_constr_violation(self.test_size, test_args)
-                _, var_vio = self.lagrangian(self.test_size, test_args, alpha, lam, 1, settings.eta)
+                _, var_vio = self.lagrangian(
+                    self.test_size, test_args, ctx.alpha, ctx.lam, 1, settings.eta)
 
+            with validate_time:
+                new_z_batch_t = self._reduce_variables(validate_split.z)
                 test_args_t = self.order_args(
-                    z_batch=new_z_batch_t, x_batch=self.x_validate_tch, u_batch=self.u_validate_tch
+                    z_batch=new_z_batch_t, x_batch=validate_split.x_batch,
+                    u_batch=self.u_validate_tch
                 )
 
                 cvar_train = self.evaluation_cvar(self.validate_size, test_args_t)
@@ -2029,38 +2244,157 @@ class Trainer:
                                                     settings.quantiles)
                 in_sample_cost = self.train_objective(self.validate_size, test_args_t)
 
-                prob_violation_train = self.prob_constr_violation(self.validate_size, test_args_t)
+                prob_violation_train = self.prob_constr_violation(
+                    self.validate_size, test_args_t)
                 _, var_vio_train = self.lagrangian(
-                    self.validate_size, test_args_t, alpha, lam, 1, settings.eta
+                    self.validate_size, test_args_t, ctx.alpha, ctx.lam, 1, settings.eta
                 )
 
-            train_stats.update_test_stats(cvar_test[1],in_sample_test,
-                                          cvar_test[0],
-                                          obj_test,
-                                          prob_violation_test, var_vio)
-            train_stats.update_train_stats(cvar_test[1].item(),
-                                           in_sample_cost.item(),
-                                    cvar_train[0].item(), None,
-                                    obj_train, prob_violation_train,
-                                    var_vio_train)
-            grid_stats.update(train_stats, cvar_test[0], rho_tch, a_tch_init, new_z_batch)
+            with test_time:
+                train_stats.update_feasibility(
+                    "test",
+                    *self.feasibility_stats(
+                        self.test_size, test_args, settings.quantiles,
+                        solved=self._grid_solved_mask(settings, test_split, rho_tch),
+                    ),
+                )
+            with validate_time:
+                train_stats.update_feasibility(
+                    "validate",
+                    *self.feasibility_stats(
+                        self.validate_size, test_args_t, settings.quantiles,
+                        solved=self._grid_solved_mask(settings, validate_split, rho_tch),
+                    ),
+                )
 
-            new_row = train_stats.generate_test_row(
-                self._calc_coverage, a_tch_init,b_tch_init,
-                alpha, self.u_test_tch,rho_tch, self.unc_set, new_z_batch,
-                settings.contextual, [self.x_test_tch])
-            df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
+        train_stats.update_test_stats(cvar_test[1],in_sample_test,
+                                      cvar_test[0],
+                                      obj_test,
+                                      prob_violation_test, var_vio)
+        # In a rho search, update_train_stats carries the VALIDATE-split statistics --
+        # generate_test_row surfaces them as the Validate_* columns when
+        # train_flag is False. Every argument here must therefore come from the
+        # validate split: cvar_train/obj_train/in_sample_cost/prob_violation_train
+        # are all computed from test_args_t (x_validate_tch/u_validate_tch) above.
+        # The worst-case slot used to be passed cvar_test[1], which silently put
+        # the TEST eta-quantile in the Validate_worst column and made any radius
+        # selection on that column read test data.
+        train_stats.update_train_stats(cvar_train[1].item(),
+                                       in_sample_cost.item(),
+                                cvar_train[0].item(), None,
+                                obj_train, prob_violation_train,
+                                var_vio_train)
+        grid_stats.update(train_stats, cvar_test[0], rho_tch, test_split.a_tch,
+                          new_z_batch)
 
+        # Coverage in generate_test_row is measured on u_test_tch/x_test_tch, so it
+        # must use the test split's shape tensors.
+        new_row = train_stats.generate_test_row(
+            self._calc_coverage, test_split.a_tch, test_split.b_tch,
+            ctx.alpha, self.u_test_tch,rho_tch, self.unc_set, new_z_batch,
+            settings.contextual, [test_split.x_batch])
+        new_row["Test_time"] = test_time.elapsed
+        new_row["Validate_time"] = validate_time.elapsed
+        return new_row, test_split
+
+    def _evaluate_rho_multistage(self, rho, settings, ctx, grid_stats):
+        """Evaluate one radius by ROLLOUT, the multistage counterpart of _evaluate_rho.
+
+        A multistage radius cannot be scored by solving the layer once per context:
+        the decision at period t depends on the state the previous periods left, so the
+        only honest evaluation is a rollout. That is exactly what monte_carlo does, and
+        what train() calls on its validate and test passes, so this reuses it rather
+        than reimplementing the loop -- a radius probed here and the same radius seen
+        during training are then measured by identical code.
+
+        Row schema matches the single-stage path exactly, so grid(), bisection() and
+        every caller that reads Avg_prob_validate / Validate_worst_feasible work
+        unchanged. Coverage is 0 by construction (_calc_coverage returns 0 in
+        multistage: a rollout has no single u sample to cover), and the feasibility
+        columns come back NaN for the same reason they do in train() -- the per-sample
+        constraint arguments are only assembled on the single-stage branch.
+        """
+        rho_tch = torch.tensor(rho * settings.init_rho,
+                               requires_grad=False, dtype=s.DTYPE)
+        train_stats = TrainLoopStats(
+            step_num=0, train_flag=self.train_flag, num_g_total=self.num_g_total
+        )
+        test_time = _Stopwatch()
+        validate_time = _Stopwatch()
+
+        def rollout(seed):
+            # monte_carlo -> loss_and_constraints refits a_tch/b_tch from each
+            # rollout's own initial contexts when contextual, so the tensors passed
+            # here are only the non-contextual fallback.
+            return self.monte_carlo(a_tch=ctx.a_tch_init, b_tch=ctx.b_tch_init,
+                                    rho_tch=rho_tch, alpha=ctx.alpha, seed=seed)
+
+        with torch.no_grad():
+            # Same seeds train() uses, so a radius scored here and the same radius
+            # scored mid-training see the same draws.
+            with validate_time:
+                self._validate_flag, self._test_flag = True, False
+                (_, vali_constr, x_hist_v, z_v, avg_cost_v, prob_vio_v,
+                 u_v, cvar_v, in_sample_v, worst_v) = rollout(settings.seed + 10000)
+            with test_time:
+                self._test_flag, self._validate_flag = True, False
+                (_, test_constr, x_hist_t, z_t, avg_cost_t, prob_vio_t,
+                 u_t, cvar_t, in_sample_t, worst_t) = rollout(settings.seed)
+        self._test_flag = self._validate_flag = False
+
+        # A custom simulator reports one scalar average cost; the row wants the
+        # (lower, mean, upper) triple the default simulator produces.
+        obj_test = avg_cost_t if self._default_simulator else avg_cost_t.repeat(3)
+        obj_vali = avg_cost_v if self._default_simulator else avg_cost_v.repeat(3)
+
+        train_stats.update_test_stats(worst_t, in_sample_t, cvar_t,
+                                      obj_test, prob_vio_t, test_constr.detach())
+        # update_train_stats, not update_validate_stats: generate_test_row surfaces the
+        # TRAIN slots as the Validate_* columns when train_flag is False, which is the
+        # convention the single-stage rho search already follows.
+        train_stats.update_train_stats(worst_v, in_sample_v, cvar_v, None,
+                                       obj_vali, prob_vio_v, vali_constr.detach())
+
+        split = self._multistage_split(x_hist_t, ctx)
+        grid_stats.update(train_stats, cvar_t, rho_tch, split.a_tch, z_t)
+        new_row = train_stats.generate_test_row(
+            self._calc_coverage, split.a_tch, split.b_tch, ctx.alpha, u_t,
+            rho_tch, self.unc_set, z_t, settings.contextual, split.x_batch)
+        new_row["Test_time"] = test_time.elapsed
+        new_row["Validate_time"] = validate_time.elapsed
+        return new_row, split
+
+    def _multistage_split(self, x_hist, ctx):
+        """The shape tensors _finalize_rho_search writes onto the uncertainty set.
+
+        Rebuilt from the rollout's INITIAL contexts -- x_hist[0] -- because that is the
+        state the period-0 set was fit from, and period 0 is the only decision a
+        receding-horizon policy actually commits.
+        """
+        x_0 = [torch.tensor(np.asarray(v), dtype=s.DTYPE) for v in x_hist[0]]
+        if self.settings.contextual:
+            a_tch, b_tch, _ = self.create_predictor_tensors(x_0)
+        else:
+            a_tch, b_tch = ctx.a_tch_init, ctx.b_tch_init
+        return _MultistageSplit(a_tch=a_tch, b_tch=b_tch, x_batch=x_0)
+
+    def _finalize_rho_search(self, settings, test_split, grid_stats, df):
+        """Write the selected radius onto the uncertainty set and build the Result."""
         self.orig_problem._trained = True
         self.unc_set._trained = True
 
+        # A contextual set has one ellipsoid per sample, so Result/unc_set can only
+        # carry a representative. Take it from the test split, like grid_stats.z_batch
+        # and the Test_* columns.
         if settings.contextual:
-            self.unc_set.a.value = (grid_stats.minrho * a_tch_init[0]).detach().numpy().copy()
-            self.unc_set.b.value = (b_tch_init[0]).detach().numpy().copy()
+            self.unc_set.a.value = (
+                grid_stats.minrho * test_split.a_tch[0]).detach().numpy().copy()
+            self.unc_set.b.value = (test_split.b_tch[0]).detach().numpy().copy()
             b_value = self.unc_set.b.value[0]
         else:
-            self.unc_set.a.value = (grid_stats.minrho * a_tch_init).detach().numpy().copy()
-            self.unc_set.b.value = (b_tch_init).detach().numpy().copy()
+            self.unc_set.a.value = (
+                grid_stats.minrho * test_split.a_tch).detach().numpy().copy()
+            self.unc_set.b.value = (test_split.b_tch).detach().numpy().copy()
             b_value = self.unc_set.b.value
         return Result(
             self,
@@ -2074,6 +2408,179 @@ class Trainer:
             grid_stats.minval,
             grid_stats.z_batch,
         )
+
+    def grid(
+        self,
+        rholst=s.RHO_LST_DEFAULT,
+        settings = DS,
+        violation_col="Avg_prob_validate",
+        objective_col="Validate_worst_feasible",
+    ):
+        r"""
+        Perform gridsearch to find optimal :math:`\rho`-ball around data.
+
+        Args:
+        rholst : np.array, optional
+            The list of :math:`\rho` to iterate over. "Default np.logspace(-3, 1, 20)
+        settings:
+            TrainerSettings
+        violation_col, objective_col : str
+            The validation columns to constrain and to minimize when picking the radius
+            written onto the uncertainty set -- the same defaults, and the same selection
+            rule (:func:`_select_probe`), as :meth:`bisection`. Radii where the robust
+            problem was unsolvable, or which miss ``settings.target_eta``, are excluded;
+            previously the pick came from :class:`GridStats`, which minimized the TEST
+            objective with no regard to solvability or to the target.
+
+        Returns:
+        A pandas data frame with information on each :math:`\rho` having the following columns:
+            Opt_val: float
+                The objective value of the Robust Problem
+            Lagrangian_val: float
+                The value of the lagrangian function applied to the training data
+            Eval_val: float
+                The value of the lagrangian function applied to the evaluation data
+            Rho: float
+                The rho value
+        """
+        ctx = self._rho_search_setup(settings)
+        df = pd.DataFrame(columns=["Rho"])
+
+        # Frac_unsolved_* is not just a reporting column: monte_carlo ANDs the solvability
+        # mask into the feasibility mask, so with it off the samples where the robust
+        # problem had no feasible decision are counted as feasible, and their degenerate
+        # cvxpylayers decisions are averaged into Test_worst_feasible / Test_cvar_feasible.
+        # bisection() forces it on for the same reason; so does grid() now, so the two
+        # searches score a radius identically rather than only sampling it differently.
+        saved_track_unsolved = settings.track_unsolved
+        settings.track_unsolved = True
+        probes = []
+        try:
+            for rho in rholst:
+                # A fresh GridStats per radius, so each radius's own tensors stay
+                # recoverable for _select_probe to choose between -- GridStats.update
+                # selects on the TEST objective, which is neither the split nor the
+                # criterion this search is meant to report.
+                stats = GridStats()
+                new_row, split = self._evaluate_rho(rho, settings, ctx, stats)
+                probes.append(_RhoProbe(rho, new_row, split, stats,
+                                        _classify_probe(new_row, settings,
+                                                        violation_col)))
+                df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
+        finally:
+            settings.track_unsolved = saved_track_unsolved
+
+        if not probes:
+            raise ValueError("rholst was empty; nothing to search over")
+        try:
+            chosen = _select_probe(probes, violation_col, objective_col,
+                                   float(np.min(rholst)), float(np.max(rholst)))
+        except ValueError:
+            # Every radius unsolvable. bisection() raises here, but grid() is the path
+            # every existing experiment runs and its Result.rho is not what they report
+            # (they re-select downstream from `df`), so failing the whole run over an
+            # attribute nobody reads would be gratuitous. Warn and keep the last radius.
+            warnings.warn(
+                "the robust problem was unsolvable at every radius in rholst; "
+                "Result.rho/A/b are not meaningful. The per-radius `df` is still "
+                "returned -- select from it on Frac_unsolved_* and target_eta.",
+                stacklevel=2,
+            )
+            chosen = probes[-1]
+        return self._finalize_rho_search(settings, chosen.split, chosen.stats, df)
+
+    def bisection(
+        self,
+        rho_lo=0.01,
+        rho_hi=3.0,
+        settings=DS,
+        tol=0.01,
+        max_iters=25,
+        violation_col="Avg_prob_validate",
+        objective_col="Validate_worst_feasible",
+    ):
+        r"""
+        Bisect over :math:`\rho` for the best validation performance, instead of
+        scanning a list of radii as :meth:`grid` does.
+
+        Returns the radius with the best validation worst-case among those whose
+        validation violation meets ``settings.target_eta``. Both quantities are
+        monotone in :math:`\rho` -- violation decreasing, worst-case increasing -- so
+        the search is a root-find on the violation curve, and roughly
+        :math:`\log_2` as many radii need evaluating as a grid of the same resolution.
+
+        Args:
+        rho_lo, rho_hi : float
+            Bracket, as MULTIPLIERS on ``settings.init_rho`` -- the same convention as
+            :meth:`grid`'s ``rholst`` and ``settings.tune_rho_range``.
+        tol : float
+            Stop once the bracket is this narrow in log-:math:`\rho`. The search
+            closes on the boundary from above, so the radius returned is the
+            smallest one *known* to meet the target, overshooting the true
+            boundary by at most ``tol``; the worst-case rises with
+            :math:`\rho`, so that overshoot is conservative. The default costs
+            about 12 probes on a 300-fold bracket.
+        max_iters : int
+            Hard cap on bisection steps, in addition to the two endpoint probes.
+        violation_col, objective_col : str
+            The validation columns to constrain and to minimize.
+
+        Returns:
+        A :class:`Result` whose ``df`` has one row per radius actually probed, in probe
+        order, and whose ``rho``/``A``/``b`` come from the selected radius.
+        """
+        if not 0 < rho_lo < rho_hi:
+            raise ValueError(f"need 0 < rho_lo < rho_hi, got {rho_lo} and {rho_hi}")
+
+        # Frac_unsolved_validate is what keeps the search out of the degenerate region
+        # (see _classify_probe), so it has to be populated whatever the caller set.
+        saved_track_unsolved = settings.track_unsolved
+        settings.track_unsolved = True
+        try:
+            probes = self._bisect_rho(
+                rho_lo, rho_hi, settings, tol, max_iters, violation_col)
+        finally:
+            settings.track_unsolved = saved_track_unsolved
+
+        chosen = _select_probe(probes, violation_col, objective_col, rho_lo, rho_hi)
+        df = pd.DataFrame(columns=["Rho"])
+        for probe in probes:
+            df = pd.concat([df, probe.row.to_frame().T], ignore_index=True)
+        return self._finalize_rho_search(settings, chosen.split, chosen.stats, df)
+
+    def _bisect_rho(self, rho_lo, rho_hi, settings, tol, max_iters, violation_col):
+        """Probe radii until the feasible band's lower edge is bracketed to `tol`."""
+        ctx = self._rho_search_setup(settings)
+        probes = []
+
+        def probe(rho):
+            # A fresh GridStats per radius, so each probe's own tensors and objective
+            # stay recoverable -- GridStats.update selects on the TEST objective, which
+            # is not the criterion this search is built on.
+            stats = GridStats()
+            row, split = self._evaluate_rho(rho, settings, ctx, stats)
+            probes.append(_RhoProbe(rho, row, split, stats,
+                                    _classify_probe(row, settings, violation_col)))
+            return probes[-1]
+
+        # Both early exits below lean on monotonicity: if the widest radius still
+        # violates, nothing narrower can meet the target, and if the narrowest already
+        # meets it, nothing narrower was in the bracket to find.
+        if probe(rho_hi).status is _VIOLATING:
+            return probes
+        if probe(rho_lo).status is _OK:
+            return probes
+
+        lo, hi = np.log(rho_lo), np.log(rho_hi)
+        for _ in range(max_iters):
+            if hi - lo <= tol:
+                break
+            mid = 0.5 * (lo + hi)
+            if probe(float(np.exp(mid))).status is _VIOLATING:
+                lo = mid
+            else:
+                hi = mid
+        return probes
 
 
 class TrainLoopStats:
@@ -2116,6 +2623,41 @@ class TrainLoopStats:
         self.violation_test = __value_init__(self)
         self.violation_train = __value_init__(self)
         self.num_g_total = num_g_total
+        self._feasibility = {}
+
+    def update_feasibility(self, split, frac_feasible, obj, cvar, frac_unsolved=0.0):
+        """
+        This function records the feasibility statistics of one data split.
+        Args:
+            split:
+                One of "test", "validate", "train"
+            frac_feasible:
+                Fraction of samples satisfying every non-epigraph uncertain constraint
+            obj:
+                evaluation_metric over the feasible samples, as (lower, mean, upper)
+            cvar:
+                evaluation_cvar over the feasible samples, as (cvar, quantile)
+            frac_unsolved:
+                Fraction of samples whose robust problem had no feasible decision
+        """
+        self._feasibility[split] = (frac_feasible, obj, cvar, frac_unsolved)
+
+    def feasibility_row(self, split):
+        """
+        This function returns the feasibility columns of one data split, filled with NaN
+        when they were not computed.
+        """
+        nan = float("nan")
+        frac, obj, cvar, unsolved = self._feasibility.get(split, (nan, None, None, nan))
+        prefix = "Test" if split == "test" else split.capitalize()
+        return {
+            f"{prefix}_worst_feasible": nan if cvar is None else float(cvar[1]),
+            f"{prefix}_val_feasible": nan if obj is None else float(obj[1]),
+            f"{prefix}_cvar_feasible": nan if cvar is None else float(cvar[0]),
+            f"Frac_feasible_{split}": frac,
+            f"Pct_infeasible_{split}": 1 - frac,
+            f"Frac_unsolved_{split}": unsolved,
+        }
 
     def update_train_stats(self, worst_cost, in_sample_cost,
                            cvar_cost,temp_lagrangian,
@@ -2187,7 +2729,13 @@ class TrainLoopStats:
                     for param_ind in range(len(list(predictor.parameters())))]
             row_dict["grad"] = list(predictor.parameters())[0].data.detach().numpy()
         else:
-            row_dict["gradnorm"] = np.linalg.norm(a_tch.grad)
+            # a_tch.grad is None whenever nothing backpropagated into the shape: a
+            # NON-CONTEXTUAL fit, or num_iter=0. gradnorm is a diagnostic, so report
+            # nan rather than raising -- np.linalg.norm(None) dies with an opaque
+            # "unsupported operand type(s) for *: 'NoneType' and 'NoneType'", which is
+            # how the MV, non-robust and Scenario baselines failed under a rollout.
+            row_dict["gradnorm"] = (float("nan") if a_tch.grad is None
+                                    else np.linalg.norm(a_tch.grad))
             row_dict["grad"] = a_tch.grad
         row_dict["Rho"] = rho_tch.detach().numpy().copy()
         new_row = pd.Series(row_dict)
@@ -2228,6 +2776,7 @@ class TrainLoopStats:
             "Rho": rho_tch.detach().numpy().copy(),
         }
         row_dict["step"] = (self.step_num,)
+        row_dict.update(self.feasibility_row("test"))
         if not self.train_flag:
             row_dict["Validate_worst"] = self.worst_train
             row_dict["Validate_insample"] = self.in_sample_cost
@@ -2236,6 +2785,7 @@ class TrainLoopStats:
             row_dict["Probability_violations_validate"] = self.prob_violation_train
             row_dict["Violations_validate"] = self.violation_train
             row_dict["Avg_prob_validate"] = np.mean(self.prob_violation_train)
+            row_dict.update(self.feasibility_row("validate"))
         new_row = pd.Series(row_dict)
         return new_row
 
@@ -2274,6 +2824,7 @@ class TrainLoopStats:
             "Rho": rho_tch.detach().numpy().copy(),
         }
         row_dict["step"] = (self.step_num,)
+        row_dict.update(self.feasibility_row("validate"))
         if not self.train_flag:
             row_dict["Train_worst"] = self.worst_train
             row_dict["Train_cvar"] = self.cvar_val
@@ -2284,6 +2835,193 @@ class TrainLoopStats:
             row_dict["Avg_prob_train"] = np.mean(self.prob_violation_train)
         new_row = pd.Series(row_dict)
         return new_row
+
+@dataclass
+class _UniqueContexts:
+    """One data split's contexts, deduplicated once for reuse across the rho sweep.
+
+    grid() solves the CVXPYLayer at unique-context resolution -- once per distinct
+    context rather than once per sample -- and then fans the answers back out. That
+    is what puts tensors of four different lengths (unique/full x test/validate) in
+    flight at the same time.
+    """
+
+    x_tch: list
+    batch_int: int
+    x_batch_array: list
+    num_unique: int
+    x_unique: list
+    x_unique_array: list
+
+
+@dataclass
+class SplitTensors:
+    """One split's decisions and uncertainty-set tensors, bound to the x they describe.
+
+    Every field here is indexed by the same sample. They are bound together at the
+    moment they are produced so that no consumer can be handed z from one split and
+    A/b from another: within a single grid() iteration A/b exist at four different
+    lengths, all with identical rank and dtype, and as loose variables they are
+    indistinguishable. Passing this object instead of four tensors makes the
+    mismatch unrepresentable rather than merely detectable.
+    """
+
+    x_batch: list
+    z: list
+    a_tch: torch.Tensor
+    b_tch: torch.Tensor
+    contextual: bool
+
+    def __post_init__(self):
+        if not self.contextual:
+            # A and b are shared across samples here, so there is no batch to agree on.
+            return
+        batch_size = self.x_batch[0].shape[0]
+        for name, tch in (("a_tch", self.a_tch), ("b_tch", self.b_tch)):
+            if tch.shape[0] != batch_size:
+                raise ValueError(
+                    f"SplitTensors: {name} has batch dimension {tch.shape[0]}, but "
+                    f"x_batch has {batch_size}. A contextual split's A and b must "
+                    f"carry one entry per sample of that same split."
+                )
+
+
+class _ProbeStatus:
+    """Where a radius sits relative to the feasible band a bisection is looking for."""
+
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return self.name
+
+
+_OK = _ProbeStatus("ok")
+_VIOLATING = _ProbeStatus("violating")
+_UNSOLVED = _ProbeStatus("unsolved")
+
+
+@dataclass
+class _RhoProbe:
+    """One radius evaluated during a bisection, and how it was classified."""
+
+    rho: float
+    row: "pd.Series"
+    split: "SplitTensors"
+    stats: "GridStats"
+    status: _ProbeStatus
+
+
+def _classify_probe(row, settings, violation_col):
+    """Classify a probed radius as violating, unsolved, or acceptable.
+
+    Solvability is checked FIRST and overrides the violation reading. Where the robust
+    problem has no feasible decision, cvxpylayers returns a degenerate near-zero one
+    that satisfies every constraint, so the violation probability reads ~0 and an
+    unsolvable radius would otherwise score better than any real one.
+    """
+    unsolved = float(row.get("Frac_unsolved_validate", 0.0))
+    if not np.isnan(unsolved) and unsolved > 0:
+        return _UNSOLVED
+    if float(np.mean(row[violation_col])) > settings.target_eta:
+        return _VIOLATING
+    return _OK
+
+
+def _select_probe(probes, violation_col, objective_col, rho_lo, rho_hi):
+    """The best acceptable radius, or the least-violating one if none was acceptable."""
+    def objective(probe):
+        value = float(probe.row[objective_col])
+        return np.inf if np.isnan(value) else value
+
+    acceptable = [probe for probe in probes if probe.status is _OK]
+    if acceptable:
+        # An objective column that is NaN at every acceptable radius carries no
+        # ordering, and mapping NaN to inf would tie them all -- min() would then
+        # return whichever happened to be probed FIRST, which for a bisection is an
+        # endpoint of the bracket. That is how a multistage search came back with
+        # rho=40 (violation 0.0) after having probed rho=1.34 at the 0.10 target:
+        # silently the worst acceptable radius rather than the best.
+        #
+        # Fall back on monotonicity instead, which is the assumption the search is
+        # built on anyway: violation falls and worst-case rises with rho, so among
+        # radii that meet the target the SMALLEST is the best one. That is also
+        # exactly what bisection()'s docstring promises it returns.
+        if all(np.isnan(float(probe.row[objective_col])) for probe in acceptable):
+            warnings.warn(
+                f"{objective_col} is NaN at every acceptable radius, so it cannot "
+                f"order them; selecting the smallest radius meeting target_eta "
+                f"instead (valid because violation is monotone in rho). This is "
+                f"expected in multistage, where the feasibility columns are not "
+                f"populated.",
+                stacklevel=3,
+            )
+            return min(acceptable, key=lambda probe: probe.rho)
+        return min(acceptable, key=objective)
+
+    solvable = [probe for probe in probes if probe.status is not _UNSOLVED]
+    if not solvable:
+        raise ValueError(
+            f"the robust problem was unsolvable at every radius probed in "
+            f"[{rho_lo}, {rho_hi}]; widen the bracket downwards"
+        )
+    fallback = min(solvable, key=lambda p: float(np.mean(p.row[violation_col])))
+    warnings.warn(
+        f"no radius in [{rho_lo}, {rho_hi}] met target_eta; falling back to the "
+        f"least-violating one (rho={fallback.rho:.4g}, "
+        f"{violation_col}={float(np.mean(fallback.row[violation_col])):.4g})",
+        stacklevel=3,
+    )
+    return fallback
+
+
+class _Stopwatch:
+    """Accumulates the time spent inside its `with` blocks, which need not be adjacent.
+
+    A rho evaluation interleaves the two splits' work, so each split's cost is a sum of
+    disjoint segments rather than one contiguous span.
+    """
+
+    def __init__(self):
+        self.elapsed = 0.0
+
+    def __enter__(self):
+        self._entered = time.time()
+        return self
+
+    def __exit__(self, *exc):
+        self.elapsed += time.time() - self._entered
+        return False
+
+
+@dataclass
+class _MultistageSplit:
+    """What a multistage radius hands back, standing in for _GridSplit.
+
+    Only the three fields _finalize_rho_search and generate_test_row read: a rollout
+    has no single per-context solve to carry.
+    """
+
+    a_tch: "torch.Tensor"
+    b_tch: "torch.Tensor"
+    x_batch: list
+
+
+@dataclass
+class _RhoSearchContext:
+    """The state a rho search reuses across radii.
+
+    Everything here is independent of rho, so grid() and bisection() build it once and
+    hand it to _evaluate_rho for each radius they probe.
+    """
+
+    lam: "torch.Tensor"
+    alpha: "torch.Tensor"
+    a_tch_init: "torch.Tensor"
+    b_tch_init: "torch.Tensor"
+    test: "_UniqueContexts | None"
+    validate: "_UniqueContexts | None"
+
 
 class GridStats:
     """

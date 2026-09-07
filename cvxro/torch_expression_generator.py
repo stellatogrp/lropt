@@ -12,6 +12,19 @@ from cvxro.train.batch import batchify
 from cvxro.uncertain_parameter import UncertainParameter
 
 
+class _ExcludedGroup:
+    """Marker for a constraint group that is entirely the epigraph-objective and so
+    takes no part in feasibility."""
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:
+        return "EXCLUDED_GROUP"
+
+
+EXCLUDED_GROUP = _ExcludedGroup()
+
+
 def gen_torch_exp(expr: Expression, vars_params: Dict[int, Any], batch_flag: bool = True):
     """
     This function generates a torch expression to be used by RobustProblem from an expression
@@ -142,6 +155,7 @@ def generate_torch_expressions(problem, eval_exp: Expression | None = None):
     """
     problem.f = gen_torch_exp(problem.objective.expr, problem.vars_params)
     problem.g = []
+    problem.g_feas = []
     problem.g_shapes = []
     problem.num_g_total = 0
     problem.constraint_checkers = []
@@ -163,9 +177,15 @@ def generate_torch_expressions(problem, eval_exp: Expression | None = None):
             args = [cp.reshape(constraint.args[0], (1,), order="F") for
                     constraint in problem.constraints_by_type[max_id]]
             constraints = [cp.NonNeg(-cp.maximum(*args))]
+        feasibility_constraint = _gen_feasibility_constraint(problem, max_id)
         for constraint in constraints:  # NOT problem.constraints: these are the new constraints
             g = gen_torch_exp(constraint, problem.vars_params)
             problem.g.append(g)  # Always has uncertainty, no need to check
+            if feasibility_constraint is None or feasibility_constraint is EXCLUDED_GROUP:
+                problem.g_feas.append(feasibility_constraint)
+            else:
+                problem.g_feas.append(
+                    gen_torch_exp(feasibility_constraint, problem.vars_params))
             if len(constraint.shape) >= 1:
                 problem.g_shapes.append(constraint.shape[0])
                 problem.num_g_total += constraint.shape[0]
@@ -179,6 +199,51 @@ def generate_torch_expressions(problem, eval_exp: Expression | None = None):
 
     # Generate h functions from g functions
     generate_h_functions(problem)
+
+
+def feasibility_constraints(problem):
+    """problem.g with the epigraph-objective row dropped from every group that has one.
+
+    Groups with no epigraph row keep their own constraint; a group that is entirely the
+    epigraph becomes None, which eval_constr_indicator skips.
+    """
+    g_feas = getattr(problem, "g_feas", None)
+    if not g_feas:
+        return problem.g
+    return [
+        g_k if feas is None else (None if feas is EXCLUDED_GROUP else feas)
+        for g_k, feas in zip(problem.g, g_feas)
+    ]
+
+
+def _gen_feasibility_constraint(problem, max_id):
+    """The group's rows with the epigraph-objective row dropped, fused the same way
+    generate_torch_expressions fuses the full group.
+
+    Returns None when the group has no epigraph row to drop, in which case feasibility
+    for that group is just its own g; and EXCLUDED_GROUP when the whole group is the
+    epigraph and so contributes nothing to feasibility.
+    """
+    epigraph_rows = getattr(problem, "epigraph_rows", {})
+    if max_id not in epigraph_rows:
+        return None
+    row_index = epigraph_rows[max_id]
+    if row_index is None:
+        return EXCLUDED_GROUP
+    rows = problem.constraints_by_type[max_id]
+    expected = problem.epigraph_row_counts.get(max_id, len(rows))
+    if len(rows) != expected:
+        raise ValueError(
+            f"canonicalization changed the row count of max group {max_id} from "
+            f"{expected} to {len(rows)}, so epigraph_index no longer identifies a row"
+        )
+    kept = [cp.reshape(row.args[0], (1,), order="F")
+            for index, row in enumerate(rows) if index != row_index]
+    if not kept:
+        return EXCLUDED_GROUP
+    if len(kept) == 1:
+        return cp.NonNeg(-kept[0])
+    return cp.NonNeg(-cp.maximum(*kept))
 
 
 def generate_h_functions(problem):

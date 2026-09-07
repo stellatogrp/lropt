@@ -22,8 +22,13 @@ class sum_of_max_of_uncertain(Atom):
         be passed as a second input.
         For example, $\max\{a(u),b(u)\} + \max\{c(u),d(u)\} + e(u)$
         can be passed as sum_of_max_of_uncertain([[a(u),b(u)],[c(u),d(u)]],
-        e(u))"""
-    def __init__(self, lst, term_not_in_max=0) -> None:
+        e(u))
+
+        epigraph_index marks which term is the epigraph-objective row
+        f(z,u,x) - z_{n+1}, so that feasibility can be judged on the remaining
+        terms alone. Leave it None when the distinction is not needed. It is
+        only accepted for a single list of terms; see max_of_uncertain."""
+    def __init__(self, lst, term_not_in_max=0, epigraph_index=None) -> None:
         if not isinstance(lst,list):
             raise ValueError("Input must contain a list of lists")
         max_num_elements = 0
@@ -36,12 +41,19 @@ class sum_of_max_of_uncertain(Atom):
             max_num_elements = np.maximum(max_num_elements,num_elements)
         if max_num_elements <= 1:
                 raise ValueError("At least one list must have two or more terms")
+        if epigraph_index is not None and len(lst) > 1:
+            raise ValueError(
+                "epigraph_index is only meaningful for a single list of terms: with "
+                "several lists the arguments are their cross product, so no argument "
+                "corresponds to one input term. Use max_of_uncertain instead."
+            )
         combined_list = [[term_not_in_max],*lst]
         permutations= list(itertools.product(*combined_list))
         combined_permutation_list = [AddExpression([Atom.cast_to_const(arg) \
                                 for arg in lst]) for lst in permutations]
         super(sum_of_max_of_uncertain,\
                self).__init__(*combined_permutation_list)
+        self.epigraph_index = epigraph_index
 
     def shape_from_args(self) -> Tuple[int, ...]:
         """Shape is the same as the sum of the arguments.
@@ -143,9 +155,21 @@ class sum_of_max_of_uncertain(Atom):
 
 
 class max_of_uncertain(sum_of_max_of_uncertain):
-    def __init__(self, lst, term_not_in_max=0) -> None:
-        super(max_of_uncertain, self).__init__([lst],term_not_in_max)
+    r"""Represents the maximum of uncertain atoms passed as a list.
+
+    epigraph_index marks which entry of lst is the epigraph-objective row
+    f(z,u,x) - z_{n+1}. Marking it lets the evaluation report feasibility and
+    feasibility-filtered statistics over the remaining rows only, matching the
+    distinction between the probability of certificate violation (all rows) and
+    infeasibility (all rows but the epigraph). Leave it None when not needed.
+    """
+    def __init__(self, lst, term_not_in_max=0, epigraph_index=None) -> None:
         if not isinstance(lst,list):
             raise ValueError("Input must contain a list")
         if len(lst) <= 1:
             raise ValueError("There must be at least two terms in the list")
+        if epigraph_index is not None and not 0 <= epigraph_index < len(lst):
+            raise ValueError(
+                f"epigraph_index {epigraph_index} is out of range for {len(lst)} terms"
+            )
+        super(max_of_uncertain, self).__init__([lst],term_not_in_max, epigraph_index)

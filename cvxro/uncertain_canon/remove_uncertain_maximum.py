@@ -94,6 +94,12 @@ class RemoveSumOfMaxOfUncertain(Reduction):
         # constraints. There are two special IDs: UNCERTAIN_NO_MAX_ID and CERTAIN_ID for the list of
         # all uncertain non-max constraints/certain constraints, respectively.
         constraints_by_type = gen_constraint_by_type()
+        # Where the epigraph-objective row lives, so feasibility can be judged on the
+        # other rows alone. Maps a group id to the index of its epigraph row, or to None
+        # when the whole group is the epigraph. Groups absent from the dict have nothing
+        # to exclude.
+        epigraph_rows = {}
+        uncertain_objective = has_unc_param(problem.objective.expr)
         for max_id, constraint in enumerate(epigraph_problem.constraints):  # max_id >= 0
             if self.has_max_uncertain(constraint):
                 constraints_by_type[max_id] = []
@@ -114,12 +120,19 @@ class RemoveSumOfMaxOfUncertain(Reduction):
                     constraints_by_type[max_id].append(canon_constr)
                 # mark the max_id as from max uncertain
                 is_max_constraint[max_id] = True
+                epigraph_index = getattr(max_uncertain_term, "epigraph_index", None)
+                if epigraph_index is not None:
+                    epigraph_rows[max_id] = epigraph_index
             else:
                 if has_unc_param_constraint(constraint):
                     type_id = UNCERTAIN_NO_MAX_ID
                     # add constraint and mark as not from max uncertain
                     ordered_uncertain_no_max_constraints[max_id] = [constraint]
                     is_max_constraint[max_id] = False
+                    if max_id == 0 and uncertain_objective:
+                        # _gen_objective_constraints put the epigraph row it built for an
+                        # uncertain objective first, so cvxro knows this one unaided.
+                        epigraph_rows[max_id] = None
                 else:
                     type_id = CERTAIN_ID
                 constraints_by_type[type_id] += [constraint]
@@ -132,6 +145,12 @@ class RemoveSumOfMaxOfUncertain(Reduction):
         new_problem.constraints_by_type = constraints_by_type
         new_problem.ordered_uncertain_no_max_constraints = ordered_uncertain_no_max_constraints
         new_problem.is_max_constraint = is_max_constraint
+        new_problem.epigraph_rows = epigraph_rows
+        new_problem.epigraph_row_counts = {
+            group_id: len(constraints_by_type[group_id])
+            for group_id in epigraph_rows
+            if group_id in constraints_by_type
+        }
         new_problem._solver = problem._solver
 
         return new_problem, inverse_data

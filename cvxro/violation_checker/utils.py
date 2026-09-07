@@ -124,6 +124,37 @@ def get_batch_size(in_cp: list, in_tch: list[Tensor]) -> int:
 
     return shape_tch[0]
 
+def assert_batch_dim(batch_size: int, in_cp: list, in_tch: list[Tensor], name: str) -> None:
+    """
+    This function raises if any batched tensor in in_tch has a batch dimension other
+    than batch_size.
+    Args:
+        batch_size:
+            The batch size derived from the context parameters.
+        in_cp:
+            A list of CVXPY objects, used to tell a batched tensor from an unbatched one.
+        in_tch:
+            A list of torch.Tensor to validate.
+        name:
+            The argument name, for the error message.
+
+    Raises:
+        ValueError if a batched tensor disagrees with batch_size.
+    """
+    if not in_tch:
+        return
+    for index, (cp_obj, tch) in enumerate(zip(in_cp, in_tch)):
+        if get_batch_size(in_cp=[cp_obj], in_tch=[tch]) is NO_BATCH:
+            continue
+        if tch.shape[0] != batch_size:
+            raise ValueError(
+                f"Batch size mismatch: {name}[{index}] has batch dimension "
+                f"{tch.shape[0]}, but the context parameters give a batch of "
+                f"{batch_size}. Every batched argument of check_constraints must be "
+                f"indexed by the same sample, so they must all agree."
+            )
+
+
 def select_batch_object(in_cp: list[Parameter], in_tch: list[Tensor], batch_number: int) \
                                                     -> Parameter:
     """

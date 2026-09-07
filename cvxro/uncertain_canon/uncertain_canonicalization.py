@@ -379,6 +379,17 @@ class UncertainCanonicalization(Reduction):
                 dummy_constraints = problem.constraints_by_type[CERTAIN_ID]
                 total_cons_number += len(dummy_constraints)
             else:
+                for constraint in problem.constraints_by_type[id]:
+                    if constraint.is_dcp() and not constraint.is_dcp(dpp=True):
+                        raise ValueError(
+                            "This constraint contains an UncertainParameter but is not "
+                            "DPP-compliant, most likely because it is quadratic (or otherwise "
+                            "nonlinear) in the uncertain parameter rather than affine -- cvxro "
+                            "can only robustify constraints that are affine in u. A common cause "
+                            "is reusing an expression that already depends on u (e.g. a recourse "
+                            "decision Z@u) inside another expression that is later multiplied by "
+                            "u again. Offending constraint: " + str(constraint)
+                        )
                 dummy_constraints, cons_data, total_cons_number = \
                     _gen_dummy_problem(objective=problem.objective,
                                     constraints=problem.constraints_by_type[id],
@@ -399,6 +410,8 @@ class UncertainCanonicalization(Reduction):
         new_problem.ordered_uncertain_no_max_constraints = \
             problem.ordered_uncertain_no_max_constraints
         new_problem.is_max_constraint = problem.is_max_constraint
+        new_problem.epigraph_rows = getattr(problem, "epigraph_rows", {})
+        new_problem.epigraph_row_counts = getattr(problem, "epigraph_row_counts", {})
 
         return new_problem, inverse_data
 

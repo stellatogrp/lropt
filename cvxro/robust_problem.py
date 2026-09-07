@@ -500,25 +500,51 @@ class RobustProblem(Problem):
         else:
             return self.evaluate_sol()
 
-    def violation_indicator_sol(self) -> float:
+    def feasibility_indicator_sol(self) -> np.ndarray:
+        """
+        Evaluates, per out-of-sample realization, whether every uncertain constraint
+        other than the epigraph-objective row holds for the current solution.
+
+        The epigraph row is the one identified by max_of_uncertain's epigraph_index (or
+        the one cvxro built itself for an uncertain objective). Without such a row this
+        is just the complement of violation_indicator_sol.
+        """
+        indicator = self.violation_indicator_sol(exclude_epigraph=True)
+        return indicator.sum(axis=0) == 0
+
+    def violation_indicator_sol(self, exclude_epigraph: bool = False) -> float:
         """
         Evaluates the out-of-sample probability of constraint violation
         of the current solution, with respect to the input data-set
         of uncertain parameters.
+
+        Set exclude_epigraph to leave the epigraph-objective row out, giving genuine
+        infeasibility rather than certificate violation.
         """
         import torch as _torch
 
-        from cvxro.torch_expression_generator import get_eval_batch_size, get_eval_data
+        from cvxro.torch_expression_generator import (
+            feasibility_constraints,
+            get_eval_batch_size,
+            get_eval_data,
+        )
         from cvxro.train.utils import EVAL_INPUT_CASE, eval_input
 
         batch_size = get_eval_batch_size(self)
         g_shapes = self.problem_canon.g_shapes
         num_g_total = self.problem_canon.num_g_total
+        constraints = (
+            feasibility_constraints(self.problem_canon)
+            if exclude_epigraph
+            else self.problem_canon.g
+        )
         res = _torch.zeros((num_g_total, batch_size), dtype=_torch.float64)
         self.solve()
 
         try:
-            for k, g_k in enumerate(self.problem_canon.g):
+            for k, g_k in enumerate(constraints):
+                if g_k is None:
+                    continue
                 rows = slice(sum(g_shapes[:k]), sum(g_shapes[: (k + 1)]))
                 batched_out = self._batched_eval(
                     g_k.args[0], batch_size, EVAL_INPUT_CASE.MAX,
@@ -533,7 +559,9 @@ class RobustProblem(Problem):
             return res.numpy()
         except Exception:
             for batch_num in range(batch_size):
-                for k, g_k in enumerate(self.problem_canon.g):
+                for k, g_k in enumerate(constraints):
+                    if g_k is None:
+                        continue
                     eval_args = get_eval_data(
                         self.problem_canon, tch_exp=g_k.args[0], batch_num=batch_num
                     )

@@ -44,10 +44,33 @@ def eval_prob_constr_violation(
     Returns:
         The average among all evaluated J x N pairs
     """
-    #num_g_total = len(g)
+    return eval_constr_indicator(g, g_shapes, batch_int, eval_args).mean(axis=1)
+
+
+def eval_constr_indicator(
+    g: list[partial], g_shapes: list[int], batch_int: int, eval_args: list[torch.Tensor]
+) -> torch.Tensor:
+    """
+    This function evaluates the per-sample constraint violation indicator of all uncertain
+    constraints over the batched set.
+    Args:
+        g (list[partial]):
+            Constraints to evaluate. An entry of None contributes no rows, which lets a
+            caller drop a constraint group from the indicator.
+        g_shapes (list[int]):
+            Shapes of the constraints of g.
+        batch_int (int):
+            The number of samples in the batch
+        eval_args (list[torch.Tensor]):
+            The arguments of the constraints
+    Returns:
+        A (num_g_total, batch_int) tensor of 0/1 violation indicators
+    """
     num_g_total = sum(g_shapes)
     G = torch.zeros((num_g_total, batch_int), dtype=settings.DTYPE)
     for k, g_k in enumerate(g):
+        if g_k is None:
+            continue
         G[sum(g_shapes[:k]) : sum(g_shapes[: (k + 1)])] = eval_input(
             batch_int,
             eval_func=g_k,
@@ -57,7 +80,19 @@ def eval_prob_constr_violation(
             quantiles=None,
             eta_target = None
         )
-    return G.mean(axis=1)
+    return G
+
+
+
+def _select_samples(values: torch.Tensor, mask) -> torch.Tensor:
+    """Keep only the masked samples along the batch axis.
+
+    Selecting rather than zero-weighting matters: the CVaR quantile index is derived from
+    the number of samples, so it has to be the number of SELECTED samples.
+    """
+    if mask is None:
+        return values
+    return values[torch.as_tensor(mask, dtype=torch.bool)]
 
 
 def eval_input(
@@ -69,6 +104,7 @@ def eval_input(
     quantiles,
     eta_target,
     serial_flag=False,
+    mask=None,
     **kwargs,
 ):
     """
@@ -90,6 +126,10 @@ def eval_input(
             The quantiles for mean values. can be None.
         serial_flag:
             Whether or not to evalute the function in serial
+        mask:
+            Optional boolean tensor over the batch. When given, MEAN, EVALMEAN and CVAR
+            are computed over the selected samples only. Samples are selected rather than
+            zero-weighted, so the CVaR quantile index is taken over the selected count.
         kwargs:
             Additional arguments for the eval_func
 
@@ -131,12 +171,21 @@ def eval_input(
             init_val = torch.vstack([curr_result[v] for v in curr_result])
         else:
             init_val = curr_result
+        if mask is not None:
+            init_val = _select_samples(init_val, mask)
+            if init_val.shape[0] == 0:
+                return torch.tensor(float("nan"), dtype=settings.DTYPE)
         init_val = torch.mean(init_val, axis=0)
     elif eval_input_case == EVAL_INPUT_CASE.EVALMEAN:
         if serial_flag:
             init_val = torch.vstack([curr_result[v] for v in curr_result])
         else:
             init_val = curr_result
+        if mask is not None:
+            init_val = _select_samples(init_val, mask)
+            if init_val.shape[0] == 0:
+                nan = torch.tensor(float("nan"), dtype=settings.DTYPE)
+                return (nan, nan, nan)
         bot_q, top_q = quantiles
         init_val_lower = torch.quantile(init_val, bot_q, axis=0)
         init_val_mean = torch.mean(init_val, axis=0)
@@ -147,6 +196,11 @@ def eval_input(
             init_val = torch.hstack([curr_result[v] for v in curr_result])
         else:
             init_val = curr_result
+        if mask is not None:
+            init_val = _select_samples(init_val, mask)
+            if init_val.shape[0] == 0:
+                nan = torch.tensor(float("nan"), dtype=settings.DTYPE)
+                return (nan, nan)
         quant = min(len(init_val)-1, int((1-eta_target)*len(init_val)) + 1)
         init_sorted = torch.sort(init_val, descending=False)[0]
         quant = init_sorted[quant]
@@ -352,11 +406,16 @@ def take_step(
     """
     if update_state:
         prev_states = []
-        for param in opt.param_groups[0]["params"]:
-            if param.grad is not None:
-                #new_param = np.array(param.clone().detach().data)
-                new_param = param.clone().detach()
-                prev_states.append(new_param)
+        # Iterate every param group, not just group 0 -- predictors that
+        # expose param_groups() (e.g. LinearPredictor's cov_lr_mult) put
+        # linear_cov in a second group, and undo_step below restores by a
+        # matching running index across all groups.
+        for group in opt.param_groups:
+            for param in group["params"]:
+                if param.grad is not None:
+                    #new_param = np.array(param.clone().detach().data)
+                    new_param = param.clone().detach()
+                    prev_states.append(new_param)
     opt.step()
     # opt.zero_grad()
     with torch.no_grad():
@@ -374,11 +433,13 @@ def undo_step(opt: torch.optim.Optimizer,state) -> None:
         opt (torchoptim.Optimizer):
             The optimizer whose step to undo.
     """
+    ind = 0
     for group in opt.param_groups:
-        for ind, param in enumerate(group["params"]):
+        for param in group["params"]:
             if param.grad is not None:
                 param.data = state[ind]
                 # param.data.add_(param.grad, alpha=-group["lr"])
+                ind += 1
 
 
 def reduce_step_size(opt: torch.optim.Optimizer,step_mult) -> None:

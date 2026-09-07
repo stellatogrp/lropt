@@ -1,4 +1,5 @@
 import unittest
+import warnings
 
 import cvxpy as cp
 import numpy as np
@@ -10,7 +11,12 @@ from cvxro import TrainerSettings
 
 
 class TestMultiStage(unittest.TestCase):
-    def test_multistage(self):
+    def _build(self):
+        """Build the multistage inventory problem and its settings.
+
+        Extracted from test_multistage so the rho-search tests below can reuse it
+        rather than duplicating 500 lines of model construction.
+        """
         T = 12
         torch.set_default_dtype(torch.double)
         K = 4
@@ -604,4 +610,78 @@ class TestMultiStage(unittest.TestCase):
             mu_multiplier=1.01,
             parallel = False
         )
+        return trainer, settings
+
+    def test_multistage(self):
+        trainer, settings = self._build()
         _ = trainer.train(settings=settings)
+
+    def test_rho_search_honours_multistage(self):
+        """grid() and bisection() must evaluate the ROLLOUT, not the single-stage problem.
+
+        _rho_search_setup used to hard-set self._multistage = False, so both searches
+        silently scored a different model than train() did and reported the numbers as
+        if they were the real thing. The check is equality with compare_predictors,
+        which routes through train() and is known to honour settings.multistage: at the
+        same radius the two must agree exactly, since they are the same rollout at the
+        same seeds.
+        """
+        trainer, settings = self._build()
+        settings.num_iter = 1
+        result = trainer.train(settings=settings)
+        base_rho = float(np.ravel(result.rho)[0])
+        multipliers = [0.5, 1.0]
+
+        reference = []
+        for mult in multipliers:
+            df_validate, df_test = trainer.compare_predictors(
+                settings=settings, predictors_list=[result.predictor],
+                rho_list=[mult * base_rho])
+            reference.append((float(df_test["Test_val"].iloc[0]),
+                              float(df_validate["Avg_prob_validate"].iloc[0])))
+        # compare_predictors restores what it mutates, so init_rho is still the
+        # caller's; point it at the trained radius, which is what the multipliers
+        # above were taken against.
+        settings.init_rho = base_rho
+        self.assertTrue(trainer._multistage)
+
+        grid_result = trainer.grid(rholst=multipliers, settings=settings)
+        self.assertTrue(trainer._multistage,
+                        "the rho search reset _multistage and scored a single-stage problem")
+        for (test_val, violation), (_, row) in zip(reference, grid_result.df.iterrows()):
+            self.assertAlmostEqual(float(row["Test_val"]), test_val, places=12)
+            self.assertAlmostEqual(float(row["Avg_prob_validate"]), violation, places=12)
+
+    def test_bisection_multistage_picks_smallest_acceptable_radius(self):
+        """With a NaN objective column, selection must fall back on monotonicity.
+
+        The feasibility columns are not populated in multistage, so
+        Validate_worst_feasible is NaN at every radius. _select_probe mapped NaN to
+        inf, which tied every acceptable probe and made min() return whichever was
+        probed FIRST -- an endpoint of the bracket. Observed: rho=40 at violation 0.0
+        selected over a probed rho=1.34 at the 0.10 target, i.e. silently the worst
+        acceptable radius rather than the best.
+        """
+        trainer, settings = self._build()
+        settings.num_iter = 1
+        trainer.train(settings=settings)
+        settings.target_eta = 0.1
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            result = trainer.bisection(rho_lo=0.1, rho_hi=20.0, settings=settings, tol=0.1)
+        # The SELECTED RADIUS is the substantive property, so assert it first: if the
+        # warning check came first it would short-circuit, and a negative control could
+        # not tell whether the radius assertion does any work.
+        probes = result.df.copy()
+        probes["abs_rho"] = [float(np.ravel(v)[0]) for v in probes["Rho"]]
+        acceptable = probes[probes["Avg_prob_validate"] <= settings.target_eta]
+        self.assertFalse(acceptable.empty, "no radius met the target; widen the bracket")
+        self.assertGreater(len(acceptable), 1,
+                           "only one acceptable radius, so 'smallest acceptable' is "
+                           "trivially satisfied and this test proves nothing")
+        self.assertAlmostEqual(float(np.ravel(result.rho)[0]),
+                               float(acceptable["abs_rho"].min()), places=12)
+        self.assertTrue(
+            any("NaN at every acceptable" in str(w.message) for w in caught),
+            "selection fell back on monotonicity but did not say so")

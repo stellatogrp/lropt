@@ -198,6 +198,7 @@ class TrainerSettings:
         self.lr_size = 0.001
         self.scheduler = True
         self.momentum = 0.8
+        self.weight_decay = 1e-1
         self.optimizer = SGD
         self.init_rho = 1
         self.init_A = None
@@ -275,6 +276,13 @@ class TrainerSettings:
         self.pid_Kp = 5.0    # Proportional gain (damping; effective per-step = Kp*(1-ν))
         self.pid_Ki = 1.0    # Integral gain (accumulates violations; like step size)
         self.pid_nu = 0.99   # EMA coefficient (0=noiseless, 0.99=stochastic)
+
+        self.track_unsolved = False
+        """Whether grid() should check, per sample, that the robust problem actually had
+        a feasible decision. cvxpylayers returns a degenerate decision instead of failing
+        when it does not, which makes the reported violation probability read ~0. The
+        check evaluates every reformulated constraint per sample, so it is off by default
+        and Frac_unsolved_* is then NaN in grid()'s output."""
 
         self._generate_slots()
 

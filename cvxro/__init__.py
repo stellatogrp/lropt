@@ -23,6 +23,10 @@ _LAZY_IMPORTS = {
     'NNPredictor': 'cvxro.train.predictors.nn',
     'CovPredictor': 'cvxro.train.predictors.covpred',
     'DeepNormalModel': 'cvxro.train.predictors.deep',
+    'SigmoidCovPredictor': 'cvxro.train.predictors.sigmoid',
+    'AdditiveCovPredictor': 'cvxro.train.predictors.additive',
+    'MLPCovPredictor': 'cvxro.train.predictors.mlp',
+    'ProfilePredictor': 'cvxro.train.predictors.profile',
 }
 
 
