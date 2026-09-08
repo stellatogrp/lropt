@@ -138,6 +138,29 @@ class TestBisection(unittest.TestCase):
         trainer.bisection(rho_lo=0.1, rho_hi=2.0, settings=settings, tol=0.4)
         self.assertFalse(settings.track_unsolved)
 
+    def test_target_eta_argument_tightens_the_selection_only(self):
+        """The `target_eta` override must gate ACCEPTANCE without touching
+        settings.target_eta, which is also the quantile the CVaR columns report at.
+        A tighter target can only move the radius up, never down."""
+        trainer, settings = _fixture()
+        loose = trainer.bisection(rho_lo=0.05, rho_hi=3.0, settings=settings, tol=0.01)
+        self.assertEqual(settings.target_eta, 0.1)
+        tight = trainer.bisection(rho_lo=0.05, rho_hi=3.0, settings=settings, tol=0.01,
+                                  target_eta=0.05)
+        self.assertEqual(settings.target_eta, 0.1, "settings must be left alone")
+        self.assertGreater(float(tight.rho), float(loose.rho))
+        chosen = tight.df[np.isclose(tight.df["Rho"].astype(float), float(tight.rho))]
+        self.assertLessEqual(float(chosen["Avg_prob_validate"].iloc[0]), 0.05)
+
+    def test_target_eta_none_is_a_no_op(self):
+        """The default must reproduce settings.target_eta exactly, so every run made
+        before the argument existed is unaffected."""
+        trainer, settings = _fixture()
+        without = trainer.bisection(rho_lo=0.05, rho_hi=3.0, settings=settings, tol=0.01)
+        explicit = trainer.bisection(rho_lo=0.05, rho_hi=3.0, settings=settings,
+                                     tol=0.01, target_eta=settings.target_eta)
+        self.assertEqual(float(without.rho), float(explicit.rho))
+
     def test_rejects_a_backwards_bracket(self):
         trainer, settings = _fixture()
         for lo, hi in ((3.0, 0.5), (0.0, 1.0), (-1.0, 1.0)):

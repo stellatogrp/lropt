@@ -1383,6 +1383,7 @@ class Trainer:
             prob_violation_train, constr_cost, cvar_cost, in_sample_cost, worst_cost
 
     def _train_loop(self, init_num):
+        _init_start_time = time.time()
         if self.settings.random_init and self.settings.train_shape:
             if init_num >= 1:
                 np.random.seed(self.settings.seed + init_num)
@@ -1470,6 +1471,7 @@ class Trainer:
                 "trainer": self,
             }
         prev_states = []
+        _init_elapsed_time = time.time() - _init_start_time
         for step_num in range(self.settings.num_iter):
             if step_num > 0:
                 prev_states = take_step(opt=opt, rho_tch=rho_tch, scheduler=scheduler_)
@@ -1568,7 +1570,14 @@ class Trainer:
                 self.settings.contextual,
                 self.settings.linear,
                 self.settings.predictor            )
-            new_row["Train_time"] = _train_elapsed_time
+            # Initialization is charged to the FIRST step's Train_time, so that the
+            # `df["Train_time"].sum()` every experiment already computes is the method's
+            # full training cost -- previously it omitted the predictor fit entirely,
+            # which for a num_iter=0 baseline is the whole method. Init_time reports the
+            # same quantity separately for auditing; do not add it to Train_time again.
+            _init_charge = _init_elapsed_time if step_num == 0 else 0.0
+            new_row["Train_time"] = _train_elapsed_time + _init_charge
+            new_row["Init_time"] = _init_charge
             rows.append(new_row)
 
             self._update_iters(
@@ -2415,6 +2424,8 @@ class Trainer:
         settings = DS,
         violation_col="Avg_prob_validate",
         objective_col="Validate_worst_feasible",
+        max_unsolved=0.0,
+        target_eta=None,
     ):
         r"""
         Perform gridsearch to find optimal :math:`\rho`-ball around data.
@@ -2431,6 +2442,18 @@ class Trainer:
             problem was unsolvable, or which miss ``settings.target_eta``, are excluded;
             previously the pick came from :class:`GridStats`, which minimized the TEST
             objective with no regard to solvability or to the target.
+        max_unsolved : float
+            Fraction of instances allowed to be unsolvable before a radius is rejected;
+            see :func:`_classify_probe`. Default 0 preserves the historical rule.
+        target_eta : float, optional
+            Violation target used to ACCEPT a radius, overriding
+            ``settings.target_eta`` for the search only. Pass a value below the
+            reported target to leave headroom where the validation split's violation
+            is optimistic about the test split's -- e.g. a contextual predictor whose
+            mean head is fit on the same data the radius is calibrated on. Kept
+            separate from ``settings.target_eta`` because that field is also the
+            quantile the CVaR columns are reported at, so lowering it would silently
+            redefine the reported metric as well as the selection.
 
         Returns:
         A pandas data frame with information on each :math:`\rho` having the following columns:
@@ -2465,7 +2488,8 @@ class Trainer:
                 new_row, split = self._evaluate_rho(rho, settings, ctx, stats)
                 probes.append(_RhoProbe(rho, new_row, split, stats,
                                         _classify_probe(new_row, settings,
-                                                        violation_col)))
+                                                        violation_col, max_unsolved,
+                                                        target_eta)))
                 df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
         finally:
             settings.track_unsolved = saved_track_unsolved
@@ -2498,6 +2522,8 @@ class Trainer:
         max_iters=25,
         violation_col="Avg_prob_validate",
         objective_col="Validate_worst_feasible",
+        max_unsolved=0.0,
+        target_eta=None,
     ):
         r"""
         Bisect over :math:`\rho` for the best validation performance, instead of
@@ -2524,6 +2550,18 @@ class Trainer:
             Hard cap on bisection steps, in addition to the two endpoint probes.
         violation_col, objective_col : str
             The validation columns to constrain and to minimize.
+        max_unsolved : float
+            Fraction of instances allowed to be unsolvable before a radius is rejected;
+            see :func:`_classify_probe`. Default 0 preserves the historical rule.
+        target_eta : float, optional
+            Violation target used to ACCEPT a radius, overriding
+            ``settings.target_eta`` for the search only. Pass a value below the
+            reported target to leave headroom where the validation split's violation
+            is optimistic about the test split's -- e.g. a contextual predictor whose
+            mean head is fit on the same data the radius is calibrated on. Kept
+            separate from ``settings.target_eta`` because that field is also the
+            quantile the CVaR columns are reported at, so lowering it would silently
+            redefine the reported metric as well as the selection.
 
         Returns:
         A :class:`Result` whose ``df`` has one row per radius actually probed, in probe
@@ -2538,7 +2576,8 @@ class Trainer:
         settings.track_unsolved = True
         try:
             probes = self._bisect_rho(
-                rho_lo, rho_hi, settings, tol, max_iters, violation_col)
+                rho_lo, rho_hi, settings, tol, max_iters, violation_col, max_unsolved,
+                target_eta)
         finally:
             settings.track_unsolved = saved_track_unsolved
 
@@ -2548,7 +2587,8 @@ class Trainer:
             df = pd.concat([df, probe.row.to_frame().T], ignore_index=True)
         return self._finalize_rho_search(settings, chosen.split, chosen.stats, df)
 
-    def _bisect_rho(self, rho_lo, rho_hi, settings, tol, max_iters, violation_col):
+    def _bisect_rho(self, rho_lo, rho_hi, settings, tol, max_iters, violation_col,
+                    max_unsolved=0.0, target_eta=None):
         """Probe radii until the feasible band's lower edge is bracketed to `tol`."""
         ctx = self._rho_search_setup(settings)
         probes = []
@@ -2560,7 +2600,8 @@ class Trainer:
             stats = GridStats()
             row, split = self._evaluate_rho(rho, settings, ctx, stats)
             probes.append(_RhoProbe(rho, row, split, stats,
-                                    _classify_probe(row, settings, violation_col)))
+                                    _classify_probe(row, settings, violation_col,
+                                                    max_unsolved, target_eta)))
             return probes[-1]
 
         # Both early exits below lean on monotonicity: if the widest radius still
@@ -2912,18 +2953,35 @@ class _RhoProbe:
     status: _ProbeStatus
 
 
-def _classify_probe(row, settings, violation_col):
+def _classify_probe(row, settings, violation_col, max_unsolved=0.0, target_eta=None):
     """Classify a probed radius as violating, unsolved, or acceptable.
 
     Solvability is checked FIRST and overrides the violation reading. Where the robust
     problem has no feasible decision, cvxpylayers returns a degenerate near-zero one
     that satisfies every constraint, so the violation probability reads ~0 and an
     unsolvable radius would otherwise score better than any real one.
+
+    `max_unsolved` is the fraction of instances allowed to be unsolvable before a radius
+    is rejected. It defaults to 0, i.e. any unsolvable instance disqualifies the radius,
+    which is the rule this function has always applied.
+
+    Raise it for instances whose unsolvability has a nonzero FLOOR rather than a cliff.
+    Two ways that happens, both measured on `experiments/dcopf`: the context distribution
+    has a tail beyond whatever quantile the instance was sized against (there, ~0.5% of
+    contexts draw more load than the capacity margin covers, so a radius can be perfectly
+    reasonable and still lose one sample in eighty); and a CONTEXTUAL set can be
+    unsolvable at its own centre, since as rho goes to 0 the set collapses to the
+    predicted mean and a poor prediction is an infeasible point -- measured there,
+    `Frac_unsolved` was at least 0.0125 at EVERY radius for the k-NN-centred baseline,
+    including rho = 0.001. Against a floor like that, `max_unsolved = 0` rejects every
+    radius including the good ones, and the search falls back to its least-violating
+    probe or reports nothing acceptable at all.
     """
     unsolved = float(row.get("Frac_unsolved_validate", 0.0))
-    if not np.isnan(unsolved) and unsolved > 0:
+    if not np.isnan(unsolved) and unsolved > max_unsolved:
         return _UNSOLVED
-    if float(np.mean(row[violation_col])) > settings.target_eta:
+    eta = settings.target_eta if target_eta is None else float(target_eta)
+    if float(np.mean(row[violation_col])) > eta:
         return _VIOLATING
     return _OK
 
