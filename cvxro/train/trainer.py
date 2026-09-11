@@ -2617,7 +2617,7 @@ class Trainer:
             if hi - lo <= tol:
                 break
             mid = 0.5 * (lo + hi)
-            if probe(float(np.exp(mid))).status is _VIOLATING:
+            if probe(float(np.exp(mid))).status is not _OK:
                 lo = mid
             else:
                 hi = mid

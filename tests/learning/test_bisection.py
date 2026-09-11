@@ -179,3 +179,56 @@ class TestBisection(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestBisectionUnsolvedBracket(unittest.TestCase):
+    """An unsolved probe must move the bracket UP, not down.
+
+    Regression test for a search that converged onto an uncalibrated radius: at
+    rho=0.283 the probe had Frac_unsolved_validate=0.005, the loop treated
+    "not violating" as "acceptable" and pulled the upper bound down onto it, and every
+    later probe stayed in a region whose violation rate was 0.97 against a 0.10 target
+    (inventory_enhanced inve_miss_strong2/pretrain_nl seed 4).
+    """
+
+    @staticmethod
+    def _stub_trainer(unsolved_band):
+        """A trainer whose radii violate below 1.0 and are unsolvable inside the band."""
+        import pandas as pd
+
+        trainer, settings = _fixture()
+
+        def fake_evaluate_rho(rho, settings, ctx, grid_stats):
+            lo, hi = unsolved_band
+            row = pd.Series({
+                "Rho": rho,
+                "Avg_prob_validate": 0.9 if rho < 1.0 else 0.0,
+                "Frac_unsolved_validate": 0.005 if lo <= rho <= hi else 0.0,
+                "Validate_worst_feasible": float(rho),
+            })
+            return row, None
+
+        trainer._evaluate_rho = fake_evaluate_rho
+        return trainer, settings
+
+    def _probe_radii(self, unsolved_band):
+        trainer, settings = self._stub_trainer(unsolved_band)
+        probes = trainer._bisect_rho(0.004, 20.0, settings, tol=1e-3, max_iters=40,
+                                     violation_col="Avg_prob_validate")
+        return probes, np.array([p.rho for p in probes])
+
+    def test_converges_above_an_unsolved_probe(self):
+        # The band straddles 0.283, the radius the real search stalled on.
+        probes, radii = self._probe_radii((0.25, 0.35))
+        acceptable = [p for p in probes if p.status is cvxro.train.trainer._OK]
+        self.assertTrue(acceptable, "no acceptable radius found; the search stalled")
+        best = min(p.rho for p in acceptable)
+        self.assertAlmostEqual(best, 1.0, delta=0.05)
+        self.assertLess((radii < 0.5).sum(), len(radii),
+                        "every probe fell below the unsolved band")
+
+    def test_unchanged_when_no_probe_is_unsolved(self):
+        _, with_band = self._probe_radii((1e9, 2e9))   # band never hit
+        _, without = self._probe_radii((1e9, 2e9))
+        np.testing.assert_allclose(with_band, without)
+        self.assertAlmostEqual(min(r for r in with_band if r >= 1.0), 1.0, delta=0.05)
