@@ -172,6 +172,4 @@ class NonlinearHeadPredictor(LinearPredictor):
         if self.predict_cov:
             self._fit_cov_head(trainer)
         self.train()
-        if self.freeze_cov:
-            for p in self.linear_cov.parameters():
-                p.requires_grad_(False)
+        self._apply_freezes()

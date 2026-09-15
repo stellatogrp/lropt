@@ -13,8 +13,10 @@ class LinearPredictor(torch.nn.Module):
                  pretrain = False,epochs = 100,lr = 0,
                  knn_cov = False, knn_mean = False,
                  n_neighbors = 10, knn_scale = 1, knn_residual_cov = False,
+                 knn_anchor_residual = False,
                  quad_cov = False,
-                 freeze_cov = False, cov_ridge = 0.0, cov_lr_mult = 1.0,
+                 freeze_cov = False, freeze_mean = False,
+                 cov_ridge = 0.0, cov_lr_mult = 1.0,
                  cov_rank = None, cov_rank_floor = 1e-2):
         super(LinearPredictor, self).__init__()
         self.predict = predict_mean
@@ -31,6 +33,16 @@ class LinearPredictor(torch.nn.Module):
         # model's residuals u_j - mu_hat(x_j) instead of the raw neighbor
         # values u_j. 
         self.knn_residual_cov = knn_residual_cov
+        # knn_anchor_residual: replace the CONSTANT term of the knn_scale blend
+        #   A(x) = (1-knn_scale)*A_global + knn_scale*A_knn(x)
+        # with sqrtm(cov(residuals)) instead of whatever init_A was passed in.
+        # Messoudi et al. (2022) Eq. (4) specifies BOTH terms as covariances of the
+        # observed errors; init_A is conventionally the MARGINAL covariance of u,
+        # which is far larger whenever the mean head explains most of u's variance,
+        # so the blend silently inflates A. Only meaningful together with
+        # knn_residual_cov (which supplies the residuals) and knn_scale < 1.
+        # Defaults to False -- runs are unchanged unless it is passed.
+        self.knn_anchor_residual = knn_anchor_residual
         # Residuals and the context matrix knn_fit indexed with, cached by
         # fit_knn_residuals() once linear_mean has been fit.
         self.resid_train_vals = None
@@ -41,6 +53,10 @@ class LinearPredictor(torch.nn.Module):
         # freeze_cov: after the initial lstsq/kNN-target fit in initialize(),
         # hold linear_cov's parameters fixed for the rest of training
         self.freeze_cov = freeze_cov
+        # freeze_mean: the mirror image -- hold linear_mean fixed after its initial fit,
+        # so the AL loop trains the SHAPE alone. With freeze_cov it isolates which half
+        # of the uncertainty set decision-focused training actually moves.
+        self.freeze_mean = freeze_mean
         # cov_ridge: L2 penalty for gen_weights_cov's lstsq fit. 
         self.cov_ridge = cov_ridge
         # cov_lr_mult: multiplier on the AL loop's base lr applied only to
@@ -94,9 +110,19 @@ class LinearPredictor(torch.nn.Module):
         if self.pretrain:
             self.pretrain_func(trainer)
             self._rebind_cov_to_pretrained_mean(trainer)
+        self._set_residual_anchor()
+        self._apply_freezes()
+
+    def _apply_freezes(self):
+        """Hold either head fixed after its initial fit. Called at the END of
+        initialize(), so a frozen head keeps its FITTED parameters -- not the constant
+        warm start it began from."""
         if self.freeze_cov:
-            for p in self.linear_cov.parameters():
-                p.requires_grad_(False)
+            for prm in self.linear_cov.parameters():
+                prm.requires_grad_(False)
+        if self.freeze_mean:
+            for prm in self.linear_mean.parameters():
+                prm.requires_grad_(False)
 
     def _low_rank_factor(self, cov_sqrt):
         """Given a (n,n) or (N,n,n) 'square root of covariance' matrix batch
@@ -370,6 +396,36 @@ class LinearPredictor(torch.nn.Module):
         if self.predict_cov:
             self._fit_cov_head(trainer)
 
+    def _set_residual_anchor(self):
+        """Re-point the blend's constant term at the residual covariance.
+
+        `customize` parked init_A in linear_cov.bias with a zeroed weight, so for a
+        knn_cov arm that never fits its covariance head (predict_cov=False) the bias IS
+        the A_global of the knn_scale blend. This swaps it for sqrtm(cov(residuals)) --
+        the same objects the LOCAL term is built from -- so lambda is a pure locality
+        dial rather than also a scale change. A no-op unless knn_anchor_residual is set
+        and the residuals were actually computed.
+        """
+        if not self.knn_anchor_residual or self.resid_train_vals is None:
+            return
+        # ONLY meaningful as the constant term of the knn_scale blend. Two guards, and
+        # both matter:
+        #   predict_cov -- _fit_cov_head has already fitted linear_cov (weight AND bias)
+        #     against its targets, and this runs after it, so writing the bias here would
+        #     CLOBBER that fit and silently break the arm.
+        #   knn_cov / knn_scale -- with no kNN branch, or knn_scale == 1, the constant
+        #     term carries zero weight in forward(), so there is nothing to correct.
+        if self.predict_cov or not self.knn_cov or self.knn_scale >= 1:
+            return
+        resid = np.asarray(self.resid_train_vals, float)
+        n = resid.shape[1]
+        anchor = sc.linalg.sqrtm(np.cov(resid.T) + 1e-5 * np.eye(n)).real
+        with torch.no_grad():
+            if self.cov_rank:
+                anchor = self._low_rank_factor(anchor)
+            self.linear_cov.bias.data = torch.tensor(
+                anchor.flatten(), dtype=torch.double)
+
     def fit_knn_residuals(self):
         """Cache the training residuals u_j - mu_hat(x_j) that knn_predict()
         takes local covariances of when knn_residual_cov is set. Call after
@@ -421,7 +477,12 @@ class LinearPredictor(torch.nn.Module):
             criterion = torch.nn.MSELoss()
             epochs=self.epochs
             for epoch in range(epochs):
-                _,yhat,_=trainer.create_predictor_tensors(trainer.x_train_tch)
+                # project=False: the regression target is the head's RAW output. Clamping
+                # it to the support here would zero the gradient at exactly the points
+                # whose prediction is out of support, which are the ones this loop exists
+                # to pull back. The projection belongs where the SET is built.
+                _,yhat,_=trainer.create_predictor_tensors(trainer.x_train_tch,
+                                                          project=False)
                 loss=criterion(yhat,trainer.u_train_tch)
                 pred_optimizer.zero_grad()
                 loss.backward()

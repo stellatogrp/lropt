@@ -375,14 +375,82 @@ class Trainer:
         # out_shape = int(a_shape[0] * a_shape[1] + b_shape[0])
         return in_shape,  a_shape[0] * a_shape[1], b_shape[0]
 
-    def create_predictor_tensors(self,x_batch):
-        """Create the tensors of a's and b's using the trained linear model"""
+    def create_predictor_tensors(self,x_batch,project=True):
+        """Create the tensors of a's and b's using the trained linear model.
+
+        `project=False` returns the predictor's RAW center. It exists for one caller:
+        LinearPredictor.pretrain_func regresses this center against the observed u, and a
+        clamped center has zero gradient exactly at the points whose prediction is out of
+        support -- the ones the regression most needs to move. Everything that BUILDS a
+        set takes the projected center; only the fit sees the raw one.
+        """
         a_shape = self.unc_set._a.shape
         b_shape = self.unc_set._b.shape
         input_tensors = self.create_input_tensors(x_batch)
         a_tch, b_tch, radius = self.settings.predictor.forward(
             input_tensors,a_shape,b_shape,self.train_flag)
+        if project:
+            b_tch = self._project_center_to_support(b_tch)
         return a_tch, b_tch, radius
+
+    def _project_center_to_support(self, b_tch):
+        """Clamp the predicted center into the uncertainty set's box support.
+
+        This is the single choke point for A(x), b(x) on BOTH the training and the
+        evaluation paths, so a center projected here is projected everywhere the set is
+        used -- which is what makes the guarantee below hold for the radius search and the
+        reported metrics too, not just for the AL loop.
+
+        Why it matters: if b(x) lies outside the support, the set
+        {A(x)z + b(x) : ||z|| <= rho} can fail to meet it AT ALL. U is then empty, the
+        robust constraint quantifies over nothing and so bounds nothing, and the solver
+        returns an enormous decision with status `optimal`. No violation metric catches
+        that -- the decision really is feasible for a constraint that says nothing -- so it
+        appears only as a few contexts whose cost is orders of magnitude off. With b(x)
+        inside the support, b(x) itself is in both the ellipsoid and the support, so U is
+        nonempty by construction and the counterpart is always a real bound.
+
+        Only `lb`/`ub` are handled: clamping IS the projection onto a box. A general
+        polyhedral support (`c`/`d` set directly) is left untouched, since projecting onto
+        it is a QP rather than an elementwise operation.
+
+        See TrainerSettings.project_center_to_support to turn this off.
+        """
+        if not getattr(self.settings, "project_center_to_support", True):
+            return b_tch
+        lb = getattr(self.unc_set, "lb", None)
+        ub = getattr(self.unc_set, "ub", None)
+        if lb is None and ub is None:
+            return b_tch
+        kwargs = {}
+        if lb is not None:
+            kwargs["min"] = torch.as_tensor(np.asarray(lb, dtype=float),
+                                            dtype=b_tch.dtype)
+        if ub is not None:
+            kwargs["max"] = torch.as_tensor(np.asarray(ub, dtype=float),
+                                            dtype=b_tch.dtype)
+        clamped = torch.clamp(b_tch, **kwargs)
+        # Warn once per Trainer, with the size of the effect: a center outside the support
+        # is an extrapolation artifact worth knowing about even though projecting it is
+        # safe -- it says the mean head is predicting values the data can never take.
+        if not getattr(self, "_warned_center_projection", False):
+            shift = (clamped - b_tch).abs()
+            if b_tch.dim() > 1:
+                moved = int(torch.count_nonzero(shift.max(dim=-1).values > 1e-12).item())
+                total = b_tch.shape[0]
+            else:
+                moved = int(bool(shift.max() > 1e-12))
+                total = 1
+            if moved:
+                warnings.warn(
+                    f"projected {moved}/{total} predicted centers into the uncertainty "
+                    "set's support; without this those sets could be empty and their "
+                    "robust constraints vacuous. Set "
+                    "TrainerSettings.project_center_to_support=False to disable.",
+                    stacklevel=2,
+                )
+                self._warned_center_projection = True
+        return clamped
 
     def create_input_tensors(self,x_batch):
         x_endind = self.x_endind
@@ -742,10 +810,51 @@ class Trainer:
         else:
             b_tch_data = np.mean(train_set, axis=0)
         b_tch = torch.tensor(b_tch_data, requires_grad=self.train_flag, dtype=s.DTYPE)
+        # Start inside the support, for the same reason create_predictor_tensors ends
+        # there: a center outside it can put the whole set outside, and an empty set makes
+        # the robust constraint vacuous rather than infeasible. This covers the INITIAL
+        # center on every path, contextual or not. It does NOT cover a non-contextual
+        # center that the AL loop then trains OUT of the support -- see the warning in
+        # _train_loop.
+        b_tch = self._project_center_to_support(b_tch).detach().requires_grad_(
+            self.train_flag)
         a_tch = init_tensor
 
         alpha = torch.tensor(init_alpha, requires_grad=self.train_flag)
         return a_tch, b_tch, alpha
+
+    def _warn_untracked_center_support(self):
+        """Warn when a run trains a center that nothing keeps inside the support.
+
+        The projection lives in create_predictor_tensors, which only the CONTEXTUAL path
+        goes through. A non-contextual run trains `b` as a bare leaf tensor and hands it
+        to the layer directly, so the AL loop can walk it out of the support even though
+        _init_torches starts it inside -- and once the set stops meeting the support, the
+        robust constraint is vacuous and the decision unbounded, silently.
+
+        Nothing in this repository runs that combination (every contextual experiment goes
+        through the predictor, and no non-contextual one declares a support), so it is
+        warned about rather than worked around: projecting a trained leaf tensor means a
+        projected-gradient step inside take_step, which is a change to the optimizer's
+        contract and should not be made on a path no test exercises.
+        """
+        if getattr(self, "_warned_untracked_center", False):
+            return
+        has_support = (getattr(self.unc_set, "lb", None) is not None
+                       or getattr(self.unc_set, "ub", None) is not None)
+        trains_b = (not self.settings.contextual and self.settings.train_shape
+                    and not self.settings.fixb)
+        if has_support and trains_b:
+            warnings.warn(
+                "training a NON-CONTEXTUAL center against an uncertainty set with a "
+                "support: the initial center is projected into the support, but nothing "
+                "keeps it there as training moves it. If it leaves, the set can stop "
+                "meeting the support, and an empty set makes the robust constraint "
+                "vacuous -- the decision is then unbounded and reported as optimal. Pass "
+                "fixb=True, or check the trained b against the support.",
+                stacklevel=2,
+            )
+            self._warned_untracked_center = True
 
     def _update_iters(self, save_history, a_history, b_history, rho_history, a_tch, b_tch, rho_tch):
         """
@@ -1397,6 +1506,7 @@ class Trainer:
         rows_test = []
         rows_validate = []
 
+        self._warn_untracked_center_support()
         rho_tch = self._gen_rho_tch(self.settings.init_rho)
         a_tch, b_tch, alpha = self._init_torches(
             self.settings.init_A, self.settings.init_b, self.settings.init_alpha, self.u_train_set
@@ -2970,9 +3080,9 @@ def _classify_probe(row, settings, violation_col, max_unsolved=0.0, target_eta=N
     has a tail beyond whatever quantile the instance was sized against (there, ~0.5% of
     contexts draw more load than the capacity margin covers, so a radius can be perfectly
     reasonable and still lose one sample in eighty); and a CONTEXTUAL set can be
-    unsolvable at its own centre, since as rho goes to 0 the set collapses to the
+    unsolvable at its own center, since as rho goes to 0 the set collapses to the
     predicted mean and a poor prediction is an infeasible point -- measured there,
-    `Frac_unsolved` was at least 0.0125 at EVERY radius for the k-NN-centred baseline,
+    `Frac_unsolved` was at least 0.0125 at EVERY radius for the k-NN-centered baseline,
     including rho = 0.001. Against a floor like that, `max_unsolved = 0` rejects every
     radius including the good ones, and the search falls back to its least-violating
     probe or reports nothing acceptable at all.

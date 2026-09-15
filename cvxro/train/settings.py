@@ -277,6 +277,29 @@ class TrainerSettings:
         self.pid_Ki = 1.0    # Integral gain (accumulates violations; like step size)
         self.pid_nu = 0.99   # EMA coefficient (0=noiseless, 0.99=stochastic)
 
+        self.project_center_to_support = True
+        """Whether to project the predicted center b(x) into the uncertainty set's BOX
+        support (its `lb`/`ub`) before the set is built.
+
+        Without it the set {A(x)z + b(x) : ||z|| <= rho} can miss the support entirely, and
+        then U is EMPTY: the robust constraint quantifies over nothing, so it imposes no
+        bound, the problem is unbounded in the directions the constraint was supposed to
+        limit, and the solver returns an enormous decision while reporting `optimal`. That
+        is not a solver failure and no violation metric catches it -- the decision is
+        feasible for a vacuous constraint -- so it surfaces only as a handful of contexts
+        with astronomically large decisions. Measured on the newsvendor with `lb=0`: 9% of
+        contexts had a center with a negative coordinate and up to 4% of sets were empty,
+        giving |x| ~ 1e4 and mean costs three orders of magnitude off.
+
+        Projecting is the minimal fix that cannot be wrong: `lb`/`ub` are a support the
+        data satisfies with probability 1, so a center outside it is an extrapolation
+        artifact of the predictor, and clamping puts b(x) back in the support -- which also
+        guarantees U is nonempty, since b(x) then lies in both the ellipsoid and the
+        support. Only box supports are projected; a general polyhedral `c`/`d` support is
+        left alone (projecting onto it is a QP, and it has no natural elementwise form).
+
+        Set False to keep the raw predicted center."""
+
         self.track_unsolved = False
         """Whether grid() should check, per sample, that the robust problem actually had
         a feasible decision. cvxpylayers returns a degenerate decision instead of failing
