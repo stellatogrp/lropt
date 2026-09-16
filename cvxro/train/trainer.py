@@ -37,6 +37,11 @@ from cvxro.train.utils import (
 )
 from cvxro.uncertain_parameter import UncertainParameter
 from cvxro.uncertainty_sets.scenario import Scenario
+from cvxro.uncertainty_sets.support import (
+    project_into_support,
+    support_is_empty,
+    support_matrices,
+)
 from cvxro.utils import unique_list
 from cvxro.violation_checker.utils import CONSTRAINT_STATUS
 from cvxro.violation_checker.violation_checker import ViolationChecker
@@ -393,64 +398,90 @@ class Trainer:
             b_tch = self._project_center_to_support(b_tch)
         return a_tch, b_tch, radius
 
+    def _support_spec(self):
+        """The set's support as `(C, d)`, cached, or None if it declares none.
+
+        Cached because it is read on every forward pass and never changes for a given
+        problem: `add_support_type` assembles `lb`/`ub`/`sum_eq` into `_c`/`_d` when the
+        UncertainParameter is constructed, and an explicit `c`/`d` is set there too.
+        """
+        if not hasattr(self, "_support_cache"):
+            self._support_cache = support_matrices(self.unc_set)
+        return self._support_cache
+
     def _project_center_to_support(self, b_tch):
-        """Clamp the predicted center into the uncertainty set's box support.
+        """Project the center into the uncertainty set's support, whatever its shape.
 
-        This is the single choke point for A(x), b(x) on BOTH the training and the
-        evaluation paths, so a center projected here is projected everywhere the set is
-        used -- which is what makes the guarantee below hold for the radius search and the
-        reported metrics too, not just for the AL loop.
+        This is the choke point for A(x), b(x) on BOTH the training and the evaluation
+        paths, so a center projected here is projected everywhere the set is used -- which
+        is what makes the guarantee hold for the radius search and the reported metrics
+        too, not only for the AL loop.
 
-        Why it matters: if b(x) lies outside the support, the set
-        {A(x)z + b(x) : ||z|| <= rho} can fail to meet it AT ALL. U is then empty, the
-        robust constraint quantifies over nothing and so bounds nothing, and the solver
-        returns an enormous decision with status `optimal`. No violation metric catches
-        that -- the decision really is feasible for a constraint that says nothing -- so it
-        appears only as a few contexts whose cost is orders of magnitude off. With b(x)
-        inside the support, b(x) itself is in both the ellipsoid and the support, so U is
-        nonempty by construction and the counterpart is always a real bound.
+        Why it matters: if b lies outside the support, the set {A z + b : ||z|| <= rho} can
+        fail to meet it AT ALL. U is then empty, the robust constraint quantifies over
+        nothing and so bounds nothing, and the solver returns an enormous decision with
+        status `optimal`. No violation metric catches that -- the decision really is
+        feasible for a constraint that says nothing -- so it surfaces only as a few
+        contexts whose cost is orders of magnitude off. With b inside the support, b itself
+        lies in both the ellipsoid and the support, so U is nonempty BY CONSTRUCTION.
 
-        Only `lb`/`ub` are handled: clamping IS the projection onto a box. A general
-        polyhedral support (`c`/`d` set directly) is left untouched, since projecting onto
-        it is a QP rather than an elementwise operation.
+        Every support kind is handled, not just `lb`/`ub`: a box is projected by clamping
+        and any other polyhedron (an explicit `c`/`d`, a `sum_eq`, or a mix) by Dykstra's
+        alternating projections. See cvxro.uncertainty_sets.support.
+
+        A support with no points at all -- `lb` above `ub`, or contradictory rows -- is a
+        modelling error rather than something to project onto, so it raises here instead of
+        failing later as an unbounded solve.
 
         See TrainerSettings.project_center_to_support to turn this off.
         """
         if not getattr(self.settings, "project_center_to_support", True):
             return b_tch
-        lb = getattr(self.unc_set, "lb", None)
-        ub = getattr(self.unc_set, "ub", None)
-        if lb is None and ub is None:
+        spec = self._support_spec()
+        if spec is None:
             return b_tch
-        kwargs = {}
-        if lb is not None:
-            kwargs["min"] = torch.as_tensor(np.asarray(lb, dtype=float),
-                                            dtype=b_tch.dtype)
-        if ub is not None:
-            kwargs["max"] = torch.as_tensor(np.asarray(ub, dtype=float),
-                                            dtype=b_tch.dtype)
-        clamped = torch.clamp(b_tch, **kwargs)
-        # Warn once per Trainer, with the size of the effect: a center outside the support
-        # is an extrapolation artifact worth knowing about even though projecting it is
-        # safe -- it says the mean head is predicting values the data can never take.
-        if not getattr(self, "_warned_center_projection", False):
-            shift = (clamped - b_tch).abs()
-            if b_tch.dim() > 1:
-                moved = int(torch.count_nonzero(shift.max(dim=-1).values > 1e-12).item())
-                total = b_tch.shape[0]
-            else:
-                moved = int(bool(shift.max() > 1e-12))
-                total = 1
-            if moved:
-                warnings.warn(
-                    f"projected {moved}/{total} predicted centers into the uncertainty "
-                    "set's support; without this those sets could be empty and their "
-                    "robust constraints vacuous. Set "
-                    "TrainerSettings.project_center_to_support=False to disable.",
-                    stacklevel=2,
-                )
-                self._warned_center_projection = True
-        return clamped
+        rows, rhs = spec
+        projected, residual = project_into_support(b_tch, rows, rhs)
+        if residual > 1e-6:
+            if support_is_empty(rows, rhs):
+                raise ValueError(
+                    "the uncertainty set's support is empty -- its rows have no common "
+                    "point, so no center can lie inside it and every set built from it "
+                    "would be empty. Check lb/ub (is some lb above its ub?) and any "
+                    "explicit c/d.")
+            warnings.warn(
+                f"projecting the center into the support left a residual of {residual:.2e}"
+                " after the iteration limit; the set may be empty at some contexts. This "
+                "is a polyhedral support that Dykstra did not resolve, not a box.",
+                stacklevel=2,
+            )
+        self._warn_center_moved(b_tch, projected)
+        return projected
+
+    def _warn_center_moved(self, before, after):
+        """Warn ONCE, with the size of the effect, when the projection actually binds.
+
+        A center outside the support is worth knowing about even though projecting it is
+        safe: it says the mean model is predicting values the data can never take, which is
+        a statement about the fit, not about the support.
+        """
+        if getattr(self, "_warned_center_projection", False):
+            return
+        shift = (after - before).abs()
+        if before.dim() > 1:
+            moved = int(torch.count_nonzero(shift.max(dim=-1).values > 1e-12).item())
+            total = before.shape[0]
+        else:
+            moved = int(bool(shift.max() > 1e-12))
+            total = 1
+        if moved:
+            warnings.warn(
+                f"projected {moved}/{total} centers into the uncertainty set's support; "
+                "without this those sets could be empty and their robust constraints "
+                "vacuous. Set TrainerSettings.project_center_to_support=False to disable.",
+                stacklevel=2,
+            )
+            self._warned_center_projection = True
 
     def create_input_tensors(self,x_batch):
         x_endind = self.x_endind
@@ -823,38 +854,35 @@ class Trainer:
         alpha = torch.tensor(init_alpha, requires_grad=self.train_flag)
         return a_tch, b_tch, alpha
 
-    def _warn_untracked_center_support(self):
-        """Warn when a run trains a center that nothing keeps inside the support.
+    def _project_step(self):
+        """The projected-gradient hook handed to take_step (see project_trained_center)."""
+        return self.project_trained_center(getattr(self, "_trained_center", None))
 
-        The projection lives in create_predictor_tensors, which only the CONTEXTUAL path
-        goes through. A non-contextual run trains `b` as a bare leaf tensor and hands it
-        to the layer directly, so the AL loop can walk it out of the support even though
-        _init_torches starts it inside -- and once the set stops meeting the support, the
-        robust constraint is vacuous and the decision unbounded, silently.
+    def project_trained_center(self, b_tch):
+        """Projected-gradient hook: keep a NON-CONTEXTUAL trained center in the support.
 
-        Nothing in this repository runs that combination (every contextual experiment goes
-        through the predictor, and no non-contextual one declares a support), so it is
-        warned about rather than worked around: projecting a trained leaf tensor means a
-        projected-gradient step inside take_step, which is a change to the optimizer's
-        contract and should not be made on a path no test exercises.
+        The contextual path re-derives b from the predictor on every forward pass, so
+        projecting in create_predictor_tensors covers it. A non-contextual run instead
+        trains `b` as a bare leaf tensor and hands it to the layer directly, so without
+        this the AL loop can walk it out of the support even though it started inside --
+        and once the set stops meeting the support, the constraint is vacuous and the
+        decision unbounded, silently.
+
+        Applied in place after each optimizer step, which makes the update a projected
+        gradient step: descend, then project back onto the feasible set. Returns whether
+        anything moved, so the caller can report it.
         """
-        if getattr(self, "_warned_untracked_center", False):
-            return
-        has_support = (getattr(self.unc_set, "lb", None) is not None
-                       or getattr(self.unc_set, "ub", None) is not None)
-        trains_b = (not self.settings.contextual and self.settings.train_shape
-                    and not self.settings.fixb)
-        if has_support and trains_b:
-            warnings.warn(
-                "training a NON-CONTEXTUAL center against an uncertainty set with a "
-                "support: the initial center is projected into the support, but nothing "
-                "keeps it there as training moves it. If it leaves, the set can stop "
-                "meeting the support, and an empty set makes the robust constraint "
-                "vacuous -- the decision is then unbounded and reported as optimal. Pass "
-                "fixb=True, or check the trained b against the support.",
-                stacklevel=2,
-            )
-            self._warned_untracked_center = True
+        if not getattr(self.settings, "project_center_to_support", True):
+            return False
+        spec = self._support_spec()
+        if spec is None or b_tch is None:
+            return False
+        rows, rhs = spec
+        with torch.no_grad():
+            projected, _residual = project_into_support(b_tch, rows, rhs)
+            moved = bool((projected - b_tch).abs().max() > 1e-12)
+            b_tch.copy_(projected)
+        return moved
 
     def _update_iters(self, save_history, a_history, b_history, rho_history, a_tch, b_tch, rho_tch):
         """
@@ -1480,7 +1508,8 @@ class Trainer:
                 prev_states = take_step(opt=opt,
                                         rho_tch=rho_tch, scheduler=None,
                                         update_state = False,
-                                        prev_states = prev_states)
+                                        prev_states = prev_states,
+                                        project=self._project_step)
             elif constraint_status is CONSTRAINT_STATUS.FEASIBLE \
                 and violation_counter == current_iter_line_search -1:
                 restore_step_size(opt, num_steps=violation_counter)
@@ -1506,11 +1535,15 @@ class Trainer:
         rows_test = []
         rows_validate = []
 
-        self._warn_untracked_center_support()
         rho_tch = self._gen_rho_tch(self.settings.init_rho)
         a_tch, b_tch, alpha = self._init_torches(
             self.settings.init_A, self.settings.init_b, self.settings.init_alpha, self.u_train_set
         )
+        # The center the projected-gradient hook keeps inside the support. Only the
+        # NON-CONTEXTUAL path trains this tensor: with a predictor, b is re-derived from it
+        # on every forward pass and projected in create_predictor_tensors instead, so
+        # projecting this leaf as well would be projecting a tensor nothing reads.
+        self._trained_center = None if self.settings.contextual else b_tch
 
         self._update_iters(
             self.settings.save_history, a_history, b_history, rho_history, a_tch, b_tch, rho_tch
@@ -1584,7 +1617,8 @@ class Trainer:
         _init_elapsed_time = time.time() - _init_start_time
         for step_num in range(self.settings.num_iter):
             if step_num > 0:
-                prev_states = take_step(opt=opt, rho_tch=rho_tch, scheduler=scheduler_)
+                prev_states = take_step(opt=opt, rho_tch=rho_tch, scheduler=scheduler_,
+                                        project=self._project_step)
             train_stats = TrainLoopStats(
                 step_num=step_num, train_flag=self.train_flag, num_g_total=self.num_g_total
             )

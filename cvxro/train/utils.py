@@ -391,7 +391,8 @@ def take_step(
     rho_tch: torch.Tensor,
     scheduler: torch.optim.lr_scheduler.StepLR | None,
     update_state = True,
-    prev_states = []
+    prev_states = [],
+    project = None,
 ) -> list:
     """
     This function performs an optimization step.
@@ -403,6 +404,12 @@ def take_step(
             rho_tch tensor.
         scheduler (torch.optim_lr_scheduler.StepLR | None):
             If passed, a StepLR scheduler.
+        project (callable | None):
+            Called with no arguments after the step, to project trained tensors back onto
+            their feasible set -- which makes the update a projected gradient step. Used to
+            keep a non-contextual uncertainty-set center inside the set's support; without
+            it the center can leave the support during training, the set then misses the
+            support entirely, and the robust constraint becomes vacuous.
     """
     if update_state:
         prev_states = []
@@ -421,6 +428,8 @@ def take_step(
     with torch.no_grad():
         newrho_tch = torch.clamp(rho_tch, min=0.001)
         rho_tch.copy_(newrho_tch)
+    if project is not None:
+        project()
     if scheduler:
         scheduler.step()
     return prev_states
