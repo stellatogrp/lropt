@@ -17,16 +17,22 @@ class InfeasibleConstraintException(Exception):
         self.message = message
         super().__init__(self.message)
 
-def check_constraint(constraint: Constraint) -> CONSTRAINT_STATUS:
+def check_constraint(constraint: Constraint, tol: float = VIOLATION_TOL) -> CONSTRAINT_STATUS:
     """
     This is a helper function that converts CVXPY's violation status (integer coded) to
     CONSTRAINT_STATUS.
     zero -> Feasible
     positive -> Infeasible.
+
+    `tol` is the absolute violation a constraint may show and still count as satisfied
+    (default VIOLATION_TOL). A differentiable layer meets EQUALITY rows only to solver
+    tolerance, so on problems whose equalities involve large-scale quantities the
+    default can flag every solution as infeasible; TrainerSettings.violation_tol lets
+    a caller size it to the problem.
     """
     violations = constraint.violation()
     for violation in np.nditer(violations):
-        if violation > VIOLATION_TOL:
+        if violation > tol:
             # print(violation, VIOLATION_TOL)
             return CONSTRAINT_STATUS.INFEASIBLE
         elif violation<0:

@@ -1,3 +1,4 @@
+import contextlib
 import copy
 import gc
 import time
@@ -43,6 +44,7 @@ from cvxro.uncertainty_sets.support import (
     support_matrices,
 )
 from cvxro.utils import unique_list
+from cvxro.violation_checker.settings import VIOLATION_TOL
 from cvxro.violation_checker.utils import CONSTRAINT_STATUS
 from cvxro.violation_checker.violation_checker import ViolationChecker
 
@@ -185,6 +187,7 @@ class Trainer:
         if not isinstance(x_0, list):
             x_0 = [x_0]
         x_0 = [x.clone().detach() for x in x_0]
+        radius = None
         if self.settings.contextual:
             a_tch, b_tch, radius = self.create_predictor_tensors(x_0)
 
@@ -212,6 +215,9 @@ class Trainer:
             x_solve = x_t
             z_t = self.cvxpylayer(rho_tch, *self.cp_param_tch, *x_t, a_tch, b_tch,
                                   solver_args=self.settings.solver_args)
+            training = not (self._test_flag or self._validate_flag)
+            train_max_unsolved = float(getattr(self.settings, "train_max_unsolved", 0.0))
+            drop_unsolved = training and not self._multistage and train_max_unsolved > 0
             constraints_status = self.violation_checker.check_constraints(
                 z_batch=z_t,
                 rho_mult_parameter=self._rho_mult_parameter,
@@ -222,10 +228,26 @@ class Trainer:
                 x_batch=x_t,
                 shape_parameters=self._shape_parameters,
                 shape_torches=[a_tch, b_tch],
-                # Only on the evaluation passes: recording per-sample status forgoes the
-                # early exit, and this runs once per line-search attempt while training.
-                per_sample=self._test_flag or self._validate_flag,
+                # Recording per-sample status forgoes the early exit, and this runs once
+                # per line-search attempt while training, so only do it on the
+                # evaluation passes -- or when a training batch may drop its unsolvable
+                # samples, which needs to know which ones they are.
+                per_sample=(not training) or drop_unsolved,
             )
+            self._train_n_dropped = 0
+            if drop_unsolved and constraints_status is CONSTRAINT_STATUS.INFEASIBLE:
+                keep = torch.as_tensor(self.violation_checker.last_sample_feasible)
+                n_bad = int((~keep).sum())
+                if n_bad < keep.numel() and n_bad / keep.numel() <= train_max_unsolved:
+                    # A few contexts have no feasible robust dispatch at this set; the
+                    # layer returns a junk solution for them (a power-balance row off by
+                    # hundreds of MW on dcopf, 2026-09-18) and a whole batch would
+                    # otherwise be undone for it. Train on the solvable samples.
+                    z_t, x_t, u_0, a_tch, b_tch, radius = self._drop_unsolved_samples(
+                        keep, z_t, x_t, u_0, a_tch, b_tch, radius)
+                    self.settings.kwargs_simulator["batch_int"] = int(keep.sum())
+                    self._train_n_dropped = n_bad
+                    constraints_status = CONSTRAINT_STATUS.FEASIBLE
             z_t = self._reduce_variables(z_t)
             if not self._multistage:
                 eval_args = self.order_args(z_t, x_t, u_0)
@@ -277,6 +299,24 @@ class Trainer:
         return cost, constraint_cost, x_hist, z_hist, \
             constraints_status, avg_cost, prob_vio, u_0, \
                 cvar_cost, in_sample_cost, worst_cost
+
+    def _drop_unsolved_samples(self, keep, z_t, x_t, u_0, a_tch, b_tch, radius):
+        """Restrict one training batch to the samples in `keep` (a bool tensor over the
+        batch): the layer's outputs, the contexts, the uncertainty realisations and the
+        predicted set parameters. Anything without a batch dimension is returned as is."""
+        n = keep.numel()
+
+        def _sel(t, unbatched_ndim):
+            if isinstance(t, torch.Tensor) and t.dim() > unbatched_ndim and t.shape[0] == n:
+                return t[keep]
+            return t
+        z_t = [_sel(z, len(var.shape)) for z, var in zip(z_t, self.cvxpylayer.variables)]
+        x_t = [x[keep] for x in x_t]
+        u_0 = _sel(u_0, 1)
+        a_tch = _sel(a_tch, len(self.unc_set._a.shape))
+        b_tch = _sel(b_tch, len(self.unc_set._b.shape))
+        radius = _sel(radius, 0) if isinstance(radius, torch.Tensor) else radius
+        return z_t, x_t, u_0, a_tch, b_tch, radius
 
     def _validate_unc_set_T(self):
         """
@@ -1224,7 +1264,8 @@ class Trainer:
         # grid() does not go through train(), which is where the checker is normally built.
         if getattr(self, "violation_checker", None) is None:
             self.violation_checker = ViolationChecker(
-                self.cvxpylayer, self.problem_no_unc.constraints
+                self.cvxpylayer, self.problem_no_unc.constraints,
+                tol=getattr(settings, "violation_tol", VIOLATION_TOL),
             )
         self.violation_checker.check_constraints(
             z_batch=split.z,
@@ -1512,13 +1553,43 @@ class Trainer:
                                         project=self._project_step)
             elif constraint_status is CONSTRAINT_STATUS.FEASIBLE \
                 and violation_counter == current_iter_line_search -1:
-                restore_step_size(opt, num_steps=violation_counter)
+                restore_step_size(opt, num_steps=violation_counter,
+                                  step_mult = self.settings.line_search_mult)
                 opt.zero_grad()
                 fin_cost.backward()
                 prev_fin_cost = fin_cost.clone().detach()
                 break
+        if constraint_status is CONSTRAINT_STATUS.INFEASIBLE and step_num != 0:
+            # Timed out: every retaken step was infeasible. The step size was reduced
+            # once per attempt and would otherwise stay at step_mult**max_iter for the
+            # rest of training (dcopf 2026-09-17: 0.8**50 ~ 1e-5, after which no later
+            # step could move the predictor). The parameters are already at the last
+            # (tiny) retaken step; only the optimizer's lr needs restoring.
+            restore_step_size(opt, num_steps=current_iter_line_search - 1,
+                              step_mult = self.settings.line_search_mult)
+        # KNOWN, DELIBERATELY UNFIXED (2026-09-21, lropt_power/multistage HANDOFF §5r):
+        # `prev_fin_cost` is updated above on acceptance but never returned, so the
+        # caller compares every step against its initial np.inf and the descent check
+        # `fin_cost <= line_search_threshold * prev_fin_cost` has never rejected a step
+        # (unchanged since 7acbcdc, 2026-01-13). Returning it is NOT sufficient: the
+        # retry loop never re-takes a step (take_step happens once, in the caller), so a
+        # non-improving step has no backtracking branch, spins to exhaustion, and then
+        # restore_step_size(violation_counter) multiplies lr by (1/step_mult)**(max_iter-1)
+        # for shrinks that never happened -- measured as Violations_train 9.6e12 in
+        # test_portfolio_intro and a NaN profile in test_profile_predictor when the check
+        # was made live. A real fix re-takes the step with the reduced lr inside this
+        # loop; that is a design decision for the authors. Every reported result to date
+        # was trained with this check inert: Adam + infeasibility undo + interval updates.
         return constraint_status, fin_cost, avg_cost, \
             prob_violation_train, constr_cost, cvar_cost, in_sample_cost, worst_cost
+
+    def _eval_grad_context(self):
+        """no_grad for the train loop's evaluation rollouts, unless a branch needs a
+        graph during the rollout itself (delage_coverage's dist_loss). See the call
+        sites for the measurement that motivates it."""
+        if getattr(self.settings, "delage_coverage", False):
+            return contextlib.nullcontext()
+        return torch.no_grad()
 
     def _train_loop(self, init_num):
         _init_start_time = time.time()
@@ -1581,7 +1652,15 @@ class Trainer:
         if (self.settings.contextual
                 and hasattr(self.settings.predictor, "param_groups")
                 and not self.settings.trained_shape):
-            variables = self.settings.predictor.param_groups(self.settings.lr, extra_params=[alpha])
+            # param_groups() REPLACES the variable list above, which contained rho_tch, so
+            # on this path rho takes no gradient and stays at init_rho for the whole run.
+            # settings.train_rho puts it back, as its own group at the base lr. Default
+            # False, so every arm trained before this existed is bit-identical.
+            extra_params = [alpha]
+            if getattr(self.settings, "train_rho", False):
+                extra_params.append(rho_tch)
+            variables = self.settings.predictor.param_groups(self.settings.lr,
+                                                             extra_params=extra_params)
         if self.settings.optimizer == "SGD":
             opt = s.OPTIMIZERS[self.settings.optimizer](
                 variables, lr=self.settings.lr, momentum=self.settings.momentum
@@ -1624,6 +1703,16 @@ class Trainer:
             )
 
             torch.manual_seed(self.settings.seed + step_num)
+            # Per-step predictor hook, duck-typed exactly like param_groups() below:
+            # a predictor that defines on_step(step_num) is told which step is about to
+            # be differentiated, so it can change WHICH of its parameters take a
+            # gradient during this step (e.g. alternating between a frozen mean head and
+            # a frozen covariance head). Predictors without the method are unaffected.
+            # Called before the backward, so the flags it sets govern this step's
+            # gradients; opt.step() at the top of the next iteration then moves only the
+            # parameters that received one.
+            if hasattr(self.settings.predictor, "on_step"):
+                self.settings.predictor.on_step(step_num)
             _train_start_time = time.time()
             constraint_status, fin_cost, avg_cost, \
                 prob_violation_train, constr_cost, cvar_cost, in_sample_cost,worst_cost = \
@@ -1723,6 +1812,7 @@ class Trainer:
             new_row["Train_time"] = _train_elapsed_time + _init_charge
             new_row["Init_time"] = _init_charge
             rows.append(new_row)
+            _train_row, _validation_row = new_row, None
 
             self._update_iters(
                 self.settings.save_history,
@@ -1738,22 +1828,33 @@ class Trainer:
                 self._validate_flag = True
                 self._test_flag = False
                 _validate_start_time = time.time()
-                (
-                    val_cost,
-                    val_cost_constr,
-                    x_batch,
-                    z_batch,
-                    avg_cost,
-                    prob_constr_violation,
-                    u_batch,cvar_cost,
-                    in_sample_cost, worst_cost
-                ) = self.monte_carlo(
-                    a_tch=a_tch,
-                    b_tch=b_tch,
-                    rho_tch=rho_tch,
-                    alpha=alpha,
-                    seed = self.settings.seed + 10000
-                )
+                # Evaluation only: the outputs are recorded via .detach()/.item(),
+                # yet the rollout was building a full autograd graph at
+                # test_batch_size every iteration -- measured at 0.10 GB per
+                # test-sample-stage, the same as a TRAINING sample, i.e. 23 GB instead
+                # of 9 at test_batch 48 (lropt_power/multistage, 2026-09-20).
+                # _evaluate_rho_multistage already runs this call under no_grad.
+                # EXCEPT under delage_coverage: dist_loss differentiates INSIDE the
+                # rollout (`loss_conf.backward(create_graph=True)`, ~l.1215), on
+                # evaluation passes too, and under no_grad that loss has no grad_fn
+                # (test_delage_coverage caught it). That branch keeps its graph.
+                with self._eval_grad_context():
+                    (
+                        val_cost,
+                        val_cost_constr,
+                        x_batch,
+                        z_batch,
+                        avg_cost,
+                        prob_constr_violation,
+                        u_batch,cvar_cost,
+                        in_sample_cost, worst_cost
+                    ) = self.monte_carlo(
+                        a_tch=a_tch,
+                        b_tch=b_tch,
+                        rho_tch=rho_tch,
+                        alpha=alpha,
+                        seed = self.settings.seed + 10000
+                    )
                 _validate_elapsed_time = time.time() - _validate_start_time
                 record_avg_cost = avg_cost
                 if not self._default_simulator:
@@ -1808,28 +1909,40 @@ class Trainer:
                 )
                 new_row["Validate_time"] = _validate_elapsed_time
                 rows_validate.append(new_row)
+                _validation_row = new_row
 
             if step_num % self.settings.test_frequency == 0:
                 self._test_flag = True
                 self._validate_flag= False
                 _test_start_time = time.time()
-                (
-                    val_cost,
-                    val_cost_constr,
-                    x_batch,
-                    z_batch,
-                    avg_cost,
-                    prob_constr_violation,
-                    u_batch,
-                    cvar_cost,
-                    in_sample_cost, worst_cost
-                ) = self.monte_carlo(
-                    a_tch=a_tch,
-                    b_tch=b_tch,
-                    rho_tch=rho_tch,
-                    alpha=alpha,
-                    seed = self.settings.seed
-                )
+                # Evaluation only: the outputs are recorded via .detach()/.item(),
+                # yet the rollout was building a full autograd graph at
+                # test_batch_size every iteration -- measured at 0.10 GB per
+                # test-sample-stage, the same as a TRAINING sample, i.e. 23 GB instead
+                # of 9 at test_batch 48 (lropt_power/multistage, 2026-09-20).
+                # _evaluate_rho_multistage already runs this call under no_grad.
+                # EXCEPT under delage_coverage: dist_loss differentiates INSIDE the
+                # rollout (`loss_conf.backward(create_graph=True)`, ~l.1215), on
+                # evaluation passes too, and under no_grad that loss has no grad_fn
+                # (test_delage_coverage caught it). That branch keeps its graph.
+                with self._eval_grad_context():
+                    (
+                        val_cost,
+                        val_cost_constr,
+                        x_batch,
+                        z_batch,
+                        avg_cost,
+                        prob_constr_violation,
+                        u_batch,
+                        cvar_cost,
+                        in_sample_cost, worst_cost
+                    ) = self.monte_carlo(
+                        a_tch=a_tch,
+                        b_tch=b_tch,
+                        rho_tch=rho_tch,
+                        alpha=alpha,
+                        seed = self.settings.seed
+                    )
                 _test_elapsed_time = time.time() - _test_start_time
                 record_avg_cost = avg_cost
                 if not self._default_simulator:
@@ -1854,6 +1967,21 @@ class Trainer:
                 )
                 new_row["Test_time"] = _test_elapsed_time
                 rows_test.append(new_row)
+
+            # Per-step END hook, the read-only twin of on_step above and duck-typed the
+            # same way: a predictor that defines on_step_end(step_num, train_row,
+            # validation_row) is handed this step's training statistics (the row just
+            # appended to `rows`: Lagrangian_val, Train_val, Train_cvar,
+            # Violations_train, lam_list, mu, ...) and, on the steps where the validation
+            # rollout ran (step_num % validate_frequency == 0), the validation row
+            # (Validate_val, Validate_cvar, Violations_validate, ...); None otherwise.
+            # This is how a predictor can ADAPT its per-step behaviour (which head takes
+            # gradients, via on_step) to the training trajectory -- e.g. by measuring
+            # which head lowers the held-out objective -- without reaching into the
+            # loop's locals. Nothing is passed back, and predictors without the method
+            # are unaffected, so every existing run is bit-identical.
+            if hasattr(self.settings.predictor, "on_step_end"):
+                self.settings.predictor.on_step_end(step_num, _train_row, _validation_row)
 
         df = pd.DataFrame([r.to_dict() for r in rows]) if rows else pd.DataFrame()
         df_test = (
@@ -1959,7 +2087,9 @@ class Trainer:
             self._default_simulator = True
         if self.settings.num_iter == 0:
             self.settings.num_iter = 1
-        self.violation_checker = ViolationChecker(self.cvxpylayer, self.problem_no_unc.constraints)
+        self.violation_checker = ViolationChecker(
+            self.cvxpylayer, self.problem_no_unc.constraints,
+            tol=getattr(self.settings, "violation_tol", VIOLATION_TOL))
         self._max_iter_line_search = self.settings.max_iter_line_search
         self.x_endind = self.settings.x_endind
 
@@ -2317,7 +2447,8 @@ class Trainer:
                 self.simulator = DefaultSimulator(self)
                 self._default_simulator = True
             self.violation_checker = ViolationChecker(
-                self.cvxpylayer, self.problem_no_unc.constraints)
+                self.cvxpylayer, self.problem_no_unc.constraints,
+                tol=getattr(settings, "violation_tol", VIOLATION_TOL))
             self._max_iter_line_search = settings.max_iter_line_search
             self.x_endind = settings.x_endind
         else:

@@ -446,8 +446,13 @@ def undo_step(opt: torch.optim.Optimizer,state) -> None:
     for group in opt.param_groups:
         for param in group["params"]:
             if param.grad is not None:
-                param.data = state[ind]
-                # param.data.add_(param.grad, alpha=-group["lr"])
+                # copy_ rather than `param.data = state[ind]`: the latter makes the
+                # parameter SHARE storage with the snapshot, so the next opt.step()
+                # mutates the snapshot too and every later undo restores the moved
+                # position. In a line search that retakes a step k times, only the
+                # first undo then did anything and the k-1 further retakes accumulated
+                # (dcopf 2026-09-18: 19 rejected steps moved the predictor by 6%).
+                param.data.copy_(state[ind])
                 ind += 1
 
 

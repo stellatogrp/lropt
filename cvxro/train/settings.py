@@ -3,6 +3,8 @@ from enum import Enum
 import numpy as np
 import torch
 
+from cvxro.violation_checker.settings import VIOLATION_TOL
+
 # General constants
 RHO_LST_DEFAULT = np.logspace(-3, 1, 20)
 LAYER_SOLVER = {"solve_method": "Clarabel", "tol_feas": 1e-7}
@@ -130,6 +132,13 @@ class TrainerSettings:
             if scheduler is enabled. Default 500.
         lr_gamma: float, optional
             The multiplier of the lr if the scheduler is enabled. Default 0.1.
+        train_rho: bool, optional
+            Whether the uncertainty-set radius rho takes a gradient alongside the
+            predictor's heads. Only consulted on the CONTEXTUAL path, where a predictor
+            that exposes param_groups() replaces the variable list _set_train_variables
+            builds -- and that replacement drops rho_tch from the optimizer entirely, so
+            rho stays at init_rho for the whole run unless this is set. Default False,
+            which is the historical behaviour of every contextual arm.
         quantiles: tuple, optional
             The lower and upper quantiles of the test values desired. Default (0.25, 0.75)
         aug_lag_update_interval: int, optional
@@ -153,6 +162,21 @@ class TrainerSettings:
         max_iter_line_search
             The maximum number of times we halve the step size when an
             infeasibility occurs. Default 10.
+        violation_tol
+            Absolute tolerance per constraint entry for the feasibility check the
+            line search and the unsolved-fraction statistics run on the layer's
+            solution (violation_checker.check_constraint). Default VIOLATION_TOL
+            (1e-4). Raise it for problems whose EQUALITY rows involve large-scale
+            quantities: the layer meets those only to solver tolerance, and at 1e-4
+            every step can be classed infeasible and never accepted.
+        train_max_unsolved
+            Fraction of a TRAINING batch whose robust problem may be unsolvable (the
+            layer's solution violates a constraint of problem_no_unc) without the step
+            being classed INFEASIBLE. Those samples are dropped from the batch before
+            the losses are formed, so the step trains on the solvable contexts only,
+            mirroring the feasibility-filtered evaluation columns. Default 0.0: any
+            unsolvable sample fails the step, which the line search then undoes and
+            retakes at a smaller lr (the pre-existing behaviour). Single-stage only.
         x_endind
             If given, the ending index for the context parameters we want to
             use for training the shape parameters. All parameters after this
@@ -221,6 +245,7 @@ class TrainerSettings:
         self.quantiles = (0.25, 0.75)
         self.lr_step_size = 500
         self.lr_gamma = 0.1
+        self.train_rho = False
         self.position = False
         self.parallel = False
         self.aug_lag_update_interval = 20
@@ -233,6 +258,8 @@ class TrainerSettings:
         self.init_bias = None
         self.x_endind = None
         self.max_iter_line_search = 100  # Times to check feasibility before timeout
+        self.violation_tol = VIOLATION_TOL
+        self.train_max_unsolved = 0.0
         self.policy = None
         self.time_horizon = 1
         self.batch_size = 1
