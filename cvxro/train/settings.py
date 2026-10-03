@@ -230,6 +230,12 @@ class TrainerSettings:
             infeasible), draw a new training batch and re-evaluate the kept point on it,
             so the next step has a new direction and a same-batch descent reference.
             Otherwise the batch changes only at AL updates (aug_lag_update_interval).
+        batch_per_step
+            Default False. True draws a fresh training batch at EVERY step, decoupled from
+            the AL schedule; False keeps the old behavior, where the batch changes only at AL
+            updates (every aug_lag_update_interval steps, default 20, so 8 batches in 151
+            steps). The line search still re-evaluates on the step's own batch, and the
+            descent reference is reset every step (a cross-batch descent test is noise).
     """
 
     def __init__(self):
@@ -302,6 +308,7 @@ class TrainerSettings:
         self.line_search_mode = "legacy"  # "legacy" | "backtrack", see the docstring
         self.line_search_on_exhaust = "keep_last"  # "keep_last" | "revert" (backtrack)
         self.line_search_resample = False  # new batch after a rejection (backtrack)
+        self.batch_per_step = False  # fresh training batch every step, not only at AL updates
         self.initialize_predictor = True
         self.validate_percentage = 0.2
         self.validate_frequency = 10

@@ -1893,6 +1893,10 @@ class Trainer:
         # beyond any AL update count so they never coincide with seed_num's own batches.
         batch_bump = 0
         _BUMP_STRIDE = 10007
+        # batch_per_step: the training batch is seeded by the step, not by seed_num (which
+        # moves only at AL updates). Offset so these seeds never coincide with seed_num's.
+        batch_per_step = bool(getattr(self.settings, "batch_per_step", False))
+        _STEP_BASE = 20011
         _init_elapsed_time = time.time() - _init_start_time
         for step_num in range(self.settings.num_iter):
             if step_num > 0 and not backtrack:
@@ -1914,6 +1918,9 @@ class Trainer:
             if hasattr(self.settings.predictor, "on_step"):
                 self.settings.predictor.on_step(step_num)
             _train_start_time = time.time()
+            batch_seed = _STEP_BASE + step_num if batch_per_step else seed_num
+            if batch_per_step:
+                prev_fin_cost = np.inf   # new batch, so the last step's cost is not comparable
             if backtrack:
                 constraint_status, fin_cost, avg_cost, \
                     prob_violation_train, constr_cost, cvar_cost, in_sample_cost, worst_cost, \
@@ -1921,9 +1928,9 @@ class Trainer:
                     self._backtracking_line_search(
                         step_num=step_num, a_tch=a_tch, b_tch=b_tch, rho_tch=rho_tch,
                         alpha=alpha, lam=lam, mu=mu, opt=opt, scheduler=scheduler_,
-                        seed_num=seed_num + _BUMP_STRIDE * batch_bump,
+                        seed_num=batch_seed + _BUMP_STRIDE * batch_bump,
                         prev_fin_cost=prev_fin_cost,
-                        resample_seed_num=(seed_num + _BUMP_STRIDE * (batch_bump + 1)
+                        resample_seed_num=(batch_seed + _BUMP_STRIDE * (batch_bump + 1)
                                            if resample else None))
                 if resample and ls_outcome in ("no_descent", "infeasible"):
                     batch_bump += 1
@@ -1933,7 +1940,7 @@ class Trainer:
                     self._line_search(step_num=step_num, a_tch=a_tch, b_tch=b_tch,
                                       rho_tch=rho_tch, alpha=alpha, lam=lam, mu=mu, opt=opt,
                                       prev_states=prev_states,
-                                      seed_num = seed_num,
+                                      seed_num = batch_seed,
                                       prev_fin_cost = prev_fin_cost)
             _train_elapsed_time = time.time() - _train_start_time
             if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
