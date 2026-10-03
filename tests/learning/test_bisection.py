@@ -89,8 +89,10 @@ class TestBisection(unittest.TestCase):
 
     def test_rejects_the_unsolvable_region(self):
         """Where the robust problem has no feasible decision, cvxpylayers returns a
-        degenerate one whose violation probability reads ~0. Such a radius must never
-        be selected, even though it scores perfectly on the violation criterion."""
+        degenerate decision rather than failing. Such a radius must never be selected,
+        and its recorded violation probability must say so: Avg_prob_* is the full
+        failed-decision event, so failed solves count as violations (they used to read
+        ~0 here, the degenerate decision's residuals looking clean)."""
         trainer, settings = _fixture(z_lower=1)
         result = trainer.bisection(rho_lo=0.05, rho_hi=20.0, settings=settings, tol=0.02)
 
@@ -98,8 +100,9 @@ class TestBisection(unittest.TestCase):
         probes = probes.astype(float)
         unsolved = probes[probes["Frac_unsolved_validate"] > 0]
         self.assertGreater(len(unsolved), 0, "bracket did not reach the degenerate region")
-        # Those radii do look perfect on the violation criterion alone.
-        self.assertLess(float(unsolved["Avg_prob_validate"].max()), 1e-6)
+        # The recorded rate now dominates the failed-solve fraction at every radius.
+        gaps = unsolved["Avg_prob_validate"] - unsolved["Frac_unsolved_validate"]
+        self.assertGreaterEqual(float(gaps.min()), -1e-9)
 
         chosen = result.df.loc[
             (result.df["Rho"].astype(float) - float(result.rho)).abs().idxmin()]

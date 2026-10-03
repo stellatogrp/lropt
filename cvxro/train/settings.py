@@ -210,6 +210,26 @@ class TrainerSettings:
             The amount to reduce the step size by if the line search condition is not met
         line_search_threshold
             The threshold (between 0 and 1) for the line search condition
+        line_search_mode
+            "legacy" (default) or "backtrack". "legacy" is the original loop, whose
+            descent test has never rejected a step (it compares against a prev_fin_cost
+            that is never carried between steps) and whose retries do not re-take a
+            non-improving step; every result produced before this setting existed used
+            it, and it stays bit-identical. "backtrack" re-takes each step from a
+            parameter + optimizer-state snapshot at lr * line_search_mult**k until the
+            step is feasible and descends, resets lr exactly afterwards, compares only
+            within one training batch, and logs Line_search_tries/_outcome per step.
+            Each try is one training rollout: with backtrack use roughly
+            max_iter_line_search = 10-15 and line_search_mult = 0.5, not 100 at 0.8.
+        line_search_on_exhaust
+            backtrack only. "keep_last" (default): when every try is feasible but none
+            descends, keep the smallest try. "revert": restore the snapshot instead (no
+            step taken).
+        line_search_resample
+            backtrack only. Default False. After a rejected step (no_descent or
+            infeasible), draw a new training batch and re-evaluate the kept point on it,
+            so the next step has a new direction and a same-batch descent reference.
+            Otherwise the batch changes only at AL updates (aug_lag_update_interval).
     """
 
     def __init__(self):
@@ -275,6 +295,9 @@ class TrainerSettings:
         self.line_search_mult = 0.8
         self.line_search_threshold = 1
         self.line_search = True
+        self.line_search_mode = "legacy"  # "legacy" | "backtrack", see the docstring
+        self.line_search_on_exhaust = "keep_last"  # "keep_last" | "revert" (backtrack)
+        self.line_search_resample = False  # new batch after a rejection (backtrack)
         self.initialize_predictor = True
         self.validate_percentage = 0.2
         self.validate_frequency = 10

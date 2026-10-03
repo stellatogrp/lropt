@@ -1252,6 +1252,38 @@ class Trainer:
             g=g, g_shapes=self.g_shapes, batch_int=batch_int, eval_args=eval_args
         )
 
+    def failure_indicator(self, batch_int, eval_args, solved=None):
+        """
+        Per-sample indicator of the full failed-decision event: ANY uncertain constraint
+        row (the epigraph-objective row included) is violated on the realized data, OR
+        the returned robust solution failed the reformulation check. This is the event a
+        probabilistic guarantee at level eta is about; prob_constr_violation's per-row
+        rates and feasibility_stats' physical-feasibility fraction are both rates of
+        strictly smaller or non-nested events and must not be quoted in its place.
+        Args:
+            batch_int:
+                The number of samples in the batch
+            eval_args:
+                The arguments of the constraints
+            solved:
+                Optional boolean array from the robust-solution check (e.g.
+                _grid_solved_mask). Unsolved samples count as failures, because
+                cvxpylayers returns a degenerate decision rather than failing.
+        Returns:
+            A boolean tensor of length batch_int
+        """
+        indicator = eval_constr_indicator(
+            g=self.g, g_shapes=self.g_shapes, batch_int=batch_int, eval_args=eval_args
+        ).sum(axis=0) > 0
+        if solved is not None and len(solved) == batch_int:
+            solved = torch.as_tensor(np.asarray(solved), dtype=torch.bool)
+            indicator = indicator | ~solved
+        return indicator
+
+    def prob_failure(self, batch_int, eval_args, solved=None):
+        """The probability of the full failed-decision event; see failure_indicator."""
+        return self.failure_indicator(batch_int, eval_args, solved=solved).double().mean()
+
     def _grid_solved_mask(self, settings, split, rho_tch):
         """Per-sample solvability of the robust problem, or None when not tracked.
 
@@ -1580,8 +1612,170 @@ class Trainer:
         # was made live. A real fix re-takes the step with the reduced lr inside this
         # loop; that is a design decision for the authors. Every reported result to date
         # was trained with this check inert: Adam + infeasibility undo + interval updates.
+        # settings.line_search_mode = "backtrack" selects _backtracking_line_search, which
+        # does re-take the step from a parameter + optimizer-state snapshot; this legacy
+        # path is kept bit-identical as the default.
         return constraint_status, fin_cost, avg_cost, \
             prob_violation_train, constr_cost, cvar_cost, in_sample_cost, worst_cost
+
+    def _evaluate_fin_cost(self, a_tch, b_tch, rho_tch, alpha, lam, mu, seed_num):
+        """One training rollout at the current parameters, and the objective the line
+        search judges (the augmented Lagrangian, or the coverage/plain cost). The same
+        formula as _line_search's loop body, factored out for _backtracking_line_search."""
+        self._validate_flag = False
+        self._test_flag = False
+        cost, constr_cost, _, _, constraint_status, \
+            avg_cost, prob_violation_train, _, cvar_cost, \
+            in_sample_cost, worst_cost = self.loss_and_constraints(
+                a_tch=a_tch,
+                b_tch=b_tch,
+                seed=self.settings.seed + seed_num + 1,
+                rho_tch=rho_tch,
+                alpha=alpha,
+                batch_size=self.settings.batch_size,
+            )
+        if not self._default_simulator:
+            avg_cost = avg_cost.repeat(3)
+
+        if self.settings.constraint_cvar:
+            h_plus = torch.maximum(constr_cost, torch.zeros_like(constr_cost))
+            if self.num_g_total > 1:
+                if isinstance(mu, torch.Tensor):
+                    fin_cost = cost + lam @ h_plus + (mu / 2) @ (h_plus ** 2)
+                else:
+                    fin_cost = (
+                        cost + lam @ h_plus
+                        + (mu / 2) * (torch.linalg.norm(h_plus) ** 2)
+                    )
+            else:
+                if isinstance(mu, torch.Tensor):
+                    fin_cost = cost + lam * h_plus + (mu[0] / 2) * (h_plus ** 2)
+                else:
+                    fin_cost = cost + lam * h_plus + (mu / 2) * (h_plus ** 2)
+        elif self.settings.delage_coverage:
+            fin_cost = (1-self.settings.coverage_gamma)*cost + \
+                self.settings.coverage_gamma*constr_cost
+        else:
+            fin_cost = cost
+        return constraint_status, fin_cost, avg_cost, \
+            prob_violation_train, constr_cost, cvar_cost, in_sample_cost, worst_cost
+
+    def _backtracking_line_search(self, step_num, a_tch, b_tch, rho_tch, alpha, lam, mu,
+                                  opt, scheduler, seed_num, prev_fin_cost,
+                                  resample_seed_num=None):
+        """settings.line_search_mode = "backtrack": a real backtracking line search.
+
+        Unlike _line_search, this method OWNS the optimizer step. The gradient in
+        p.grad (from the previous accepted step's backward) fixes the direction; the
+        parameters and the optimizer state (Adam's moments and step count) are
+        snapshotted, and try k re-takes the step from that snapshot at
+        lr0 * line_search_mult**k. A try is accepted when it is FEASIBLE and
+        fin_cost <= line_search_threshold * prev_fin_cost (the descent test is skipped
+        when settings.line_search is False, or prev_fin_cost is inf). The lr is reset
+        to lr0 exactly afterwards, never multiplied back.
+
+        Exhaustion (max_iter_line_search tries, none accepted):
+          * last try FEASIBLE (it never descended): accept it -- the smallest step --
+            as the settings docstring always promised ("proceed with the last step
+            size").
+          * last try INFEASIBLE: revert to the snapshot and re-evaluate there, so the
+            returned statistics and the gradient belong to the parameters actually
+            kept; returns INFEASIBLE so the caller logs the time-out. With a fixed
+            training batch the next step repeats the same direction from the same
+            state, so this recurs until the batch (seed_num) or the multipliers change.
+
+        settings.line_search_on_exhaust = "revert" (default "keep_last") treats the
+        FEASIBLE-but-never-descended case like the infeasible one: the snapshot is
+        restored and no step is taken (and the scheduler does not tick). "keep_last"
+        drifts uphill by one lr0 * mult**(tries-1) step per rejection (lropt_power c5:
+        18 such steps in 19).
+
+        resample_seed_num (settings.line_search_resample, passed by the caller): on
+        either rejection the kept point is re-evaluated on THAT batch instead of the
+        current one, and its cost becomes prev_fin_cost, so the next step has a new
+        direction and a same-batch descent reference. Without it a rejection on a fixed
+        batch recurs every step. The caller advances its batch counter on rejection.
+
+        Returns the same eight values as _line_search plus prev_fin_cost (the accepted
+        objective, or the old one if nothing was accepted), the number of tries, and
+        an outcome string ("accepted", "no_descent", "infeasible", "first_step").
+        """
+        mult = self.settings.line_search_mult
+        tries = self._max_iter_line_search
+
+        def _descends(fin_cost):
+            if not self.settings.line_search or not np.isfinite(float(prev_fin_cost)):
+                return True
+            return bool(fin_cost <= self.settings.line_search_threshold * prev_fin_cost)
+
+        if step_num == 0:
+            # No step yet: evaluate the initial point once, as _line_search does.
+            out = self._evaluate_fin_cost(a_tch, b_tch, rho_tch, alpha, lam, mu, seed_num)
+            constraint_status, fin_cost = out[0], out[1]
+            if constraint_status is CONSTRAINT_STATUS.FEASIBLE:
+                opt.zero_grad()
+                fin_cost.backward()
+                prev_fin_cost = fin_cost.clone().detach()
+            return (*out, prev_fin_cost, 1, "first_step")
+
+        params = [p for group in opt.param_groups for p in group["params"]]
+        theta0 = [p.detach().clone() for p in params]
+        # deepcopy at capture AND at every restore: Optimizer.state_dict() returns
+        # references, and load_state_dict() adopts the given tensors without copying
+        # (torch 2.13), so the first retried opt.step() would otherwise mutate the
+        # snapshot in place -- the same aliasing class as undo_step's 2026-09-18 bug.
+        state0 = copy.deepcopy(opt.state_dict())
+        lr0 = [group["lr"] for group in opt.param_groups]
+
+        def _restore(k):
+            with torch.no_grad():
+                for p, t in zip(params, theta0):
+                    p.copy_(t)
+            opt.load_state_dict(copy.deepcopy(state0))
+            for group, lr in zip(opt.param_groups, lr0):
+                group["lr"] = lr * mult ** k
+
+        outcome = None
+        for k in range(tries):
+            _restore(k)
+            take_step(opt=opt, rho_tch=rho_tch, scheduler=None,
+                      project=self._project_step)
+            out = self._evaluate_fin_cost(a_tch, b_tch, rho_tch, alpha, lam, mu, seed_num)
+            constraint_status, fin_cost = out[0], out[1]
+            if constraint_status is CONSTRAINT_STATUS.FEASIBLE and _descends(fin_cost):
+                outcome = "accepted"
+                break
+        n_tries = k + 1
+
+        revert = getattr(self.settings, "line_search_on_exhaust", "keep_last") == "revert"
+        eval_seed = seed_num if resample_seed_num is None else resample_seed_num
+        if outcome is None and constraint_status is CONSTRAINT_STATUS.FEASIBLE:
+            outcome = "no_descent"
+            if revert:
+                _restore(0)
+            if revert or resample_seed_num is not None:
+                out = self._evaluate_fin_cost(a_tch, b_tch, rho_tch, alpha, lam, mu,
+                                              eval_seed)
+                fin_cost = out[1]
+        elif outcome is None:
+            outcome = "infeasible"
+            _restore(0)
+            out = self._evaluate_fin_cost(a_tch, b_tch, rho_tch, alpha, lam, mu, eval_seed)
+            # Report the time-out even if the snapshot itself re-evaluates FEASIBLE.
+            out = (CONSTRAINT_STATUS.INFEASIBLE, *out[1:])
+            fin_cost = out[1]
+
+        for group, lr in zip(opt.param_groups, lr0):
+            group["lr"] = lr
+        stepped = outcome == "accepted" or (outcome == "no_descent" and not revert)
+        if stepped and scheduler:
+            # One scheduler tick per step actually taken, after the lr is back at lr0.
+            scheduler.step()
+        if outcome != "infeasible" or resample_seed_num is not None:
+            prev_fin_cost = fin_cost.clone().detach()
+        opt.zero_grad()
+        fin_cost.backward()
+        return (*out, prev_fin_cost, n_tries, outcome)
 
     def _eval_grad_context(self):
         """no_grad for the train loop's evaluation rollouts, unless a branch needs a
@@ -1693,9 +1887,15 @@ class Trainer:
                 "trainer": self,
             }
         prev_states = []
+        backtrack = getattr(self.settings, "line_search_mode", "legacy") == "backtrack"
+        resample = backtrack and getattr(self.settings, "line_search_resample", False)
+        # Batches drawn after a rejection (line_search_resample): offset by a stride far
+        # beyond any AL update count so they never coincide with seed_num's own batches.
+        batch_bump = 0
+        _BUMP_STRIDE = 10007
         _init_elapsed_time = time.time() - _init_start_time
         for step_num in range(self.settings.num_iter):
-            if step_num > 0:
+            if step_num > 0 and not backtrack:
                 prev_states = take_step(opt=opt, rho_tch=rho_tch, scheduler=scheduler_,
                                         project=self._project_step)
             train_stats = TrainLoopStats(
@@ -1714,13 +1914,27 @@ class Trainer:
             if hasattr(self.settings.predictor, "on_step"):
                 self.settings.predictor.on_step(step_num)
             _train_start_time = time.time()
-            constraint_status, fin_cost, avg_cost, \
-                prob_violation_train, constr_cost, cvar_cost, in_sample_cost,worst_cost = \
-                self._line_search(step_num=step_num, a_tch=a_tch, b_tch=b_tch, rho_tch=rho_tch,
-                                  alpha=alpha, lam=lam, mu=mu, opt=opt,
-                                  prev_states=prev_states,
-                                  seed_num = seed_num,
-                                  prev_fin_cost = prev_fin_cost)
+            if backtrack:
+                constraint_status, fin_cost, avg_cost, \
+                    prob_violation_train, constr_cost, cvar_cost, in_sample_cost, worst_cost, \
+                    prev_fin_cost, ls_tries, ls_outcome = \
+                    self._backtracking_line_search(
+                        step_num=step_num, a_tch=a_tch, b_tch=b_tch, rho_tch=rho_tch,
+                        alpha=alpha, lam=lam, mu=mu, opt=opt, scheduler=scheduler_,
+                        seed_num=seed_num + _BUMP_STRIDE * batch_bump,
+                        prev_fin_cost=prev_fin_cost,
+                        resample_seed_num=(seed_num + _BUMP_STRIDE * (batch_bump + 1)
+                                           if resample else None))
+                if resample and ls_outcome in ("no_descent", "infeasible"):
+                    batch_bump += 1
+            else:
+                constraint_status, fin_cost, avg_cost, \
+                    prob_violation_train, constr_cost, cvar_cost, in_sample_cost,worst_cost = \
+                    self._line_search(step_num=step_num, a_tch=a_tch, b_tch=b_tch,
+                                      rho_tch=rho_tch, alpha=alpha, lam=lam, mu=mu, opt=opt,
+                                      prev_states=prev_states,
+                                      seed_num = seed_num,
+                                      prev_fin_cost = prev_fin_cost)
             _train_elapsed_time = time.time() - _train_start_time
             if constraint_status is CONSTRAINT_STATUS.INFEASIBLE:
                 if step_num == 0:
@@ -1742,7 +1956,9 @@ class Trainer:
 
             if step_num % self.settings.aug_lag_update_interval == 0:
                 seed_num += 1
-                if self.settings.reset_prev_cost_on_al_update:
+                # The batch and the multipliers change here, so the old objective is not
+                # comparable: backtrack always resets (a cross-batch descent test is noise).
+                if self.settings.reset_prev_cost_on_al_update or backtrack:
                     prev_fin_cost = np.inf
 
                 if strategy == "classic":
@@ -1811,6 +2027,10 @@ class Trainer:
             _init_charge = _init_elapsed_time if step_num == 0 else 0.0
             new_row["Train_time"] = _train_elapsed_time + _init_charge
             new_row["Init_time"] = _init_charge
+            if backtrack:
+                new_row["Line_search_tries"] = ls_tries
+                new_row["Line_search_outcome"] = ls_outcome
+                new_row["Line_search_batch"] = batch_bump
             rows.append(new_row)
             _train_row, _validation_row = new_row, None
 
@@ -2511,7 +2731,15 @@ class Trainer:
                 cvar_test = self.evaluation_cvar(self.test_size, test_args)
                 in_sample_test = self.train_objective(self.test_size, test_args)
 
-                prob_violation_test = self.prob_constr_violation(self.test_size, test_args)
+                # One solved mask per split, shared by the violation probability and the
+                # feasibility statistics, so Avg_prob_* and Pct_infeasible_* judge the
+                # same solutions. Avg_prob_* is the FULL failed-decision event
+                # (certificate violated OR robust-solution check failed): it used to be
+                # the certificate event alone, which let a radius pass selection while
+                # its failed solves pushed the true violation rate past the target.
+                solved_test = self._grid_solved_mask(settings, test_split, rho_tch)
+                prob_violation_test = self.prob_failure(
+                    self.test_size, test_args, solved=solved_test)
                 _, var_vio = self.lagrangian(
                     self.test_size, test_args, ctx.alpha, ctx.lam, 1, settings.eta)
 
@@ -2528,8 +2756,9 @@ class Trainer:
                                                     settings.quantiles)
                 in_sample_cost = self.train_objective(self.validate_size, test_args_t)
 
-                prob_violation_train = self.prob_constr_violation(
-                    self.validate_size, test_args_t)
+                solved_validate = self._grid_solved_mask(settings, validate_split, rho_tch)
+                prob_violation_train = self.prob_failure(
+                    self.validate_size, test_args_t, solved=solved_validate)
                 _, var_vio_train = self.lagrangian(
                     self.validate_size, test_args_t, ctx.alpha, ctx.lam, 1, settings.eta
                 )
@@ -2539,7 +2768,7 @@ class Trainer:
                     "test",
                     *self.feasibility_stats(
                         self.test_size, test_args, settings.quantiles,
-                        solved=self._grid_solved_mask(settings, test_split, rho_tch),
+                        solved=solved_test,
                     ),
                 )
             with validate_time:
@@ -2547,7 +2776,7 @@ class Trainer:
                     "validate",
                     *self.feasibility_stats(
                         self.validate_size, test_args_t, settings.quantiles,
-                        solved=self._grid_solved_mask(settings, validate_split, rho_tch),
+                        solved=solved_validate,
                     ),
                 )
 

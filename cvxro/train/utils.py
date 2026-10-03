@@ -84,6 +84,33 @@ def eval_constr_indicator(
 
 
 
+def empirical_cvar(costs: torch.Tensor, eta: float) -> tuple[torch.Tensor, torch.Tensor]:
+    """Uniform empirical CVaR of `costs` at level `eta`, with its VaR.
+
+    CVaR is the epigraph value min_t t + mean((costs - t)_+) / eta: with the costs
+    sorted descending and r = eta * n, it averages the worst floor(r) samples plus
+    fractional weight r - floor(r) of the next one. This handles ties, fractional tail
+    mass and eta * n < 1, and is continuous in the costs — unlike the previous
+    threshold-and-average convention, which shifted the quantile index by one and swept
+    in all mass tied with the threshold.
+
+    VaR is the (1 - eta)-quantile under the "higher" convention, which is a minimizer
+    t* of the epigraph form. The two use different conventions on ties, so callers must
+    never re-derive one from the other.
+    """
+    n = costs.shape[0]
+    srt = torch.sort(costs, descending=True)[0]
+    r = eta * n
+    if r <= 0:  # a tail of less than zero samples: CVaR degenerates to the maximum
+        return (srt[0], srt[0])
+    k = int(r)
+    if k >= n:  # eta >= 1: the tail is the whole sample
+        return (torch.mean(costs), srt[n - 1])
+    cvar_loss = (srt[:k].sum() + (r - k) * srt[k]) / r
+    var = srt[k] if r > k else srt[k - 1]
+    return (cvar_loss, var)
+
+
 def _select_samples(values: torch.Tensor, mask) -> torch.Tensor:
     """Keep only the masked samples along the batch axis.
 
@@ -201,12 +228,7 @@ def eval_input(
             if init_val.shape[0] == 0:
                 nan = torch.tensor(float("nan"), dtype=settings.DTYPE)
                 return (nan, nan)
-        quant = min(len(init_val)-1, int((1-eta_target)*len(init_val)) + 1)
-        init_sorted = torch.sort(init_val, descending=False)[0]
-        quant = init_sorted[quant]
-        init_ge_quant = init_val.ge(quant).float()
-        cvar_loss =  init_val.mul(init_ge_quant).sum() / init_ge_quant.sum()
-        return (cvar_loss, quant)
+        return empirical_cvar(init_val, eta_target)
     elif eval_input_case == EVAL_INPUT_CASE.MAX:
         # We want to see if there's a violation: either 1 from previous iterations,
         # or new positive value from now
@@ -216,7 +238,9 @@ def eval_input(
             init_val = eval_func(*eval_args, **kwargs)
             if len(init_val.shape) > 1:
                 init_val = init_val.permute(*reversed(range(init_val.ndim))) # replaces init_val.T
-        init_val = (init_val > settings.TOL).float()
+        # A nonfinite residual means the solve or the evaluation failed, never that the
+        # constraint holds: NaN > TOL is False, so count nonfinite values as violations.
+        init_val = ((init_val > settings.TOL) | ~torch.isfinite(init_val)).float()
     return init_val
 
 

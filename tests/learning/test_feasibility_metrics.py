@@ -90,11 +90,17 @@ class TestFeasibilityMetrics(unittest.TestCase):
 
             kept = raw[feasible]
             count = len(kept)
-            quantile = np.sort(kept)[min(count - 1, int(0.9 * count) + 1)]
+            # uniform empirical CVaR at eta = 0.1: worst floor(r) samples plus the
+            # fractional weight of the next, r = 0.1 * count; VaR is the "higher"
+            # 0.9-quantile (this used to assert the old shifted, tie-inclusive form)
+            srt = np.sort(kept)[::-1]
+            r = 0.1 * count
+            k = int(r)
+            cvar = (srt[:k].sum() + (r - k) * srt[k]) / r
+            var = srt[k] if r > k else srt[k - 1]
             npt.assert_allclose(float(row["Test_val_feasible"]), kept.mean())
-            npt.assert_allclose(float(row["Test_worst_feasible"]), quantile)
-            npt.assert_allclose(float(row["Test_cvar_feasible"]),
-                                kept[kept >= quantile].mean())
+            npt.assert_allclose(float(row["Test_worst_feasible"]), var)
+            npt.assert_allclose(float(row["Test_cvar_feasible"]), cvar)
 
     def test_pct_infeasible_complements_frac_feasible(self):
         df, _ = self._grid()
@@ -176,8 +182,10 @@ class TestUnsolvedTracking(unittest.TestCase):
         small, large = df.iloc[0], df.iloc[1]
         self.assertAlmostEqual(float(small["Frac_unsolved_test"]), 0.0)
         self.assertAlmostEqual(float(large["Frac_unsolved_test"]), 1.0)
-        # cvxro's own violation probability is the misleading one here
-        self.assertAlmostEqual(float(np.mean(large["Avg_prob_test"])), 0.0, places=6)
+        # Avg_prob_* is the full failed-decision event, so an unsolvable radius is
+        # all violations (it used to read 0 here: the certificate alone was recorded,
+        # and a failed solve's degenerate decision produced clean-looking residuals)
+        self.assertAlmostEqual(float(np.mean(large["Avg_prob_test"])), 1.0, places=6)
         self.assertAlmostEqual(float(large["Frac_feasible_test"]), 0.0)
 
     def _unsolvable_at_large_rho(self):
