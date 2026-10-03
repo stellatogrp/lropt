@@ -279,6 +279,10 @@ class TrainerSettings:
         self.x_endind = None
         self.max_iter_line_search = 100  # Times to check feasibility before timeout
         self.violation_tol = VIOLATION_TOL
+        # Lower clamp applied to rho after every optimizer step. The default is the
+        # value take_step hard-coded; lower it for an arm that wants a near-degenerate
+        # set (e.g. a point-prediction baseline at rho ~ 1e-6).
+        self.rho_min = 0.001
         self.train_max_unsolved = 0.0
         self.policy = None
         self.time_horizon = 1

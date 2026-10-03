@@ -1578,7 +1578,7 @@ class Trainer:
             elif constraint_status is CONSTRAINT_STATUS.INFEASIBLE and (step_num != 0):
                 undo_step(opt=opt,state=prev_states)
                 reduce_step_size(opt=opt,step_mult = self.settings.line_search_mult)
-                prev_states = take_step(opt=opt,
+                prev_states = take_step(rho_min=getattr(self.settings, "rho_min", 0.001), opt=opt,
                                         rho_tch=rho_tch, scheduler=None,
                                         update_state = False,
                                         prev_states = prev_states,
@@ -1738,7 +1738,7 @@ class Trainer:
         outcome = None
         for k in range(tries):
             _restore(k)
-            take_step(opt=opt, rho_tch=rho_tch, scheduler=None,
+            take_step(rho_min=getattr(self.settings, "rho_min", 0.001), opt=opt, rho_tch=rho_tch, scheduler=None,
                       project=self._project_step)
             out = self._evaluate_fin_cost(a_tch, b_tch, rho_tch, alpha, lam, mu, seed_num)
             constraint_status, fin_cost = out[0], out[1]
@@ -1896,7 +1896,7 @@ class Trainer:
         _init_elapsed_time = time.time() - _init_start_time
         for step_num in range(self.settings.num_iter):
             if step_num > 0 and not backtrack:
-                prev_states = take_step(opt=opt, rho_tch=rho_tch, scheduler=scheduler_,
+                prev_states = take_step(rho_min=getattr(self.settings, "rho_min", 0.001), opt=opt, rho_tch=rho_tch, scheduler=scheduler_,
                                         project=self._project_step)
             train_stats = TrainLoopStats(
                 step_num=step_num, train_flag=self.train_flag, num_g_total=self.num_g_total

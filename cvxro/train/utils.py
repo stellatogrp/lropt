@@ -417,6 +417,7 @@ def take_step(
     update_state = True,
     prev_states = [],
     project = None,
+    rho_min: float = 0.001,
 ) -> list:
     """
     This function performs an optimization step.
@@ -450,8 +451,13 @@ def take_step(
     opt.step()
     # opt.zero_grad()
     with torch.no_grad():
-        newrho_tch = torch.clamp(rho_tch, min=0.001)
-        rho_tch.copy_(newrho_tch)
+        # The radius floor. Default 0.001, the long-standing hard-coded value, so every
+        # arm is unaffected. It is a parameter because an arm that deliberately wants a
+        # degenerate, point-like set (DFL: configured rho = 1e-6) was silently floored
+        # three orders of magnitude above what it asked for.
+        if rho_min is not None:
+            newrho_tch = torch.clamp(rho_tch, min=rho_min)
+            rho_tch.copy_(newrho_tch)
     if project is not None:
         project()
     if scheduler:
