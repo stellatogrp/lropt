@@ -27,8 +27,8 @@ def check_indices_dict(indices_dict, n_data):
             if arr.dtype == bool:
                 if arr.size != n_data:
                     raise ValueError(
-                        f"Boolean mask for '{key}' has incorrect length {
-                            arr.size}, expected {n_data}"
+                        f"Boolean mask for '{key}' has incorrect length "
+                        f"{arr.size}, expected {n_data}"
                     )
                 arr = _np.nonzero(arr)[0]
             else:

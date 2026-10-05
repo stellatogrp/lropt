@@ -1027,7 +1027,8 @@ class Trainer:
             for i in range(dset.shape[0]):
                 coverage += torch.where(
                     torch.norm(
-                        (a_tch[i].T @ torch.linalg.inv(a_tch[i] @ a_tch[i].T + 0.00001*torch.eye(a_tch[i].shape[0])))
+                        (a_tch[i].T @ torch.linalg.inv(
+                            a_tch[i] @ a_tch[i].T + 0.00001*torch.eye(a_tch[i].shape[0])))
                         @ (dset[i] - b_tch[i]),
                         p,
                     )
@@ -1039,7 +1040,10 @@ class Trainer:
             for datind in range(dset.shape[0]):
                 coverage += torch.where(
                     torch.norm(
-                        (a_tch.T @ torch.linalg.inv((a_tch @ a_tch.T)+ 0.00001*torch.eye(a_tch.shape[0]))) @ (dset[datind] - b_tch), p
+                        (a_tch.T @ torch.linalg.inv(
+                            (a_tch @ a_tch.T) + 0.00001*torch.eye(a_tch.shape[0])))
+                        @ (dset[datind] - b_tch),
+                        p,
                     )
                     <= rho,
                     1,
@@ -1738,7 +1742,8 @@ class Trainer:
         outcome = None
         for k in range(tries):
             _restore(k)
-            take_step(rho_min=getattr(self.settings, "rho_min", 0.001), opt=opt, rho_tch=rho_tch, scheduler=None,
+            take_step(rho_min=getattr(self.settings, "rho_min", 0.001), opt=opt, rho_tch=rho_tch,
+                      scheduler=None,
                       project=self._project_step)
             out = self._evaluate_fin_cost(a_tch, b_tch, rho_tch, alpha, lam, mu, seed_num)
             constraint_status, fin_cost = out[0], out[1]
@@ -1900,7 +1905,8 @@ class Trainer:
         _init_elapsed_time = time.time() - _init_start_time
         for step_num in range(self.settings.num_iter):
             if step_num > 0 and not backtrack:
-                prev_states = take_step(rho_min=getattr(self.settings, "rho_min", 0.001), opt=opt, rho_tch=rho_tch, scheduler=scheduler_,
+                prev_states = take_step(rho_min=getattr(self.settings, "rho_min", 0.001), opt=opt,
+                                        rho_tch=rho_tch, scheduler=scheduler_,
                                         project=self._project_step)
             train_stats = TrainLoopStats(
                 step_num=step_num, train_flag=self.train_flag, num_g_total=self.num_g_total

@@ -17,7 +17,8 @@ class LinearPredictor(torch.nn.Module):
                  quad_cov = False,
                  freeze_cov = False, freeze_mean = False,
                  cov_ridge = 0.0, cov_lr_mult = 1.0,
-                 cov_rank = None, cov_rank_floor = 1e-2):
+                 cov_rank = None, cov_rank_floor = 1e-2,
+                 knn_cov_ridge = 0.0):
         super(LinearPredictor, self).__init__()
         self.predict = predict_mean
         self.pretrain = pretrain
@@ -43,6 +44,11 @@ class LinearPredictor(torch.nn.Module):
         # knn_residual_cov (which supplies the residuals) and knn_scale < 1.
         # Defaults to False -- runs are unchanged unless it is passed.
         self.knn_anchor_residual = knn_anchor_residual
+        # knn_cov_ridge: add knn_cov_ridge * (tr C / n) * I to each local kNN covariance C
+        # before its square root -- a ridge relative to the mean variance. A purely local
+        # covariance from k <= n neighbours has rank <= k-1 < n, so its set is flat in the
+        # remaining directions (and sqrtm returns a complex matrix). 0 = off, unchanged.
+        self.knn_cov_ridge = float(knn_cov_ridge)
         # Residuals and the context matrix knn_fit indexed with, cached by
         # fit_knn_residuals() once linear_mean has been fit.
         self.resid_train_vals = None
@@ -84,7 +90,8 @@ class LinearPredictor(torch.nn.Module):
         linear_mean's. Trainer.py uses this when present (duck-typed) instead
         of flattening every parameter into one group with a single lr."""
         groups = [{"params": list(self.linear_mean.parameters()), "lr": base_lr}]
-        groups.append({"params": list(self.linear_cov.parameters()), "lr": base_lr * self.cov_lr_mult})
+        groups.append({"params": list(self.linear_cov.parameters()),
+                       "lr": base_lr * self.cov_lr_mult})
         if extra_params is not None:
             groups.append({"params": list(extra_params), "lr": base_lr})
         return groups
@@ -285,7 +292,8 @@ class LinearPredictor(torch.nn.Module):
         if self.cov_rank:
             low_rank = out_a.view(out_b.shape[0], a_shape[0], self.cov_rank)
             if a_shape[1] > self.cov_rank:
-                pad = torch.zeros(out_b.shape[0], a_shape[0], a_shape[1] - self.cov_rank, dtype=low_rank.dtype)
+                pad = torch.zeros(out_b.shape[0], a_shape[0], a_shape[1] - self.cov_rank,
+                                  dtype=low_rank.dtype)
                 a_tch = torch.cat([low_rank, pad], dim=2)
             else:
                 a_tch = low_rank
@@ -453,7 +461,10 @@ class LinearPredictor(torch.nn.Module):
         neighbors = self.knn.kneighbors(x.detach(), return_distance=False)
         atchs = []
         for i in range(x.shape[0]):
-            atchs.append(sc.linalg.sqrtm(np.cov(cov_vals[neighbors[i]].T)))
+            cov = np.cov(cov_vals[neighbors[i]].T)
+            if self.knn_cov_ridge:
+                cov = cov + self.knn_cov_ridge * np.trace(cov) / cov.shape[0] * np.eye(cov.shape[0])
+            atchs.append(sc.linalg.sqrtm(cov))
         atchs = np.stack(atchs)
         a_tch = torch.tensor(atchs, dtype=torch.double, requires_grad=True)
         return a_tch
