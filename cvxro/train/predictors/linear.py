@@ -428,11 +428,17 @@ class LinearPredictor(torch.nn.Module):
         resid = np.asarray(self.resid_train_vals, float)
         n = resid.shape[1]
         anchor = sc.linalg.sqrtm(np.cov(resid.T) + 1e-5 * np.eye(n)).real
+        # linear_cov is an nn.Linear here but an nn.Sequential on the MLP heads, whose
+        # warm start (NonlinearHeadPredictor._zero_and_set_bias) parks init_A in the FINAL
+        # Linear's bias with a zeroed weight -- so that bias is the constant term there.
+        final = self.linear_cov
+        if not isinstance(final, torch.nn.Linear):
+            final = [m for m in self.linear_cov.modules() if isinstance(m, torch.nn.Linear)][-1]
         with torch.no_grad():
             if self.cov_rank:
                 anchor = self._low_rank_factor(anchor)
-            self.linear_cov.bias.data = torch.tensor(
-                anchor.flatten(), dtype=torch.double)
+            final.bias.data = torch.tensor(
+                anchor.flatten(), dtype=final.bias.dtype)
 
     def fit_knn_residuals(self):
         """Cache the training residuals u_j - mu_hat(x_j) that knn_predict()

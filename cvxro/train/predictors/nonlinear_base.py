@@ -16,7 +16,7 @@ class NonlinearHeadPredictor(LinearPredictor):
     sigmoid-featured linear head, or a per-coordinate additive net.
     """
 
-    def __init__(self, cov_fit_lr=None, cov_fit_epochs=None, **kwargs):
+    def __init__(self, cov_fit_lr=None, cov_fit_epochs=None, seed_init=False, **kwargs):
         # A nonlinear head consumes the raw context; quad_cov's polynomial feature map
         # is an alternative to nonlinearity, not a companion to it. Forcing it off here
         # (rather than in each subclass) is also what lets LinearPredictor.forward,
@@ -41,6 +41,13 @@ class NonlinearHeadPredictor(LinearPredictor):
         self.cov_fit_lr = self.lr if cov_fit_lr is None else float(cov_fit_lr)
         self.cov_fit_epochs = (self.epochs if cov_fit_epochs is None
                                else int(cov_fit_epochs))
+        # seed_init: draw the network init and the Adam pretraining from
+        # torch.manual_seed(trainer.settings.seed) inside torch.random.fork_rng, leaving the
+        # caller's global torch RNG untouched. Otherwise the heads draw from whatever state
+        # the process is in, so the same config on the same data gives a different network
+        # run to run. False keeps that behaviour for callers that seed torch themselves
+        # before train().
+        self.seed_init = bool(seed_init)
 
     def _build_module(self, num_in, out_dim):
         raise NotImplementedError
@@ -147,6 +154,14 @@ class NonlinearHeadPredictor(LinearPredictor):
         self.pretrain_mlp(self.linear_mean, input_tensors, trainer.u_train_tch)
 
     def initialize(self, a_tch, b_tch, trainer):
+        seed = getattr(trainer.settings, "seed", None)
+        if not self.seed_init or seed is None:
+            return self._initialize(a_tch, b_tch, trainer)
+        with torch.random.fork_rng():
+            torch.manual_seed(int(seed))
+            return self._initialize(a_tch, b_tch, trainer)
+
+    def _initialize(self, a_tch, b_tch, trainer):
         num_in, a_out, b_out = trainer.initialize_predictor_dims()
         a_shape_full = trainer.unc_set._a.shape
         a_out_eff = a_shape_full[0] * self.cov_rank if self.cov_rank else a_out
@@ -172,4 +187,7 @@ class NonlinearHeadPredictor(LinearPredictor):
         if self.predict_cov:
             self._fit_cov_head(trainer)
         self.train()
+        # As in LinearPredictor.initialize: the kNN-blend anchor (a no-op unless
+        # knn_anchor_residual, knn_cov, predict_cov=False and knn_scale < 1).
+        self._set_residual_anchor()
         self._apply_freezes()
